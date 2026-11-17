@@ -413,6 +413,24 @@ function drawEmber(ctx: CanvasRenderingContext2D, at: Point, strength: number, r
   ctx.fillRect(at.x - radius, at.y - radius, radius * 2, radius * 2);
 }
 
+/**
+ * The smoke is drawn small and stretched back over the stage: the stretch is what softens its edges.
+ * A canvas `filter` would do it too, but the browser blurs every stroke as a layer of its own — a
+ * hundred of them a frame, which alone took the title from 60 frames a second down to 6.
+ */
+const SOFT_SCALE = 1 / 3;
+let softCtx: CanvasRenderingContext2D | null | undefined;
+
+function softLayer(): CanvasRenderingContext2D | null {
+  if (softCtx === undefined) {
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(STAGE_W * SOFT_SCALE);
+    canvas.height = Math.ceil(STAGE_H * SOFT_SCALE);
+    softCtx = canvas.getContext('2d');
+  }
+  return softCtx;
+}
+
 /** One ribbon of smoke rising from a point, swaying more the higher it gets and parting around the pointer. */
 function drawWisp(ctx: CanvasRenderingContext2D, time: number, x: number, y: number, seed: number, height: number, alpha: number, drift = -14): void {
   const segments = 20;
@@ -536,14 +554,21 @@ function drawDesk(ctx: CanvasRenderingContext2D, time: number): void {
     drawEmber(ctx, ember, 0.28 + 0.12 * Math.sin(time * 2.3), 14);
   }
 
-  ctx.save();
-  // Soft edges where the browser can; plain strokes elsewhere.
-  ctx.filter = 'blur(2.5px)';
-  if (ember) {
-    drawWisp(ctx, time, ember.x - 1, ember.y - 4, 0.3, 200, 0.52);
-    drawWisp(ctx, time * 1.13, ember.x - 4, ember.y - 2, 2.9, 160, 0.4);
+  const steaming = mug !== undefined && inHand !== 'mug';
+  const soft = ember || steaming ? softLayer() : null;
+  // Without a buffer the ribbons go straight on the stage: sharper, but still there.
+  const air = soft ?? ctx;
+  air.save();
+  if (soft) {
+    soft.setTransform(1, 0, 0, 1, 0, 0);
+    soft.clearRect(0, 0, soft.canvas.width, soft.canvas.height);
+    soft.scale(SOFT_SCALE, SOFT_SCALE);
   }
-  if (mug && inHand !== 'mug') {
+  if (ember) {
+    drawWisp(air, time, ember.x - 1, ember.y - 4, 0.3, 200, 0.52);
+    drawWisp(air, time * 1.13, ember.x - 4, ember.y - 2, 2.9, 160, 0.4);
+  }
+  if (steaming) {
     // Coffee steam: paler, lower, and livelier for a moment after a sip.
     const sipped = state.sippedAt >= 0 ? Math.max(0, 1 - (time - state.sippedAt) / SIP_STEAM_SECONDS) : 0;
     const top = REST.mug.y - HEIGHT.mug / 2 + 12;
@@ -552,10 +577,11 @@ function drawDesk(ctx: CanvasRenderingContext2D, time: number): void {
       [14, 7.7, 145],
       [36, 9.4, 105],
     ] as const) {
-      drawWisp(ctx, time * (0.8 + sipped * 0.9), REST.mug.x + offset, top, seed, height * (1 + sipped * 0.35), 0.3 + sipped * 0.24, 10);
+      drawWisp(air, time * (0.8 + sipped * 0.9), REST.mug.x + offset, top, seed, height * (1 + sipped * 0.35), 0.3 + sipped * 0.24, 10);
     }
   }
-  ctx.restore();
+  air.restore();
+  if (soft) ctx.drawImage(soft.canvas, 0, 0, STAGE_W, STAGE_H);
 
   // What was breathed out drifts between the desk and the hand.
   const smoke = sprite('fx_smoke');
