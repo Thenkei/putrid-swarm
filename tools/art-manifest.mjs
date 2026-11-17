@@ -566,6 +566,76 @@ export const ART = [
     ),
   },
 
+  // ───────────────────────────── Encounters on outings ─────────────────────────────
+  // Living survivors met over a disputed lot, the groups that stop the break on the way home,
+  // and what those scenes are played on.
+  {
+    id: 'por_rival',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['dealer', 'camper'],
+    h: 360,
+    refs: [REF_NEIGHBORS],
+    prompt:
+      `Two head-and-shoulders bust portraits of two DIFFERENT living (not infected) people, side by side with a wide empty gap between them, same size and framing as the busts in the reference. ` +
+      `LEFT portrait: a sturdy flea-market dealer in her sixties ("La Brocanteuse"): grey hair under a knotted headscarf, reading glasses on a chain, a quilted sleeveless jacket over a thick jumper, a money belt across her chest, ` +
+      `a dented round biscuit tin held under one arm, weighing you up with a shrewd half-smile and one raised eyebrow. ` +
+      `RIGHT portrait: a lanky sunburnt holidaymaker in his thirties stranded far from home ("Le Campeur"): a faded bucket hat, a camping headlamp hanging around his neck, a fleece zipped to the chin, ` +
+      `clutching a creased folded road map against his chest, anxious eyes looking sideways, a nervous apologetic smile. ` +
+      `Healthy skin tones, normal eyes. ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'por_group',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['committee', 'van'],
+    h: 360,
+    refs: [REF_NEIGHBORS, REF_AUTHORITIES],
+    prompt:
+      `Two small group portraits of living (not infected) people, side by side with a wide empty gap between them, each group drawn waist-up and tightly packed like one bust portrait, both groups the same size. ` +
+      `LEFT group (a village neighbourhood committee of three): in front, a brisk woman in her fifties with a neat bob, a hi-vis armband over a cardigan, holding a clipboard and rattling a metal collection tin; ` +
+      `behind her left shoulder a hesitant balding man in a knitted waistcoat holding a garden rake as if he would rather not; behind her right shoulder a stern tall woman in an apron with her arms crossed. ` +
+      `RIGHT group (two strangers from another town): a broad man in a worn work jacket with a set of jump leads slung over his shoulder and a flat cap, and beside him a wiry woman in a beanie resting a crowbar on her shoulder, both tired, wary and unsmiling. ` +
+      `Healthy skin tones, normal eyes. ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'plate_roadblock',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_VILLAGE, REF_TOWN],
+    prompt: plate(
+      'Isometric late-afternoon view of a narrow village lane between stone walls, seen from above like the reference. In the lower left, the rusty yellow station wagon with a loaded roof rack has stopped, seen from behind, brake lights on. ' +
+        'Across the lane ahead of it, a makeshift checkpoint made by neighbours: a trestle table, two garden chairs, a wheelbarrow and a striped parasol barring the way, a string of bunting between two posts. ' +
+        'Three living villagers stand at the table, one holding a clipboard, one with a rake. On the right, a muddy farm track leaves the lane through an open field gate, clearly passable. ' +
+        'Long warm shadows, autumn leaves, no infected anywhere, calm but tense.',
+    ),
+  },
+  {
+    id: 'plate_van',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_VILLAGE, REF_TOWN],
+    prompt: plate(
+      'Isometric late-afternoon view of a country road at the edge of the village, seen from above like the reference. In the lower left, the rusty yellow station wagon with a loaded roof rack has stopped, seen from behind, brake lights on. ' +
+        'Ahead of it a dented white builder\'s van from another town is parked sideways across the road, bonnet open, sliding door open on tools and blankets. ' +
+        'Two living strangers wait beside it: a broad man with jump leads over his shoulder and a wiry woman with a crowbar, a third figure walking around toward the back of the station wagon. ' +
+        'On the left a narrow orchard path between apple trees leads around the van. Long warm shadows, autumn leaves, no infected anywhere, calm but tense.',
+    ),
+  },
+  {
+    id: 'washers_board',
+    kind: 'sprite',
+    w: 860,
+    refs: [REF_GARAGE, REF_DEVICES],
+    prompt:
+      'A single game prop seen exactly from directly above (flat top-down view, no perspective): one long weathered wooden workbench plank lying perfectly horizontal and filling the width of the image, about five times longer than it is tall, with nail heads, scratches and old paint stains. ' +
+      'Toward the right end of the plank sits one open round biscuit tin seen from directly above, empty, its inside dark and scratched, dented rim, about two thirds of the plank\'s height in diameter. ' +
+      'A rough white chalk ring is drawn on the plank around the tin, a little wider than the tin. Near the left end of the plank, one short white chalk line across it marks the throwing line. Nothing else on the plank: no washers, no tools, no hands. ' +
+      `${KEY} ${STYLE}`,
+  },
+
   // ───────────────────────────── Devices (2x2 state sheets) ─────────────────────────────
   {
     id: 'dev_net',

@@ -1,0 +1,15 @@
+{
+  "id": "crate_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A heavy wooden crate of ironmongery dragged off a shop floor and lifted with a grunt: scrape, metal jangle. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T13:18:32.545Z",
+  "bytes": 18433,
+  "sha256": "393268b5234f99904a8aa08985dec38f2182a0a00dc430ad1591405a1700794d"
+}

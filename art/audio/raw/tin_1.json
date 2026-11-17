@@ -1,0 +1,15 @@
+{
+  "id": "tin_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One steel washer dropping into an empty round biscuit tin: a hollow tinny clang and a short ringing rattle. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T13:18:27.452Z",
+  "bytes": 15089,
+  "sha256": "3929247dd3998a269e1f9f6b0199a7efc919cb7472d7f876223033e04af27333"
+}

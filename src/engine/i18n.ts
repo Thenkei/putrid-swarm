@@ -35,9 +35,14 @@ export const getLang = (): Lang => current;
 /** Typed access to the whole table, for structured lookups (`S().device[type].name`). */
 export const S = (): Strings => TABLES[current];
 
-/** Fills `{name}` placeholders. */
+/** French counts zero and one as singular; English only one. */
+const isSingular = (n: number): boolean => (current === 'fr' ? Math.abs(n) < 2 : n === 1);
+
+/** Fills `{name}` placeholders, and picks a word by number with `{n:pièce|pièces}`. */
 export function fmt(template: string, params: Readonly<Record<string, string | number>> = {}): string {
-  return template.replace(/\{(\w+)\}/g, (match, key: string) => (key in params ? String(params[key]) : match));
+  return template
+    .replace(/\{(\w+):([^|}]*)\|([^}]*)\}/g, (match, key: string, one: string, many: string) => (key in params ? (isSingular(Number(params[key])) ? one : many) : match))
+    .replace(/\{(\w+)\}/g, (match, key: string) => (key in params ? String(params[key]) : match));
 }
 
 /** Hours as the game shows them: `0.5` → "0,5" in French, "0.5" in English. */

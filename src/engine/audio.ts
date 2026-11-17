@@ -49,7 +49,11 @@ export type Sfx =
   | 'crt_on'
   | 'knob'
   | 'sip'
-  | 'bulb';
+  | 'bulb'
+  | 'washer'
+  | 'tin'
+  | 'scuffle'
+  | 'crate';
 
 export type Ambience = 'none' | 'room' | 'day' | 'night' | 'car';
 export type Music = 'none' | 'title' | 'day' | 'night' | 'boss' | 'morning' | 'won';
@@ -99,9 +103,13 @@ const VARIANTS: Partial<Record<Sfx, readonly string[]>> = {
   engine: numbered('engine', 5),
   engine_stop: numbered('engine_stop', 3, false),
   car_door: numbered('car_door', 3),
+  washer: numbered('washer', 3, false),
+  tin: numbered('tin', 3, false),
+  scuffle: numbered('scuffle', 3, false),
+  crate: numbered('crate', 2, false),
 };
 /** Effects heard many times in a row: a little pitch drift keeps them from sounding stamped. */
-const PITCH_DRIFT: Partial<Record<Sfx, number>> = { hit: 0.1, kill: 0.08, door: 0.06, spikes: 0.05, groan: 0.1, build: 0.05, rummage: 0.05, loot: 0.06, car_door: 0.04, engine: 0.03 };
+const PITCH_DRIFT: Partial<Record<Sfx, number>> = { hit: 0.1, kill: 0.08, door: 0.06, spikes: 0.05, groan: 0.1, build: 0.05, rummage: 0.05, loot: 0.06, car_door: 0.04, engine: 0.03, washer: 0.08, tin: 0.06, scuffle: 0.05 };
 /** Minimum seconds between two plays of the same effect. */
 const MIN_GAP: Partial<Record<Sfx, number>> = { hit: 0.09, kill: 0.14, door: 0.35, spikes: 0.08, groan: 1.5 };
 const LOOPING_MUSIC: ReadonlySet<Music> = new Set<Music>(['title', 'day', 'night', 'boss']);
@@ -661,6 +669,21 @@ class AudioEngine {
         break;
       case 'knob':
         this.noise('highpass', 3000, 3000, 0.02, 0.2);
+        break;
+      case 'washer':
+        this.tone('triangle', 2600, 2200, 0.05, 0.14);
+        this.noise('highpass', 4000, 4000, 0.04, 0.12, 0.05);
+        break;
+      case 'tin':
+        this.tone('square', 900, 620, 0.16, 0.1);
+        this.tone('triangle', 1900, 1500, 0.12, 0.1, 0.03);
+        break;
+      case 'scuffle':
+        for (let i = 0; i < 3; i++) this.noise('bandpass', 500 + Math.random() * 600, 300, 0.12, 0.3, i * 0.14, 1.2);
+        break;
+      case 'crate':
+        this.noise('bandpass', 700, 300, 0.25, 0.3, 0, 1.4);
+        this.noise('highpass', 3000, 3000, 0.08, 0.15, 0.12);
         break;
       case 'sip':
         this.noise('bandpass', 2400, 900, 0.5, 0.12, 0, 1.2);

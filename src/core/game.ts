@@ -5,8 +5,9 @@ import { BARRICADE, HOUSE_MAX_HP } from './data/devices';
 import { BOSS_NIGHT, DAY_HOURS, LOCATIONS, SEARCH_HOURS, type LocationDef } from './data/locations';
 import { LAST_NIGHT } from './data/waves';
 import type { NightSim } from './night';
+import { NO_STOCK, rollAmbush, rollDispute, walkAway, type Resolution } from './encounters';
 import { createRng } from './rng';
-import type { Cost, DeviceInstance, GameState, Inventory, LocationId, LocationProgress, NeighborId, NightReport, ResourceId, Result } from './types';
+import type { Cost, DeviceInstance, GameState, Inventory, LocationId, LocationProgress, NeighborId, NightReport, OutingMark, ResourceId, Result } from './types';
 import { LOCATION_IDS, RESOURCE_IDS, err, ok } from './types';
 import { DEVICES } from './data/devices';
 import { gain } from './yard';
@@ -19,7 +20,14 @@ export type DayError =
   | { readonly code: 'no_time'; readonly needed: number }
   | { readonly code: 'already_searched' }
   | { readonly code: 'unknown_spot' }
-  | { readonly code: 'escorted_out' };
+  | { readonly code: 'escorted_out' }
+  /** Someone claims this spot: it is settled with them, not rummaged behind their back. */
+  | { readonly code: 'disputed' }
+  /** A wager or a scuffle is in progress. */
+  | { readonly code: 'busy' }
+  | { readonly code: 'not_on_road' }
+  /** The road home is barred: that comes first. */
+  | { readonly code: 'encounter_pending' };
 
 const STARTING_INVENTORY: Inventory = { wood: 10, scrap: 5, springs: 2, wire: 3, battery: 1 };
 
@@ -49,6 +57,9 @@ export function newGame(seed: number): GameState {
     hoursLeft: DAY_HOURS,
     where: 'home',
     inventory: STARTING_INVENTORY,
+    outing: null,
+    encounter: null,
+    people: {},
     yard: {
       devices,
       nextDeviceId: devices.length + 1,
@@ -80,9 +91,10 @@ export const isUnlocked = (location: LocationDef, day: number): boolean => day >
 /** A trip is only allowed if the drive back still fits in the daylight. */
 export const roundTripHours = (location: LocationDef): number => location.travelHours * 2;
 
-export interface Encounter {
+/** A neighbour found at home on arrival: a word, sometimes a present, sometimes a lecture. */
+export interface NeighborMeeting {
   readonly neighbor: NeighborId;
-  /** Which line of the encounter to show: first meeting of the day or a later one. */
+  /** Which line to show: first meeting of the day or a later one. */
   readonly first: boolean;
   readonly gift: Cost;
   readonly hoursLost: number;
@@ -90,7 +102,7 @@ export interface Encounter {
 
 export interface TravelOutcome {
   readonly state: GameState;
-  readonly encounter: Encounter | null;
+  readonly meeting: NeighborMeeting | null;
 }
 
 const flagKey = (kind: string, id: string, day: number): string => `${kind}:${id}:${day}`;
@@ -107,12 +119,15 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
     ...state,
     where: id,
     hoursLeft: state.hoursLeft - location.travelHours,
+    outing: { to: id, trunk: NO_STOCK, parted: NO_STOCK, major: false, marks: [] },
+    encounter: null,
     locations: { ...state.locations, [id]: { ...state.locations[id], visits: state.locations[id].visits + 1 } },
   };
 
-  let encounter: Encounter | null = null;
+  let meeting: NeighborMeeting | null = null;
   const neighbor = location.neighbor;
-  if (neighbor && neighborStatus(neighbor, state.day) === 'alive') {
+  const neighborAtHome = neighbor !== null && neighborStatus(neighbor, state.day) === 'alive';
+  if (neighbor && neighborAtHome) {
     const key = flagKey('met', neighbor, state.day);
     const first = !next.flags[key];
     const rng = createRng(next.rng);
@@ -143,13 +158,19 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
     next = {
       ...next,
       rng: rng.state(),
-      inventory: gain(next.inventory, gift),
+      outing: next.outing && { ...next.outing, trunk: gain(next.outing.trunk, gift) },
       hoursLeft: next.hoursLeft - hoursLost,
       flags: { ...next.flags, [key]: 1 },
     };
-    encounter = { neighbor, first, gift, hoursLost };
+    meeting = { neighbor, first, gift, hoursLost };
   }
-  return ok({ state: next, encounter });
+
+  // Where nobody minds the place any more, somebody else may have had the same idea.
+  const rng = createRng(next.rng);
+  const dispute = rollDispute(next, location, neighborAtHome, rng);
+  next = { ...next, rng: rng.state() };
+  if (dispute && next.outing) next = { ...next, encounter: dispute.encounter, flags: dispute.flags, outing: { ...next.outing, major: true } };
+  return ok({ state: next, meeting });
 }
 
 export interface SearchOutcome {
@@ -162,12 +183,18 @@ export const CHIEF_SEARCH_LIMIT = 2;
 
 export function searchSpot(state: GameState, spotIndex: number): Result<SearchOutcome, DayError> {
   if (state.phase !== 'day') return err({ code: 'wrong_phase' });
-  if (state.where === 'home') return err({ code: 'not_there' });
+  if (state.where === 'home' || state.where === 'road') return err({ code: 'not_there' });
   const location = LOCATIONS[state.where];
   const spot = location.spots[spotIndex];
   if (!spot) return err({ code: 'unknown_spot' });
   const progress = state.locations[location.id];
   if (progress.searched.includes(spotIndex)) return err({ code: 'already_searched' });
+  const { encounter, outing } = state;
+  if (!outing) return err({ code: 'not_there' });
+  if (encounter?.kind === 'dispute') {
+    if (encounter.stage === 'game' || encounter.stage === 'fight') return err({ code: 'busy' });
+    if (encounter.spot === spotIndex) return err({ code: 'disputed' });
+  }
   // The drive home must still fit after the search.
   const needed = SEARCH_HOURS + location.travelHours;
   if (state.hoursLeft + 1e-9 < needed) return err({ code: 'no_time', needed });
@@ -190,7 +217,8 @@ export function searchSpot(state: GameState, spotIndex: number): Result<SearchOu
       ...state,
       rng: rng.state(),
       hoursLeft: state.hoursLeft - SEARCH_HOURS,
-      inventory: gain(state.inventory, loot),
+      // Found is not brought home: it rides in the boot until the refuge.
+      outing: { ...outing, trunk: gain(outing.trunk, loot) },
       locations: { ...state.locations, [location.id]: { ...progress, searched: [...progress.searched, spotIndex] } },
       flags: { ...state.flags, [visitKey]: searchesThisVisit + 1 },
       totals: { ...state.totals, searches: state.totals.searches + 1 },
@@ -198,11 +226,59 @@ export function searchSpot(state: GameState, spotIndex: number): Result<SearchOu
   });
 }
 
-export function returnHome(state: GameState): Result<GameState, DayError> {
+export interface Departure {
+  readonly state: GameState;
+  /** How a dispute left unsettled ended when the break drove off. */
+  readonly forfeit: Resolution | null;
+}
+
+/**
+ * Leaves a location for the road home. The load is not safe yet: this is where a group may
+ * bar the way, and the refuge is only reached through `arriveHome`.
+ */
+export function leaveLocation(state: GameState): Result<Departure, DayError> {
   if (state.phase !== 'day') return err({ code: 'wrong_phase' });
-  if (state.where === 'home') return err({ code: 'not_there' });
+  if (state.where === 'home' || state.where === 'road') return err({ code: 'not_there' });
   const location = LOCATIONS[state.where];
-  return ok({ ...state, where: 'home', hoursLeft: Math.max(0, state.hoursLeft - location.travelHours) });
+
+  let next = state;
+  let forfeit: Resolution | null = null;
+  if (next.encounter) {
+    const settled = walkAway(next);
+    if (!settled.ok) return err({ code: 'busy' });
+    next = settled.value.state;
+    forfeit = settled.value.resolution;
+  }
+
+  next = { ...next, where: 'road', hoursLeft: Math.max(0, next.hoursLeft - location.travelHours) };
+  const rng = createRng(next.rng);
+  const ambush = rollAmbush(next, rng);
+  next = { ...next, rng: rng.state() };
+  if (ambush && next.outing) next = { ...next, encounter: ambush.encounter, flags: ambush.flags, outing: { ...next.outing, major: true } };
+  return ok({ state: next, forfeit });
+}
+
+export interface Arrival {
+  readonly state: GameState;
+  /** What was unloaded into the refuge's stock. */
+  readonly brought: Inventory;
+  /** What the outing handed over or had taken on the way. */
+  readonly parted: Inventory;
+  readonly marks: readonly OutingMark[];
+}
+
+/** Pulls into the yard and unloads. Only now does the outing's load count as the refuge's. */
+export function arriveHome(state: GameState): Result<Arrival, DayError> {
+  if (state.phase !== 'day') return err({ code: 'wrong_phase' });
+  if (state.where !== 'road' || !state.outing) return err({ code: 'not_on_road' });
+  if (state.encounter) return err({ code: 'encounter_pending' });
+  const { trunk, parted, marks } = state.outing;
+  return ok({
+    state: { ...state, where: 'home', inventory: gain(state.inventory, trunk), outing: null },
+    brought: trunk,
+    parted,
+    marks,
+  });
 }
 
 // ───────────────────────────── Phase transitions ─────────────────────────────
@@ -233,7 +309,7 @@ export function concludeNight(state: GameState, sim: NightSim): GameState {
 /** Morning → next day. */
 export function startNextDay(state: GameState): GameState {
   if (state.phase !== 'morning') return state;
-  return { ...state, phase: 'day', day: state.day + 1, hoursLeft: DAY_HOURS, where: 'home' };
+  return { ...state, phase: 'day', day: state.day + 1, hoursLeft: DAY_HOURS, where: 'home', outing: null, encounter: null };
 }
 
 export const clockLabel = (hoursLeft: number): string => {

@@ -1,0 +1,15 @@
+{
+  "id": "washer_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One steel washer tossed onto a bare wooden plank: a bright metallic clink, then it spins flat with a short rattle. Close, dry, no reverb.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T13:18:26.079Z",
+  "bytes": 13835,
+  "sha256": "4a06b2742698b2a3b4935a3f65d59d64152bb159d5ce24d8799fe640a2affd22"
+}

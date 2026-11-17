@@ -377,6 +377,72 @@
     "seconds": 1.019,
     "gain": 0.8
   },
+  "washer_1": {
+    "file": "washer_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.81,
+    "gain": 0.8
+  },
+  "washer_2": {
+    "file": "washer_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.81,
+    "gain": 0.8
+  },
+  "washer_3": {
+    "file": "washer_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.888,
+    "gain": 0.8
+  },
+  "tin_1": {
+    "file": "tin_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.888,
+    "gain": 0.8
+  },
+  "tin_2": {
+    "file": "tin_2.mp3",
+    "kind": "sfx",
+    "seconds": 1.019,
+    "gain": 0.8
+  },
+  "tin_3": {
+    "file": "tin_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.888,
+    "gain": 0.8
+  },
+  "scuffle_1": {
+    "file": "scuffle_1.mp3",
+    "kind": "sfx",
+    "seconds": 1.306,
+    "gain": 0.8
+  },
+  "scuffle_2": {
+    "file": "scuffle_2.mp3",
+    "kind": "sfx",
+    "seconds": 1.202,
+    "gain": 0.8
+  },
+  "scuffle_3": {
+    "file": "scuffle_3.mp3",
+    "kind": "sfx",
+    "seconds": 1.202,
+    "gain": 0.8
+  },
+  "crate_1": {
+    "file": "crate_1.mp3",
+    "kind": "sfx",
+    "seconds": 1.202,
+    "gain": 0.8
+  },
+  "crate_2": {
+    "file": "crate_2.mp3",
+    "kind": "sfx",
+    "seconds": 1.097,
+    "gain": 0.8
+  },
   "crt_off": {
     "file": "crt_off.mp3",
     "kind": "sfx",

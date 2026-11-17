@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEVICES } from '../src/core/data/devices';
 import { LOCATIONS } from '../src/core/data/locations';
 import { NIGHTS } from '../src/core/data/waves';
-import { concludeNight, newGame, returnHome, searchSpot, startNextDay, startNight, travelTo } from '../src/core/game';
+import { arriveHome, concludeNight, leaveLocation, newGame, searchSpot, startNextDay, startNight, travelTo } from '../src/core/game';
 import { ENTRIES, SPAWN_CELLS, idx, isBuildable } from '../src/core/map';
 import { NightSim } from '../src/core/night';
 import { auditRoutes, computeField } from '../src/core/pathing';
@@ -521,17 +521,18 @@ describe('campaign', () => {
     expect(concludeNight(state, sim).phase).toBe('won');
   });
 
-  it('outings cost daylight, loot is banked, and spots empty for good', () => {
+  it('outings cost daylight, loot comes home in the boot, and spots empty for good', () => {
     const state = newGame(5);
     const out = unwrap(travelTo(state, 'hardware'));
     expect(out.state.where).toBe('hardware');
     expect(out.state.hoursLeft).toBe(state.hoursLeft - LOCATIONS.hardware.travelHours);
     const searched = unwrap(searchSpot(out.state, 0));
     expect(searched.loot.wood).toBeGreaterThanOrEqual(5);
-    expect(searched.state.inventory.wood).toBe(state.inventory.wood + (searched.loot.wood ?? 0));
+    expect(searched.state.outing?.trunk.wood).toBe(searched.loot.wood);
     expect(searchSpot(searched.state, 0).ok).toBe(false);
-    const home = unwrap(returnHome(searched.state));
+    const home = unwrap(arriveHome(unwrap(leaveLocation(searched.state)).state)).state;
     expect(home.where).toBe('home');
+    expect(home.inventory.wood).toBe(state.inventory.wood + (searched.loot.wood ?? 0));
     expect(home.hoursLeft).toBe(state.hoursLeft - 2 * LOCATIONS.hardware.travelHours - 0.5);
   });
 

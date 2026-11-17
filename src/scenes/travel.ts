@@ -15,8 +15,12 @@ export interface TravelOptions {
   readonly plate: string;
   readonly title: string;
   readonly sub: string;
-  /** What came back in the boot, when driving home. */
+  /** What is in the boot, when driving home. */
   readonly loot?: Cost;
+  /** What the outing handed over or had taken on the way. */
+  readonly lost?: Cost;
+  /** A last line under the load: what it still allows before dark. */
+  readonly note?: string;
   readonly next: () => void;
 }
 
@@ -31,13 +35,16 @@ export class TravelScene implements Scene {
 
   enter(): void {
     audio.setAmbience('car', ROAD_FADE_IN);
-    const { title, sub, loot } = this.options;
-    const hasLoot = loot !== undefined && Object.values(loot).some((n) => (n ?? 0) > 0);
+    const { title, sub, loot, lost, note } = this.options;
+    const some = (cost: Cost | undefined): cost is Cost => cost !== undefined && Object.values(cost).some((n) => (n ?? 0) > 0);
+    const s = S();
     this.app.ui.append(
       el('div', { class: 'center-col hit', onClick: () => this.finish() }, [
         el('h1', { text: title }),
-        el('p', { text: sub }),
-        hasLoot && loot ? el('p', {}, [`${S().loc.trunk} : `, costLine(loot, undefined, '+')]) : null,
+        sub ? el('p', { text: sub }) : null,
+        some(loot) ? el('p', {}, [`${s.loc.trunk} : `, costLine(loot, undefined, '+')]) : loot ? el('p', { text: s.encounter.arrival.empty }) : null,
+        some(lost) ? el('p', { class: 'lost' }, [`${s.encounter.arrival.lost} : `, costLine(lost, undefined, '−')]) : null,
+        note ? el('p', { class: 'muted', text: note }) : null,
       ]),
     );
   }
