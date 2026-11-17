@@ -31,6 +31,8 @@ export type Sfx =
   | 'ram'
   | 'interrupt'
   | 'camera'
+  /** The one hand going from the trap row to the camera keys, or back. */
+  | 'hand'
   | 'engine'
   | 'news'
   | 'exhale'
@@ -143,9 +145,10 @@ const VARIANTS: Partial<Record<Sfx, readonly string[]>> = {
   yank: numbered('yank', 3, false),
   saw: numbered('saw', 4, false),
   heartbeat: numbered('heartbeat', 2, false),
+  hand: numbered('hand', 3, false),
 };
 /** Effects heard many times in a row: a little pitch drift keeps them from sounding stamped. */
-const PITCH_DRIFT: Partial<Record<Sfx, number>> = { hit: 0.1, kill: 0.08, door: 0.06, spikes: 0.05, groan: 0.1, build: 0.05, rummage: 0.05, loot: 0.06, car_door: 0.04, engine: 0.03, washer: 0.08, tin: 0.06, scuffle: 0.05, step_grass: 0.08, chew: 0.06, pain: 0.05, yank: 0.06, saw: 0.06, heartbeat: 0.03 };
+const PITCH_DRIFT: Partial<Record<Sfx, number>> = { hit: 0.1, kill: 0.08, door: 0.06, spikes: 0.05, groan: 0.1, build: 0.05, rummage: 0.05, loot: 0.06, car_door: 0.04, engine: 0.03, washer: 0.08, tin: 0.06, scuffle: 0.05, step_grass: 0.08, chew: 0.06, pain: 0.05, yank: 0.06, saw: 0.06, heartbeat: 0.03, hand: 0.06 };
 /** Minimum seconds between two plays of the same effect. */
 const MIN_GAP: Partial<Record<Sfx, number>> = { hit: 0.09, kill: 0.14, door: 0.35, spikes: 0.08, groan: 1.5 };
 const LOOPING_MUSIC: ReadonlySet<Music> = new Set<Music>(['title', 'day', 'night', 'boss', 'orchard', 'panic']);
@@ -696,6 +699,11 @@ class AudioEngine {
       case 'camera':
         this.noise('highpass', 3500, 6000, 0.07, 0.22);
         this.tone('square', 1200, 1200, 0.025, 0.05);
+        break;
+      case 'hand':
+        // A sleeve brushing across the desk.
+        this.noise('bandpass', 1800, 900, 0.22, 0.12, 0, 0.8);
+        this.noise('bandpass', 900, 1400, 0.16, 0.08, 0.08, 0.8);
         break;
       case 'engine':
         // The old break: three laboured turns of the starter, then it catches.

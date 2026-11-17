@@ -1186,7 +1186,7 @@
   },
   "finale_mower_rider_one_arm": {
     "file": "sprites/finale_mower_rider_one_arm.webp",
-    "w": 623,
+    "w": 613,
     "h": 520
   },
   "orchard_rabbit_more_ears": {
@@ -1246,6 +1246,51 @@
   },
   "plate_finale_swarmed_dawn": {
     "file": "plates/plate_finale_swarmed_dawn.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_loc_garage_one_arm": {
+    "file": "plates/plate_loc_garage_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_town_one_arm": {
+    "file": "plates/plate_town_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_return_one_arm": {
+    "file": "plates/plate_return_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_village_one_arm": {
+    "file": "plates/plate_village_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_finale_swarmed_one_arm": {
+    "file": "plates/plate_finale_swarmed_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_control_room_one_arm": {
+    "file": "plates/plate_control_room_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_trunk_one_arm": {
+    "file": "plates/plate_trunk_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_van_one_arm": {
+    "file": "plates/plate_van_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_morning_one_arm": {
+    "file": "plates/plate_morning_one_arm.webp",
     "w": 1280,
     "h": 853
   }

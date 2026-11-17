@@ -1,0 +1,19 @@
+{
+  "id": "vo_dawn_arm",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[exhales] Le jour. Je n’ai rien perdu cette nuit. Rien de plus.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:10:14.170Z",
+  "bytes": 80291,
+  "sha256": "b158096c87d5ee19f7a47b8f4df0f0739ffe502361b050dcbfac4ca78f3c49e7"
+}

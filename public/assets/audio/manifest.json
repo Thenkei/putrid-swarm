@@ -185,6 +185,24 @@
     "seconds": 0.496,
     "gain": 0.6
   },
+  "hand_1": {
+    "file": "hand_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.444,
+    "gain": 0.5
+  },
+  "hand_2": {
+    "file": "hand_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.601,
+    "gain": 0.5
+  },
+  "hand_3": {
+    "file": "hand_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.496,
+    "gain": 0.5
+  },
   "alert": {
     "file": "alert.mp3",
     "kind": "sfx",
@@ -1031,6 +1049,42 @@
     "seconds": 2.769,
     "gain": 1
   },
+  "vo_car_arm": {
+    "file": "vo_car_arm.mp3",
+    "kind": "voice",
+    "seconds": 4.65,
+    "gain": 1
+  },
+  "vo_car_arm_2": {
+    "file": "vo_car_arm_2.mp3",
+    "kind": "voice",
+    "seconds": 3.997,
+    "gain": 1
+  },
+  "vo_car_arm_3": {
+    "file": "vo_car_arm_3.mp3",
+    "kind": "voice",
+    "seconds": 4.624,
+    "gain": 1
+  },
+  "vo_home_arm": {
+    "file": "vo_home_arm.mp3",
+    "kind": "voice",
+    "seconds": 3.918,
+    "gain": 1
+  },
+  "vo_home_arm_2": {
+    "file": "vo_home_arm_2.mp3",
+    "kind": "voice",
+    "seconds": 4.232,
+    "gain": 1
+  },
+  "vo_home_arm_3": {
+    "file": "vo_home_arm_3.mp3",
+    "kind": "voice",
+    "seconds": 2.325,
+    "gain": 1
+  },
   "vo_nightfall": {
     "file": "vo_nightfall.mp3",
     "kind": "voice",
@@ -1053,6 +1107,54 @@
     "file": "vo_nightfall_4.mp3",
     "kind": "voice",
     "seconds": 2.456,
+    "gain": 1
+  },
+  "vo_nightfall_arm": {
+    "file": "vo_nightfall_arm.mp3",
+    "kind": "voice",
+    "seconds": 3.03,
+    "gain": 1
+  },
+  "vo_nightfall_arm_2": {
+    "file": "vo_nightfall_arm_2.mp3",
+    "kind": "voice",
+    "seconds": 2.482,
+    "gain": 1
+  },
+  "vo_nightfall_arm_3": {
+    "file": "vo_nightfall_arm_3.mp3",
+    "kind": "voice",
+    "seconds": 3.318,
+    "gain": 1
+  },
+  "vo_one_hand": {
+    "file": "vo_one_hand.mp3",
+    "kind": "voice",
+    "seconds": 4.232,
+    "gain": 1
+  },
+  "vo_hand": {
+    "file": "vo_hand.mp3",
+    "kind": "voice",
+    "seconds": 2.717,
+    "gain": 1
+  },
+  "vo_hand_2": {
+    "file": "vo_hand_2.mp3",
+    "kind": "voice",
+    "seconds": 2.116,
+    "gain": 1
+  },
+  "vo_hand_3": {
+    "file": "vo_hand_3.mp3",
+    "kind": "voice",
+    "seconds": 2.325,
+    "gain": 1
+  },
+  "vo_hand_4": {
+    "file": "vo_hand_4.mp3",
+    "kind": "voice",
+    "seconds": 1.75,
     "gain": 1
   },
   "vo_night1": {
@@ -1167,6 +1269,24 @@
     "file": "vo_dawn_4.mp3",
     "kind": "voice",
     "seconds": 2.456,
+    "gain": 1
+  },
+  "vo_dawn_arm": {
+    "file": "vo_dawn_arm.mp3",
+    "kind": "voice",
+    "seconds": 4.728,
+    "gain": 1
+  },
+  "vo_dawn_arm_2": {
+    "file": "vo_dawn_arm_2.mp3",
+    "kind": "voice",
+    "seconds": 2.586,
+    "gain": 1
+  },
+  "vo_dawn_arm_3": {
+    "file": "vo_dawn_arm_3.mp3",
+    "kind": "voice",
+    "seconds": 2.377,
     "gain": 1
   },
   "vo_lost": {

@@ -27,7 +27,7 @@ import { assetUrl } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
-import { costLine, drawPlate, inventoryBar, lootSfx, resourceChip } from './common';
+import { costLine, drawPlate, inventoryBar, lootSfx, oneArmed, resourceChip } from './common';
 import { goHomeStretch } from './flow';
 import { WashersBoard, type Landing, type Side } from './washers';
 
@@ -554,7 +554,7 @@ export class AmbushScene implements Scene {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    drawPlate(ctx, this.plate);
+    drawPlate(ctx, this.plate, { oneArmed: oneArmed(this.app.state) });
     const dusk = 1 - this.state.hoursLeft / DAY_HOURS;
     ctx.fillStyle = `rgba(40, 30, 90, ${Math.max(0, dusk - 0.55) * 0.5})`;
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);

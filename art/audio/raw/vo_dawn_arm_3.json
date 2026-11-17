@@ -1,0 +1,19 @@
+{
+  "id": "vo_dawn_arm_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[tired] Le coq. Je l’applaudirais bien.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:10:16.735Z",
+  "bytes": 46018,
+  "sha256": "c72c6f3d4389701f183076f96dc48d5d690552029ecf9e3e367a08e67d40c7f7"
+}

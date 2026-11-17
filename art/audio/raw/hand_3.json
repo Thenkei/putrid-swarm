@@ -1,0 +1,15 @@
+{
+  "id": "hand_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A quick swish of fabric as one arm reaches across a desk, a wooden chair creaking slightly under the shifted weight. Close, quiet, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:09:51.600Z",
+  "bytes": 10492,
+  "sha256": "36d4b3f31ea527936869d6a6175f8b9c646db039a1be4e43c3010b5e51f49bff"
+}

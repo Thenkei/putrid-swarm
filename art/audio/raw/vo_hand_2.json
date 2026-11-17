@@ -1,0 +1,19 @@
+{
+  "id": "vo_hand_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[hurried] Attends. J’arrive. J’ai qu’une main.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:10:10.241Z",
+  "bytes": 39331,
+  "sha256": "57a0ff2602577921c8b7e206d7539efbca7fe4785ed0592daa6c9e7770f615f7"
+}

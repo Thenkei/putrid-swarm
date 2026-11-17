@@ -1,0 +1,15 @@
+{
+  "id": "hand_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A single hand sliding quickly across a wooden desk: a short dry rustle of a canvas jacket sleeve and fingertips brushing wood. Close, quiet, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:09:47.657Z",
+  "bytes": 10492,
+  "sha256": "fae7bc681c6ffbe48620ee664988ec06a7d0788428156f18f21dd8f577ea00eb"
+}

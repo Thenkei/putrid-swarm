@@ -1,0 +1,19 @@
+{
+  "id": "vo_nightfall_arm_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] Le bras me gratte. Celui qui n’est plus là.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:10:04.513Z",
+  "bytes": 47272,
+  "sha256": "8439d54b3fb008302f0a07a2a5118a496a769545ae8d788a50e078317228d8bc"
+}

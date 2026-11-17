@@ -1,0 +1,19 @@
+{
+  "id": "vo_hand_4",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[under his breath] Doucement. Une chose à la fois.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:10:12.471Z",
+  "bytes": 34315,
+  "sha256": "283de735310d7e28b2a115346314eb299300df6f9d4eb186db41ec4b7d3c9a4e"
+}

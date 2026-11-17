@@ -126,7 +126,7 @@ export class MapScene implements Scene {
       return;
     }
     carDeparture();
-    tripLine('car', this.state.day);
+    tripLine('car', this.state);
     this.app.state = result.value.state;
     this.app.save();
     const s = S();

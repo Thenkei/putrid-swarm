@@ -5,7 +5,7 @@ import type { App, Scene } from '../engine/app';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S } from '../engine/i18n';
-import { costLine, drawPlate } from './common';
+import { costLine, drawPlate, oneArmed } from './common';
 
 const HOLD_SECONDS = 3.2;
 /** The road noise comes up slowly, under the engine that was just started. */
@@ -65,7 +65,7 @@ export class TravelScene implements Scene {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    drawPlate(ctx, this.options.plate, { zoom: 1.04 + this.time * 0.012, focusY: 0.5 });
+    drawPlate(ctx, this.options.plate, { zoom: 1.04 + this.time * 0.012, focusY: 0.5, oneArmed: oneArmed(this.app.state) });
   }
 
   onKeyDown(code: string): void {

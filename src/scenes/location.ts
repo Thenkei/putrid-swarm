@@ -10,7 +10,7 @@ import { assetUrl } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
-import { carDeparture, costLine, drawPlate, inventoryBar, lootSfx, platePoint } from './common';
+import { carDeparture, costLine, drawPlate, inventoryBar, lootSfx, oneArmed, platePoint } from './common';
 import { EncounterPanel, memoryLine, nameOf, roadPlate } from './encounter';
 import { goAmbush, goHomeStretch, goTravel } from './flow';
 
@@ -231,7 +231,7 @@ export class LocationScene implements Scene {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    drawPlate(ctx, LOCATIONS[this.id].plate);
+    drawPlate(ctx, LOCATIONS[this.id].plate, { oneArmed: oneArmed(this.app.state) });
     const dusk = 1 - this.state.hoursLeft / DAY_HOURS;
     ctx.fillStyle = `rgba(40, 30, 90, ${Math.max(0, dusk - 0.55) * 0.5})`;
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);
