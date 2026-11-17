@@ -919,6 +919,19 @@ export const ART = [
     ),
   },
   {
+    // The same bench with nothing left lying on it: the scene paints a piece of this one over whatever
+    // has been picked up (scenes/shed.ts `BENCH_ITEMS`), so the leads and the hammer leave the picture.
+    id: 'plate_shed_bench_bare',
+    kind: 'plate',
+    w: 1280,
+    edit: 'art/raw/plate_shed_bench.png',
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, every object in the same position and at the same size, same line work, same colours, same light, same canvas proportions — with only this change: ' +
+      'two things are taken off the workbench. (1) The coiled red and black jump leads with their copper clamps, lying on the bench top between the car battery and the hammer, are gone. (2) The claw hammer with the wooden handle lying on the bench top is gone. ' +
+      'Where they were, paint the bare scarred wooden bench top, continuing its planks, stains, wear and light exactly as around it, and the foot of the plank wall behind. ' +
+      'The car battery on the left, the tin of screws, the vice, the tools hanging on the wall, the hose, the window, the drawers and the jerrycans stay exactly as they are. Nothing else in the picture changes.',
+  },
+  {
     id: 'plate_shed_shelf',
     kind: 'plate',
     w: 1280,

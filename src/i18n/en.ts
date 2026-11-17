@@ -36,6 +36,7 @@ export const en: Strings = {
     laterSub: 'Right. The house still stands. The old estate car still starts. That is something.',
   },
   res: { wood: 'Planks', scrap: 'Scrap', springs: 'Springs', wire: 'Wire & cable', battery: 'Batteries' },
+  resOne: { wood: 'plank', scrap: 'scrap', springs: 'spring', wire: 'wire & cable', battery: 'battery' },
   sector: { portail: 'Gate', grange: 'Barn', arriere: 'Back', verger: 'Orchard' },
   device: {
     fence: { name: 'Palisade', desc: 'Blocks walkers and shapes their route. Battering rams go through it, jumpers go over it.' },
@@ -279,6 +280,27 @@ export const en: Strings = {
     intact: 'intact',
     quiet: 'The garden needs redoing. The house is holding.',
     signal: 'no signal',
+  },
+  notice: {
+    warning: {
+      title: 'Before you start',
+      lines: [
+        'Putrid Swarm is a horror comedy.',
+        'It contains violence, blood and scenes some may find disturbing.',
+        'Some images flicker or shake.',
+      ],
+      note: 'For a mature audience. Played with keyboard and mouse, preferably with the sound on.',
+      go: 'Understood',
+    },
+    keyboard: {
+      title: 'You need a keyboard',
+      lines: [
+        'Putrid Swarm is played with a keyboard and a mouse, on a computer.',
+        'On a phone or a tablet most scenes cannot be played, and the game weighs several dozen megabytes.',
+      ],
+      note: 'Keep the link for later, in front of a real keyboard.',
+      go: 'Continue anyway',
+    },
   },
   end: {
     lostTitle: 'The house has fallen',

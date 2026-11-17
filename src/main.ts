@@ -1,9 +1,11 @@
 import { App, STAGE_H, STAGE_W, type Scene } from './engine/app';
 import { loadAssets } from './engine/assets';
 import { audio } from './engine/audio';
+import { readPointers, touchOnly } from './engine/device';
 import { el } from './engine/dom';
 import { S, initLang } from './engine/i18n';
-import { resolveKeyLabels } from './scenes/common';
+import { resolveKeyLabels } from './engine/keys';
+import { WarningScene, keyboardGate, warningSeen } from './scenes/notice';
 import { TitleScene } from './scenes/title';
 
 /** Shown while the art loads; replaced by the title as soon as everything is in. */
@@ -30,6 +32,8 @@ class LoadingScene implements Scene {
 
 async function boot(): Promise<void> {
   initLang();
+  // Said before anything heavy is fetched: on a phone there is no point in loading the game to find out.
+  if (touchOnly(readPointers())) await keyboardGate();
   const app = new App();
   const loading = new LoadingScene(app);
   app.start(loading);
@@ -38,7 +42,8 @@ async function boot(): Promise<void> {
   const [report] = await Promise.all([loadAssets((done, total) => loading.progress(done, total)), resolveKeyLabels(), audio.preload()]);
   if (report.failed.length > 0) console.warn(`[assets] ${report.failed.length} asset(s) missing, using placeholders:`, report.failed);
 
-  app.go(() => new TitleScene(app));
+  const title = (): Scene => new TitleScene(app);
+  app.go(warningSeen() ? title : () => new WarningScene(app, title));
 
   // Handy in development: `__app.state` in the console.
   if (import.meta.env.DEV) (window as unknown as { __app: App }).__app = app;

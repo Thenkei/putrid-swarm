@@ -70,6 +70,44 @@ interface Point {
   readonly y: number;
 }
 
+/**
+ * What lies on the bench in its picture, as rectangles of that picture (in its 1280 × 853 pixels).
+ * Once one is picked up, the same rectangle of the bare bench is painted over it, edges feathered.
+ */
+const BENCH_ITEMS: Readonly<Record<'leads' | 'hammer', { readonly x: number; readonly y: number; readonly w: number; readonly h: number }>> = {
+  leads: { x: 290, y: 416, w: 350, h: 228 },
+  hammer: { x: 628, y: 438, w: 344, h: 166 },
+};
+const BENCH_BARE = 'plate_shed_bench_bare';
+const FEATHER = 16;
+
+/** A rectangle of a picture whose edges fade out, so it can be laid over its twin without a seam. */
+function featheredPatch(art: { img: CanvasImageSource; w: number; h: number }, box: { x: number; y: number; w: number; h: number }): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = box.w;
+  canvas.height = box.h;
+  const g = canvas.getContext('2d');
+  if (!g) return canvas;
+  const sx = art.w / PLATE.w;
+  const sy = art.h / PLATE.h;
+  g.drawImage(art.img, box.x * sx, box.y * sy, box.w * sx, box.h * sy, 0, 0, box.w, box.h);
+  g.globalCompositeOperation = 'destination-out';
+  const edges: readonly (readonly [number, number, number, number, number, number, number, number])[] = [
+    [0, 0, FEATHER, 0, 0, 0, FEATHER, box.h],
+    [box.w, 0, box.w - FEATHER, 0, box.w - FEATHER, 0, FEATHER, box.h],
+    [0, 0, 0, FEATHER, 0, 0, box.w, FEATHER],
+    [0, box.h, 0, box.h - FEATHER, 0, box.h - FEATHER, box.w, FEATHER],
+  ];
+  for (const [x0, y0, x1, y1, rx, ry, rw, rh] of edges) {
+    const fade = g.createLinearGradient(x0, y0, x1, y1);
+    fade.addColorStop(0, 'rgba(0, 0, 0, 1)');
+    fade.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    g.fillStyle = fade;
+    g.fillRect(rx, ry, rw, rh);
+  }
+  return canvas;
+}
+
 /** A point of a plate, given as fractions of the picture, in stage units for that shot. */
 const at = (shot: Shot, fx: number, fy: number): Point => ({ x: fx * PLATE.w, y: fy * PLATE.h - OVER * shot.focusY });
 
@@ -1122,8 +1160,28 @@ export class ShedScene implements Scene {
         if (o.wired) this.drawLeads(ctx, SPOT.coil, { x: -60, y: SPOT.coil.y + 40 }, this.lastDoing === 'current');
         this.drawBaker(ctx, SPOT.seat, SEATED, SPOT.postFoot);
       }
-      if (place === 'bench' && o.wired) this.drawLeads(ctx, SPOT.battery, { x: PLATE.w + 60, y: SPOT.battery.y + 80 }, this.lastDoing === 'current');
+      if (place === 'bench') {
+        // The picture has the leads and the hammer lying on the bench: not once they have been taken.
+        if (o.holding === 'leads' || o.wired) this.drawBenchGap(ctx, 'leads');
+        if (o.holding === 'hammer') this.drawBenchGap(ctx, 'hammer');
+        if (o.wired) this.drawLeads(ctx, SPOT.battery, { x: PLATE.w + 60, y: SPOT.battery.y + 80 }, this.lastDoing === 'current');
+      }
     };
+  }
+
+  private readonly benchGaps = new Map<keyof typeof BENCH_ITEMS, HTMLCanvasElement>();
+
+  /** Paints the bare bench where something lay. Without the bare picture the thing simply stays painted. */
+  private drawBenchGap(ctx: CanvasRenderingContext2D, what: keyof typeof BENCH_ITEMS): void {
+    const box = BENCH_ITEMS[what];
+    let patch = this.benchGaps.get(what);
+    if (!patch) {
+      const bare = sprite(BENCH_BARE);
+      if (!bare) return;
+      patch = featheredPatch(bare, box);
+      this.benchGaps.set(what, patch);
+    }
+    ctx.drawImage(patch, box.x, box.y - OVER * SHOT.bench.focusY, box.w, box.h);
   }
 
   private drawGround(ctx: CanvasRenderingContext2D): void {

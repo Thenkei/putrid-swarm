@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
+import { launch } from './browser.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = resolve(process.argv[2] ?? 'shots');
@@ -16,8 +16,10 @@ const LANG = process.env.PS_LANG ?? 'fr';
 mkdirSync(OUT, { recursive: true });
 
 const saves = JSON.parse(execFileSync('npx', ['tsx', 'tools/arm-saves.ts'], { cwd: ROOT, encoding: 'utf8' }));
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1, locale: LANG === 'fr' ? 'fr-FR' : 'en-GB' });
+// The content warning is said once per browser: these tours are not here to read it.
+await page.addInitScript(() => localStorage.setItem('putrid-swarm.warned', '1'));
 const errors = [];
 page.on('console', (m) => {
   if (m.type() === 'error' || m.type() === 'warning') errors.push(`[${m.type()}] ${m.text()}`);

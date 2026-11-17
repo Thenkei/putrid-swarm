@@ -14,6 +14,8 @@ mkdirSync(OUT, { recursive: true });
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1, locale: 'fr-FR' });
+// The content warning is said once per browser: these tours are not here to read it.
+await page.addInitScript(() => localStorage.setItem('putrid-swarm.warned', '1'));
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));

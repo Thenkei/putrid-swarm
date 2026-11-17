@@ -4,6 +4,7 @@ import { deserialize, serialize } from '../core/save';
 import type { GameState } from '../core/types';
 import { audio } from './audio';
 import { el } from './dom';
+import { hearKey } from './keys';
 
 export const STAGE_W = 1280;
 export const STAGE_H = 720;
@@ -28,6 +29,8 @@ export interface Scene {
   onKeyUp?(code: string, event: KeyboardEvent): void;
   /** The window lost focus: whatever was held is no longer known to be. */
   onBlur?(): void;
+  /** The keyboard turned out not to be the one guessed: key labels on screen are out of date. */
+  onKeyLabels?(): void;
   onWheel?(deltaY: number, pointer: Pointer): void;
 }
 
@@ -91,6 +94,8 @@ export class App {
     window.addEventListener('keydown', (event) => {
       audio.unlock();
       if (event.repeat) return;
+      // What the key types is what is printed on it: the prompts follow the keyboard actually in use.
+      if (hearKey(event.code, event.key)) this.scene?.onKeyLabels?.();
       this.scene?.onKeyDown?.(event.code, event);
     });
     window.addEventListener('keyup', (event) => this.scene?.onKeyUp?.(event.code, event));
