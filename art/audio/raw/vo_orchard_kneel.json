@@ -1,0 +1,19 @@
+{
+  "id": "vo_orchard_kneel",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[shaky whisper] Regarde pas. Regarde les pommes.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T14:16:15.977Z",
+  "bytes": 44764,
+  "sha256": "94e81dd8042a250c11f75a2e9dd70403b36ce7d43845874eb1882299a5b06780"
+}

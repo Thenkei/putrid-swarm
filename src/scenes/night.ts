@@ -5,6 +5,7 @@ import { BARRICADE, COMBAT, DEVICES, HOUSE_MAX_HP, isAuto, isManual } from '../c
 import { concludeNight } from '../core/game';
 import { ENTRIES, HOUSE, sectorOf } from '../core/map';
 import { NightSim, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
+import { outageFor } from '../core/orchard';
 import type { DeviceTypeId, GameState, NeighborId, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/app';
@@ -15,7 +16,7 @@ import { S, fmt } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
 import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, pickDevice, type DeviceVisual, type Fallen, type Light, type Particle, type View, type WorldFrame } from '../render/world';
 import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, drawPlate, trapKeyLabels } from './common';
-import { goEnd, goMorning, goNight, goTitle } from './flow';
+import { goEnd, goFinale, goMorning, goNight, goTitle } from './flow';
 
 const MAIN = { x: 12, y: 54, w: 884, h: 497 } as const;
 const MINI = { x: 906, w: 362, h: 159, ys: [54, 223, 392] } as const;
@@ -132,7 +133,7 @@ export class NightScene implements Scene {
 
   constructor(private readonly app: App) {
     const state = this.state;
-    this.sim = new NightSim(state.day, state.yard, state.seed);
+    this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state));
     try {
       // The evening as it stood, so a lost night can be replayed with the same yard.
       sessionStorage.setItem('putrid-swarm.evening', JSON.stringify(state));
@@ -281,6 +282,11 @@ export class NightScene implements Scene {
 
   // ───────────────────────────── Cameras ─────────────────────────────
 
+  /** A camera that stopped sending: its feed is snow, and nothing on it can be counted or cued. */
+  private isDark(sector: SectorId): boolean {
+    return this.sim.cameraLost === sector;
+  }
+
   private otherSectors(): SectorId[] {
     return SECTOR_IDS.filter((sector) => sector !== this.cam);
   }
@@ -311,7 +317,8 @@ export class NightScene implements Scene {
     for (const sector of SECTOR_IDS) {
       const threat = this.sim.threat(sector);
       const cue = this.sectorCue(sector) ? 8 : 0;
-      const score = threat.atDoor * 3 + threat.count + (threat.boss ? 6 : 0) + (threat.breached && threat.count > 0 ? 4 : 0) + cue;
+      // A dark camera only has its door to go by: the planks are heard, not seen.
+      const score = this.isDark(sector) ? threat.atDoor * 3 : threat.atDoor * 3 + threat.count + (threat.boss ? 6 : 0) + (threat.breached && threat.count > 0 ? 4 : 0) + cue;
       if (score > bestScore) {
         bestScore = score;
         best = sector;
@@ -322,7 +329,7 @@ export class NightScene implements Scene {
 
   /** True when a manual trap watched by that camera has enough under it to be worth firing. */
   private sectorCue(sector: SectorId): boolean {
-    return this.sim.manualDevicesIn(sector).some((d) => this.sim.opportunity(d.id).now);
+    return !this.isDark(sector) && this.sim.manualDevicesIn(sector).some((d) => this.sim.opportunity(d.id).now);
   }
 
   private viewFor(sector: SectorId, rect: { x: number; y: number; w: number; h: number }, zoom: number): View {
@@ -392,10 +399,11 @@ export class NightScene implements Scene {
       const threat = sim.threat(sector);
       const barricade = sim.barricades[sector];
       const ratio = Math.max(0, barricade.hp / BARRICADE.maxHp[barricade.level]);
-      const danger = threat.atDoor > 0 || threat.boss !== null || (threat.breached && threat.count > 0);
-      const cls = `mini ${danger ? 'danger' : threat.count > 0 ? 'alert' : ''}${this.sectorCue(sector) ? ' cue' : ''}`;
+      const dark = this.isDark(sector);
+      const danger = dark ? threat.atDoor > 0 : threat.atDoor > 0 || threat.boss !== null || (threat.breached && threat.count > 0);
+      const cls = `mini ${danger ? 'danger' : !dark && threat.count > 0 ? 'alert' : ''}${this.sectorCue(sector) ? ' cue' : ''}${dark ? ' dark' : ''}`;
       if (mini.root.className !== cls) mini.root.className = cls;
-      setText(mini.count, threat.count > 0 ? `${threat.count}${threat.boss ? ` · ${s.enemy[threat.boss]}` : ''}` : '');
+      setText(mini.count, dark ? '' : threat.count > 0 ? `${threat.count}${threat.boss ? ` · ${s.enemy[threat.boss]}` : ''}` : '');
       mini.door.style.width = `${ratio * 100}%`;
       mini.door.style.background = ratio > 0.5 ? '#a3cf5c' : ratio > 0.2 ? '#f2a531' : '#dc4330';
 
@@ -406,6 +414,7 @@ export class NightScene implements Scene {
       }
     }
 
+    const blind = this.isDark(this.cam);
     const signature = `${this.cam}:${this.camTraps()
       .map((d) => d.id)
       .join(',')}:${sim.devices.filter((d) => d.state === 'broken').length}`;
@@ -432,6 +441,10 @@ export class NightScene implements Scene {
         fill = 1 - device.timer / def.rearmSeconds;
       } else if (sim.energy < def.energy) {
         status = s.night.noEnergy;
+      } else if (blind) {
+        // The trap still answers; what is under it is anyone's guess.
+        cls += ' ready';
+        status = s.night.blind;
       } else {
         const opportunity = sim.opportunity(id);
         cls += opportunity.now ? ' ready now' : ' ready';
@@ -568,14 +581,14 @@ export class NightScene implements Scene {
         hpRatio: Math.max(0, d.hp / def.maxHp),
         rearm: d.state === 'rearming' ? 1 - d.timer / def.rearmSeconds : 0,
         highlight: sector !== null && d.id === this.hoverDevice,
-        cue: slot >= 0 && this.sim.opportunity(d.id).now,
+        cue: slot >= 0 && sector !== null && !this.isDark(sector) && this.sim.opportunity(d.id).now,
         ...(label ? { label } : {}),
       };
     });
   }
 
   onPointerMove(pointer: Pointer): void {
-    if (this.paused || this.ending) return;
+    if (this.paused || this.ending || this.isDark(this.cam)) return;
     const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
     const picked = pickDevice(view, this.deviceVisuals(null).filter((d) => isManual(d.type)), pointer.x, pointer.y);
     this.hoverDevice = picked?.id ?? null;
@@ -584,7 +597,8 @@ export class NightScene implements Scene {
   onPointerDown(pointer: Pointer): void {
     if (this.paused || this.ending) return;
     const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
-    const picked = pickDevice(view, this.deviceVisuals(null).filter((d) => isManual(d.type)), pointer.x, pointer.y);
+    // Nothing can be picked out of snow: on a dark camera the traps are fired from the keys.
+    const picked = this.isDark(this.cam) ? undefined : pickDevice(view, this.deviceVisuals(null).filter((d) => isManual(d.type)), pointer.x, pointer.y);
     if (picked) {
       this.fire(picked.id);
       return;
@@ -690,6 +704,14 @@ export class NightScene implements Scene {
         case 'jump':
           this.particles.push({ kind: 'dust', x: event.x, y: event.y, age: 0, life: 0.4, radius: 0.7 });
           break;
+        case 'camera_lost':
+          audio.play('signal_lost');
+          this.remark('vo_cam_lost', 60, true);
+          this.banner(fmt(s.night.cameraLost, { i: String(SECTOR_IDS.indexOf(event.sector) + 1).padStart(2, '0'), name: s.sector[event.sector] }), 'bad');
+          this.hoverDevice = null;
+          this.lostAt = this.time;
+          this.syncHud(true);
+          break;
         case 'outcome':
           this.ending = { survived: event.survived, t: 0 };
           this.coach = null;
@@ -761,6 +783,8 @@ export class NightScene implements Scene {
   }
 
   private finished = false;
+  /** When the camera went dark, for the moment its picture tears before the snow settles. */
+  private lostAt = -10;
 
   private finish(): void {
     if (this.finished) return;
@@ -768,6 +792,8 @@ export class NightScene implements Scene {
     this.app.state = concludeNight(this.state, this.sim);
     this.app.save();
     if (this.app.state.phase === 'morning') goMorning(this.app);
+    // A house that fell is not shown the door straight away: it gets its last scene first.
+    else if (this.app.state.phase === 'lost') goFinale(this.app);
     else goEnd(this.app);
   }
 
@@ -817,6 +843,10 @@ export class NightScene implements Scene {
     const ratio = canvas.width / MINI.w;
     mctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     const rect = { x: 0, y: 0, w: MINI.w, h: MINI.h };
+    if (this.isDark(sector)) {
+      drawNoSignal(mctx, rect, this.time + SECTOR_IDS.indexOf(sector) * 1.7, S().night.noSignal, 17, 0);
+      return;
+    }
     const view = this.viewFor(sector, rect, (MAIN_ZOOM * MINI.w) / MAIN.w);
     drawWorld(mctx, view, this.frame(sector, false));
     applyNight(mctx, view, this.lights());
@@ -828,10 +858,14 @@ export class NightScene implements Scene {
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);
 
     // Main feed.
-    const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
-    drawWorld(ctx, view, this.frame(this.cam, true));
-    applyNight(ctx, view, this.lights());
-    applyCctv(ctx, view, this.time, 0.85);
+    if (this.isDark(this.cam)) {
+      drawNoSignal(ctx, MAIN, this.time, S().night.noSignal, 34, Math.max(0, 1 - (this.time - this.lostAt) / 0.9));
+    } else {
+      const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
+      drawWorld(ctx, view, this.frame(this.cam, true));
+      applyNight(ctx, view, this.lights());
+      applyCctv(ctx, view, this.time, 0.85);
+    }
 
     if (this.flash > 0) {
       ctx.fillStyle = `rgba(230, 60, 40, ${Math.min(0.4, this.flash)})`;
@@ -882,6 +916,55 @@ export class NightScene implements Scene {
     ctx.fillStyle = '#9fe8c8';
     lines.forEach((line, i) => ctx.fillText(line.slice(0, 118), MAIN.x + 14, MAIN.y + 60 + i * 15));
   }
+}
+
+/**
+ * A feed with nothing on it: snow, a rolling bar and the words. `tear` (1 → 0) is the moment the
+ * picture breaks up, right after the signal goes.
+ */
+function drawNoSignal(ctx: CanvasRenderingContext2D, rect: { x: number; y: number; w: number; h: number }, time: number, label: string, fontPx: number, tear: number): void {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rect.x, rect.y, rect.w, rect.h);
+  ctx.clip();
+  ctx.fillStyle = '#0a0e0f';
+  ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+  // Snow: redrawn every frame, so it never looks like a texture.
+  const grain = Math.max(2, fontPx / 9);
+  const flecks = Math.round((rect.w * rect.h) / 520);
+  for (let i = 0; i < flecks; i++) {
+    const light = 150 + Math.random() * 90;
+    ctx.fillStyle = `rgba(${light}, ${light + 12}, ${light + 6}, ${0.06 + Math.random() * (0.3 + tear * 0.5)})`;
+    ctx.fillRect(rect.x + Math.random() * rect.w, rect.y + Math.random() * rect.h, grain * (1 + Math.random() * 4), grain * 0.55);
+  }
+  // The bar that rolls down a picture with no sync.
+  const barH = rect.h * 0.16;
+  const barY = rect.y + ((time * rect.h * 0.22) % (rect.h + barH)) - barH;
+  const bar = ctx.createLinearGradient(0, barY, 0, barY + barH);
+  bar.addColorStop(0, 'rgba(190, 215, 205, 0)');
+  bar.addColorStop(0.5, 'rgba(190, 215, 205, 0.16)');
+  bar.addColorStop(1, 'rgba(190, 215, 205, 0)');
+  ctx.fillStyle = bar;
+  ctx.fillRect(rect.x, barY, rect.w, barH);
+  if (tear > 0) {
+    for (let i = 0; i < 9; i++) {
+      ctx.fillStyle = `rgba(232, 239, 233, ${tear * (0.15 + Math.random() * 0.5)})`;
+      ctx.fillRect(rect.x, rect.y + Math.random() * rect.h, rect.w, 1 + Math.random() * rect.h * 0.035);
+    }
+  }
+  if (Math.floor(time * 1.6) % 4 !== 3) {
+    ctx.font = `700 ${fontPx}px 'Courier New', monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const cx = rect.x + rect.w / 2;
+    const cy = rect.y + rect.h / 2;
+    const width = ctx.measureText(label).width;
+    ctx.fillStyle = 'rgba(8, 11, 12, 0.72)';
+    ctx.fillRect(cx - width / 2 - fontPx * 0.6, cy - fontPx * 0.9, width + fontPx * 1.2, fontPx * 1.8);
+    ctx.fillStyle = 'rgba(232, 239, 233, 0.92)';
+    ctx.fillText(label, cx, cy + 1);
+  }
+  ctx.restore();
 }
 
 function setText(node: HTMLElement, text: string): void {

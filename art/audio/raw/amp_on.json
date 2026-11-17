@@ -1,0 +1,15 @@
+{
+  "id": "amp_on",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A huge guitar amplifier stack being switched on: a standby switch clunk, a rising electric hum, then a short squeal of feedback. Dry, no music.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:42:18.756Z",
+  "bytes": 36405,
+  "sha256": "c9d8638244fb4d051d559c5dfbbdaa1d71b073135ea2ff6460e13d7248def0cc"
+}

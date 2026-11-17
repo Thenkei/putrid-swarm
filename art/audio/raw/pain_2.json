@@ -1,0 +1,15 @@
+{
+  "id": "pain_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A man in agony: one sharp hissing intake of breath and a choked grunt. Very close, dry. No words.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:47.274Z",
+  "bytes": 15089,
+  "sha256": "232a538bb9af0171d7b19c06eb3abd24df4cd86ff9eb818d2fe87f480e7fdf39"
+}

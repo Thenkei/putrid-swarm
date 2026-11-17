@@ -1,0 +1,15 @@
+{
+  "id": "saw_4",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single fast stroke of a rusty saw: a harsh scraping rasp with a small crack at the end. Very short, close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.7,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:56.150Z",
+  "bytes": 12163,
+  "sha256": "fce99899530283488a5796bd10820e7b36d584ff06b7e8c6976f45ecd3f36c42"
+}

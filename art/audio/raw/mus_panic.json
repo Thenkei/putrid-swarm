@@ -1,0 +1,15 @@
+{
+  "id": "mus_panic",
+  "kind": "music",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/music",
+  "request": {
+    "prompt": "Panic after an infected bite, a race against the clock. A pounding low drum like a racing heartbeat, shrieking tremolo strings climbing in half-steps, a fast ticking metallic pulse, low brass stabs. Relentless, breathless, horror chase, 150 bpm, no melody, no calm passages. Instrumental, loops cleanly.",
+    "model_id": "music_v2_5",
+    "music_length_ms": 50000,
+    "force_instrumental": true
+  },
+  "generatedAt": "2026-11-17T14:16:06.061Z",
+  "bytes": 800853,
+  "sha256": "a9e46c7156be12f3f35c3497733d4eb93cde035a7f2d658b0f015f290931e941"
+}

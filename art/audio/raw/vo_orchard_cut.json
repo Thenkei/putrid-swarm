@@ -1,0 +1,19 @@
+{
+  "id": "vo_orchard_cut",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[weak, slow] C’est fait… C’est fait.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T14:16:16.699Z",
+  "bytes": 48526,
+  "sha256": "36251cbe351f9979f6a659c2ff3a181f35083091f23a8e7623b153ace65c1533"
+}

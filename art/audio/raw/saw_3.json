@@ -1,0 +1,15 @@
+{
+  "id": "saw_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single hard stroke of a blunt saw catching and biting through something tough: a rough tearing rasp. Very short, close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.7,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:56.429Z",
+  "bytes": 12163,
+  "sha256": "a1616566b27e98b61d9dbbfa8ba06db7541be0c670cd80f817a3e7fd9914003f"
+}

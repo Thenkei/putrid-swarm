@@ -3,6 +3,7 @@
 
 import { BARRICADE, DEVICES, HOUSE_MAX_HP, HOUSE_REPAIR, facingsOf, isTrap, turned } from '../core/data/devices';
 import { DAY_HOURS } from '../core/data/locations';
+import { ORCHARD, hasLeftArm } from '../core/orchard';
 import { planForNight } from '../core/data/waves';
 import { bossOfNight, clockLabel, startNight } from '../core/game';
 import { ENTRIES, GRID_H, GRID_W, SPAWN_CELLS, idx } from '../core/map';
@@ -153,6 +154,7 @@ export class DayScene implements Scene {
       el('span', { text: clockLabel(state.hoursLeft) }),
       daylight,
       el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { h: hours(state.hoursLeft) }) }),
+      hasLeftArm(state) ? null : el('span', { class: 'chip-arm', text: s.day.oneArm, title: fmt(s.day.oneArmNote, { h: hours(ORCHARD.dressingHours) }) }),
       el('span', { class: 'grow' }),
       inventoryBar(state.inventory),
       el('span', { class: 'sep' }),

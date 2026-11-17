@@ -42,6 +42,12 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Night | click a hand-fired trap in the feed | fire it |
 | Night | `Esc` / `P` | pause |
 | Night | `F3` | debug overlay: phase, wave, balances, per-sector counts, trap states |
+| Orchard | hold `↑` / `←` / `→` (or `W` `A` `D`, by position) | walk in, go closer, go to the next place; letting go steps back |
+| Orchard | `←` and `→` together | clap your hands |
+| Orchard | `Space` (or `E`) | look, take, raise an arm in time; mash it to tear something off; hold it to tie or to splice |
+| Orchard | `↓`, then `←` `→` in turn | kneel with the saw, then saw; `↑` gets up again before the first stroke |
+| Orchard | `Esc` | pause (every prompt can also be clicked or held with the pointer) |
+| The end | hold one of `A Z E R T Y`, hit `Space` | a chord, and the strings; `Enter` leaves once it is offered |
 | Title | click the monitor's power button, the joint, the mug, the speaker (wheel for fine volume) | nothing useful |
 
 ## The loop as built
@@ -60,7 +66,16 @@ pnpm check      # typecheck + tests + build: what the deployment runs
    A trap leaves its armed state only when it fires, so repeated input can neither repeat the effect nor spend battery twice.
 3. **Morning.** The report shows what the night actually did. The yard handed to the next day is the simulation's own result: broken traps stay broken, the mown strip stays mown.
 
+4. **The orchard, once.** During the second wave of night 2 the orchard camera stops sending: its feed is snow, its thumbnail counts nothing, its traps can still be fired blind and only its door is still heard. The next morning the day does not start before someone has been to look. That is a played cut-scene, seen through the protagonist's eyes: walk in, look around, and find a small white rabbit chewing the cable.
+   - **Clap**, and it is gone; the cable is spliced and nothing is lost.
+   - **Go up to it**, and it turns round. There is under a second to get the left arm up: too late is the end of the run; in time, the bite is on the arm, the rabbit has to be torn off, and the infection climbs. The saw is at the foot of the apple tree, the rope on the fence. Sawing with the rope tied above the bite costs the left arm; sawing without it, the rest; doing nothing, everything.
+   - **One arm, for the rest of the run.** The day it happens starts three hours late; every day after that, one hour late — a dressing takes two hands. It shows on the day's top bar and on the end screen.
+
+   A run the orchard ends goes back to that morning, not to the night before.
+
 The house falls when its integrity reaches zero; infected only get in through a door whose barricade is down. A night ends when the lot is clear or at first light, whichever comes first.
+
+**A lost house gets a last scene.** On the first four nights it is short: the control room door gives way. From the fifth night it goes out through the shed, on a ride-on mower with a blade on the front and two amplifier stacks on the back, the keyboard played like a guitar over eighty seconds of hard rock: a top-row key holds a chord, `Space` hits the strings, right notes on the beat carry further. After thirty seconds leaving is offered; the song can also be played to its last chord. Either way it ends the same, and then the usual choice: play that night again, or start over.
 
 **The first night teaches itself.** The yard starts with a palisade across the drive, automatic stakes in its one gap, a log over the front step and stakes on the barn doorstep. The night holds still twice, the first time each thing matters: once until the log has been dropped, once until the camera has been switched. After that the yellow key is the only prompt.
 
@@ -105,7 +120,12 @@ The handoff listed these as open. They are settled here so the game could be bui
 | Load and stock | separate. An encounter can only take from the boot, and only what it announced |
 | Chance in encounters | rolled once when the encounter appears (who, which lot, their three washers, their three intentions) and saved; no outcome is drawn after a button is pressed, and a reload replays nothing |
 | Power | one battery gauge per night, spent only by the horn and the floodlight |
-| Loss | house integrity reaches zero |
+| Loss | house integrity reaches zero — or, once, the orchard |
+| The orchard | a scripted chapter, not a random event: night 2, second wave, the orchard camera. Its choices are made by doing the gesture (walk up, clap), never from a menu; its whole logic is a pure reducer (`core/orchard.ts`), the scene only draws it. Losing the arm is a standing cost in daylight rather than in combat, so the nights keep their balance |
+| The amputation | implied, not shown: the protagonist looks up at the branches while he saws |
+| How the cut-scenes move | painted plates brought to life rather than frame-by-frame animation: several poses per character played in sequence (the rabbit stops chewing, pricks its ears, looks round, gathers itself, leaps), the protagonist's own hands coming into the frame for every gesture, a foreground that slides faster than the picture behind it, and procedural mist, leaves, breath and sparks. No blur filters: a whip-pan is the picture and two ghosts of itself |
+| The last scene | decided by the night the house falls on: the desk up to night 4, the mower from night 5. Its chart is laid on the measured beat of the track (`tools/beat.mjs`) and its chords are one recording replayed on a pentatonic, so nothing played can sound wrong. It has no fail state: what is played changes the tally, not the ending |
+| Winning | unchanged: the seventh dawn still ends the run on the quiet village. Whether that should also end on the mower is open |
 | Campaign | seven scripted nights; neighbours turn on fixed nights |
 | Setting | a French village, following the concept art; names stay role labels |
 
@@ -120,8 +140,11 @@ src/core/      simulation and rules: no DOM, deterministic, unit-tested
   yard.ts      building, repairing, the placement rule
   game.ts      campaign transitions: day (refuge ⇄ outing ⇄ road) → night → morning
   encounters.ts  disputed lots and roadblocks: who appears, every way out, what each costs
+  orchard.ts   the morning after night 2: every beat, key and timing of the scene, and what it costs afterwards
+  finale.ts    how a lost house ends: which scene, the chart of the song, what a strum is worth
 src/render/    isometric renderer, night lighting, CCTV effect, the infected's gaits
-src/scenes/    title and opening (desk.ts: the desk and what can be poked on it), day, map, interiors, encounters (encounter.ts, washers.ts), night desk, morning, endings
+               (the two played cut-scenes animate their painted plates with scenes/atmosphere.ts: mist, leaves, breath, sparks, arms reaching into the frame)
+src/scenes/    title and opening (desk.ts: the desk and what can be poked on it), day, map, interiors, encounters (encounter.ts, washers.ts), night desk, morning, the orchard (orchard.ts), the last scene (finale.ts), endings
 src/engine/    app shell, assets, audio (recordings over a synthesised fallback), voice lines, variant decks, translations
 tests/         rule tests and the automatic operator used for balancing
 tools/         art and audio pipelines, development aids
@@ -131,6 +154,8 @@ docs/          concept, lore and art direction
 Tuning never requires touching combat logic: change `src/core/data/*`, then run `pnpm balance` to replay all seven nights against reference layouts. Encounter numbers (odds, tolls, prices, daylight, how well each survivor throws) are in `src/core/data/rivals.ts`.
 
 `node tools/encounter-shots.mjs <dir> [url]` opens a running dev server on each kind of encounter, plays through the ways out and saves a screenshot of every step (`PS_LANG=en` for the English texts).
+
+`node tools/orchard-shots.mjs <dir> [spared,maimed,throat,bled,turned,night] [url]` plays the orchard down each branch the same way, and `node tools/finale-shots.mjs <dir> [desk,rampage,onearm] [url]` loses a night on purpose and plays what follows, chart included. `node tools/beat.mjs <track>` measures a track's tempo and first beat; its output is what `FINALE` in `src/core/finale.ts` records.
 
 ## Art
 
@@ -161,7 +186,7 @@ pnpm audio:process   # public/assets/audio/ + manifest.json (trim, effect chain,
 `tools/audio-manifest.mjs` is the single list of every sound: its prompt or spoken text, its voice, its mix level. `audio:gen` needs `ELEVENLABS_API_KEY` in the environment or in a git-ignored `.env`; every request is billable, so existing files are only regenerated with `--force` (`--only id,id` and `--dry-run` are available). The account allows two requests at a time.
 
 - **Voices** are French: the news anchor, the protagonist's asides, and what is left of the neighbours' catchphrases. Every line has a subtitle, which carries the English translation and shows with the sound off.
-- **Music** is streamed per phase: title, day, night, a sinister musette waltz while a neighbour is on the lot, morning, ending.
+- **Music** is streamed per phase: title, day, night, a sinister musette waltz while a neighbour is on the lot, morning, ending; a drone and a chase cue for the orchard, and the hard rock of the last scene.
 - **Nothing repeats, nothing stops dead.** Sounds heard often have several recordings (five engine starts, a pick-up sound per resource, ten lines for leaving in the break and ten for coming back…), dealt like a shuffled deck so none comes twice in a row. Whatever the generator cut off while it was still sounding is faded out at processing time; beds, voices and music are always faded, never stopped; looping music restarts under its own tail; arriving somewhere switches the engine off.
 - The original WebAudio synthesis is still underneath: a missing or still-loading recording falls back to a synthesised effect, and to silence for music and voices. Options has separate switches for sound and music, and a volume (also on the speaker of the title desk).
 

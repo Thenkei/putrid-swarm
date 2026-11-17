@@ -1,0 +1,15 @@
+{
+  "id": "mower_start",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A ride-on lawn mower started with a key: the starter whirrs, the petrol engine catches and is revved hard three times. Outdoors, close.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:42:18.442Z",
+  "bytes": 45182,
+  "sha256": "62a863f296bffc4a4a4d56a99ab91982a3773b62aa3c1f316503811a87cd099e"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "saw_take",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A rusty steel bow saw picked up off the ground: a metallic scrape on a root and the thin blade wobbling with a faint ring. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:53.350Z",
+  "bytes": 17179,
+  "sha256": "e099f2c63a251580531e19b8eea3189debfcf19175d7ebcff98e357522241273"
+}

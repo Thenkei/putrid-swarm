@@ -108,6 +108,8 @@ export interface NightReport {
   readonly autoTriggers: number;
   readonly bossDefeated: NeighborId | null;
   readonly durationSeconds: number;
+  /** A camera that stopped sending during the night, and is still dark in the morning. */
+  readonly cameraLost: SectorId | null;
 }
 
 export interface LocationProgress {
@@ -233,6 +235,17 @@ export interface Outing {
   readonly marks: readonly OutingMark[];
 }
 
+// ───────────────────────────── The orchard ─────────────────────────────
+
+/**
+ * The morning in the orchard, once per run: nothing yet, a camera gone dark that has to be looked at,
+ * then how it went — the rabbit was shooed off, or it cost the left arm.
+ */
+export type OrchardChapter = 'quiet' | 'cut' | 'spared' | 'maimed';
+
+/** The ways the orchard ends a run: bitten at the throat, turned before the arm was off, bled dry. */
+export type Fate = 'throat' | 'turned' | 'bled';
+
 export interface GameState {
   readonly version: 1;
   readonly seed: number;
@@ -255,6 +268,9 @@ export interface GameState {
   readonly locations: Readonly<Record<LocationId, LocationProgress>>;
   readonly flags: Readonly<Record<string, number>>;
   readonly lastNight: NightReport | null;
+  readonly orchard: OrchardChapter;
+  /** Why the run stopped, when it was not the house that fell. */
+  readonly fate: Fate | null;
   readonly totals: {
     readonly kills: number;
     readonly triggers: number;

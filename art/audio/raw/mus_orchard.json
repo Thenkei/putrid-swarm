@@ -1,0 +1,15 @@
+{
+  "id": "mus_orchard",
+  "kind": "music",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/music",
+  "request": {
+    "prompt": "A misty apple orchard at dawn where something is wrong. One sustained low cello drone, a few sparse detuned music-box notes far apart, a faint high string harmonic that never resolves, distant muffled wind. Very quiet, patient, uneasy, no percussion, no melody, no climax, 50 bpm. Instrumental, loops cleanly.",
+    "model_id": "music_v2_5",
+    "music_length_ms": 60000,
+    "force_instrumental": true
+  },
+  "generatedAt": "2026-11-17T14:16:06.396Z",
+  "bytes": 960514,
+  "sha256": "6c206fffa963bead6369fbd1e1ad67c5d6c3bb314dc000810176c14a5dbfcdac"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_cam_lost",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[annoyed] La quatre. Plus d’image. C’est pas le moment.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T14:16:08.097Z",
+  "bytes": 49780,
+  "sha256": "111829e04b9cef0d7f7f376ca7a3c669f50787418d3ea4b071e1e72d71c9fdcd"
+}

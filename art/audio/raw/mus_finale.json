@@ -1,0 +1,15 @@
+{
+  "id": "mus_finale",
+  "kind": "music",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/music",
+  "request": {
+    "prompt": "Furious hard rock instrumental, loud and unhinged, in E minor, 150 bpm, steady four-four from the very first second with no intro and no tempo change: pounding drums with double kick, thick distorted rhythm guitars chugging palm-muted riffs, growling bass. A screaming guitar solo takes over in the second half, and it ends on one huge crashing final chord. Triumphant, fast, heavy. No vocals.",
+    "model_id": "music_v2_5",
+    "music_length_ms": 80000,
+    "force_instrumental": true
+  },
+  "generatedAt": "2026-11-17T14:42:29.733Z",
+  "bytes": 1280670,
+  "sha256": "b5a2fc3850c027694130929823842b346af873597f3925f7487a8c0e2ea75e08"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "chew_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Tiny animal teeth nibbling through plastic insulation: soft rapid scraping and one small snap. Very close, quiet, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:39.838Z",
+  "bytes": 15089,
+  "sha256": "9a35fe33c68d86e34f0b20fca7d97f0a2eded85ad8ae699ca751c65603a0862b"
+}

@@ -25,6 +25,9 @@ export interface Scene {
   onPointerMove?(pointer: Pointer): void;
   onPointerUp?(pointer: Pointer): void;
   onKeyDown?(code: string, event: KeyboardEvent): void;
+  onKeyUp?(code: string, event: KeyboardEvent): void;
+  /** The window lost focus: whatever was held is no longer known to be. */
+  onBlur?(): void;
   onWheel?(deltaY: number, pointer: Pointer): void;
 }
 
@@ -90,6 +93,8 @@ export class App {
       if (event.repeat) return;
       this.scene?.onKeyDown?.(event.code, event);
     });
+    window.addEventListener('keyup', (event) => this.scene?.onKeyUp?.(event.code, event));
+    window.addEventListener('blur', () => this.scene?.onBlur?.());
     this.ui.addEventListener('pointerdown', () => audio.unlock(), true);
   }
 

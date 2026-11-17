@@ -1,0 +1,15 @@
+{
+  "id": "chew_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A small rodent chewing something rubbery: a fast run of little crunches, a pause, two more. Very close, quiet, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:38.497Z",
+  "bytes": 18433,
+  "sha256": "ace1726639bb091ed96c5892e6eb716c8356d18e2422784f1527da1ce8d3c7b7"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_orchard_mended",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Raccordé. Quatre écrans. Comme avant.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T14:16:17.246Z",
+  "bytes": 46018,
+  "sha256": "e8a2ee089a399cd6e30dbdd82810196848c7d027e1bc0c199780e2d71470e81b"
+}

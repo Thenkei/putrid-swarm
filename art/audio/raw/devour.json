@@ -1,0 +1,15 @@
+{
+  "id": "devour",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Several zombies falling on a man in a small room: a wooden chair knocked over, snarls and wet tearing, a short scream cut off, then only chewing. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 3.4,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:42:17.039Z",
+  "bytes": 55631,
+  "sha256": "bff2bf6f9c083dded3a9a492986335eb84d025bf4e26e3b96693856cff3efe39"
+}

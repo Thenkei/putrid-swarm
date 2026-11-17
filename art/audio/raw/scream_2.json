@@ -1,0 +1,15 @@
+{
+  "id": "scream_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A man yells in pain and shock: a ragged shout through clenched teeth, ending in fast breathing. Outdoors, close, dry. No words.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:46.024Z",
+  "bytes": 26792,
+  "sha256": "5cbd6223359d1f55f7d51bd6f597793bc1474d247e9190cb1d8ffd882967956d"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_orchard_arrive",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] Caméra quatre. Plus rien depuis cette nuit. Allons voir.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T14:16:08.238Z",
+  "bytes": 61065,
+  "sha256": "7fd4309a78515823244815f385b53e723b1263825e9ea1e44304c1c11f1cabd8"
+}

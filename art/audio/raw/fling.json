@@ -1,0 +1,15 @@
+{
+  "id": "fling",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A small animal torn loose and thrown: cloth ripping, a squeal, a soft thud in grass, then it scampers away. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.3,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:51.503Z",
+  "bytes": 21358,
+  "sha256": "445f936c1ecce14eeabcf2405f81c845ea9763ffad509c7787f68914c870390e"
+}

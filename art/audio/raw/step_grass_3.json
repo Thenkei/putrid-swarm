@@ -1,0 +1,15 @@
+{
+  "id": "step_grass_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single heavy boot step in long dewy grass: a swish, then a soft thud on damp earth. Very close, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:36.705Z",
+  "bytes": 10492,
+  "sha256": "e6c9a8fae53fd71d8017a1d7ddf0ea2941886a444b46dd1f9b870a414eaf603c"
+}

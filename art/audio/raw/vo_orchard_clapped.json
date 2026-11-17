@@ -1,0 +1,19 @@
+{
+  "id": "vo_orchard_clapped",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[amused exhale] Voilà. Va manger le câble des voisins.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T14:16:12.290Z",
+  "bytes": 57303,
+  "sha256": "b8a36aa1c7daf708bc0cf541948b69869058a0c3bb89d8aab30ec74c0be61b16"
+}

@@ -1083,5 +1083,160 @@
     "file": "sprites/washers_board.webp",
     "w": 860,
     "h": 240
+  },
+  "plate_orchard": {
+    "file": "plates/plate_orchard.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_orchard_pole": {
+    "file": "plates/plate_orchard_pole.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_orchard_tree": {
+    "file": "plates/plate_orchard_tree.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_orchard_fence": {
+    "file": "plates/plate_orchard_fence.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_orchard_canopy": {
+    "file": "plates/plate_orchard_canopy.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_orchard_end": {
+    "file": "plates/plate_orchard_end.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "orchard_rabbit_back": {
+    "file": "sprites/orchard_rabbit_back.webp",
+    "w": 295,
+    "h": 430
+  },
+  "orchard_rabbit_bolt": {
+    "file": "sprites/orchard_rabbit_bolt.webp",
+    "w": 399,
+    "h": 358
+  },
+  "orchard_rabbit_infected": {
+    "file": "sprites/orchard_rabbit_infected.webp",
+    "w": 261,
+    "h": 460
+  },
+  "orchard_rabbit_lunge": {
+    "file": "sprites/orchard_rabbit_lunge.webp",
+    "w": 432,
+    "h": 460
+  },
+  "orchard_items_saw": {
+    "file": "sprites/orchard_items_saw.webp",
+    "w": 299,
+    "h": 520
+  },
+  "orchard_items_rope": {
+    "file": "sprites/orchard_items_rope.webp",
+    "w": 191,
+    "h": 520
+  },
+  "orchard_arm_guard": {
+    "file": "sprites/orchard_arm_guard.webp",
+    "w": 527,
+    "h": 640
+  },
+  "orchard_arm_bitten": {
+    "file": "sprites/orchard_arm_bitten.webp",
+    "w": 210,
+    "h": 640
+  },
+  "orchard_arm_tied": {
+    "file": "sprites/orchard_arm_tied.webp",
+    "w": 228,
+    "h": 640
+  },
+  "plate_finale_desk": {
+    "file": "plates/plate_finale_desk.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_finale_shed": {
+    "file": "plates/plate_finale_shed.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_finale_run": {
+    "file": "plates/plate_finale_run.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_finale_swarmed": {
+    "file": "plates/plate_finale_swarmed.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "finale_mower_rider": {
+    "file": "sprites/finale_mower_rider.webp",
+    "w": 623,
+    "h": 520
+  },
+  "finale_mower_rider_one_arm": {
+    "file": "sprites/finale_mower_rider_one_arm.webp",
+    "w": 623,
+    "h": 520
+  },
+  "orchard_rabbit_more_ears": {
+    "file": "sprites/orchard_rabbit_more_ears.webp",
+    "w": 248,
+    "h": 445
+  },
+  "orchard_rabbit_more_side": {
+    "file": "sprites/orchard_rabbit_more_side.webp",
+    "w": 292,
+    "h": 446
+  },
+  "orchard_rabbit_more_snarl": {
+    "file": "sprites/orchard_rabbit_more_snarl.webp",
+    "w": 343,
+    "h": 350
+  },
+  "orchard_rabbit_more_leap": {
+    "file": "sprites/orchard_rabbit_more_leap.webp",
+    "w": 290,
+    "h": 330
+  },
+  "orchard_fg_grass_a": {
+    "file": "sprites/orchard_fg_grass_a.webp",
+    "w": 293,
+    "h": 560
+  },
+  "orchard_fg_grass_b": {
+    "file": "sprites/orchard_fg_grass_b.webp",
+    "w": 304,
+    "h": 560
+  },
+  "orchard_fg_branch": {
+    "file": "sprites/orchard_fg_branch.webp",
+    "w": 321,
+    "h": 560
+  },
+  "finale_hands_a": {
+    "file": "sprites/finale_hands_a.webp",
+    "w": 296,
+    "h": 600
+  },
+  "finale_hands_b": {
+    "file": "sprites/finale_hands_b.webp",
+    "w": 257,
+    "h": 600
+  },
+  "finale_hands_c": {
+    "file": "sprites/finale_hands_c.webp",
+    "w": 267,
+    "h": 600
   }
 }

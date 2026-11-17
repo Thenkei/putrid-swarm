@@ -1,0 +1,15 @@
+{
+  "id": "heartbeat_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single heavy heartbeat, muffled as if heard underwater: a low double thump. Close, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:58.308Z",
+  "bytes": 13835,
+  "sha256": "87af6e2e67d9af553ec986a09b68aceee93b48f4889d2589be370c2ab42e350d"
+}

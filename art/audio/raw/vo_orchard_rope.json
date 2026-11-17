@@ -1,0 +1,19 @@
+{
+  "id": "vo_orchard_rope",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "De la corde. Ça sert toujours, de la corde.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T14:16:10.831Z",
+  "bytes": 48526,
+  "sha256": "019c71275097168ab651a48012663aecd6827700979c32424b7b14d020a66262"
+}

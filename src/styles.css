@@ -2152,3 +2152,660 @@ button:disabled {
 .center-col p.lost {
   color: #ff9d8a;
 }
+
+/* ───────────────────────────── The orchard ───────────────────────────── */
+
+.mini.dark .door-bar {
+  opacity: 0.9;
+}
+
+.mini.dark .count {
+  color: #ff9a88;
+  letter-spacing: 0.14em;
+}
+
+.report .note.alarm {
+  color: #8a1d10;
+  font-weight: 700;
+}
+
+.chip-arm {
+  margin-left: 6px;
+  padding: 3px 9px 1px;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffd9cf;
+  background: rgba(150, 40, 26, 0.55);
+  border: 1px solid rgba(220, 67, 48, 0.7);
+  border-radius: 5px;
+  pointer-events: auto;
+}
+
+.orchard-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 250px;
+  text-align: center;
+  font-family: var(--slab-font);
+  color: #fff6e0;
+  text-shadow: 0 3px 18px rgba(0, 0, 0, 0.9);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 0.7s,
+    transform 0.9s;
+}
+
+.orchard-title.on {
+  opacity: 1;
+  transform: none;
+}
+
+.orchard-title h1 {
+  margin: 0;
+  font-size: 76px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.orchard-title p {
+  margin: 4px 0 0;
+  font-size: 24px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cream);
+}
+
+.qte-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.qte {
+  --p: 0;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  color: #fff;
+  font-family: var(--hud-font);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.85));
+  animation: qte-in 0.22s ease-out both;
+  touch-action: none;
+}
+
+@keyframes qte-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+}
+
+.qte .keys {
+  display: flex;
+  gap: 6px;
+}
+
+.qte kbd {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  height: 50px;
+  padding: 2px 13px 0;
+  font-family: var(--hud-font);
+  font-size: 25px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #17130d;
+  background: #fbf3df;
+  border-radius: 25px;
+  /* The ring that fills while a key is held, or empties while time runs out. */
+  box-shadow:
+    0 0 0 4px rgba(10, 8, 5, 0.55),
+    0 0 0 calc(4px + var(--p) * 5px) rgba(242, 165, 49, calc(0.35 + var(--p) * 0.65));
+}
+
+.qte .what {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 26px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 6px #000;
+}
+
+.qte .what small {
+  margin-top: 5px;
+  font-size: 15px;
+  letter-spacing: 0.2em;
+  color: var(--amber);
+}
+
+/* A bar under the label says how far a held or repeated action has got. */
+.qte.how-hold .what::after,
+.qte.how-mash .what::after,
+.qte.how-alternate .what::after,
+.qte.how-now .what::after {
+  content: '';
+  width: 100%;
+  min-width: 120px;
+  height: 5px;
+  margin-top: 7px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--amber) calc(var(--p) * 100%), rgba(255, 255, 255, 0.22) 0);
+}
+
+.qte.held kbd {
+  transform: translateY(2px) scale(0.95);
+  background: var(--amber);
+}
+
+.qte.big kbd {
+  min-width: 68px;
+  height: 68px;
+  border-radius: 34px;
+  font-size: 30px;
+}
+
+.qte.big .what {
+  font-size: 34px;
+}
+
+.qte.how-mash kbd {
+  animation: qte-mash 0.16s ease-in-out infinite alternate;
+}
+
+@keyframes qte-mash {
+  to {
+    transform: translateY(3px) scale(0.93);
+    background: var(--amber);
+  }
+}
+
+.qte.how-now {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qte.how-now .what {
+  align-items: center;
+  color: #ffe2d6;
+}
+
+.qte.how-now kbd {
+  min-width: 210px;
+  height: 78px;
+  border-radius: 39px;
+  font-size: 38px;
+  background: #fff;
+  box-shadow:
+    0 0 0 5px rgba(120, 12, 6, 0.85),
+    0 0 0 calc(5px + var(--p) * 26px) rgba(220, 67, 48, 0.55);
+  animation: qte-now 0.11s linear infinite alternate;
+}
+
+.qte.how-now .what::after {
+  background: linear-gradient(90deg, var(--red) calc(var(--p) * 100%), rgba(255, 255, 255, 0.22) 0);
+  min-width: 260px;
+}
+
+@keyframes qte-now {
+  to {
+    transform: scale(1.05);
+  }
+}
+
+.qte.how-alternate.next-left .key-right,
+.qte.how-alternate.next-right .key-left {
+  opacity: 0.35;
+  transform: scale(0.9);
+}
+
+.qte.how-alternate.next-left .key-left,
+.qte.how-alternate.next-right .key-right {
+  background: var(--amber);
+}
+
+.qte.how-both kbd:first-child {
+  animation: qte-clap-left 0.7s ease-in-out infinite;
+}
+
+.qte.how-both kbd:last-child {
+  animation: qte-clap-right 0.7s ease-in-out infinite;
+}
+
+@keyframes qte-clap-left {
+  50% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes qte-clap-right {
+  50% {
+    transform: translateX(-5px);
+  }
+}
+
+.qte-go_left .what,
+.qte-go_right .what {
+  font-size: 21px;
+}
+
+.qte-go_right {
+  flex-direction: row-reverse;
+}
+
+.qte-go_right .what {
+  align-items: flex-end;
+}
+
+.qte-stand kbd,
+.qte-kneel kbd {
+  min-width: 44px;
+  height: 44px;
+}
+
+.orchard-meter {
+  position: absolute;
+  left: 34px;
+  top: 76px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 4px;
+  font-size: 19px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #d9f0c2;
+  background: rgba(8, 14, 8, 0.72);
+  border: 2px solid rgba(110, 150, 70, 0.6);
+  border-radius: 7px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.orchard-meter.on {
+  opacity: 1;
+}
+
+.orchard-meter .bar {
+  width: 250px;
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.orchard-meter .bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #4f7a2c, #1b2a12);
+}
+
+.orchard-meter.high {
+  border-color: var(--red);
+  color: #ffd9cf;
+  animation: danger 0.5s steps(2) infinite;
+}
+
+.orchard-meter.high .bar i {
+  background: linear-gradient(90deg, #7a2c1c, #dc4330);
+}
+
+.orchard-meter b {
+  display: none;
+  padding: 2px 8px 0;
+  font-size: 15px;
+  color: #201405;
+  background: #e2ca96;
+  border-radius: 4px;
+}
+
+.orchard-meter.tied b {
+  display: block;
+}
+
+.orchard-note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 300px;
+  text-align: center;
+  font-family: var(--slab-font);
+  font-size: 44px;
+  letter-spacing: 0.08em;
+  color: #fff6e0;
+  text-shadow: 0 3px 16px #000;
+  opacity: 0;
+  transition: opacity 1.2s;
+}
+
+.orchard-note.on {
+  opacity: 1;
+}
+
+.orchard-modal {
+  background: none;
+}
+
+.orchard-card {
+  width: 720px;
+  padding: 26px 34px 22px;
+  animation: qte-in 0.5s ease-out both;
+  transform: none;
+}
+
+.orchard-card h2 {
+  font-size: 40px;
+  letter-spacing: 0.06em;
+}
+
+.orchard-card p {
+  margin: 8px 0;
+  font-size: 21px;
+  line-height: 1.35;
+}
+
+.orchard-card .trail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 4px;
+  margin: 14px 0 10px;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.orchard-card .trail li {
+  display: flex;
+  align-items: center;
+  padding: 4px 12px 2px;
+  font-family: var(--hud-font);
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--cream);
+  background: #3b2c1b;
+  border-radius: 4px;
+}
+
+.orchard-card .trail li + li::before {
+  content: '›';
+  margin: 0 10px 0 -4px;
+  color: var(--amber);
+}
+
+.orchard-card .cost {
+  padding: 8px 12px 6px;
+  border-left: 5px solid;
+  background: rgba(90, 61, 30, 0.14);
+}
+
+.orchard-card .cost.bad {
+  border-color: #8a1d10;
+  color: #6d150b;
+  font-weight: 700;
+}
+
+.orchard-card .cost.good {
+  border-color: #4f7a2c;
+  color: #2f4d18;
+}
+
+.orchard-card .actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.orchard-card .paths {
+  font-family: var(--hud-font);
+  font-size: 17px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7a6243;
+}
+
+.qte .what {
+  white-space: nowrap;
+}
+
+.orchard-card .quote {
+  margin: 12px 0 0;
+  font-style: italic;
+  color: #5a3d1e;
+}
+
+/* One more row and one more note than usual: the report is set a little tighter. */
+.report.tight table {
+  font-size: 19px;
+  margin: 2px 0;
+}
+
+.report.tight td {
+  padding: 2px 0;
+}
+
+.report.tight p {
+  margin: 6px 0;
+}
+
+/* ───────────────────────────── The end ───────────────────────────── */
+
+.finale-skip {
+  position: absolute;
+  right: 26px;
+  bottom: 20px;
+  font-size: 17px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 246, 224, 0.55);
+  text-shadow: 0 2px 6px #000;
+}
+
+.finale-title,
+.finale-swarm {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--slab-font);
+  color: #fff6e0;
+  text-shadow: 0 3px 16px rgba(0, 0, 0, 0.95);
+  animation: qte-in 0.8s ease-out both;
+  transform: none;
+}
+
+.finale-title {
+  top: 56px;
+}
+
+.finale-title h1,
+.finale-swarm h1 {
+  margin: 0;
+  font-size: 62px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.finale-title p,
+.finale-swarm p {
+  margin: 8px auto 0;
+  max-width: 820px;
+  font-size: 24px;
+  line-height: 1.35;
+}
+
+.finale-swarm {
+  top: 150px;
+  padding: 26px 0 30px;
+  background: linear-gradient(180deg, rgba(8, 5, 3, 0), rgba(8, 5, 3, 0.78) 18%, rgba(8, 5, 3, 0.78) 82%, rgba(8, 5, 3, 0));
+}
+
+.finale-swarm .tally {
+  margin-top: 16px;
+  font-family: var(--hud-font);
+  font-size: 26px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.finale-swarm .quote {
+  font-style: italic;
+  color: var(--cream-dim);
+}
+
+.jam-count {
+  position: absolute;
+  left: 30px;
+  top: 210px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--hud-font);
+  text-transform: uppercase;
+  text-shadow: 0 3px 10px #000;
+}
+
+.jam-count b {
+  font-size: 78px;
+  line-height: 0.9;
+  color: #fff6e0;
+}
+
+.jam-count span {
+  font-size: 24px;
+  letter-spacing: 0.18em;
+  color: var(--amber);
+}
+
+.jam-combo {
+  position: absolute;
+  left: 32px;
+  top: 290px;
+  font-size: 30px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffd23c;
+  text-shadow: 0 3px 10px #000;
+}
+
+.jam-keys {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.jam-keys kbd,
+.jam-out kbd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  height: 46px;
+  padding: 2px 12px 0;
+  font-family: var(--hud-font);
+  font-size: 25px;
+  font-weight: 700;
+  color: #fff6e0;
+  background: rgba(14, 12, 9, 0.82);
+  border: 3px solid #fff;
+  border-radius: 9px;
+  transition: transform 0.05s;
+}
+
+.jam-keys kbd.held {
+  color: #17130d;
+  background: #fff6e0;
+  transform: translateY(3px);
+}
+
+.jam-keys kbd.space {
+  min-width: 190px;
+  margin-left: 14px;
+  border-color: #fff6e0;
+  letter-spacing: 0.14em;
+}
+
+.jam-keys kbd.space.hit {
+  color: #17130d;
+  background: var(--amber);
+  transform: translateY(3px);
+}
+
+.jam-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 160px;
+  text-align: center;
+  font-size: 23px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #fff6e0;
+  text-shadow: 0 2px 8px #000;
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+
+.jam-hint.on {
+  opacity: 1;
+}
+
+.jam-out {
+  position: absolute;
+  right: 26px;
+  top: 164px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  font-family: var(--hud-font);
+  font-size: 24px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  color: #fff6e0;
+  text-shadow: 0 2px 8px #000;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.6s;
+}
+
+.jam-out.on {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.jam-out span {
+  display: flex;
+  flex-direction: column;
+}
+
+.jam-out small {
+  margin-top: 3px;
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  color: var(--amber);
+}

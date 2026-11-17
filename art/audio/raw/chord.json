@@ -1,0 +1,15 @@
+{
+  "id": "chord",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single distorted electric guitar power chord in E, hit hard once and left to ring out through a cranked tube amplifier. Solo guitar only: no drums, no bass, no other instrument.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:42:19.872Z",
+  "bytes": 41838,
+  "sha256": "d66aced41d104f7ede8dcb2b956db77185fb524c47ec6a3c8f31ee54c20d2010"
+}

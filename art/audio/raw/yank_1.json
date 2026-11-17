@@ -1,0 +1,15 @@
+{
+  "id": "yank_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A hard yank on thick cloth with a small animal growling through its teeth. Very short, close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:48.904Z",
+  "bytes": 10492,
+  "sha256": "24523d3b729a10c11756a2bf9c7956c1a3d47b06c849c885805c11b8f93306fc"
+}

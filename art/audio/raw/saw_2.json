@@ -1,0 +1,15 @@
+{
+  "id": "saw_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single pull stroke of an old hand saw through wet wood: a gritty dragging rasp. Very short, close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.7,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:55.053Z",
+  "bytes": 12163,
+  "sha256": "3c1c53981488ffd4cf9f2db2f927322ad8f36154e37aafb3690822e99ebb1063"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "pain_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A man in great pain: a low growling moan rising and cut short. Very close, dry. No words.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:47.800Z",
+  "bytes": 17179,
+  "sha256": "c585b93427dca5f31dcc2182649d7bead80135882d1ffcbd39c8ecd83bf6ad6f"
+}

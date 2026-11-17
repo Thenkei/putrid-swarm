@@ -1,0 +1,15 @@
+{
+  "id": "rabbit_bolt",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A small rabbit bolting away through tall grass: three quick thumps of hind legs and a fast rustle fading into the distance. Dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.3,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:41.966Z",
+  "bytes": 21358,
+  "sha256": "74d3309bb18c9a184027e0aeb0cca7e882fb19314195c864fec4757d61ee1fbb"
+}

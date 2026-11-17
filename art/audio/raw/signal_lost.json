@@ -1,0 +1,15 @@
+{
+  "id": "signal_lost",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old CCTV monitor losing its video signal: a harsh burst of static, a short descending electronic whine, then a quiet steady hiss of white noise that fades out.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:34.605Z",
+  "bytes": 26792,
+  "sha256": "1c6ffa1abe443d2d3cbf7d9adbaac3b7609a07f7ec5e215ecadfad63f59c9c88"
+}

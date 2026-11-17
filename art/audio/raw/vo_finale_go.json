@@ -1,0 +1,19 @@
+{
+  "id": "vo_finale_go",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[shouting, exhilarated] Vous vouliez du bruit ?!",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T14:42:30.508Z",
+  "bytes": 25538,
+  "sha256": "8ec3a17726546d72ccd9566ac228f85eccf77e627c7f042b64b9b37ca0da9a77"
+}

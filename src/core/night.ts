@@ -5,6 +5,7 @@ import { BARRICADE, COMBAT, DEVICES, isManual, isTrap } from './data/devices';
 import { BOSS, ENEMIES, type EnemyDef } from './data/enemies';
 import { NIGHT_LEAD_IN, planForNight } from './data/waves';
 import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlocked, sectorOf } from './map';
+import type { CameraOutage } from './orchard';
 import { computeField, nextStep, type Field } from './pathing';
 import { createRng, type Rng } from './rng';
 import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, NeighborId, NightReport, Result, SectorId, YardState } from './types';
@@ -86,6 +87,7 @@ export type SimEvent =
   | { readonly type: 'interrupt'; readonly x: number; readonly y: number }
   | { readonly type: 'reinforcements'; readonly sector: SectorId }
   | { readonly type: 'jump'; readonly x: number; readonly y: number }
+  | { readonly type: 'camera_lost'; readonly sector: SectorId }
   | { readonly type: 'outcome'; readonly survived: boolean };
 
 export type TriggerError = 'unknown' | 'passive' | 'automatic' | 'broken' | 'busy' | 'rearming' | 'no_energy' | 'over';
@@ -167,10 +169,18 @@ export class NightSim {
   private triggers = 0;
   private autoTriggers = 0;
   private bossDefeated: NeighborId | null = null;
+  /** A camera that stopped sending. The lot goes on without it: only the desk is blind. */
+  cameraLost: SectorId | null = null;
+  private outageAt: number | null = null;
   private readonly barricadeStart: Record<SectorId, number>;
   private readonly houseStart: number;
 
-  constructor(night: number, yard: YardState, seed: number) {
+  constructor(
+    night: number,
+    yard: YardState,
+    seed: number,
+    private readonly outage: CameraOutage | null = null,
+  ) {
     this.night = night;
     this.rng = createRng(seed ^ (night * 0x9e3779b1));
     this.houseHp = yard.houseHp;
@@ -392,6 +402,11 @@ export class NightSim {
     if (this.outcome !== 'ongoing') return;
     this.time += dt;
     this.spawnDue();
+    if (this.outage && this.outageAt !== null && this.time >= this.outageAt) {
+      this.outageAt = null;
+      this.cameraLost = this.outage.sector;
+      this.events.push({ type: 'camera_lost', sector: this.outage.sector });
+    }
     if (this.fieldsDirty) this.rebuildFields();
     this.updateDevices(dt);
     this.updateAuras();
@@ -414,6 +429,7 @@ export class NightSim {
       if (spawn.wave > this.waveIndex) {
         this.waveIndex = spawn.wave;
         this.events.push({ type: 'wave', index: spawn.wave, total: this.waveCount });
+        if (this.outage && spawn.wave === this.outage.wave && this.cameraLost === null) this.outageAt = this.time + this.outage.delay;
       }
       this.spawn(spawn.type, spawn.sector);
     }
@@ -1101,6 +1117,7 @@ export class NightSim {
       autoTriggers: this.autoTriggers,
       bossDefeated: this.bossDefeated,
       durationSeconds: Math.round(this.time),
+      cameraLost: this.cameraLost,
     };
   }
 

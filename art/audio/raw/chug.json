@@ -1,0 +1,15 @@
+{
+  "id": "chug",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single short palm-muted distorted electric guitar chug on a low E power chord. Very short, tight, dry. Solo guitar only.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.5,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:42:20.252Z",
+  "bytes": 8820,
+  "sha256": "2efcaf797714deeba8cfac616f9e89b80544b67cbb4055c72b0387bab7c38d99"
+}

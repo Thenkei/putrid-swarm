@@ -1,0 +1,15 @@
+{
+  "id": "heartbeat_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single human heartbeat heard from inside the chest: a deep muffled lub-dub. Low, close, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:57.553Z",
+  "bytes": 13835,
+  "sha256": "79c9f15604ca77f6c63185e2885ec55309231c7c806f1ba51fb97f5e8966a445"
+}
