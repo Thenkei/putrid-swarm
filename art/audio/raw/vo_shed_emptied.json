@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_emptied",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[hollow, quiet] Il n’y a plus personne. J’ai trop tiré.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.4,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:34.948Z",
+  "bytes": 44764,
+  "sha256": "50b29b49cb66e852ebe4334111e1ee2da68a355dd9d486a5199eb8cd14893b90"
+}

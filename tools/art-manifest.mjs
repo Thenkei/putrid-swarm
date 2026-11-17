@@ -801,6 +801,157 @@ export const ART = [
       `No flowers, nothing pink or purple. Each element is tall and nearly fills the height of the canvas. ${KEY} ${STYLE}`,
   },
 
+  // ───────────────────────────── The shed, the morning after night 4 ─────────────────────────────
+  // A played cut-scene in the same shed as the last scene, by day: one wide shot to walk in on, three places
+  // to stand at, a wall to look at instead, and the man chained to the post drawn separately so he can move.
+  {
+    id: 'plate_shed',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_finale_shed.png', REF_MORNING],
+    prompt: plate(
+      'First-person view from standing eye level in the open doorway of the same old wooden garden shed as the first attached picture, looking INTO it, but on a cold misty morning: pale daylight falls in from behind the viewer in a long slanting beam full of dust, the back of the shed stays dim. No person, no hands, no animal in the frame. ' +
+        'Composition, left to right: on the LEFT wall, a long scarred workbench under a wall of hanging tools (coiled orange hose, pruning saw, spade, pliers), a car battery and a tangle of red and black jump leads lying on the bench, a claw hammer beside them; ' +
+        'in the CENTRE at the back, a thick square wooden roof post rising from the earth floor to the roof beam, a heavy rusty iron chain padlocked around its foot and lying slack on the floor; the patch of trampled floor just in front of the post is completely EMPTY — nobody sits there — with a dented white enamel bowl knocked over beside it; ' +
+        'on the RIGHT, a low plank shelf with a blue plastic water jerrycan with a tap, an open plain paper sack of flour with a tin scoop in it, glass jars; and in the far right corner, something big hidden under a dirty olive-green canvas tarpaulin tied down with orange ratchet straps — a low wide hump in front and two tall boxy shapes behind it — one thick orange cable snaking out from under the tarpaulin to a row of three car batteries on the floor. ' +
+        'Cobwebs, a small dusty window high on the right wall, flowerpots, sacks. Quiet, uneasy, a little absurd.',
+    ),
+  },
+  {
+    id: 'plate_shed_post',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_shed.png', 'art/raw/plate_finale_shed.png'],
+    prompt: plate(
+      'The first attached picture shows the inside of a wooden garden shed on a misty morning with a thick wooden post at the back: this new picture is a much closer first-person view of the foot of that same post, same light, same dust, same earth floor (no person, no hands, no animal in the frame). ' +
+        'Seen from standing eye level, looking slightly down: the thick square wooden post rises in the upper centre, a heavy rusty iron chain wrapped twice around its foot and closed with a big old brass padlock, the free end of the chain lying in loose coils on the floor toward the lower left. ' +
+        'The whole lower centre of the picture, in front of the post, is a patch of trampled earth floor that is completely EMPTY — nothing sits, lies or stands there — with scuff marks and a little spilled flour. ' +
+        'Behind the post, the dim plank back wall of the shed with a hanging coil of rope and a cobweb; a pale stripe of daylight from the door crosses the floor.',
+    ),
+  },
+  {
+    id: 'plate_shed_bench',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_shed.png', 'art/raw/plate_finale_shed.png'],
+    prompt: plate(
+      'The first attached picture shows the inside of a wooden garden shed on a misty morning with a workbench on its left: this new picture is a much closer first-person view of that same workbench, same light, same dust (no person, no hands in the frame). ' +
+        'Seen from standing eye level: the scarred wooden workbench runs across the lower half; on it, on the LEFT, a heavy old car battery with a pair of red and black jump leads coiled beside it, their copper clamps open; in the CENTRE-RIGHT a claw hammer lying on its side, a vice, screws in a tin. ' +
+        'Above the bench, the plank wall with hanging tools: a coiled orange hose, a pruning saw, a spade, pliers, a pair of shears; a small grimy window with cobwebs letting in pale light at the top right. Jerrycans under the bench.',
+    ),
+  },
+  {
+    id: 'plate_shed_shelf',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_shed.png', 'art/raw/plate_finale_shed.png'],
+    prompt: plate(
+      'The first attached picture shows the inside of a wooden garden shed on a misty morning with a shelf and a tarpaulin-covered shape on its right: this new picture is a much closer first-person view of that same corner, same light, same dust (no person, no hands in the frame). ' +
+        'Seen from standing eye level: on the LEFT half, a low rough plank shelf holding a blue plastic water jerrycan with a little tap, an open plain brown paper sack of flour with a tin scoop stuck in it and some flour spilled on the plank, glass jars and a stack of old terracotta flowerpots; ' +
+        'on the RIGHT half, the side of something big hidden under a dirty olive-green canvas tarpaulin held down by tight orange ratchet straps: the tarpaulin drapes over a tall flat-fronted boxy shape, and at its lower corner it has slipped a hand’s width, showing only a strip of black speaker-grille cloth and one chrome metal corner protector. ' +
+        'A thick orange cable comes out from under the tarpaulin and runs along the floor to a row of three car batteries. Nothing explains what it is.',
+    ),
+  },
+  {
+    // Where the protagonist looks while the current runs: anything but the man.
+    id: 'plate_shed_wall',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_shed.png'],
+    prompt: plate(
+      'Inside the same wooden garden shed as the attached picture, a close first-person view of a bare stretch of its plank wall beside the small cobwebbed window, on a misty morning: thin bright stripes of daylight come through the gaps between the weathered vertical planks and lie across the wall, dust hangs in them. ' +
+        'The middle of the wall is a large, plain, evenly lit area of old pale planks with nothing hanging on it, like a screen. At the top, the dim roof beam with a cobweb; at the bottom edge, the top of a stack of empty flowerpots. No person, no shadow of a person, no hands.',
+    ),
+  },
+  {
+    // The way the morning in the shed ends a run, seen from the floor.
+    id: 'plate_shed_end',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_shed.png', REF_NEIGHBORS],
+    prompt: plate(
+      'View from the earth floor of the same wooden garden shed as the first attached picture, misty morning light: the viewer lies on their side, so the picture is tilted about 25 degrees; a knocked-over white enamel bowl and a spill of flour are very close in the foreground. ' +
+        'A few steps away, sitting calmly against the wooden post with a slack iron chain at his ankle, an infected village baker — round, balding, grey moustache, white flour-dusted vest and a long white apron, pale grey-green skin, one milky white eye — looks straight at the viewer with an almost apologetic expression, a little flour on his cheek and dark blood on his chin. ' +
+        'Dust in the slanting light. Eerie, quiet, faintly absurd. No other people, no hands.',
+    ),
+  },
+  {
+    // The man chained to the post. Four states of the same figure, all sitting at the same place on the floor.
+    id: 'shed_baker',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['feral', 'drift', 'lucid', 'lunge'],
+    h: 560,
+    refs: [REF_NEIGHBORS],
+    prompt:
+      'Game asset sheet: a 2x2 grid showing the SAME man four times, one pose per quadrant, each figure centred in its quadrant with wide empty margins, all at the same scale, seen from the front at the eye level of a person standing in front of him. ' +
+      'He is the village baker, infected, drawn like the infected neighbours of the attached concept art: a round, heavy-set man in his fifties, balding with a grey fringe and a thick grey moustache, bare thick forearms, a white sleeveless vest and a long white baker’s apron, both dusted with flour and stained, rolled grey trousers, worn clogs; pale grey-green skin with dark veins at the temples. ' +
+      'An old iron shackle is closed around his left ankle (no chain attached in the picture). ' +
+      'Top-left (FERAL): crouched low on his haunches on the floor, straining forward, shoulders hunched, both hands clawed, lips pulled back over his teeth, both eyes milky white, a snarl. ' +
+      'Top-right (DRIFTING): sitting on the floor with his legs folded, slumped, head lolling to one side, mouth half open, eyes half closed and cloudy; his hands in his lap are busy kneading the air as if working an invisible ball of dough — an old habit. ' +
+      'Bottom-left (LUCID): sitting up straight on the floor, looking straight at the viewer; his left eye is still milky white but his right eye has come back — a clear, warm brown, human eye — tired, sad and a little embarrassed, the corner of his moustache lifting in a faint apologetic smile, hands resting open on his knees. ' +
+      'Bottom-right (LUNGE): launching himself straight AT the viewer on hands and knees, strongly foreshortened, both arms flung forward, fingers spread, mouth wide open, both eyes white. ' +
+      `${KEY} ${STYLE}`,
+  },
+  {
+    // More of him, so that he moves instead of being swapped.
+    id: 'shed_baker_more',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['drink', 'knead', 'slump', 'stand'],
+    h: 560,
+    refs: [REF_NEIGHBORS],
+    sheet: 'art/raw/shed_baker.png',
+    prompt:
+      'Game asset sheet: a 2x2 grid showing the SAME man four times, one pose per quadrant, each figure centred in its quadrant with wide empty margins, all at the same scale as in the attached sheet, seen from the front at the eye level of a person standing in front of him. ' +
+      'The first attached image is the existing sheet of this man, the infected village baker: he must be exactly the same man — same face, moustache, white vest and apron, flour, grey-green skin, iron shackle on the left ankle, same drawing style, same size in his quadrant. ' +
+      'Top-left (DRINKING): sitting on the floor, leaning forward with his chin raised and his lips pushed out toward something held just in front of his face, eyes closed, both hands raised and cupped in the air in front of his chest. ' +
+      'Top-right (KNEADING): sitting on the floor with his legs folded, his hands and forearms white with flour, kneading a small lump of flour paste on his apron with tender concentration, looking down at his hands; his right eye is a clear human brown, a calm, almost happy face. ' +
+      'Bottom-left (SPENT): sitting on the floor, slumped forward and to the side, exhausted, head hanging low, hair stuck with sweat, arms limp, trembling, a thin wisp of smoke rising from the singed edge of his apron, both eyes white and empty. ' +
+      'Bottom-right (STANDING): standing up straight, seen from the front, his right hand pressed flat on his heart and his head bowed in a small grateful nod, his right eye clear and human, a little flour on his cheek, the open iron shackle lying at his feet. ' +
+      `${KEY} ${STYLE}`,
+  },
+  {
+    // The protagonist's right hand, for every gesture of the scene.
+    id: 'shed_hands',
+    kind: 'split',
+    cols: 5,
+    rows: 1,
+    names: ['bowl', 'flour', 'key', 'leads', 'hammer'],
+    cut: 'gaps',
+    h: 640,
+    refs: [REF_STORYBOARD],
+    sheet: 'art/raw/desk.png',
+    prompt:
+      'Game asset sheet: FIVE separate first-person views of a man’s RIGHT hand and forearm seen from his own eyes, standing in a single row, evenly spaced with wide empty gaps between them, each centred in its own fifth of the canvas. ' +
+      'The first attached image shows this man’s right hand in the worn mustard-yellow sleeve of his work jacket: every hand here is that same hand, same sleeve, same skin and same drawing style — the back of the hand at the top, reaching away from the viewer, and the long sleeve running straight down below it, ending at the bottom in a clean straight horizontal cut. From left to right: ' +
+      '(1) the hand holding a dented white enamel bowl full of clear water from underneath, fingers spread under it, the bowl level; ' +
+      '(2) the hand cupped palm up, holding a small heap of white flour, a little of it dusting off the fingers; ' +
+      '(3) the hand holding a small old iron key pinched between thumb and index finger, the key pointing up and away; ' +
+      '(4) the hand holding a red copper battery clamp of a jump lead, the clamp open, its red cable running down along the sleeve; ' +
+      '(5) the hand gripping a claw hammer by its wooden handle, the steel head up. ' +
+      `Cold daylight from the upper left. The five arms are tall figures that nearly fill the height of the canvas. ${KEY} ${STYLE}`,
+  },
+  {
+    // What is between the eye and the picture: it slides faster than the plate behind it.
+    id: 'shed_fg',
+    kind: 'split',
+    cols: 3,
+    rows: 1,
+    names: ['door', 'pots', 'rope'],
+    cut: 'gaps',
+    h: 600,
+    refs: ['art/raw/plate_shed.png'],
+    prompt:
+      'Game asset sheet: THREE separate foreground elements standing in a row with wide empty gaps between them, drawn like the wooden shed of the attached picture but darker and simpler, as things seen very close and slightly out of focus, with a thin rim of cold morning light. From left to right: ' +
+      '(1) the edge of an open wooden shed door seen edge-on: a tall narrow strip of weathered grey-green planks with a rusty iron hinge and a cross brace, standing up from a flat bottom edge to nearly the full height; ' +
+      '(2) a stack of old terracotta flowerpots and a slumped hessian sack, growing up from a flat bottom edge; ' +
+      '(3) a coil of old hemp rope and a dusty hurricane lantern hanging down on a hook from a flat top edge, with a cobweb. ' +
+      `Nothing pink or purple. Each element is tall and nearly fills the height of the canvas. ${KEY} ${STYLE}`,
+  },
+
   // ───────────────────────────── The end ─────────────────────────────
   // The house always falls in the end. Early on, that is the desk and a door giving way; from the
   // fifth night it is the ride-on mower from the shed, two amplifier stacks and a guitar.

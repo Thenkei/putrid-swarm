@@ -1,0 +1,19 @@
+{
+  "id": "vo_baker_drift_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[mumbling, far away] Trois baguettes… deux tradis…",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T17:02:37.485Z",
+  "bytes": 44764,
+  "sha256": "f72f5ef8716517dc186621b034c986a1dba8c381793f86d732079f67359a73b7"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "unlock",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old brass padlock opened with a small iron key: the key turning, the shackle springing open, then a heavy chain sliding off a wooden post onto an earth floor. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:58.025Z",
+  "bytes": 26792,
+  "sha256": "1d4bb36f8f0b0f47a27e1ef72ea9c3060ac8b21f62a6141d8ff3a26b1d9c9b32"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "flour",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A tin scoop dug into a paper sack of flour and a handful patted between two palms: a soft dry rustle and a small powdery puff. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:53.294Z",
+  "bytes": 18433,
+  "sha256": "493d8d9980301c49be3e4e587c448d495d8f4aa3fc6d8f0b3341d117bcdc6b76"
+}

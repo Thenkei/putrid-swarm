@@ -1,11 +1,12 @@
 // Save-game (de)serialisation. Parsing is defensive: a corrupt or foreign blob yields null,
 // never a half-valid GameState.
 
-import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, Fate, Fight, GameState, Inventory, OrchardChapter, Outing, Phase, RivalId, SectorId, Stance, Standing } from './types';
+import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, Fate, Fight, GameState, Intel, Inventory, OrchardChapter, Outing, Phase, RivalId, SectorId, ShedChapter, Stance, Standing } from './types';
+import { chapterOfFate, chapterWaiting } from './chapters';
 import { facingsOf } from './data/devices';
 import { ENCOUNTER } from './data/rivals';
 import { LOCATIONS } from './data/locations';
-import { GROUP_IDS, LOCATION_IDS, RESOURCE_IDS, RIVAL_IDS, SECTOR_IDS } from './types';
+import { GROUP_IDS, INTEL_IDS, LOCATION_IDS, RESOURCE_IDS, RIVAL_IDS, SECTOR_IDS } from './types';
 
 export const SAVE_VERSION = 1;
 const PHASES: readonly Phase[] = ['day', 'night', 'morning', 'lost', 'won'];
@@ -137,13 +138,30 @@ function parseTrip(data: Record<string, unknown>, where: GameState['where']): Pi
 // run, if it is over, was lost to the house.
 
 const CHAPTERS: readonly OrchardChapter[] = ['quiet', 'cut', 'spared', 'maimed'];
-const FATES: readonly Fate[] = ['throat', 'turned', 'bled'];
+const FATES: readonly Fate[] = ['throat', 'turned', 'bled', 'bitten'];
 
-function parseOrchard(data: Record<string, unknown>, phase: Phase): Pick<GameState, 'orchard' | 'fate'> {
-  const orchard = CHAPTERS.includes(data['orchard'] as OrchardChapter) ? (data['orchard'] as OrchardChapter) : 'quiet';
+function parseOrchard(data: Record<string, unknown>): Pick<GameState, 'orchard'> {
+  return { orchard: CHAPTERS.includes(data['orchard'] as OrchardChapter) ? (data['orchard'] as OrchardChapter) : 'quiet' };
+}
+
+// ───────────────────────────── The shed ─────────────────────────────
+// Saved before the shed existed, a game has nobody in it and nothing told.
+
+const SHEDS: readonly ShedChapter[] = ['quiet', 'waiting', 'freed', 'finished', 'chained', 'emptied'];
+
+function parseShed(data: Record<string, unknown>): Pick<GameState, 'shed' | 'intel'> {
+  const shed = SHEDS.includes(data['shed'] as ShedChapter) ? (data['shed'] as ShedChapter) : 'quiet';
+  const raw = Array.isArray(data['intel']) ? data['intel'] : [];
+  // Nothing can have been told before the shed was played; what is unknown or repeated is dropped.
+  const intel = shed === 'quiet' || shed === 'waiting' ? [] : INTEL_IDS.filter((id: Intel) => raw.includes(id));
+  return { shed, intel };
+}
+
+/** A fate only means something on a run a chapter ended, on the morning that chapter was waiting. */
+function parseFate(data: Record<string, unknown>, state: GameState): Fate | null {
   const fate = FATES.includes(data['fate'] as Fate) ? (data['fate'] as Fate) : null;
-  // A fate only means something on a run the orchard ended, on the morning it was waiting.
-  return { orchard, fate: phase === 'lost' && orchard === 'cut' ? fate : null };
+  if (fate === null || state.phase !== 'lost') return null;
+  return chapterWaiting({ ...state, phase: 'morning' }) === chapterOfFate(fate) ? fate : null;
 }
 
 export function deserialize(raw: string): GameState | null {
@@ -182,7 +200,8 @@ export function deserialize(raw: string): GameState | null {
     // Reports saved before a camera could go dark have none.
     cameraLost: SECTOR_IDS.includes(parsed.lastNight.cameraLost as SectorId) ? parsed.lastNight.cameraLost : null,
   };
-  const reported: GameState = { ...parsed, lastNight, ...parseOrchard(data, parsed.phase) };
+  const chaptered: GameState = { ...parsed, lastNight, ...parseOrchard(data), ...parseShed(data), fate: null };
+  const reported: GameState = { ...chaptered, fate: parseFate(data, chaptered) };
   // Outside the day nobody is out: the trip, if a save still carries one, is over.
   const trip = parseTrip(data, parsed.phase === 'day' ? parsed.where : 'home');
   const state: GameState = { ...reported, ...trip, yard: { ...reported.yard, devices: withFacing(reported.yard.devices) } };

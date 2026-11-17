@@ -47,6 +47,13 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Orchard | `Space` (or `E`) | look, take, raise an arm in time; mash it to tear something off; hold it to tie or to splice |
 | Orchard | `↓`, then `←` `→` in turn | kneel with the saw, then saw; `↑` gets up again before the first stroke |
 | Orchard | `Esc` | pause (every prompt can also be clicked or held with the pointer) |
+| Shed | hold `↑` (or `W`) | walk in; crouch by him (within his reach) |
+| Shed | hold `←` / `→` (or `A` `D`) | to the workbench, to the shelf |
+| Shed | `Space` (or `E`) at the bench or the shelf, `↑` there | the leads or the bowl; the hammer or the flour (taking one puts the other back) |
+| Shed | hold `Space` | sit in silence, out of reach; let him drink; send the current, from the bench; open the padlock |
+| Shed | `Space` crouched | flour in his hands, or the hammer |
+| Shed | `1`–`4` | ask him something, only while he is there |
+| Shed | `↓` | step back, or out of his lunge; held at the post, go back out and leave him chained |
 | The end | hold one of `A Z E R T Y`, hit `Space` | a chord, and the strings; `Enter` leaves once it is offered |
 | The end | `←` `→` at the shed, `Tab` during the song | choose how it is played: easy (three keys, slower notes, the default) or furious (six keys) |
 | Title | click the monitor's power button, the joint, the mug, the speaker (wheel for fine volume) | nothing useful |
@@ -73,6 +80,11 @@ pnpm check      # typecheck + tests + build: what the deployment runs
    - **One arm, for the rest of the run.** The day it happens starts three hours late; every day after that, one hour late — a dressing takes two hands. It shows on the day's top bar and on the end screen.
 
    A run the orchard ends goes back to that morning, not to the night before.
+
+5. **The shed, once.** At the end of night 4 one of them has got itself shut in the shed at the bottom of the garden, and at dawn the protagonist chained it to the post: it is the baker. The day does not start before someone has been in. Under a tarpaulin in the corner, strapped down, something big that nobody explains.
+   - **Between the man and the virus.** A gauge shows where he is: the beast, in between, *him*, and past that, breaking. Left alone, the virus pulls him down; sitting in silence out of reach brings him halfway, water or a handful of flour from the shelf (crouched within his reach) brings him back. The first time he comes back he says who is waiting for him, and from then on talking about her takes him further. Questions (`1`–`4`) can only be asked while he is there: where his van is, who comes tonight, what the chief does, and who the first one was. Each answer costs him: the virus comes back at once, harder each time, and goes for whoever is still crouched by him (a step back in under a second, or it is the end of the run). Asked too low, he is cut off mid-sentence. The first one, he never gets to the end of.
+   - **The current.** The jump leads clipped to his chain and the battery on the bench bring him up fast, from out of reach, while the protagonist looks at the wall. It costs what is left of him (shown once it has been used), and held too long nothing is left: he is finished off there and then. Whoever used it cannot let him go.
+   - **How it ends.** Let go (only by someone who never hurt him, while he is there): every morning after, a bundle of oven wood at the gate, +2 planks. Left chained (the way out, any time): every morning after, a quarter of an hour taking him water. The hammer, or the current until nothing was left: half an hour digging, that day. The shed takes three quarters of an hour and two minutes per second inside, to the quarter hour, at most four and a half hours, plus half an hour to fetch his van if he said where it is (+6 planks, +2 batteries). What he said about tonight shows on the day's "tonight" card door by door, from the wave table itself; what he said about the chief shows on day 6's, in the chief's own numbers. Five endings, counted on the recap card; a bite retries that morning.
 
 The house falls when its integrity reaches zero; infected only get in through a door whose barricade is down. A night ends when the lot is clear or at first light, whichever comes first.
 
@@ -121,9 +133,13 @@ The handoff listed these as open. They are settled here so the game could be bui
 | Load and stock | separate. An encounter can only take from the boot, and only what it announced |
 | Chance in encounters | rolled once when the encounter appears (who, which lot, their three washers, their three intentions) and saved; no outcome is drawn after a button is pressed, and a reload replays nothing |
 | Power | one battery gauge per night, spent only by the horn and the floodlight |
-| Loss | house integrity reaches zero — or, once, the orchard |
+| Loss | house integrity reaches zero — or, once each, the orchard or the shed |
 | The orchard | a scripted chapter, not a random event: night 2, second wave, the orchard camera. Its choices are made by doing the gesture (walk up, clap), never from a menu; its whole logic is a pure reducer (`core/orchard.ts`), the scene only draws it. Losing the arm is a standing cost in daylight rather than in combat, so the nights keep their balance |
 | The amputation | implied, not shown: the protagonist looks up at the branches while he saws |
+| Played chapters | a registry (`core/chapters.ts`): each chapter says which night opens it, whether this morning waits for it, what it still does to every morning after (daylight, things at the gate) and which fates are its own. The morning screen, the next day, the retry after a death and the save loader only ask the registry; a new chapter is an entry there, its strings under `chapter`, and its scene in `scenes/flow.ts` |
+| The shed | the morning after night 4, once per run: the baker, a villager who never comes back as a boss. What he gives is bounded and visible (a load added to the stock, two cards of information drawn from the existing tables); what it costs is daylight that day, and a quarter hour a day or two planks a day afterwards, never anything that changes a night |
+| The torture | implied, not shown: the current is sent from the bench while the protagonist looks at the shed wall, where only his shadow jerks; the hammer is the same wall and one sound. The scene can be got through without hurting him at all, slower: silence, water, flour, and talking about his wife |
+| What he knows | the patient-zero question is always cut off by the virus, at a different place each time (three pieces at most): it touches the open question without settling it |
 | How the cut-scenes move | painted plates brought to life rather than frame-by-frame animation: several poses per character played in sequence (the rabbit stops chewing, pricks its ears, looks round, gathers itself, leaps), the protagonist's own hands coming into the frame for every gesture, a foreground that slides faster than the picture behind it, and procedural mist, leaves, breath and sparks. No blur filters: a whip-pan is the picture and two ghosts of itself |
 | The last scene | decided by the night the house falls on: the desk up to night 4, the mower from night 5. Its chart is laid on the measured beat of the track (`tools/beat.mjs`) and its chords are one recording replayed on a pentatonic, so nothing played can sound wrong. It has no fail state: what is played changes the tally, not the ending |
 | Winning | unchanged: the seventh dawn still ends the run on the quiet village. Whether that should also end on the mower is open |
@@ -142,10 +158,12 @@ src/core/      simulation and rules: no DOM, deterministic, unit-tested
   game.ts      campaign transitions: day (refuge ⇄ outing ⇄ road) → night → morning
   encounters.ts  disputed lots and roadblocks: who appears, every way out, what each costs
   orchard.ts   the morning after night 2: every beat, key and timing of the scene, and what it costs afterwards
+  shed.ts      the morning after night 4: the baker on his chain, the gauge, every answer and what each ending gives and costs
+  chapters.ts  which played chapter a morning is waiting for, and what played ones still do to later mornings
   finale.ts    how a lost house ends: which scene, the chart of the song, what a strum is worth
 src/render/    isometric renderer, night lighting, CCTV effect, the infected's gaits
-               (the two played cut-scenes animate their painted plates with scenes/atmosphere.ts: mist, leaves, breath, sparks, arms reaching into the frame)
-src/scenes/    title and opening (desk.ts: the desk and what can be poked on it), day, map, interiors, encounters (encounter.ts, washers.ts), night desk, morning, the orchard (orchard.ts), the last scene (finale.ts), endings
+               (the played cut-scenes animate their painted plates with scenes/atmosphere.ts: mist, leaves, breath, sparks, arms reaching into the frame)
+src/scenes/    title and opening (desk.ts: the desk and what can be poked on it), day, map, interiors, encounters (encounter.ts, washers.ts), night desk, morning, the orchard (orchard.ts), the shed (shed.ts), the last scene (finale.ts), endings
 src/engine/    app shell, assets, audio (recordings over a synthesised fallback), voice lines, variant decks, translations
 tests/         rule tests and the automatic operator used for balancing
 tools/         art and audio pipelines, development aids
@@ -156,7 +174,7 @@ Tuning never requires touching combat logic: change `src/core/data/*`, then run 
 
 `node tools/encounter-shots.mjs <dir> [url]` opens a running dev server on each kind of encounter, plays through the ways out and saves a screenshot of every step (`PS_LANG=en` for the English texts).
 
-`node tools/orchard-shots.mjs <dir> [spared,maimed,throat,bled,turned,night] [url]` plays the orchard down each branch the same way, and `node tools/finale-shots.mjs <dir> [desk,rampage,onearm] [url]` loses a night on purpose and plays what follows, chart included. `node tools/beat.mjs <track>` measures a track's tempo and first beat; its output is what `FINALE` in `src/core/finale.ts` records.
+`node tools/orchard-shots.mjs <dir> [spared,maimed,throat,bled,turned,night] [url]` plays the orchard down each branch the same way, `node tools/shed-shots.mjs <dir> [freed,current,finished,emptied,bitten,onearm,chief] [url]` the shed, and `node tools/finale-shots.mjs <dir> [desk,rampage,onearm] [url]` loses a night on purpose and plays what follows, chart included. `node tools/beat.mjs <track>` measures a track's tempo and first beat; its output is what `FINALE` in `src/core/finale.ts` records.
 
 ## Art
 
@@ -186,8 +204,8 @@ pnpm audio:process   # public/assets/audio/ + manifest.json (trim, effect chain,
 
 `tools/audio-manifest.mjs` is the single list of every sound: its prompt or spoken text, its voice, its mix level. `audio:gen` needs `ELEVENLABS_API_KEY` in the environment or in a git-ignored `.env`; every request is billable, so existing files are only regenerated with `--force` (`--only id,id` and `--dry-run` are available). The account allows two requests at a time.
 
-- **Voices** are French: the news anchor, the protagonist's asides, and what is left of the neighbours' catchphrases. Every line has a subtitle, which carries the English translation and shows with the sound off.
-- **Music** is streamed per phase: title, day, night, a sinister musette waltz while a neighbour is on the lot, morning, ending; a drone and a chase cue for the orchard, and the hard rock of the last scene.
+- **Voices** are French: the news anchor, the protagonist's asides, what is left of the neighbours' catchphrases, and the baker in the shed, between his old words and the virus. Every line has a subtitle, which carries the English translation and shows with the sound off.
+- **Music** is streamed per phase: title, day, night, a sinister musette waltz while a neighbour is on the lot, morning, ending; a drone and a chase cue for the orchard, an accordion waltz that keeps faltering for the shed, and the hard rock of the last scene.
 - **Nothing repeats, nothing stops dead.** Sounds heard often have several recordings (five engine starts, a pick-up sound per resource, ten lines for leaving in the break and ten for coming back…), dealt like a shuffled deck so none comes twice in a row. Whatever the generator cut off while it was still sounding is faded out at processing time; beds, voices and music are always faded, never stopped; looping music restarts under its own tail; arriving somewhere switches the engine off.
 - The original WebAudio synthesis is still underneath: a missing or still-loading recording falls back to a synthesised effect, and to silence for music and voices. Options has separate switches for sound and music, and a volume (also on the speaker of the title desk).
 

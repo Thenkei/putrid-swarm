@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_free",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[softly] Allez-y. Rentrez chez vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:32.842Z",
+  "bytes": 33061,
+  "sha256": "b5dedc3a2712f82a9f1c81816f0a098de37e19a1f806bf177e457fd2e1d045b0"
+}

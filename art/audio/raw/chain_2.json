@@ -1,0 +1,15 @@
+{
+  "id": "chain_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A thick iron chain clinking slowly, link against link, then one tug that makes it clank against wood. Close, dry, inside a small shed.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.3,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:34.774Z",
+  "bytes": 21358,
+  "sha256": "c7ca13fc51541bb45ef84a7a5d3c934032d09c330df48f29dd6dcb31e5a32284"
+}

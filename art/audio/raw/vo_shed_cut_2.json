@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_cut_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[urgent, pleading] Revenez. Revenez !",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:31.799Z",
+  "bytes": 30554,
+  "sha256": "e5537c0950e0a6d2109b86623e2c82d4e3e7539762ad37bb2b7173d38f7d3b29"
+}

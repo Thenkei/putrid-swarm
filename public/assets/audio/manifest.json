@@ -647,6 +647,144 @@
     "seconds": 1.62,
     "gain": 0.85
   },
+  "step_shed_1": {
+    "file": "step_shed_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.549,
+    "gain": 0.6
+  },
+  "step_shed_2": {
+    "file": "step_shed_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.601,
+    "gain": 0.6
+  },
+  "step_shed_3": {
+    "file": "step_shed_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.601,
+    "gain": 0.6
+  },
+  "step_shed_4": {
+    "file": "step_shed_4.mp3",
+    "kind": "sfx",
+    "seconds": 0.601,
+    "gain": 0.6
+  },
+  "chain_1": {
+    "file": "chain_1.mp3",
+    "kind": "sfx",
+    "seconds": 1.384,
+    "gain": 0.75
+  },
+  "chain_2": {
+    "file": "chain_2.mp3",
+    "kind": "sfx",
+    "seconds": 1.306,
+    "gain": 0.75
+  },
+  "chain_3": {
+    "file": "chain_3.mp3",
+    "kind": "sfx",
+    "seconds": 1.384,
+    "gain": 0.75
+  },
+  "snarl_1": {
+    "file": "snarl_1.mp3",
+    "kind": "sfx",
+    "seconds": 1.28,
+    "gain": 0.8
+  },
+  "snarl_2": {
+    "file": "snarl_2.mp3",
+    "kind": "sfx",
+    "seconds": 1.28,
+    "gain": 0.8
+  },
+  "snarl_3": {
+    "file": "snarl_3.mp3",
+    "kind": "sfx",
+    "seconds": 1.489,
+    "gain": 0.8
+  },
+  "chain_snap": {
+    "file": "chain_snap.mp3",
+    "kind": "sfx",
+    "seconds": 0.914,
+    "gain": 0.9
+  },
+  "zap_1": {
+    "file": "zap_1.mp3",
+    "kind": "sfx",
+    "seconds": 2.873,
+    "gain": 0.7
+  },
+  "zap_2": {
+    "file": "zap_2.mp3",
+    "kind": "sfx",
+    "seconds": 2.691,
+    "gain": 0.7
+  },
+  "cry_1": {
+    "file": "cry_1.mp3",
+    "kind": "sfx",
+    "seconds": 2.168,
+    "gain": 0.75
+  },
+  "cry_2": {
+    "file": "cry_2.mp3",
+    "kind": "sfx",
+    "seconds": 1.959,
+    "gain": 0.75
+  },
+  "pour": {
+    "file": "pour.mp3",
+    "kind": "sfx",
+    "seconds": 1.384,
+    "gain": 0.75
+  },
+  "gulp_1": {
+    "file": "gulp_1.mp3",
+    "kind": "sfx",
+    "seconds": 1.411,
+    "gain": 0.8
+  },
+  "gulp_2": {
+    "file": "gulp_2.mp3",
+    "kind": "sfx",
+    "seconds": 1.489,
+    "gain": 0.8
+  },
+  "flour": {
+    "file": "flour.mp3",
+    "kind": "sfx",
+    "seconds": 1.097,
+    "gain": 0.75
+  },
+  "knead": {
+    "file": "knead.mp3",
+    "kind": "sfx",
+    "seconds": 1.75,
+    "gain": 0.7
+  },
+  "clamp": {
+    "file": "clamp.mp3",
+    "kind": "sfx",
+    "seconds": 0.731,
+    "gain": 0.8
+  },
+  "unlock": {
+    "file": "unlock.mp3",
+    "kind": "sfx",
+    "seconds": 1.149,
+    "gain": 0.85
+  },
+  "thud": {
+    "file": "thud.mp3",
+    "kind": "sfx",
+    "seconds": 1.019,
+    "gain": 0.8
+  },
   "devour": {
     "file": "devour.mp3",
     "kind": "sfx",
@@ -826,6 +964,12 @@
     "kind": "music",
     "seconds": 60.03,
     "gain": 0.5
+  },
+  "mus_shed": {
+    "file": "mus_shed.mp3",
+    "kind": "music",
+    "seconds": 70.038,
+    "gain": 0.45
   },
   "mus_panic": {
     "file": "mus_panic.mp3",
@@ -1275,6 +1419,252 @@
     "file": "vo_orchard_one_arm.mp3",
     "kind": "voice",
     "seconds": 4.389,
+    "gain": 1
+  },
+  "vo_shed_arrive": {
+    "file": "vo_shed_arrive.mp3",
+    "kind": "voice",
+    "seconds": 2.456,
+    "gain": 1
+  },
+  "vo_shed_see": {
+    "file": "vo_shed_see.mp3",
+    "kind": "voice",
+    "seconds": 3.161,
+    "gain": 1
+  },
+  "vo_shed_tarp": {
+    "file": "vo_shed_tarp.mp3",
+    "kind": "voice",
+    "seconds": 2.429,
+    "gain": 1
+  },
+  "vo_shed_leads": {
+    "file": "vo_shed_leads.mp3",
+    "kind": "voice",
+    "seconds": 3.971,
+    "gain": 1
+  },
+  "vo_shed_wired": {
+    "file": "vo_shed_wired.mp3",
+    "kind": "voice",
+    "seconds": 2.638,
+    "gain": 1
+  },
+  "vo_shed_shock": {
+    "file": "vo_shed_shock.mp3",
+    "kind": "voice",
+    "seconds": 2.795,
+    "gain": 1
+  },
+  "vo_shed_sit": {
+    "file": "vo_shed_sit.mp3",
+    "kind": "voice",
+    "seconds": 3.161,
+    "gain": 1
+  },
+  "vo_shed_name_1": {
+    "file": "vo_shed_name_1.mp3",
+    "kind": "voice",
+    "seconds": 1.567,
+    "gain": 1
+  },
+  "vo_shed_name_2": {
+    "file": "vo_shed_name_2.mp3",
+    "kind": "voice",
+    "seconds": 2.377,
+    "gain": 1
+  },
+  "vo_shed_name_3": {
+    "file": "vo_shed_name_3.mp3",
+    "kind": "voice",
+    "seconds": 3.004,
+    "gain": 1
+  },
+  "vo_shed_water": {
+    "file": "vo_shed_water.mp3",
+    "kind": "voice",
+    "seconds": 2.456,
+    "gain": 1
+  },
+  "vo_shed_flour": {
+    "file": "vo_shed_flour.mp3",
+    "kind": "voice",
+    "seconds": 2.664,
+    "gain": 1
+  },
+  "vo_shed_hammer": {
+    "file": "vo_shed_hammer.mp3",
+    "kind": "voice",
+    "seconds": 1.802,
+    "gain": 1
+  },
+  "vo_shed_dodge_1": {
+    "file": "vo_shed_dodge_1.mp3",
+    "kind": "voice",
+    "seconds": 0.94,
+    "gain": 1
+  },
+  "vo_shed_dodge_2": {
+    "file": "vo_shed_dodge_2.mp3",
+    "kind": "voice",
+    "seconds": 1.567,
+    "gain": 1
+  },
+  "vo_shed_dodge_3": {
+    "file": "vo_shed_dodge_3.mp3",
+    "kind": "voice",
+    "seconds": 2.456,
+    "gain": 1
+  },
+  "vo_shed_cut_1": {
+    "file": "vo_shed_cut_1.mp3",
+    "kind": "voice",
+    "seconds": 1.672,
+    "gain": 1
+  },
+  "vo_shed_cut_2": {
+    "file": "vo_shed_cut_2.mp3",
+    "kind": "voice",
+    "seconds": 1.829,
+    "gain": 1
+  },
+  "vo_shed_free": {
+    "file": "vo_shed_free.mp3",
+    "kind": "voice",
+    "seconds": 1.672,
+    "gain": 1
+  },
+  "vo_shed_finish": {
+    "file": "vo_shed_finish.mp3",
+    "kind": "voice",
+    "seconds": 1.332,
+    "gain": 1
+  },
+  "vo_shed_emptied": {
+    "file": "vo_shed_emptied.mp3",
+    "kind": "voice",
+    "seconds": 2.247,
+    "gain": 1
+  },
+  "vo_shed_leave": {
+    "file": "vo_shed_leave.mp3",
+    "kind": "voice",
+    "seconds": 1.802,
+    "gain": 1
+  },
+  "vo_baker_drift_1": {
+    "file": "vo_baker_drift_1.mp3",
+    "kind": "voice",
+    "seconds": 2.403,
+    "gain": 1
+  },
+  "vo_baker_drift_2": {
+    "file": "vo_baker_drift_2.mp3",
+    "kind": "voice",
+    "seconds": 1.28,
+    "gain": 1
+  },
+  "vo_baker_drift_3": {
+    "file": "vo_baker_drift_3.mp3",
+    "kind": "voice",
+    "seconds": 2.638,
+    "gain": 1
+  },
+  "vo_baker_drift_4": {
+    "file": "vo_baker_drift_4.mp3",
+    "kind": "voice",
+    "seconds": 2.429,
+    "gain": 1
+  },
+  "vo_baker_flash": {
+    "file": "vo_baker_flash.mp3",
+    "kind": "voice",
+    "seconds": 3.683,
+    "gain": 1
+  },
+  "vo_baker_flash_hurt": {
+    "file": "vo_baker_flash_hurt.mp3",
+    "kind": "voice",
+    "seconds": 3.84,
+    "gain": 1
+  },
+  "vo_baker_lucid_1": {
+    "file": "vo_baker_lucid_1.mp3",
+    "kind": "voice",
+    "seconds": 3.37,
+    "gain": 1
+  },
+  "vo_baker_lucid_2": {
+    "file": "vo_baker_lucid_2.mp3",
+    "kind": "voice",
+    "seconds": 2.273,
+    "gain": 1
+  },
+  "vo_baker_lucid_3": {
+    "file": "vo_baker_lucid_3.mp3",
+    "kind": "voice",
+    "seconds": 2.011,
+    "gain": 1
+  },
+  "vo_baker_lucid_4": {
+    "file": "vo_baker_lucid_4.mp3",
+    "kind": "voice",
+    "seconds": 3.971,
+    "gain": 1
+  },
+  "vo_baker_hurt": {
+    "file": "vo_baker_hurt.mp3",
+    "kind": "voice",
+    "seconds": 2.403,
+    "gain": 1
+  },
+  "vo_baker_stash": {
+    "file": "vo_baker_stash.mp3",
+    "kind": "voice",
+    "seconds": 4.885,
+    "gain": 1
+  },
+  "vo_baker_tonight": {
+    "file": "vo_baker_tonight.mp3",
+    "kind": "voice",
+    "seconds": 4.232,
+    "gain": 1
+  },
+  "vo_baker_chief": {
+    "file": "vo_baker_chief.mp3",
+    "kind": "voice",
+    "seconds": 5.878,
+    "gain": 1
+  },
+  "vo_baker_first_1": {
+    "file": "vo_baker_first_1.mp3",
+    "kind": "voice",
+    "seconds": 6.217,
+    "gain": 1
+  },
+  "vo_baker_first_2": {
+    "file": "vo_baker_first_2.mp3",
+    "kind": "voice",
+    "seconds": 1.959,
+    "gain": 1
+  },
+  "vo_baker_first_3": {
+    "file": "vo_baker_first_3.mp3",
+    "kind": "voice",
+    "seconds": 2.664,
+    "gain": 1
+  },
+  "vo_baker_freed": {
+    "file": "vo_baker_freed.mp3",
+    "kind": "voice",
+    "seconds": 2.194,
+    "gain": 1
+  },
+  "vo_baker_kneaded": {
+    "file": "vo_baker_kneaded.mp3",
+    "kind": "voice",
+    "seconds": 1.959,
     "gain": 1
   },
   "vo_finale_desk": {

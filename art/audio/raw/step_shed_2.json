@@ -1,0 +1,15 @@
+{
+  "id": "step_shed_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single careful boot step on a dusty earth floor, a dry leaf crackling under it, inside a small wooden shed. Very close, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:29.873Z",
+  "bytes": 10492,
+  "sha256": "9a223b29ee2928b6f448a6108661cfa6ac1a11069e5a6d7786440e476d0a40df"
+}

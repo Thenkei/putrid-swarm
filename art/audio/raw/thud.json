@@ -1,0 +1,15 @@
+{
+  "id": "thud",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Heard from a few steps away while looking elsewhere: one single heavy dull blow, then a body slumping against a wooden post. Muffled, short. No voice.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:59.308Z",
+  "bytes": 20105,
+  "sha256": "be95a141897e3b014e4e6db82e72f40852760546f5ae6765e786617446b6f6d0"
+}

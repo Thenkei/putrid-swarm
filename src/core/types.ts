@@ -243,8 +243,24 @@ export interface Outing {
  */
 export type OrchardChapter = 'quiet' | 'cut' | 'spared' | 'maimed';
 
-/** The ways the orchard ends a run: bitten at the throat, turned before the arm was off, bled dry. */
-export type Fate = 'throat' | 'turned' | 'bled';
+/**
+ * The ways a played chapter ends a run: in the orchard, bitten at the throat, turned before the arm was
+ * off, bled dry; in the shed, bitten by the man on the chain.
+ */
+export type OrchardFate = 'throat' | 'turned' | 'bled';
+export type Fate = OrchardFate | 'bitten';
+
+// ───────────────────────────── The shed ─────────────────────────────
+
+/**
+ * The morning in the shed, once per run: nothing yet, one of them shut in it overnight and waiting, then
+ * what was done with him — let go, finished off, left chained, or used up until nothing of him was left.
+ */
+export type ShedChapter = 'quiet' | 'waiting' | 'freed' | 'finished' | 'chained' | 'emptied';
+
+/** What he told that is worth something: where his van is, what tonight is made of, how the chief works. */
+export const INTEL_IDS = ['stash', 'tonight', 'chief'] as const;
+export type Intel = (typeof INTEL_IDS)[number];
 
 export interface GameState {
   readonly version: 1;
@@ -269,6 +285,9 @@ export interface GameState {
   readonly flags: Readonly<Record<string, number>>;
   readonly lastNight: NightReport | null;
   readonly orchard: OrchardChapter;
+  readonly shed: ShedChapter;
+  /** What the man in the shed told. */
+  readonly intel: readonly Intel[];
   /** Why the run stopped, when it was not the house that fell. */
   readonly fate: Fate | null;
   readonly totals: {

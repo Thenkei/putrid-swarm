@@ -1,6 +1,7 @@
 // The two ways a run stops: the house falls, or the seventh dawn comes.
 
-import { newGame, retryOrchard } from '../core/game';
+import { chapterOfFate } from '../core/chapters';
+import { newGame, retryChapter } from '../core/game';
 import { hasLeftArm } from '../core/orchard';
 import type { GameState } from '../core/types';
 import type { App, Scene } from '../engine/app';
@@ -9,7 +10,7 @@ import { el } from '../engine/dom';
 import { S, fmt } from '../engine/i18n';
 import { say } from '../engine/voice';
 import { drawPlate } from './common';
-import { goDay, goNightfall, goOrchard, goTitle } from './flow';
+import { chapterEndPlate, goChapter, goDay, goNightfall, goTitle } from './flow';
 
 export class EndScene implements Scene {
   private time = 0;
@@ -42,18 +43,18 @@ export class EndScene implements Scene {
     const totals = state?.totals ?? { kills: 0, triggers: 0, searches: 0 };
 
     const buttons: HTMLElement[] = [];
-    // The orchard ended it: the night before was won, so it is that morning that is played again.
-    const again = state ? retryOrchard(state) : null;
+    // A chapter ended it: the night before was won, so it is that morning that is played again.
+    const again = state ? retryChapter(state) : null;
     if (again?.ok) {
-      const morning = again.value;
+      const { state: morning, chapter } = again.value;
       buttons.push(
         el('button', {
           class: 'btn btn-primary',
-          text: s.end.retryOrchard,
+          text: s.chapter[chapter].retry,
           onClick: () => {
             this.app.state = morning;
             this.app.save();
-            goOrchard(this.app);
+            goChapter(this.app, chapter);
           },
         }),
       );
@@ -101,7 +102,8 @@ export class EndScene implements Scene {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    const plate = this.won ? 'plate_victory' : this.app.state?.fate ? 'plate_orchard_end' : 'plate_gameover';
+    const fate = this.app.state?.fate ?? null;
+    const plate = this.won ? 'plate_victory' : fate ? chapterEndPlate(chapterOfFate(fate)) : 'plate_gameover';
     drawPlate(ctx, plate, { zoom: 1.02 + this.time * 0.003, focusY: 0.45 });
   }
 }

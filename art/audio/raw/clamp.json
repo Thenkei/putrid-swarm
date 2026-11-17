@@ -1,0 +1,15 @@
+{
+  "id": "clamp",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Two spring-loaded copper battery clamps snapped one after the other onto an iron chain: two sharp metallic clacks. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:56.575Z",
+  "bytes": 13835,
+  "sha256": "db76a4e0b1bbbe7e14583662cb5ef3996700efad8925fc30736db73d7c6ff924"
+}

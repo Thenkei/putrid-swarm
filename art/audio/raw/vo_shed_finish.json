@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_finish",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly, ashamed] Pardon, monsieur.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.5,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:04:42.926Z",
+  "bytes": 24284,
+  "sha256": "d923eccad60221ee658dd7a1431b79c6e3c0c7bc32a7b30c4815aa0c2f39dda1"
+}

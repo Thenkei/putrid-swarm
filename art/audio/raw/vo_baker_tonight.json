@@ -1,0 +1,19 @@
+{
+  "id": "vo_baker_tonight",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[hurried, low] Ce soir, c’est la tournée. Elle passe toujours par votre portail en dernier. Les autres la suivent.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T17:02:56.499Z",
+  "bytes": 70260,
+  "sha256": "92a8f02ee95e8165469add4313a2d01227835f5ab095ad89c3ffce32405b9390"
+}

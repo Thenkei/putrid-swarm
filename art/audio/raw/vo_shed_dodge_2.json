@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_dodge_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[breathless] Ouh là. Doucement.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:28.599Z",
+  "bytes": 31807,
+  "sha256": "ace80585e0009c9b1fcc3cafd6080134edb74a2c98ee8f0ef08343a115c2a673"
+}

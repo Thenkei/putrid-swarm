@@ -1,0 +1,15 @@
+{
+  "id": "snarl_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A man possessed snaps his jaws twice and lets out a hoarse guttural growl, like a dog on a chain. Very close, dry. No words.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.3,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:39.027Z",
+  "bytes": 21358,
+  "sha256": "d9f9b16ef3a497f96803576646c93f5f6faa96db435b0c6a3c504af313af0112"
+}
