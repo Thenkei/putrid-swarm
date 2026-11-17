@@ -1,0 +1,15 @@
+{
+  "id": "mus_credits",
+  "kind": "music",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/music",
+  "request": {
+    "prompt": "End credits of a small game made by friends: the memory of a summer evening on a sofa in a student flat. Two acoustic guitars strummed loosely like a home recording, a melodica carrying a simple hummable tune, soft hand claps and a shaker, an upright piano joining halfway. Warm, nostalgic, a little clumsy and happy, with one bittersweet turn; major key, 92 bpm. It slows down at the end and finishes on one held guitar chord left to ring out. Instrumental, no vocals.",
+    "model_id": "music_v2_5",
+    "music_length_ms": 75000,
+    "force_instrumental": true
+  },
+  "generatedAt": "2026-11-17T20:48:32.408Z",
+  "bytes": 1200840,
+  "sha256": "cc4c6f4941e0c8c79d77a67bd525733a5cc5eaefbc35f307b49092b751e6b320"
+}

@@ -1451,6 +1451,53 @@ export const ART = [
       'Bottom-left: a comic impact starburst in pale yellow with wood splinters. Bottom-right: a soft pale grey smoke puff. ' +
       `${KEY} Art style: hand-inked 2D game art with crisp dark outlines and flat painterly colouring. No text, no watermark.`,
   },
+
+  // ───────────────────────────── The credits ─────────────────────────────
+  // Where the game comes from: a sofa in a student flat, one summer, three friends. The room and the
+  // sofa are two pictures, so the camera can move between them; nothing in either is taken from a
+  // photograph, and the three are only ever seen from behind.
+  {
+    // The photograph the credits end on: the three of them, that summer. A real picture, used as it is
+    // (only the phone's frame cut off), shown on the monitor.
+    id: 'credits_photo',
+    kind: 'plate',
+    w: 720,
+    source: { concept: 'art/photos/summer-2013.jpg' },
+  },
+  {
+    id: 'plate_credits_flat',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_title_desk.png', C('12-surveillance-room.png')],
+    prompt: plate(
+      'The living room of a cheap student flat under the roof of an old stone town house in a small French town, on a warm SUMMER evening around 2013 (summer, not autumn: green leaves, golden dusk). Nobody in the room: no person, no hands, no animal. ' +
+        'Seen from standing height at the back of the room, looking toward the far wall. The LOWER THIRD of the picture is empty worn wooden floorboards with a faded rug: leave that whole strip clear, a sofa will be added there later. ' +
+        'Beyond it, in the middle distance: a low coffee table made of a pallet, covered with open pizza boxes, beer bottles, mugs, a full ashtray, dice, loose sheets of paper covered in pencil doodles of monsters and house plans, pencils, a laptop. ' +
+        'Against the far wall, centre-left: an old bulky cathode-ray television on a wooden crate, switched on, its screen a plain pale blue-white glow lighting the table, with a games console and tangled cables below it. ' +
+        'On the RIGHT, a tall open window with shutters folded back: outside, terracotta rooftops at dusk under an orange and pink sky, and far away a steep volcanic rock needle with a tiny stone chapel on its top, and on another rocky hill a tall dark red statue. Swifts in the sky. A thin curtain moves. ' +
+        'Around the room, things that will matter one day: a battered electric guitar leaning against a small amplifier, a white plush rabbit on a shelf, an old CB radio set on top of a bookcase full of comics and DVDs, a rusty hand saw hung on a nail as a joke, a baguette sticking out of a paper bag, a string of fairy lights, posters with pictures only, a clothes rack, a bicycle wheel. ' +
+        'Warm, messy, happy, lived-in. Light: golden dusk from the window on the right, cold glow from the television on the left.',
+    ),
+  },
+  {
+    id: 'credits_sofa',
+    kind: 'sprite',
+    w: 1180,
+    refs: ['art/raw/plate_credits_flat.png', 'art/raw/plate_title_desk.png'],
+    // Their hair, the hat, the T-shirts and the arms round the shoulders are those of the photograph
+    // the credits end on (art/photos/summer-2013.jpg), described in words: the photograph itself is
+    // never sent to the image generator.
+    prompt:
+      'One single object for a layered illustration: a wide, sagging, worn three-seater sofa seen STRICTLY FROM BEHIND, with three friends in their early twenties sitting on it side by side, close together, also seen strictly from behind. ' +
+      'Only the BACK of the sofa is visible (its tall worn fabric backrest, a patched corner, a blanket thrown over one end, its two back feet), and above the backrest only the backs of three heads, necks and shoulders: no face, no profile, nobody turning round. ' +
+      'They are ordinary, living, healthy young people on a summer evening in 2013, long before any outbreak — NOT infected: natural healthy skin, no wounds, no sores, no stains, no green or grey skin, clean untorn T-shirts. ' +
+      'The one on the LEFT has thick wavy dark-brown hair and a navy-blue T-shirt. The one in the MIDDLE wears a pale straw trilby hat over short brown hair and a black T-shirt, and has BOTH arms spread wide along the top of the backrest and round the shoulders of the other two, one hand resting on each friend’s far shoulder. ' +
+      'The one on the RIGHT has short black hair cut very short on the sides and a violet-blue T-shirt. All three have their heads tilted back, looking UP at the ceiling above them, as if watching something rise. Hair drawn as compact shapes with clean outlines, no loose wisps. ' +
+      'The sofa is worn and patched but dry and clean: nothing drips from it. ' +
+      'Lit for the room in the first attached picture: a warm golden rim of dusk light on the right-hand edges of heads and shoulders, a cold blue-white television glow outlining them from the front, the back of the sofa itself in soft shadow. ' +
+      'The sofa spans almost the full width of the canvas, centred, its feet near the bottom edge. Nothing else: no floor, no rug, no table, no wall. ' +
+      `${KEY} ${STYLE}`,
+  },
 ];
 
 // ───────────────────────────── Animation poses ─────────────────────────────

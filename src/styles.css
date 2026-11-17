@@ -3723,3 +3723,273 @@ button:disabled {
 #stage:has(.coach.on) #toast {
   bottom: 344px;
 }
+
+/* ───────── Credits ───────── */
+
+.credits {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 1.2s;
+}
+
+.credits.out {
+  opacity: 0;
+}
+
+.credits-date {
+  position: absolute;
+  left: 56px;
+  top: 44px;
+  padding: 6px 14px 4px;
+  font-family: 'Courier New', 'Menlo', monospace;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #fff6e0;
+  background: rgba(8, 6, 4, 0.72);
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+
+.credits-line,
+.credits-names {
+  position: absolute;
+  left: 50%;
+  bottom: 54px;
+  max-width: 1000px;
+  margin: 0;
+  transform: translate(-50%, 14px);
+  padding: 10px 26px 8px;
+  font-family: var(--slab-font);
+  text-align: center;
+  white-space: nowrap;
+  color: #fff6e0;
+  background: rgba(8, 6, 4, 0.78);
+  border-radius: 6px;
+  opacity: 0;
+  transition:
+    opacity 0.7s,
+    transform 0.7s;
+}
+
+.credits-line {
+  font-size: 30px;
+}
+
+.credits-date.on,
+.credits-line.on,
+.credits-names.on {
+  opacity: 1;
+}
+
+.credits-line.on,
+.credits-names.on {
+  transform: translate(-50%, 0);
+}
+
+.credits-names {
+  padding: 12px 34px 12px;
+}
+
+.credits-names small {
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--hud-font);
+  font-size: 19px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.credits-names div {
+  display: flex;
+  gap: 38px;
+}
+
+.credits-names b {
+  font-size: 34px;
+}
+
+/* The same card as the game's own "later", over the same kind of wash. */
+.credits-later {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2c2118;
+  font-family: var(--slab-font);
+  opacity: 0;
+  transition: opacity 0.9s;
+}
+
+.credits-later.on {
+  opacity: 1;
+}
+
+.credits-later h1 {
+  margin: 0;
+  font-size: 66px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* The names roll on the protagonist's own monitor. */
+.crt.credits-crt {
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1s;
+}
+
+.crt.credits-crt.on {
+  opacity: 1;
+}
+
+.credits-roll {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: 0 34px;
+  text-align: center;
+  font-family: 'Courier New', 'Menlo', monospace;
+  will-change: transform;
+}
+
+.credits-roll h2 {
+  margin: 0 0 46px;
+  font-family: var(--slab-font);
+  font-size: 46px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #e23a2c;
+}
+
+.credits-roll section {
+  margin-bottom: 40px;
+}
+
+.credits-roll small {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(216, 242, 232, 0.62);
+}
+
+.credits-roll b {
+  display: block;
+  font-size: 24px;
+  line-height: 1.3;
+  color: #efe6d2;
+}
+
+.credits-roll p {
+  margin: 30px 0 0;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.4;
+  color: rgba(216, 242, 232, 0.62);
+}
+
+.credits-thanks {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 1.4s;
+}
+
+.credits-thanks.on {
+  opacity: 1;
+}
+
+.credits-thanks h2 {
+  margin: 0;
+  padding: 0 30px;
+  font-family: var(--slab-font);
+  font-size: 28px;
+  color: #efe6d2;
+}
+
+/* The photograph comes up on the glass the way a picture loads on an old machine: slowly, and a little too bright. */
+.credits-photo {
+  width: 372px;
+  height: auto;
+  border: 2px solid rgba(216, 242, 232, 0.4);
+  border-radius: 3px;
+  box-shadow: 0 0 26px rgba(120, 220, 200, 0.22);
+  opacity: 0;
+  transform: scale(1.05);
+  filter: brightness(1.6) saturate(0.5);
+  transition:
+    opacity 2.2s,
+    transform 6s ease-out,
+    filter 3.4s;
+}
+
+.credits-thanks.on .credits-photo {
+  opacity: 1;
+  transform: scale(1);
+  filter: brightness(1.08) saturate(0.95);
+}
+
+.credits-thanks small {
+  margin-top: -6px;
+  font-family: 'Courier New', 'Menlo', monospace;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(216, 242, 232, 0.62);
+}
+
+/* The words wait for the picture. */
+.credits-thanks h2,
+.credits-thanks span {
+  opacity: 0;
+  transition: opacity 1.6s 2.6s;
+}
+
+.credits-thanks.on h2,
+.credits-thanks.on span {
+  opacity: 1;
+}
+
+.credits-thanks span {
+  font-family: var(--slab-font);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #f2c84b;
+}
+
+.credits-skip {
+  position: absolute;
+  right: 22px;
+  bottom: 16px;
+  padding: 4px 12px 2px;
+  font-size: 16px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cream-dim);
+  background: rgba(8, 6, 4, 0.55);
+  border: 1px solid var(--edge-soft);
+  border-radius: 5px;
+  pointer-events: auto;
+  opacity: 0.55;
+  transition: opacity 0.2s;
+}
+
+.credits-skip:hover {
+  opacity: 1;
+}

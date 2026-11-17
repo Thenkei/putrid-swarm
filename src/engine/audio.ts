@@ -106,7 +106,7 @@ export type Sfx =
   | 'radio_off';
 
 export type Ambience = 'none' | 'room' | 'day' | 'night' | 'car';
-export type Music = 'none' | 'title' | 'day' | 'night' | 'boss' | 'morning' | 'won' | 'orchard' | 'shed' | 'panic' | 'finale';
+export type Music = 'none' | 'title' | 'day' | 'night' | 'boss' | 'morning' | 'won' | 'orchard' | 'shed' | 'panic' | 'finale' | 'credits';
 
 const STORAGE_KEY = 'putrid-swarm.sound';
 const MUSIC_KEY = 'putrid-swarm.music';
