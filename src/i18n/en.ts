@@ -578,6 +578,13 @@ export const en: Strings = {
     out: 'Go out in style',
     outNote: 'or play it to the end',
     skip: 'Space · skip',
+    pick: '← → to choose',
+    start: 'Space · start',
+    swap: 'Switch to {mode}',
+    mode: {
+      soft: { name: 'Easy', note: 'Three keys, notes that take their time' },
+      hard: { name: 'Furious', note: 'Six keys, and they come fast' },
+    },
     swarmTitle: 'Out of petrol',
     swarmEarly: 'You cut the engine in the middle of them. The last chord is still ringing when they close in.',
     swarmFull: 'The song is over, and so is the tank. They all came to listen.',

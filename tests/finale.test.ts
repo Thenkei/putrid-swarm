@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CHORDS, FINALE, chartOf, chordRate, finaleOf, settle, startJam, strum, type Jam, type Note } from '../src/core/finale';
+import { FINALE, JAM, JAM_MODES, chartOf, chordRate, chordsOf, finaleOf, settle, startJam, strum, type Jam, type Note } from '../src/core/finale';
+
+const CHORDS = chordsOf('hard');
 import { newGame } from '../src/core/game';
 import type { GameState } from '../src/core/types';
 
@@ -62,7 +64,7 @@ describe('the end: strumming', () => {
     const dead = strum(startJam(), chart, 1.01, 0);
     expect(dead).toMatchObject({ verdict: 'perfect', mown: 3 });
     expect(dead.jam).toMatchObject({ next: 1, combo: 1, perfect: 1, mown: 3 });
-    const near = strum(startJam(), chart, 1 + FINALE.good - 0.01, 0);
+    const near = strum(startJam(), chart, 1 + JAM.hard.good - 0.01, 0);
     expect(near).toMatchObject({ verdict: 'good', mown: 2 });
     expect(near.jam).toMatchObject({ next: 1, good: 1 });
   });
@@ -121,5 +123,52 @@ describe('the end: strumming', () => {
     expect(chordRate(0)).toBe(1);
     expect(chordRate(CHORDS - 1)).toBeCloseTo(2, 10);
     for (let i = 1; i < CHORDS; i++) expect(chordRate(i)).toBeGreaterThan(chordRate(i - 1));
+  });
+});
+
+describe('the end: the gentle way to play it', () => {
+  const soft = chartOf('soft');
+  const hard = chartOf('hard');
+  const beat = 60 / FINALE.bpm;
+
+  it('is the same song, with far fewer notes and only three keys', () => {
+    expect(chartOf('soft')).toEqual(soft);
+    expect(chordsOf('soft')).toBe(3);
+    expect(soft.length).toBeGreaterThan(40);
+    expect(soft.length).toBeLessThan(hard.length * 0.65);
+    for (const note of soft) expect(note.chord).toBeLessThan(3);
+    expect(new Set(soft.map((n) => n.chord)).size).toBe(3);
+  });
+
+  it('never asks for anything faster than the beat, and lands on it', () => {
+    for (let i = 1; i < soft.length; i++) expect((soft[i] as Note).time - (soft[i - 1] as Note).time).toBeGreaterThan(beat - 1e-6);
+    for (const note of soft) {
+      const beats = (note.time - FINALE.offset) / beat;
+      expect(Math.abs(beats - Math.round(beats))).toBeLessThan(1e-6);
+    }
+  });
+
+  it('gives the notes longer on screen and forgives a later hand', () => {
+    expect(JAM.soft.lead).toBeGreaterThan(JAM.hard.lead * 1.5);
+    expect(JAM.soft.good).toBeGreaterThan(JAM.hard.good);
+    const note = soft[0] as Note;
+    const late = note.time + JAM.hard.good + 0.05;
+    expect(strum(startJam(), soft, late, note.chord, 'soft').verdict).toBe('good');
+    expect(strum(startJam(), soft, late, note.chord, 'hard').verdict).not.toBe('good');
+    // A note is only let go once the wider window has closed.
+    expect(settle(startJam(), soft, late, 'soft').next).toBe(0);
+    expect(settle(startJam(), soft, late, 'hard').next).toBe(1);
+  });
+
+  it('plays clean from end to end, on three chords that belong to the key', () => {
+    let jam: Jam = startJam();
+    for (const note of soft) jam = strum(jam, soft, note.time, note.chord, 'soft').jam;
+    expect(jam).toMatchObject({ next: soft.length, missed: 0, perfect: soft.length });
+    // E, A, B: root, fourth, fifth.
+    expect([0, 1, 2].map((chord) => Math.round(12 * Math.log2(chordRate(chord, 'soft'))))).toEqual([0, 5, 7]);
+  });
+
+  it('knows exactly two ways to play', () => {
+    expect(JAM_MODES).toEqual(['soft', 'hard']);
   });
 });

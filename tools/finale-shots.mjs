@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Dev aid: loses a night on purpose and plays what follows, saving a screenshot at every stage.
 //   node tools/finale-shots.mjs <outDir> [desk,rampage,onearm] [baseUrl]
-// PS_LANG=en for English. The jam is played by reading the chart, a little unevenly, like a person.
+// PS_LANG=en for English, PS_JAM=soft for the gentle chart (hard by default). The jam is played by reading the chart.
 import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -13,10 +13,11 @@ const OUT = resolve(process.argv[2] ?? 'shots');
 const BRANCHES = (process.argv[3] ?? 'desk,rampage,onearm').split(',');
 const URL = process.argv[4] ?? process.env.PS_URL ?? 'http://localhost:5173/';
 const LANG = process.env.PS_LANG ?? 'fr';
+const JAM = process.env.PS_JAM === 'soft' ? 'soft' : 'hard';
 mkdirSync(OUT, { recursive: true });
 
 const saves = JSON.parse(execFileSync('npx', ['tsx', 'tools/orchard-saves.ts'], { cwd: ROOT, encoding: 'utf8' }));
-const chart = JSON.parse(execFileSync('npx', ['tsx', '-e', "import('./src/core/finale.ts').then((m) => console.log(JSON.stringify(m.chartOf())))"], { cwd: ROOT, encoding: 'utf8' }));
+const chart = JSON.parse(execFileSync('npx', ['tsx', '-e', `import('./src/core/finale.ts').then((m) => console.log(JSON.stringify(m.chartOf('${JAM}'))))`], { cwd: ROOT, encoding: 'utf8' }));
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1, locale: LANG === 'fr' ? 'fr-FR' : 'en-GB' });
 const errors = [];
@@ -35,12 +36,13 @@ const CHORD_KEYS = ['KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'KeyY'];
 /** Opens a doomed evening and lets the night be lost at eight times the speed. */
 async function lose(save) {
   await page.goto(URL);
-  await page.evaluate(([s, lang]) => {
+  await page.evaluate(([s, lang, jam]) => {
     localStorage.clear();
+    localStorage.setItem('putrid-swarm.jam', jam);
     localStorage.setItem('putrid-swarm.save.v1', s);
     localStorage.setItem('putrid-swarm.lang', lang);
     localStorage.setItem('putrid-swarm.sound', 'off');
-  }, [save, LANG]);
+  }, [save, LANG, JAM]);
   await page.reload();
   await wait(2500);
   await page.getByText(T.cont, { exact: false }).first().click();

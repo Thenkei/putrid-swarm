@@ -16,22 +16,39 @@ export const FINALE = {
   seconds: 80,
   /** Seconds of playing before leaving is offered. */
   skipAfter: 30,
-  /** How far from a note, in seconds, a strum still counts. */
-  perfect: 0.075,
-  good: 0.16,
-  /** How long a note is on screen before it is due. */
-  lead: 1.5,
   /** Bars left empty at the start, to find the keys, and at the end, for the last chord to ring. */
   barsIn: 2,
   barsOut: 2,
-  /**
-   * Semitones above the one recorded chord, per chord key: an E minor pentatonic up to the octave,
-   * so nothing played over the track can sound wrong.
-   */
-  semitones: [0, 3, 5, 7, 10, 12],
 } as const;
 
-export const CHORDS = FINALE.semitones.length;
+/**
+ * Two ways to play the same song. `soft` is for listening: three keys, crotchets at most, notes that
+ * take their time crossing the screen and forgive a late hand. `hard` is the song as written.
+ */
+export type JamMode = 'soft' | 'hard';
+export const JAM_MODES: readonly JamMode[] = ['soft', 'hard'];
+
+export interface JamRules {
+  /** How far from a note, in seconds, a strum still counts. */
+  readonly perfect: number;
+  readonly good: number;
+  /** How long a note is on screen before it is due. */
+  readonly lead: number;
+  /**
+   * Semitones above the one recorded chord, per chord key. Either set stays inside E minor, so
+   * nothing played over the track can sound wrong: E–A–B, the three chords of every rock song, or
+   * the pentatonic up to the octave.
+   */
+  readonly semitones: readonly number[];
+}
+
+export const JAM: Readonly<Record<JamMode, JamRules>> = {
+  soft: { perfect: 0.11, good: 0.24, lead: 2.6, semitones: [0, 5, 7] },
+  hard: { perfect: 0.075, good: 0.16, lead: 1.5, semitones: [0, 3, 5, 7, 10, 12] },
+};
+
+/** How many chord keys a mode plays with. */
+export const chordsOf = (mode: JamMode): number => JAM[mode].semitones.length;
 
 export type FinaleKind = 'desk' | 'rampage';
 
@@ -50,7 +67,29 @@ export interface Note {
 const _ = null;
 type Riff = readonly (number | null)[];
 /** One bar each, eight quavers. Three levels: finding the keys, getting going, showing off. */
-const RIFFS: readonly (readonly Riff[])[] = [
+const RIFFS: Readonly<Record<JamMode, readonly (readonly Riff[])[]>> = {
+  // Never faster than the beat, never more than three keys: two notes a bar, then three, now and then four.
+  soft: [
+    [
+      [0, _, _, _, 0, _, _, _],
+      [0, _, _, _, 1, _, _, _],
+      [1, _, _, _, 0, _, _, _],
+      [0, _, _, _, 2, _, _, _],
+    ],
+    [
+      [0, _, 0, _, 1, _, _, _],
+      [0, _, _, _, 1, _, 1, _],
+      [2, _, _, _, 1, _, 0, _],
+      [0, _, 1, _, 2, _, _, _],
+    ],
+    [
+      [0, _, 0, _, 1, _, 1, _],
+      [2, _, _, _, 1, _, 0, _],
+      [0, _, 1, _, 2, _, _, _],
+      [2, _, 1, _, 0, _, _, _],
+    ],
+  ],
+  hard: [
   [
     [0, _, 0, _, 0, _, 0, _],
     [0, _, 0, _, 1, _, 1, _],
@@ -71,10 +110,12 @@ const RIFFS: readonly (readonly Riff[])[] = [
     [0, 1, 2, 3, 4, 5, _, 5],
     [2, 2, _, 2, 4, _, 5, 5],
   ],
-];
+  ],
+};
 
 /** The notes of the whole track, in order. The same every time: it is a song, not a draw. */
-export function chartOf(seconds: number = FINALE.seconds, bpm: number = FINALE.bpm, offset: number = FINALE.offset): Note[] {
+export function chartOf(mode: JamMode = 'hard', seconds: number = FINALE.seconds, bpm: number = FINALE.bpm, offset: number = FINALE.offset): Note[] {
+  const levels = RIFFS[mode];
   const quaver = 30 / bpm;
   const bar = quaver * 8;
   const bars = Math.floor((seconds - offset) / bar);
@@ -82,9 +123,9 @@ export function chartOf(seconds: number = FINALE.seconds, bpm: number = FINALE.b
   for (let b = FINALE.barsIn; b < bars - FINALE.barsOut; b++) {
     const played = b - FINALE.barsIn;
     const level = played < 6 ? 0 : played < 18 ? 1 : 2;
-    const riffs = RIFFS[level] as readonly Riff[];
+    const riffs = levels[level] as readonly Riff[];
     // Every fourth bar of a level answers the three before it, a level down: room to breathe.
-    const riff = (played % 4 === 3 && level > 0 ? (RIFFS[level - 1] as readonly Riff[])[played % 4] : riffs[(played * 3 + level) % riffs.length]) as Riff;
+    const riff = (played % 4 === 3 && level > 0 ? (levels[level - 1] as readonly Riff[])[played % 4] : riffs[(played * 3 + level) % riffs.length]) as Riff;
     riff.forEach((chord, slot) => {
       if (chord !== null) notes.push({ time: offset + b * bar + slot * quaver, chord });
     });
@@ -123,22 +164,23 @@ export interface Strum {
 }
 
 /** Lets go of the notes that went by unplayed. */
-export function settle(jam: Jam, chart: readonly Note[], time: number): Jam {
+export function settle(jam: Jam, chart: readonly Note[], time: number, mode: JamMode = 'hard'): Jam {
   let { next } = jam;
-  while (next < chart.length && time > (chart[next] as Note).time + FINALE.good) next++;
+  while (next < chart.length && time > (chart[next] as Note).time + JAM[mode].good) next++;
   const missed = next - jam.next;
   return missed === 0 ? jam : { ...jam, next, missed: jam.missed + missed, combo: 0 };
 }
 
 /** The strings are hit at `time`, with a chord key held or not. */
-export function strum(before: Jam, chart: readonly Note[], time: number, chord: number | null): Strum {
-  const jam = { ...settle(before, chart, time), strums: before.strums + 1 };
+export function strum(before: Jam, chart: readonly Note[], time: number, chord: number | null, mode: JamMode = 'hard'): Strum {
+  const rules = JAM[mode];
+  const jam = { ...settle(before, chart, time, mode), strums: before.strums + 1 };
   if (chord === null) return { jam, verdict: 'air', mown: 0 };
   const note = chart[jam.next];
-  const due = note !== undefined && Math.abs(time - note.time) <= FINALE.good;
+  const due = note !== undefined && Math.abs(time - note.time) <= rules.good;
   if (!due) return { jam: { ...jam, mown: jam.mown + 1 }, verdict: 'free', mown: 1 };
   if (note.chord !== chord) return { jam: { ...jam, combo: 0, mown: jam.mown + 1 }, verdict: 'wrong', mown: 1 };
-  const perfect = Math.abs(time - note.time) <= FINALE.perfect;
+  const perfect = Math.abs(time - note.time) <= rules.perfect;
   const combo = jam.combo + 1;
   // A run of right notes carries: every eight in a row is one more body per strum.
   const mown = (perfect ? 3 : 2) + Math.floor(combo / 8);
@@ -158,4 +200,4 @@ export function strum(before: Jam, chart: readonly Note[], time: number, chord: 
 }
 
 /** Playback rate that turns the recorded chord into the one a key stands for. */
-export const chordRate = (chord: number): number => 2 ** ((FINALE.semitones[chord] ?? 0) / 12);
+export const chordRate = (chord: number, mode: JamMode = 'hard'): number => 2 ** ((JAM[mode].semitones[chord] ?? 0) / 12);

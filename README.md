@@ -48,6 +48,7 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Orchard | `↓`, then `←` `→` in turn | kneel with the saw, then saw; `↑` gets up again before the first stroke |
 | Orchard | `Esc` | pause (every prompt can also be clicked or held with the pointer) |
 | The end | hold one of `A Z E R T Y`, hit `Space` | a chord, and the strings; `Enter` leaves once it is offered |
+| The end | `←` `→` at the shed, `Tab` during the song | choose how it is played: easy (three keys, slower notes, the default) or furious (six keys) |
 | Title | click the monitor's power button, the joint, the mug, the speaker (wheel for fine volume) | nothing useful |
 
 ## The loop as built
