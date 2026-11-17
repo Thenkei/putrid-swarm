@@ -315,24 +315,39 @@ function buildGround(rot: Rot): HTMLCanvasElement {
     target.setTransform((TW / 2) * s, (TH / 2) * s, (-TW / 2) * s, (TH / 2) * s, -GROUND_X0 * s, -GROUND_Y0 * s);
   };
 
-  const layer = (terrain: Exclude<Terrain, 'house'>, everywhere: boolean): void => {
-    const paint = document.createElement('canvas');
-    paint.width = canvas.width;
-    paint.height = canvas.height;
-    const pctx = paint.getContext('2d') as CanvasRenderingContext2D;
+  // Two scratch layers, shared by every terrain: the cells of one, then those cells textured.
+  const scratch = (): CanvasRenderingContext2D => {
+    const layerCanvas = document.createElement('canvas');
+    layerCanvas.width = canvas.width;
+    layerCanvas.height = canvas.height;
+    return layerCanvas.getContext('2d') as CanvasRenderingContext2D;
+  };
+  const mctx = scratch();
+  const pctx = scratch();
 
-    // 1. Mask: the cells of this terrain, slightly feathered so paths melt into the grass.
-    if (canBlur && !everywhere) pctx.filter = `blur(${5 * GROUND_SCALE}px)`;
-    toGrid(pctx);
-    pctx.fillStyle = '#fff';
+  const layer = (terrain: Exclude<Terrain, 'house'>, everywhere: boolean): void => {
+    // 1. Mask: the cells of this terrain.
+    mctx.setTransform(1, 0, 0, 1, 0, 0);
+    mctx.clearRect(0, 0, canvas.width, canvas.height);
+    toGrid(mctx);
+    mctx.fillStyle = '#fff';
     for (let vy = -MARGIN; vy < GRID_H + MARGIN; vy++) {
       for (let vx = -MARGIN; vx < GRID_W + MARGIN; vx++) {
-        if (everywhere || terrainOfViewCell(rot, vx, vy) === terrain) pctx.fillRect(vx - 0.02, vy - 0.02, 1.04, 1.04);
+        if (everywhere || terrainOfViewCell(rot, vx, vy) === terrain) mctx.fillRect(vx - 0.02, vy - 0.02, 1.04, 1.04);
       }
     }
+
+    // Slightly feathered, so paths melt into the grass. The mask is blurred whole, in one pass: a
+    // filter left on while the cells are filled blurs each of them as a full-size layer of its own,
+    // which froze the first frame of the yard for half a second.
+    pctx.setTransform(1, 0, 0, 1, 0, 0);
+    pctx.globalCompositeOperation = 'copy';
+    if (canBlur && !everywhere) pctx.filter = `blur(${5 * GROUND_SCALE}px)`;
+    pctx.drawImage(mctx.canvas, 0, 0);
     pctx.filter = 'none';
 
     // 2. Texture, laid flat on the ground plane, kept only where the mask is.
+    toGrid(pctx);
     pctx.globalCompositeOperation = 'source-in';
     const texture = sprite(TERRAIN_TEXTURE[terrain]);
     if (texture) {
@@ -345,7 +360,7 @@ function buildGround(rot: Rot): HTMLCanvasElement {
     pctx.fillRect(-MARGIN, -MARGIN, GRID_W + 2 * MARGIN, GRID_H + 2 * MARGIN);
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(paint, 0, 0);
+    ctx.drawImage(pctx.canvas, 0, 0);
   };
 
   layer('forest', true);
