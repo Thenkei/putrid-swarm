@@ -579,6 +579,13 @@ export const fr = {
     out: 'Finir en beauté',
     outNote: 'ou jouer jusqu’au bout',
     skip: 'Espace · passer',
+    pick: '← → pour choisir',
+    start: 'Espace · démarrer',
+    swap: 'Passer en {mode}',
+    mode: {
+      soft: { name: 'Tranquille', note: 'Trois touches, des notes qui prennent leur temps' },
+      hard: { name: 'Vénère', note: 'Six touches, ça défile vite' },
+    },
     swarmTitle: 'Plus d’essence',
     swarmEarly: 'Tu coupes le moteur au milieu d’eux. Le dernier accord sonne encore quand ils se referment.',
     swarmFull: 'Le morceau est fini, le réservoir aussi. Ils sont tous venus écouter.',

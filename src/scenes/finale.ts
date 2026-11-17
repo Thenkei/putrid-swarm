@@ -6,7 +6,7 @@
 // the strings. core/finale.ts holds the chart and what a strum is worth; nothing played here changes
 // how it ends.
 
-import { CHORDS, FINALE, chartOf, chordRate, finaleOf, settle, startJam, strum, type FinaleKind, type Jam, type Note, type Verdict } from '../core/finale';
+import { FINALE, JAM, JAM_MODES, chartOf, chordRate, chordsOf, finaleOf, settle, startJam, strum, type FinaleKind, type Jam, type JamMode, type Note, type Verdict } from '../core/finale';
 import { hasLeftArm } from '../core/orchard';
 import type { GameState } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
@@ -21,13 +21,24 @@ import { goEnd } from './flow';
 
 type Stage = 'fall' | 'devoured' | 'shed' | 'jam' | 'swarm';
 
-const SECONDS: Readonly<Record<Exclude<Stage, 'jam'>, number>> = { fall: 3, devoured: 5.6, shed: 6.6, swarm: 9 };
+const SECONDS: Readonly<Record<Exclude<Stage, 'jam'>, number>> = { fall: 3, devoured: 5.6, shed: 9, swarm: 9 };
 
 /** Where things are on the jam screen. */
 const GROUND = 640;
 const MOWER = { x: 300, height: 318 } as const;
 const BLADE_X = 488;
-const LANE = { y: 112, hitX: 236, speed: (STAGE_W - 236) / FINALE.lead } as const;
+const LANE = { y: 112, hitX: 236 } as const;
+const MODE_KEY = 'putrid-swarm.jam';
+
+/** The way the song was last played; the gentle one the first time. */
+function storedMode(): JamMode {
+  try {
+    const stored = localStorage.getItem(MODE_KEY);
+    return JAM_MODES.find((mode) => mode === stored) ?? 'soft';
+  } catch {
+    return 'soft';
+  }
+}
 const CHORD_COLORS = ['#f2a531', '#dc4330', '#a3cf5c', '#7fc4b8', '#c58be0', '#fff1c9'] as const;
 const SCROLL = 430;
 /** The cut between two pictures is a turn of the head: this long on each side of it. */
@@ -91,7 +102,9 @@ export class FinaleScene implements Scene {
   private smokeDue = 0;
 
   // The jam.
-  private readonly chart: readonly Note[] = chartOf();
+  private mode: JamMode = storedMode();
+  private chart: readonly Note[] = chartOf(this.mode);
+  private readonly modeEls = new Map<JamMode, HTMLElement>();
   private jam: Jam = startJam();
   /** Seconds since the song was started, off the wall clock: a slow frame must not put the notes late. */
   private clock = 0;
@@ -189,10 +202,21 @@ export class FinaleScene implements Scene {
         this.after(1.6, () => audio.play('amp_on'));
         this.after(3.4, () => audio.play('mower_start'));
         if (this.oneArmed) this.after(3.6, () => say('vo_finale_one_arm', { interrupt: true }));
+        this.modeEls.clear();
         this.root.replaceChildren(
           el('div', { class: 'finale-title' }, [el('h1', { text: s.finale.shed }), el('p', { text: s.finale.shedSub })]),
-          el('div', { class: 'finale-skip', text: s.finale.skip }),
+          // How to play it is chosen here, before the engine drowns everything out.
+          el('div', { class: 'jam-modes' }, [
+            el('span', { class: 'pick', text: s.finale.pick }),
+            ...JAM_MODES.map((mode) => {
+              const node = el('button', { class: 'jam-mode', onClick: () => this.pickMode(mode) }, [el('b', { text: s.finale.mode[mode].name }), el('small', { text: s.finale.mode[mode].note })]);
+              this.modeEls.set(mode, node);
+              return node;
+            }),
+          ]),
+          el('div', { class: 'finale-skip', text: s.finale.start }),
         );
+        this.pickMode(this.mode);
         break;
       case 'jam':
         this.startJam();
@@ -220,6 +244,38 @@ export class FinaleScene implements Scene {
     }
   }
 
+  private get chordCount(): number {
+    return chordsOf(this.mode);
+  }
+
+  /** Pixels a note travels per second: slower when it is given longer to cross the screen. */
+  private get laneSpeed(): number {
+    return (STAGE_W - LANE.hitX) / JAM[this.mode].lead;
+  }
+
+  private pickMode(mode: JamMode): void {
+    this.mode = mode;
+    for (const [id, node] of this.modeEls) node.classList.toggle('on', id === mode);
+    try {
+      localStorage.setItem(MODE_KEY, mode);
+    } catch {
+      // Non-fatal: the choice simply will not be remembered.
+    }
+  }
+
+  /** Changing one's mind mid-song: the other chart takes over from the next bar, the tally carries on. */
+  private switchMode(): void {
+    this.pickMode(this.mode === 'soft' ? 'hard' : 'soft');
+    this.chart = chartOf(this.mode);
+    const resume = this.now + 60 / FINALE.bpm;
+    const next = this.chart.findIndex((note) => note.time > resume);
+    this.jam = { ...this.jam, next: next < 0 ? this.chart.length : next, combo: 0 };
+    this.chords.length = 0;
+    this.buildJamHud();
+    const text = S().finale.mode[this.mode].name.toUpperCase();
+    this.pops.push({ text, color: '#fff6e0', age: 0 });
+  }
+
   /** The stage that follows the current one, or the end screen. */
   private advance(): void {
     if (this.left) return;
@@ -244,16 +300,24 @@ export class FinaleScene implements Scene {
   // ───────────────────────────── The jam ─────────────────────────────
 
   private startJam(): void {
-    const s = S();
     audio.setMusic('finale');
     say('vo_finale_go', { interrupt: true });
     this.clock = 0;
     this.startedAt = performance.now();
     this.drift = 0;
     this.shake = 12;
+    this.chart = chartOf(this.mode);
+    this.jam = startJam();
+    this.buildJamHud();
+    for (let i = 0; i < 26; i++) this.spawn(640 + Math.random() * 760);
+  }
+
+  /** The keys of the mode being played, the tally, and the ways out. */
+  private buildJamHud(): void {
+    const s = S();
     const labels = trapKeyLabels();
     this.keyEls.length = 0;
-    const keys = Array.from({ length: CHORDS }, (_, i) => {
+    const keys = Array.from({ length: this.chordCount }, (_, i) => {
       const key = el('kbd', { text: labels[i] ?? '', style: { borderColor: CHORD_COLORS[i] ?? '#fff' } });
       this.keyEls.push(key);
       return key;
@@ -261,12 +325,13 @@ export class FinaleScene implements Scene {
     this.spaceEl = el('kbd', { class: 'space', text: s.finale.space });
     this.countEl = el('b', { text: '0' });
     this.comboEl = el('div', { class: 'jam-combo' });
-    this.hintEl = el('div', { class: 'jam-hint', text: fmt(s.finale.hint, { keys: labels.slice(0, CHORDS).join(' '), space: s.finale.space }) });
+    this.hintEl = el('div', { class: 'jam-hint', text: fmt(s.finale.hint, { keys: labels.slice(0, this.chordCount).join(' '), space: s.finale.space }) });
+    const other = s.finale.mode[this.mode === 'soft' ? 'hard' : 'soft'].name;
+    const swap = el('button', { class: 'jam-swap', onClick: () => this.switchMode() }, [el('kbd', { text: 'TAB' }), el('span', { text: fmt(s.finale.swap, { mode: other }) })]);
     this.outEl = el('button', { class: 'jam-out', onClick: () => this.bowOut() }, [el('kbd', { text: s.finale.enter }), el('span', {}, [s.finale.out, el('small', { text: s.finale.outNote })])]);
     this.root.replaceChildren(
-      el('div', { class: 'jam' }, [el('div', { class: 'jam-count' }, [this.countEl, el('span', { text: s.finale.mown })]), this.comboEl, el('div', { class: 'jam-keys' }, [...keys, this.spaceEl]), this.hintEl, this.outEl]),
+      el('div', { class: 'jam' }, [el('div', { class: 'jam-count' }, [this.countEl, el('span', { text: s.finale.mown })]), this.comboEl, el('div', { class: 'jam-keys' }, [...keys, this.spaceEl]), this.hintEl, swap, this.outEl]),
     );
-    for (let i = 0; i < 26; i++) this.spawn(640 + Math.random() * 760);
   }
 
   /** Leaving before the end of the song, once it has been offered. */
@@ -287,7 +352,7 @@ export class FinaleScene implements Scene {
 
   private hitStrings(): void {
     const chord = this.chords.at(-1) ?? null;
-    const result = strum(this.jam, this.chart, this.now, chord);
+    const result = strum(this.jam, this.chart, this.now, chord, this.mode);
     this.jam = result.jam;
     const verdict: Verdict = result.verdict;
     const s = S();
@@ -298,7 +363,7 @@ export class FinaleScene implements Scene {
       audio.play('scratch');
       return;
     }
-    const rate = chordRate(chord);
+    const rate = chordRate(chord, this.mode);
     const color = CHORD_COLORS[chord] ?? '#fff';
     if (verdict === 'perfect' || verdict === 'good') audio.play('chord', verdict === 'perfect' ? 1 : 0.85, rate);
     else audio.play('chug', verdict === 'wrong' ? 0.7 : 0.9, rate);
@@ -330,7 +395,7 @@ export class FinaleScene implements Scene {
     // The song is the clock when it can be heard; the scene's own clock otherwise, eased onto it.
     if (heard !== null && heard > 0.05) this.drift = lerp(this.drift, heard - this.clock, 0.08);
     const now = this.now;
-    this.jam = settle(this.jam, this.chart, now);
+    this.jam = settle(this.jam, this.chart, now, this.mode);
     const progress = clamp01(now / FINALE.seconds);
 
     this.scroll += SCROLL * dt;
@@ -397,15 +462,24 @@ export class FinaleScene implements Scene {
   onKeyDown(code: string, event: KeyboardEvent): void {
     if (this.stage === 'jam') {
       const chord = (TRAP_KEY_CODES as readonly string[]).indexOf(code);
-      if (chord >= 0 && chord < CHORDS) {
+      if (chord >= 0 && chord < this.chordCount) {
         event.preventDefault();
         if (!this.chords.includes(chord)) this.chords.push(chord);
         return;
       }
-      if (code === 'Space') {
+      if (code === 'Tab') {
+        event.preventDefault();
+        this.switchMode();
+      } else if (code === 'Space') {
         event.preventDefault();
         this.hitStrings();
       } else if (code === 'Enter') this.bowOut();
+      return;
+    }
+    if (this.stage === 'shed' && (code === 'ArrowLeft' || code === 'ArrowRight' || code === 'Tab')) {
+      event.preventDefault();
+      this.pickMode(this.mode === 'soft' ? 'hard' : 'soft');
+      audio.play('click');
       return;
     }
     // The pictures can be cut short, once they have been seen for a moment.
@@ -585,7 +659,7 @@ export class FinaleScene implements Scene {
     ctx.fillRect(0, LANE.y - 36, STAGE_W, 72);
     ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
     for (let b = Math.ceil((now - FINALE.offset) / beat); ; b++) {
-      const x = LANE.hitX + (FINALE.offset + b * beat - now) * LANE.speed;
+      const x = LANE.hitX + (FINALE.offset + b * beat - now) * this.laneSpeed;
       if (x > STAGE_W) break;
       ctx.fillRect(x - 1, LANE.y - 36, 2, 72);
     }
@@ -595,7 +669,7 @@ export class FinaleScene implements Scene {
     ctx.textBaseline = 'middle';
     for (let i = this.jam.next; i < this.chart.length; i++) {
       const note = this.chart[i] as Note;
-      const x = LANE.hitX + (note.time - now) * LANE.speed;
+      const x = LANE.hitX + (note.time - now) * this.laneSpeed;
       if (x > STAGE_W + 30) break;
       ctx.fillStyle = CHORD_COLORS[note.chord] ?? '#fff';
       ctx.beginPath();
