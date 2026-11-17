@@ -164,7 +164,7 @@ export class EndScene implements Scene {
       return;
     }
     // The last picture of the mower, where the scene left it: still closing in, very slowly.
-    drawPlate(ctx, this.kind === 'dawn' ? SWARMED.dawn : SWARMED.night, { zoom: SWARMED.zoom(SWARM_SECONDS + this.time * 0.25), focusY: 0.5 });
+    drawPlate(ctx, this.kind === 'dawn' ? SWARMED.dawn : SWARMED.night, { zoom: SWARMED.zoom(SWARM_SECONDS + this.time * 0.25), focusY: 0.5, oneArmed: state ? !hasLeftArm(state) : false });
     ctx.globalAlpha = SWARMED.veil;
     ctx.fillStyle = '#0a0604';
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);

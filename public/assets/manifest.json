@@ -1403,5 +1403,10 @@
     "file": "sprites/shed_fg_rope.webp",
     "w": 236,
     "h": 600
+  },
+  "plate_finale_swarmed_dawn_one_arm": {
+    "file": "plates/plate_finale_swarmed_dawn_one_arm.webp",
+    "w": 1280,
+    "h": 853
   }
 }

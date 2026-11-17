@@ -1114,6 +1114,17 @@ export const ART = [
       'The mustard-yellow sleeved arm, its hand, the guitar and its strap stay exactly as they are. Nobody and nothing else in the picture changes.',
   },
   {
+    // The same, for the morning the seventh dawn ends on.
+    id: 'plate_finale_swarmed_dawn_one_arm',
+    kind: 'plate',
+    w: 1280,
+    edit: 'art/raw/plate_finale_swarmed_dawn.png',
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, every figure and object in the same position and at the same size, same line work, same colours, same morning light, same canvas proportions — with only this change: ' +
+      'the electric guitar raised above the crowd in the centre is held up by ONE hand only, the hand at the end of the single mustard-yellow sleeve rising from the mower seat. Remove the other hand, the one gripping the top of the guitar neck near the headstock, and its wrist: paint the sparks and the pale morning sky behind it instead. ' +
+      'The mustard-yellow sleeved arm, its hand, the guitar and its strap stay exactly as they are. Nobody and nothing else in the picture changes.',
+  },
+  {
     id: 'finale_mower',
     kind: 'split',
     cols: 2,
