@@ -1,0 +1,15 @@
+{
+  "id": "washer_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A single heavy steel washer landing on a wooden workbench: a sharp clack and two quick bounces. Close, dry, no reverb.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T13:18:26.208Z",
+  "bytes": 13835,
+  "sha256": "f8d6b3c6364a767d1f35e8c72353f7ec9ac78b2dedb8aa9465b60e5f25000b39"
+}

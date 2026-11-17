@@ -1,0 +1,15 @@
+{
+  "id": "scuffle_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A short tussle: someone is grabbed by the jacket and pushed back against a metal shelf that rattles, a stifled grunt. No words, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T13:18:29.601Z",
+  "bytes": 20105,
+  "sha256": "2c834dae3843f71cb52c416ca8a8cb37dd521b5bf8ebecea698073f12f04cccc"
+}

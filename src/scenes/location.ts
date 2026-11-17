@@ -1,28 +1,30 @@
-// A searchable interior. Each hotspot costs daylight and is emptied for good.
+// A searchable interior. Each hotspot costs daylight and is emptied for good; what is found
+// rides in the boot until the refuge. Someone else may already be standing at the best lot.
 
 import { DAY_HOURS, LOCATIONS, SEARCH_HOURS } from '../core/data/locations';
-import { CHIEF_SEARCH_LIMIT, clockLabel, neighborStatus, returnHome, searchSpot, type Encounter } from '../core/game';
-import type { GameState, Inventory, LocationId, ResourceId } from '../core/types';
+import { CHIEF_SEARCH_LIMIT, clockLabel, leaveLocation, neighborStatus, searchSpot, type NeighborMeeting } from '../core/game';
+import type { Dispute, GameState, LocationId } from '../core/types';
 import { RESOURCE_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { assetUrl } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
-import { carDeparture, costLine, drawPlate, inventoryBar, lootSfx, platePoint, tripLine } from './common';
-import { goDay, goTravel } from './flow';
+import { carDeparture, costLine, drawPlate, inventoryBar, lootSfx, platePoint } from './common';
+import { EncounterPanel, memoryLine, nameOf, roadPlate } from './encounter';
+import { goAmbush, goHomeStretch, goTravel } from './flow';
 
 export class LocationScene implements Scene {
-  private root!: HTMLElement;
+  private hud!: HTMLElement;
+  private overlay!: HTMLElement;
+  private panel!: EncounterPanel;
   private time = 0;
   private escorted = false;
 
   constructor(
     private readonly app: App,
     private readonly id: LocationId,
-    private encounter: Encounter | null,
-    /** Inventory when the break left the refuge, to show what this trip brought back. */
-    private readonly leftWith?: Inventory,
+    private meeting: NeighborMeeting | null,
   ) {}
 
   private get state(): GameState {
@@ -30,12 +32,27 @@ export class LocationScene implements Scene {
     return this.app.state;
   }
 
+  /** Whoever claims a lot here, while that is not settled. */
+  private get dispute(): Dispute | null {
+    const encounter = this.state.encounter;
+    return encounter?.kind === 'dispute' && encounter.location === this.id ? encounter : null;
+  }
+
   enter(): void {
     audio.setAmbience('day');
     audio.setMusic('day');
-    this.root = el('div');
-    this.app.ui.append(this.root);
+    this.hud = el('div');
+    this.overlay = el('div');
+    this.app.ui.append(this.hud, this.overlay);
+    this.panel = new EncounterPanel(this.app, this.overlay, {
+      changed: () => this.refresh(),
+      closed: () => this.refresh(),
+      // Before anything is engaged, the rest of the place can be searched first.
+      later: () => this.refresh(),
+    });
     this.refresh();
+    if (this.meeting) this.showMeeting(this.meeting);
+    else if (this.dispute) this.panel.show();
   }
 
   private refresh(): void {
@@ -44,6 +61,7 @@ export class LocationScene implements Scene {
     const location = LOCATIONS[this.id];
     const progress = state.locations[this.id];
     const spotNames = s.spot[this.id] as Readonly<Record<string, string>>;
+    const dispute = this.dispute;
 
     const topbar = el('div', { class: 'topbar' }, [
       el('span', { class: 'label-strong', text: s.location[this.id].name }),
@@ -53,12 +71,24 @@ export class LocationScene implements Scene {
       el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { h: hours(state.hoursLeft) }) }),
       el('span', { class: 'grow' }),
       el('span', { class: 'muted', text: s.loc.trunk }),
-      inventoryBar(state.inventory),
+      state.outing ? inventoryBar(state.outing.trunk) : null,
     ]);
+    // What is already safe at home, to judge what this trip still has to bring back.
+    const stash = el('div', { class: 'stash' }, [el('span', { class: 'muted', text: s.encounter.stash }), inventoryBar(state.inventory)]);
 
     const canStillSearch = state.hoursLeft >= SEARCH_HOURS + location.travelHours;
     const spots = location.spots.map((spot, index) => {
       const p = platePoint(location.plate, spot.x, spot.y);
+      const name = spotNames[spot.key] ?? spot.key;
+      if (dispute?.spot === index) {
+        const url = assetUrl(`por_rival_${dispute.rival}`);
+        const face = el('img', {});
+        if (url) face.src = url;
+        return el('button', { class: 'spot claimed', style: { left: `${p.x}px`, top: `${p.y}px` }, title: s.encounter.claimed, onClick: () => this.panel.show() }, [
+          el('span', { class: 'ring' }, [url ? face : '!']),
+          el('span', { class: 'tag' }, [name, el('small', { text: nameOf(dispute.rival) })]),
+        ]);
+      }
       const done = progress.searched.includes(index);
       const blocked = !done && (!canStillSearch || this.escorted);
       const hint = el(
@@ -79,49 +109,57 @@ export class LocationScene implements Scene {
           title: done ? s.loc.searched : fmt(s.loc.search, { h: hours(SEARCH_HOURS) }),
           onClick: () => this.search(index, p),
         },
-        [el('span', { class: 'ring', text: done ? '✓' : '?' }), el('span', { class: 'tag' }, [spotNames[spot.key] ?? spot.key, done ? null : hint])],
+        [el('span', { class: 'ring', text: done ? '✓' : '?' }), el('span', { class: 'tag' }, [name, done ? null : hint])],
       );
     });
 
     const neighbor = location.neighbor;
     const gone = neighbor && neighborStatus(neighbor, state.day) === 'gone';
+    const claimedSpot = dispute ? (spotNames[location.spots[dispute.spot]?.key ?? ''] ?? '') : '';
     const title = el('div', { class: 'panel loc-title' }, [
       el('h3', { text: s.location[this.id].name }),
       el('p', {
-        text: gone && neighbor ? s.neighbor[neighbor].gone : this.escorted ? s.loc.escorted : !canStillSearch ? s.loc.noTime : fmt(s.loc.search, { h: hours(SEARCH_HOURS) }),
+        text: dispute
+          ? fmt(s.encounter.spotted, { spot: claimedSpot })
+          : gone && neighbor
+            ? s.neighbor[neighbor].gone
+            : this.escorted
+              ? s.loc.escorted
+              : !canStillSearch
+                ? s.loc.noTime
+                : fmt(s.loc.search, { h: hours(SEARCH_HOURS) }),
       }),
     ]);
-    const leave = el('div', { class: 'loc-leave' }, [
-      el('button', { class: 'btn btn-primary', onClick: () => this.leave() }, [s.loc.leave, el('small', { text: fmt(s.loc.leaveCost, { h: hours(location.travelHours) }) })]),
-    ]);
+    // Driving off leaves the lot to whoever is standing on it: said on the button, not after the fact.
+    const leaveNote = dispute ? `${fmt(s.loc.leaveCost, { h: hours(location.travelHours) })} · ${fmt(s.encounter.leaveKeeps, { name: nameOf(dispute.rival) })}` : fmt(s.loc.leaveCost, { h: hours(location.travelHours) });
+    const leave = el('div', { class: 'loc-leave' }, [el('button', { class: 'btn btn-primary', onClick: () => this.leave() }, [s.loc.leave, el('small', { text: leaveNote })])]);
 
-    this.root.replaceChildren(topbar, ...spots, title, leave);
-    if (this.encounter) this.showEncounter(this.encounter);
+    this.hud.replaceChildren(topbar, stash, ...spots, title, leave);
   }
 
-  private showEncounter(encounter: Encounter): void {
+  private showMeeting(meeting: NeighborMeeting): void {
     const s = S();
-    const lines = s.neighbor[encounter.neighbor];
-    const url = assetUrl(`por_${encounter.neighbor}_alive`);
+    const lines = s.neighbor[meeting.neighbor];
+    const url = assetUrl(`por_${meeting.neighbor}_alive`);
     const portrait = el('img', { class: 'portrait' });
     if (url) portrait.src = url;
-    const hasGift = Object.keys(encounter.gift).length > 0;
+    const hasGift = Object.keys(meeting.gift).length > 0;
     const modal = el('div', { class: 'modal' }, [
       el('div', { class: 'card dialogue' }, [
         portrait,
         el('div', { class: 'body' }, [
           el('h2', { text: lines.name }),
-          el('p', { text: encounter.first ? lines.first : lines.later }),
-          encounter.first ? el('p', { class: 'note', text: lines.firstNote }) : null,
-          hasGift ? el('p', {}, [costLine(encounter.gift, undefined, '+')]) : null,
-          encounter.hoursLost > 0 ? el('p', { class: 'note', text: `− ${hours(encounter.hoursLost)} h` }) : null,
+          el('p', { text: meeting.first ? lines.first : lines.later }),
+          meeting.first ? el('p', { class: 'note', text: lines.firstNote }) : null,
+          hasGift ? el('p', {}, [costLine(meeting.gift, undefined, '+')]) : null,
+          meeting.hoursLost > 0 ? el('p', { class: 'note', text: `− ${hours(meeting.hoursLost)} h` }) : null,
           el('div', { class: 'actions' }, [
             el('button', {
               class: 'btn btn-primary',
               text: 'OK',
               onClick: () => {
                 audio.play('click');
-                this.encounter = null;
+                this.meeting = null;
                 modal.remove();
               },
             }),
@@ -129,7 +167,7 @@ export class LocationScene implements Scene {
         ]),
       ]),
     ]);
-    this.root.append(modal);
+    this.overlay.append(modal);
     if (hasGift) audio.play('loot');
   }
 
@@ -139,6 +177,10 @@ export class LocationScene implements Scene {
     if (!result.ok) {
       const code = result.error.code;
       if (code === 'already_searched') return;
+      if (code === 'disputed' || code === 'busy') {
+        this.panel.show();
+        return;
+      }
       audio.play('deny');
       if (code === 'escorted_out') {
         this.escorted = true;
@@ -155,7 +197,7 @@ export class LocationScene implements Scene {
     this.app.save();
     this.refresh();
     const pop = el('div', { class: 'loot-pop', style: { left: `${at.x}px`, top: `${at.y - 34}px` } }, [costLine(result.value.loot, undefined, '+')]);
-    this.root.append(pop);
+    this.hud.append(pop);
     window.setTimeout(() => pop.remove(), 1900);
 
     const location = LOCATIONS[this.id];
@@ -167,29 +209,25 @@ export class LocationScene implements Scene {
   }
 
   private leave(): void {
-    const result = returnHome(this.state);
+    const result = leaveLocation(this.state);
     if (!result.ok) return;
-    const day = this.state.day;
     carDeparture();
     const s = S();
-    const loot: Partial<Record<ResourceId, number>> = {};
-    if (this.leftWith) for (const id of RESOURCE_IDS) loot[id] = Math.max(0, result.value.inventory[id] - this.leftWith[id]);
-    this.app.state = result.value;
+    this.app.state = result.value.state;
     this.app.save();
-    goTravel(this.app, {
-      plate: Object.values(loot).some((n) => (n ?? 0) > 0) ? 'plate_trunk' : 'plate_return',
-      title: s.location.home,
-      sub: fmt(s.loc.leaveCost, { h: hours(LOCATIONS[this.id].travelHours) }),
-      loot,
-      next: () => {
-        goDay(this.app);
-        tripLine('home', day);
-      },
-    });
+    // A lot left behind on the way out is still a good turn: it is said on the drive home.
+    const memory = result.value.forfeit ? memoryLine(result.value.forfeit) : null;
+    const drive = fmt(s.loc.leaveCost, { h: hours(LOCATIONS[this.id].travelHours) });
+    const sub = memory ? `${drive} · ${memory}` : drive;
+    if (result.value.state.encounter) {
+      // Seen from the wheel before anything is said: there is time to take it in.
+      goTravel(this.app, { plate: roadPlate(result.value.state), title: s.encounter.road.title, sub: s.encounter.road.ahead, next: () => goAmbush(this.app) });
+    } else goHomeStretch(this.app, sub);
   }
 
   update(dt: number): void {
     this.time += dt;
+    this.panel.update(dt);
   }
 
   render(ctx: CanvasRenderingContext2D): void {
@@ -200,6 +238,7 @@ export class LocationScene implements Scene {
   }
 
   onKeyDown(code: string): void {
-    if (code === 'Escape' && !this.encounter) this.leave();
+    if (this.panel.onKeyDown(code)) return;
+    if (code === 'Escape' && !this.meeting) this.leave();
   }
 }

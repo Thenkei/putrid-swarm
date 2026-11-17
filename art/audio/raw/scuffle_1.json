@@ -1,0 +1,15 @@
+{
+  "id": "scuffle_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Two people shoving each other in a shop: shoes scraping on a concrete floor, a grunt, coats rustling, one heavy push. No words, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.3,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T13:18:29.856Z",
+  "bytes": 21358,
+  "sha256": "90a7fdd7619e9a268bc25f543ddbe2a1bad93918c39dc41193c2f2a1b4ce3073"
+}

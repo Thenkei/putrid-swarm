@@ -1854,3 +1854,301 @@ button:disabled {
 .loading .meter {
   width: 360px;
 }
+
+/* ───────── Encounters on outings ───────── */
+
+.stash {
+  position: absolute;
+  right: 12px;
+  top: 54px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 14px 1px;
+  font-size: 19px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(24, 18, 12, 0.88);
+  border: 1px solid var(--edge-soft);
+  border-radius: 6px;
+  opacity: 0.9;
+}
+
+.spot.claimed .ring {
+  width: 62px;
+  height: 62px;
+  border-color: var(--red);
+  background: rgba(40, 20, 12, 0.85);
+  overflow: hidden;
+  font-size: 30px;
+}
+
+.spot.claimed .ring img {
+  width: 58px;
+  height: 58px;
+  object-fit: cover;
+  object-position: 50% 12%;
+}
+
+.spot.claimed .tag {
+  border-color: var(--red);
+}
+
+.spot.claimed .tag small {
+  display: block;
+  font-size: 15px;
+  color: #ff9d8a;
+}
+
+.encounter {
+  width: 1040px;
+  max-height: 700px;
+  padding: 14px 22px 12px;
+}
+
+.encounter .body {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.encounter h2 {
+  font-size: 31px;
+}
+
+.encounter.wide {
+  width: 940px;
+}
+
+.encounter img.portrait {
+  width: 210px;
+  height: 250px;
+  align-self: flex-start;
+}
+
+.encounter p {
+  margin: 5px 0;
+  font-size: 19px;
+  line-height: 1.3;
+}
+
+.encounter .stake {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 5px 10px 3px;
+  background: rgba(90, 61, 30, 0.14);
+  border-left: 4px solid #6b4a25;
+}
+
+.encounter .stake b {
+  font-family: var(--hud-font);
+  font-size: 21px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Resource chips are drawn for the dark HUD: on parchment they get their own plate. */
+.encounter .res {
+  padding: 1px 7px 0 4px;
+  color: var(--cream);
+  font-family: var(--hud-font);
+  background: rgba(33, 24, 14, 0.88);
+  border-radius: 4px;
+}
+
+.encounter .cost {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  vertical-align: middle;
+}
+
+.encounter .tally {
+  font-family: var(--hud-font);
+  font-size: 21px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #5a3d1e;
+}
+
+.encounter .stance {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.encounter .memory {
+  font-weight: 700;
+  color: #7a2a16;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 12px 3px;
+  text-align: left;
+  color: var(--cream);
+  background: linear-gradient(180deg, #3b3125 0%, #261f17 100%);
+  border: 2px solid var(--edge);
+  border-radius: 7px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: filter 0.12s;
+}
+
+.choice:hover {
+  filter: brightness(1.22);
+}
+
+.choice.blocked {
+  filter: none;
+  opacity: 0.6;
+  cursor: default;
+}
+
+.choice.quiet {
+  background: linear-gradient(180deg, #2a241c 0%, #1c1711 100%);
+}
+
+.choice .key {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  line-height: 27px;
+  text-align: center;
+  font-size: 18px;
+  color: #201405;
+  background: var(--amber);
+  border-radius: 4px;
+}
+
+.choice .what {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 12px;
+}
+
+.choice .what b {
+  font-size: 23px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff3d6;
+}
+
+.choice .what small {
+  flex-basis: 100%;
+  font-family: var(--slab-font);
+  font-size: 16px;
+  line-height: 1.25;
+  color: var(--cream-dim);
+}
+
+.choice .deal,
+.choice .why {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 16px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cream-dim);
+}
+
+.choice .why {
+  flex-basis: 100%;
+  color: #ff9d8a;
+  text-transform: none;
+  font-family: var(--slab-font);
+}
+
+.choice .res {
+  background: none;
+  padding: 0;
+}
+
+.choice .when {
+  flex: none;
+  min-width: 96px;
+  text-align: right;
+  font-size: 19px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--amber);
+}
+
+.washers {
+  align-self: center;
+  margin: 4px 0;
+  line-height: 0;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 6px rgba(60, 30, 0, 0.5));
+}
+
+.encounter .actions {
+  align-items: center;
+  padding-top: 8px;
+}
+
+.encounter .actions .grow {
+  flex: 1;
+}
+
+.encounter .actions .note {
+  margin: 0;
+  font-size: 21px;
+}
+
+.pay {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.pay-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--hud-font);
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pay-row .name {
+  flex: 1;
+}
+
+.pay-row .count {
+  width: 34px;
+  text-align: center;
+  font-size: 26px;
+}
+
+.pay-row.refused {
+  opacity: 0.45;
+}
+
+.pay-row .btn.step {
+  min-height: 34px;
+  width: 44px;
+  padding: 0;
+  font-size: 26px;
+}
+
+.center-col p.lost {
+  color: #ff9d8a;
+}

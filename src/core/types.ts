@@ -38,6 +38,14 @@ export type NeighborId = (typeof NEIGHBOR_IDS)[number];
 export const LOCATION_IDS = ['shed', 'garage', 'hardware', 'grocery', 'post', 'police', 'townhall'] as const;
 export type LocationId = (typeof LOCATION_IDS)[number];
 
+/** Living survivors met over a disputed lot. Unlike the neighbours, they never come back as bosses. */
+export const RIVAL_IDS = ['dealer', 'camper'] as const;
+export type RivalId = (typeof RIVAL_IDS)[number];
+
+/** Groups that stop the break on the way home to claim part of the load. */
+export const GROUP_IDS = ['committee', 'van'] as const;
+export type GroupId = (typeof GROUP_IDS)[number];
+
 export interface Cell {
   readonly x: number;
   readonly y: number;
@@ -108,6 +116,123 @@ export interface LocationProgress {
   readonly visits: number;
 }
 
+// ───────────────────────────── Outings and encounters ─────────────────────────────
+
+/** How a survivor stands with the player. One favour is owed at most, and a grudge is not a score. */
+export type Standing = 'grudge' | 'stranger' | 'owes';
+
+export interface Acquaintance {
+  readonly standing: Standing;
+  /** Disputes met with them so far. */
+  readonly met: number;
+  /** It came to blows at least once: they still wear the mark. */
+  readonly fought: boolean;
+}
+
+/** What the other side shows it is about to do in a scuffle. */
+export type Stance = 'guard' | 'rush' | 'falter';
+
+/** A short confrontation: three exchanges at most, over one thing. */
+export interface Fight {
+  /** The other side's three intentions, fixed when the encounter is created. */
+  readonly stances: readonly Stance[];
+  /** Exchanges already played. */
+  readonly exchange: number;
+  /** Blows taken; each one is daylight spent getting one's breath back. */
+  readonly blows: number;
+  /** A shove landed: the next exchange is an opening whatever was planned. */
+  readonly staggered: boolean;
+}
+
+/** Three washers each, thrown at a biscuit tin. Positions run 0..1 along the plank. */
+export interface WasherGame {
+  /** Where the rival's washers land, fixed when the encounter is created. */
+  readonly theirs: readonly number[];
+  /** Where the player's washers landed so far. */
+  readonly yours: readonly number[];
+}
+
+/** Someone is already at one search spot of a location and claims what is in it. */
+export interface Dispute {
+  readonly kind: 'dispute';
+  readonly rival: RivalId;
+  readonly location: LocationId;
+  /** The search spot held back while the lot is disputed. */
+  readonly spot: number;
+  /** What is in it, rolled once. */
+  readonly lot: Cost;
+  /** What the rival takes from the boot for the whole lot. */
+  readonly price: Cost;
+  /** Whether they give way to a threat. Shown to the player as how they hold themselves. */
+  readonly yields: boolean;
+  /** Whether they will settle it with washers. */
+  readonly plays: boolean;
+  /** `refused`: a threat was made and did not work. */
+  readonly stage: 'open' | 'refused' | 'game' | 'fight';
+  readonly game: WasherGame;
+  readonly fight: Fight;
+}
+
+/** A group bars the road home and wants part of what is in the boot. */
+export interface Ambush {
+  readonly kind: 'ambush';
+  readonly group: GroupId;
+  /** Pieces of the load they ask for; the player picks which. */
+  readonly toll: number;
+  /** What they will take as payment. */
+  readonly accepts: readonly ResourceId[];
+  /** The one thing they came for: fewer pieces of it settle the matter. */
+  readonly need: Cost;
+  /** The way round, in hours. */
+  readonly detourHours: number;
+  /** A survivor in the group and how they stood with the player when it formed. */
+  readonly member: RivalId | null;
+  readonly memberStanding: Standing;
+  readonly stage: 'open' | 'fight';
+  readonly fight: Fight;
+}
+
+export type Encounter = Dispute | Ambush;
+
+/** How an encounter ended, kept for the outing's report. */
+export type OutcomeId =
+  | 'shared'
+  | 'traded'
+  | 'favor'
+  | 'game_won'
+  | 'game_tied'
+  | 'game_lost'
+  | 'scared'
+  | 'backed_down'
+  | 'conceded'
+  | 'fight_won'
+  | 'fight_split'
+  | 'fight_lost'
+  | 'paid'
+  | 'bargained'
+  | 'waved'
+  | 'detour'
+  | 'held'
+  | 'robbed_half'
+  | 'robbed';
+
+export interface OutingMark {
+  readonly who: RivalId | GroupId;
+  readonly outcome: OutcomeId;
+}
+
+/** One trip in the break. What it loads is not safe until the refuge. */
+export interface Outing {
+  readonly to: LocationId;
+  /** The load: everything found or won since leaving, less what was handed over. */
+  readonly trunk: Inventory;
+  /** What left the boot again before the refuge: traded, paid, taken. */
+  readonly parted: Inventory;
+  /** Whether an encounter with something at stake was already met on this trip. */
+  readonly major: boolean;
+  readonly marks: readonly OutingMark[];
+}
+
 export interface GameState {
   readonly version: 1;
   readonly seed: number;
@@ -117,8 +242,15 @@ export interface GameState {
   readonly day: number;
   readonly phase: Phase;
   readonly hoursLeft: number;
-  readonly where: 'home' | LocationId;
+  /** `road`: driving back, the load not yet unloaded. */
+  readonly where: 'home' | LocationId | 'road';
+  /** The refuge's stock. An outing can add to it on arrival and never takes from it. */
   readonly inventory: Inventory;
+  /** The trip in progress; null at the refuge. */
+  readonly outing: Outing | null;
+  /** The encounter in progress, at whatever stage it was left. */
+  readonly encounter: Encounter | null;
+  readonly people: Readonly<Partial<Record<RivalId, Acquaintance>>>;
   readonly yard: YardState;
   readonly locations: Readonly<Record<LocationId, LocationProgress>>;
   readonly flags: Readonly<Record<string, number>>;

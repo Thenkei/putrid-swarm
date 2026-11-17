@@ -1,9 +1,11 @@
 // Save-game (de)serialisation. Parsing is defensive: a corrupt or foreign blob yields null,
 // never a half-valid GameState.
 
-import type { DeviceInstance, GameState, Phase } from './types';
+import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, Fight, GameState, Inventory, Outing, Phase, RivalId, Stance, Standing } from './types';
 import { facingsOf } from './data/devices';
-import { LOCATION_IDS, RESOURCE_IDS, SECTOR_IDS } from './types';
+import { ENCOUNTER } from './data/rivals';
+import { LOCATIONS } from './data/locations';
+import { GROUP_IDS, LOCATION_IDS, RESOURCE_IDS, RIVAL_IDS, SECTOR_IDS } from './types';
 
 export const SAVE_VERSION = 1;
 const PHASES: readonly Phase[] = ['day', 'night', 'morning', 'lost', 'won'];
@@ -26,6 +28,110 @@ function withFacing(devices: readonly DeviceInstance[]): DeviceInstance[] {
   });
 }
 
+// ───────────────────────────── Outings and encounters ─────────────────────────────
+// Saved before encounters existed, a game has none of this: it is at the refuge or at a location
+// with an empty boot. Anything present but malformed is dropped rather than half-trusted.
+
+const STANDINGS: readonly Standing[] = ['grudge', 'stranger', 'owes'];
+const STANCES: readonly Stance[] = ['guard', 'rush', 'falter'];
+const isCount = (v: unknown): v is number => isNumber(v) && Number.isInteger(v) && v >= 0;
+const isLocation = (v: unknown): v is (typeof LOCATION_IDS)[number] => LOCATION_IDS.includes(v as (typeof LOCATION_IDS)[number]);
+const isRival = (v: unknown): v is RivalId => RIVAL_IDS.includes(v as RivalId);
+const isStock = (v: unknown): v is Inventory => isRecord(v) && RESOURCE_IDS.every((id) => isCount(v[id]));
+const isCost = (v: unknown): v is Cost => isRecord(v) && Object.entries(v).every(([id, n]) => RESOURCE_IDS.includes(id as (typeof RESOURCE_IDS)[number]) && isCount(n));
+const isFraction = (v: unknown): v is number => isNumber(v) && v >= 0 && v <= 1;
+
+const isFight = (v: unknown): v is Fight =>
+  isRecord(v) &&
+  Array.isArray(v['stances']) &&
+  v['stances'].length === ENCOUNTER.exchanges &&
+  v['stances'].every((s) => STANCES.includes(s as Stance)) &&
+  isCount(v['exchange']) &&
+  v['exchange'] < ENCOUNTER.exchanges &&
+  isCount(v['blows']) &&
+  typeof v['staggered'] === 'boolean';
+
+function parseDispute(v: Record<string, unknown>): Dispute | null {
+  const game = v['game'];
+  const valid =
+    isRival(v['rival']) &&
+    isLocation(v['location']) &&
+    isCount(v['spot']) &&
+    v['spot'] < LOCATIONS[v['location']].spots.length &&
+    isCost(v['lot']) &&
+    isCost(v['price']) &&
+    typeof v['yields'] === 'boolean' &&
+    typeof v['plays'] === 'boolean' &&
+    ['open', 'refused', 'game', 'fight'].includes(v['stage'] as string) &&
+    isRecord(game) &&
+    Array.isArray(game['theirs']) &&
+    game['theirs'].length === ENCOUNTER.throws &&
+    game['theirs'].every(isFraction) &&
+    Array.isArray(game['yours']) &&
+    game['yours'].length < ENCOUNTER.throws &&
+    game['yours'].every(isFraction) &&
+    isFight(v['fight']);
+  return valid ? (v as unknown as Dispute) : null;
+}
+
+function parseAmbush(v: Record<string, unknown>): Ambush | null {
+  const valid =
+    GROUP_IDS.includes(v['group'] as (typeof GROUP_IDS)[number]) &&
+    isCount(v['toll']) &&
+    Array.isArray(v['accepts']) &&
+    v['accepts'].every((id) => RESOURCE_IDS.includes(id as (typeof RESOURCE_IDS)[number])) &&
+    isCost(v['need']) &&
+    isNumber(v['detourHours']) &&
+    v['detourHours'] >= 0 &&
+    (v['member'] === null || isRival(v['member'])) &&
+    STANDINGS.includes(v['memberStanding'] as Standing) &&
+    (v['stage'] === 'open' || v['stage'] === 'fight') &&
+    isFight(v['fight']);
+  return valid ? (v as unknown as Ambush) : null;
+}
+
+function parseOuting(v: unknown): Outing | null {
+  if (!isRecord(v) || !isLocation(v['to']) || !isStock(v['trunk']) || !isStock(v['parted'])) return null;
+  const marks = Array.isArray(v['marks']) ? v['marks'].filter((m) => isRecord(m) && typeof m['who'] === 'string' && typeof m['outcome'] === 'string') : [];
+  return { to: v['to'], trunk: v['trunk'], parted: v['parted'], major: v['major'] === true, marks: marks as Outing['marks'] };
+}
+
+function parsePeople(v: unknown): GameState['people'] {
+  if (!isRecord(v)) return {};
+  const people: Partial<Record<RivalId, Acquaintance>> = {};
+  for (const id of RIVAL_IDS) {
+    const who = v[id];
+    if (isRecord(who) && STANDINGS.includes(who['standing'] as Standing) && isCount(who['met'])) {
+      people[id] = { standing: who['standing'] as Standing, met: who['met'], fought: who['fought'] === true };
+    }
+  }
+  return people;
+}
+
+/** The part of a save that describes the trip in progress, made consistent with where the player is. */
+function parseTrip(data: Record<string, unknown>, where: GameState['where']): Pick<GameState, 'where' | 'outing' | 'encounter' | 'people'> {
+  const people = parsePeople(data['people']);
+  if (where === 'home') return { where, outing: null, encounter: null, people };
+
+  const outing = parseOuting(data['outing']);
+  // On the road with nothing to say what was loaded: the drive is over, nothing was lost.
+  if (where === 'road' && !outing) return { where: 'home', outing: null, encounter: null, people };
+  const trip: Outing = outing ?? { to: where as Outing['to'], trunk: { wood: 0, scrap: 0, springs: 0, wire: 0, battery: 0 }, parted: { wood: 0, scrap: 0, springs: 0, wire: 0, battery: 0 }, major: false, marks: [] };
+
+  const raw = data['encounter'];
+  let encounter: Encounter | null = null;
+  if (isRecord(raw)) {
+    // A dispute belongs to the place the player is at; a roadblock to the road.
+    if (raw['kind'] === 'dispute' && where !== 'road') {
+      const dispute = parseDispute(raw);
+      encounter = dispute && dispute.location === where ? dispute : null;
+    } else if (raw['kind'] === 'ambush' && where === 'road') {
+      encounter = parseAmbush(raw);
+    }
+  }
+  return { where, outing: trip, encounter, people };
+}
+
 export function deserialize(raw: string): GameState | null {
   let data: unknown;
   try {
@@ -36,7 +142,7 @@ export function deserialize(raw: string): GameState | null {
   if (!isRecord(data) || data['version'] !== SAVE_VERSION) return null;
   if (!isNumber(data['seed']) || !isNumber(data['rng']) || !isNumber(data['day']) || !isNumber(data['hoursLeft'])) return null;
   if (!PHASES.includes(data['phase'] as Phase)) return null;
-  if (data['where'] !== 'home' && !LOCATION_IDS.includes(data['where'] as (typeof LOCATION_IDS)[number])) return null;
+  if (data['where'] !== 'home' && data['where'] !== 'road' && !isLocation(data['where'])) return null;
 
   const inventory = data['inventory'];
   if (!isRecord(inventory) || !RESOURCE_IDS.every((id) => isNumber(inventory[id]) && (inventory[id] as number) >= 0)) return null;
@@ -57,6 +163,8 @@ export function deserialize(raw: string): GameState | null {
   const parsed = data as unknown as GameState;
   // Reports saved before automatic traps existed have no count for them.
   const reported: GameState = parsed.lastNight && !isNumber(parsed.lastNight.autoTriggers) ? { ...parsed, lastNight: { ...parsed.lastNight, autoTriggers: 0 } } : parsed;
-  const state: GameState = { ...reported, yard: { ...reported.yard, devices: withFacing(reported.yard.devices) } };
+  // Outside the day nobody is out: the trip, if a save still carries one, is over.
+  const trip = parseTrip(data, parsed.phase === 'day' ? parsed.where : 'home');
+  const state: GameState = { ...reported, ...trip, yard: { ...reported.yard, devices: withFacing(reported.yard.devices) } };
   return state.phase === 'night' ? { ...state, phase: 'day', where: 'home', hoursLeft: 0 } : state;
 }

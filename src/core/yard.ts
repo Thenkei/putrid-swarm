@@ -5,7 +5,7 @@ import { BARRICADE, DEVICES, DISMANTLE_REFUND_FRACTION, HOUSE_MAX_HP, HOUSE_REPA
 import { ENTRIES, idx, isBuildable } from './map';
 import { auditRoutes } from './pathing';
 import type { Cost, DeviceInstance, DeviceTypeId, Facing, GameState, Inventory, ResourceId, Result, SectorId, YardState } from './types';
-import { RESOURCE_IDS, err, ok } from './types';
+import { DEVICE_TYPE_IDS, RESOURCE_IDS, err, ok } from './types';
 
 export type YardError =
   | { readonly code: 'wrong_phase' }
@@ -45,6 +45,12 @@ export function gain(inventory: Inventory, loot: Cost): Inventory {
   const next = { ...inventory };
   for (const id of RESOURCE_IDS) next[id] += loot[id] ?? 0;
   return next;
+}
+
+/** What a stock plus a load still to unload would let the player set up in the daylight left, in build-menu order. */
+export function affordableDevices(stock: Inventory, load: Cost, hoursLeft: number): DeviceTypeId[] {
+  const total = gain(stock, load);
+  return DEVICE_TYPE_IDS.filter((type) => canAfford(total, DEVICES[type].cost) && hoursLeft + 1e-9 >= DEVICES[type].buildHours);
 }
 
 const scaleCost = (cost: Cost, fraction: number, round: (n: number) => number): Cost => {

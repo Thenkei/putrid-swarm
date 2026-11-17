@@ -1,0 +1,15 @@
+{
+  "id": "washer_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A metal washer skidding along a wooden plank and wobbling to a stop like a coin. Close, dry, no reverb.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T13:18:27.332Z",
+  "bytes": 15089,
+  "sha256": "b30ef15f2b663cab5704f2bc9e922bd67fec2227f24bbd63be2889477ea4bb3e"
+}

@@ -127,17 +127,16 @@ export class MapScene implements Scene {
     }
     carDeparture();
     tripLine('car', this.state.day);
-    const leftWith = this.state.inventory;
     this.app.state = result.value.state;
     this.app.save();
     const s = S();
-    const { encounter } = result.value;
+    const { meeting } = result.value;
     goTravel(this.app, {
       // The two village concept plates alternate so the drive does not always look the same.
       plate: LOCATION_IDS.indexOf(id) % 2 === 0 ? 'plate_village' : 'plate_town',
       title: s.location[id].name,
       sub: fmt(s.map.travel, { h: hours(LOCATIONS[id].travelHours) }),
-      next: () => goLocation(this.app, id, encounter, leftWith),
+      next: () => goLocation(this.app, id, meeting),
     });
   }
 

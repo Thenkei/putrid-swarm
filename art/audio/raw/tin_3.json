@@ -1,0 +1,15 @@
+{
+  "id": "tin_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A steel washer hitting the rim of an empty tin box and falling inside with a rattling clatter. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T13:18:28.538Z",
+  "bytes": 15089,
+  "sha256": "8bcbef5fbf2a11d25d9320894bbf5af610cbbb23a63637b5016fee1538b8238c"
+}

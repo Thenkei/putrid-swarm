@@ -99,6 +99,18 @@ export const AUDIO = [
   sfx('car_door', 0.9, 'An old car door closing with a hollow metallic thunk, then keys jingling. Dry.', { gain: 0.8 }),
   sfx('car_door_2', 0.9, 'An old car door creaking open on a dry hinge and slamming shut with a tinny bang. Dry.', { gain: 0.8 }),
   sfx('car_door_3', 1.0, 'The tailgate of an old station wagon slammed shut twice because the latch did not catch the first time. Dry.', { gain: 0.8 }),
+  // Encounters on outings: washers thrown at a biscuit tin, and things coming to blows.
+  sfx('washer_1', 0.8, 'One steel washer tossed onto a bare wooden plank: a bright metallic clink, then it spins flat with a short rattle. Close, dry, no reverb.', { gain: 0.8 }),
+  sfx('washer_2', 0.8, 'A single heavy steel washer landing on a wooden workbench: a sharp clack and two quick bounces. Close, dry, no reverb.', { gain: 0.8 }),
+  sfx('washer_3', 0.9, 'A metal washer skidding along a wooden plank and wobbling to a stop like a coin. Close, dry, no reverb.', { gain: 0.8 }),
+  sfx('tin_1', 0.9, 'One steel washer dropping into an empty round biscuit tin: a hollow tinny clang and a short ringing rattle. Close, dry.', { gain: 0.8 }),
+  sfx('tin_2', 1.0, 'A metal washer thrown into an empty metal cake tin: a loud hollow clank, then it circles the bottom and settles. Close, dry.', { gain: 0.8 }),
+  sfx('tin_3', 0.9, 'A steel washer hitting the rim of an empty tin box and falling inside with a rattling clatter. Close, dry.', { gain: 0.8 }),
+  sfx('scuffle_1', 1.3, 'Two people shoving each other in a shop: shoes scraping on a concrete floor, a grunt, coats rustling, one heavy push. No words, dry.', { gain: 0.8 }),
+  sfx('scuffle_2', 1.2, 'A short tussle: someone is grabbed by the jacket and pushed back against a metal shelf that rattles, a stifled grunt. No words, dry.', { gain: 0.8 }),
+  sfx('scuffle_3', 1.2, 'A brief struggle over a wooden crate: two people pulling, feet stamping, wood creaking, a sharp exhale. No words, dry.', { gain: 0.8 }),
+  sfx('crate_1', 1.2, 'A wooden crate full of loose metal parts being wrenched away and hugged to the chest: wood scraping, springs and bolts rattling. Close, dry.', { gain: 0.8 }),
+  sfx('crate_2', 1.1, 'A heavy wooden crate of ironmongery dragged off a shop floor and lifted with a grunt: scrape, metal jangle. Close, dry.', { gain: 0.8 }),
   // The desk on the title screen answers when it is poked.
   sfx('crt_off', 1.2, 'An old CRT computer monitor being switched off: a plastic power button clunk, a high electronic whine dropping away, a faint static crackle.', { gain: 0.8 }),
   sfx('crt_on', 1.8, 'An old CRT computer monitor being switched on: a power button clunk, a degaussing thump and buzz, a rising high-pitched whine, static settling.', { gain: 0.8 }),

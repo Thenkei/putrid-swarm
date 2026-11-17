@@ -1,0 +1,15 @@
+{
+  "id": "crate_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A wooden crate full of loose metal parts being wrenched away and hugged to the chest: wood scraping, springs and bolts rattling. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T13:18:31.170Z",
+  "bytes": 20105,
+  "sha256": "598391fbb06c2ee89901925e4853125a2aca78bbcc5ce10da76d4e810ed4ceda"
+}
