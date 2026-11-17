@@ -1,12 +1,12 @@
 # Development and creative handoff
 
-> **Status update, 2026-11-17.** This handoff was written when the repository held documents only. A playable game now exists: see [README](README.md) for how to run it and for the decisions that were taken to build it. The sections below are kept as the original brief; where they say nothing is implemented, the README supersedes them. The creative intent, the acceptance criteria and the open narrative questions still apply.
+> **Status update, 2026-11-17.** This handoff was written when the repository held documents only. A playable game now exists: see [README](../README.md) for how to run it and for the decisions that were taken to build it. The sections below are kept as the original brief; where they say nothing is implemented, the README supersedes them. The creative intent, the acceptance criteria and the open narrative questions still apply.
 
 ## Current state
 
 The destination was an empty Git repository: no commits, no remote, no application, no engine configuration and no assets. These documents capture the concepts available in the shared conversation. Nothing has been implemented or playtested. No commit or push is part of this handoff.
 
-Read [CONCEPT](docs/CONCEPT.md), [LORE](docs/LORE.md) and [ART_DIRECTION](docs/ART_DIRECTION.md) before implementation. The [source register](docs/sources/CONVERSATION.md) separates creator statements from creative suggestions.
+Read [CONCEPT](CONCEPT.md), [LORE](LORE.md) and [ART_DIRECTION](ART_DIRECTION.md) before implementation. The [source register](sources/CONVERSATION.md) separates creator statements from creative suggestions.
 
 ## Creative intent to preserve
 

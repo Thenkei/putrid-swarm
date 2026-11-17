@@ -177,6 +177,8 @@ The handoff listed these as open. They are settled here so the game could be bui
 | Winning | there is none. Holding the seventh night leads to the mower like a house lost on the fifth, through the quiet dawn that used to be the victory; the run is told apart by its words, its morning light, its nights held and by offering no night to replay. A save made as `won` before this loads as a run that held |
 | Records and endings seen | kept in the browser's local storage, apart from the save, so a new run keeps them; one record per way of playing; endings listed by chapter in `core/endings.ts`, where a new chapter adds its own in one line. The title only shows the count once one ending has been seen |
 | Campaign | seven scripted nights; neighbours turn on fixed nights |
+| Before the game | a content warning, shown once per browser before the title; it names the kind of thing shown (violence, blood, flicker) and never a scene, so it cannot give the story away. On a touch screen with no mouse, "you need a keyboard" comes first, before anything heavy is fetched, with a way to go on anyway. The game is for a desk: there are no touch controls |
+| Key labels | keys are read by position, so any layout plays; what is shown on them comes from the browser's layout map where there is one (Chromium), otherwise from what the keys type when pressed — one telling key gives the whole row (AZERTY, QWERTY, QWERTZ), and until then the language guesses (`engine/keys.ts`) |
 | Setting | a French village, following the concept art; names stay role labels |
 
 Still open: the protagonist's identity, what the opening ellipsis covers, and the truth about patient zero. The broadcast is newly written from the provisional one in `docs/LORE.md`. The protagonist speaks with a young male French voice because a voice had to be chosen; his lines say nothing about who he is.
@@ -206,7 +208,7 @@ src/render/    isometric renderer and the infected's gaits (world.ts), over:
   noise.ts         deterministic noise: the same ground on every run and every camera
                (the played cut-scenes animate their painted plates with scenes/atmosphere.ts: mist, leaves, breath, sparks, arms reaching into the frame)
 src/scenes/    title and opening (desk.ts: the desk and what can be poked on it), day, map, interiors, encounters (encounter.ts, washers.ts), night desk (hand.ts: the one hand on the trap bar), morning, the orchard (orchard.ts), the shed (shed.ts), the radio (radio.ts), the last scene (finale.ts), the end screen (end.ts)
-src/engine/    app shell, assets, audio (recordings over a synthesised fallback), voice lines, variant decks, translations, what is kept between runs (progress.ts: endings seen, records)
+src/engine/    app shell, assets, audio (recordings over a synthesised fallback), voice lines, variant decks, translations, what is kept between runs (progress.ts: endings seen, records), what is printed on the keys (keys.ts), what the game is opened on (device.ts)
 tests/         rule tests and the automatic operator used for balancing
 tools/         art and audio pipelines, development aids
 docs/          concept, lore and art direction
@@ -217,6 +219,8 @@ Tuning never requires touching combat logic: change `src/core/data/*`, then run 
 `node tools/home-shots.mjs <dir> [url]` photographs the home phase on a running dev server: the yard by day from both sides, up close, at the edge of the world and at four hours of the day, then the night desk on each camera. `node tools/home-perf.mjs [url]` prints what that costs: the one-off painting of the ground, and the frame pace and scene work by day and at the night desk (`PS_GPU=1` to rasterise on the GPU).
 
 `node tools/encounter-shots.mjs <dir> [url]` opens a running dev server on each kind of encounter, plays through the ways out and saves a screenshot of every step (`PS_LANG=en` for the English texts).
+
+Every tour drives the installed Chrome by default; `PS_BROWSER=firefox` or `PS_BROWSER=webkit` (the nearest thing to Safari) runs it in Playwright's own build of those, once `npx playwright-core install firefox webkit` has fetched them. `node tools/boot-shots.mjs <dir> [url]` shows what a visitor meets first: the content warning, the title behind it, "you need a keyboard" on a phone, and the trap keys relabelled when the keyboard gives its layout away.
 
 `node tools/orchard-shots.mjs <dir> [spared,maimed,throat,bled,turned,night] [url]` plays the orchard down each branch the same way, `node tools/shed-shots.mjs <dir> [freed,current,finished,emptied,bitten,onearm,chief] [url]` the shed, `node tools/radio-shots.mjs <dir> [ham,silence,baker,dealer,camper,grudge,van,hangup,onearm,night,finale,end] [url]` the radio (every kind of caller, the answers, one arm, the last day, the held door turning on night 7, the camper in the shed when the mower comes out, the end screen's line), and `node tools/finale-shots.mjs <dir> [desk,rampage,onearm,dawn,fates,title] [url]` ends runs on purpose (a lost night, a seventh night that cannot be lost) and plays what follows, chart, records, end screens and the title's count included. `node tools/arm-shots.mjs <dir> [url]` plays the screens of a one-armed run — the day, a drive and a search, the way home, the van, the morning, the evening, a night with the hand crossing between the rows — and saves a screenshot of each. `node tools/beat.mjs <track>` measures a track's tempo and first beat; with `--bars` it then describes the track bar by bar (beat one, loudness, attacks, brightness, how far a single line stands out and how far it wanders, drum fills, sections, the final chord and the silence after it). Its output is what `FINALE` and `SONG` in `src/core/finale.ts` record.
 
@@ -259,5 +263,5 @@ pnpm audio:process   # public/assets/audio/ + manifest.json (trim, effect chain,
 
 - [Game concept](docs/CONCEPT.md), [lore bible](docs/LORE.md), [art and audio direction](docs/ART_DIRECTION.md)
 - [Making outings interesting](docs/RENCONTRES_EN_VOITURE.md) (in French): the proposal the encounters were built from, with what is in and what is not
-- [Original handoff](HANDOFF.md) and [source register](docs/sources/CONVERSATION.md)
+- [Original handoff](docs/HANDOFF.md) and [source register](docs/sources/CONVERSATION.md)
 - [Concept art index](art/concepts/README.md)

@@ -16,7 +16,8 @@ import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
 import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
-import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, drawPlate, oneArmed, trapKeyLabels } from './common';
+import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
+import { drawPlate, oneArmed } from './common';
 import { goFinale, goMorning, goNight, goTitle } from './flow';
 import { HandGauge, cameraAwaitingHand, handCoachSeen, markHandCoachSeen, trapsAwaitingHand } from './hand';
 
@@ -562,6 +563,11 @@ export class NightScene implements Scene {
         el('button', { class: 'btn btn-danger', text: s.night.abandon, onClick: () => goTitle(this.app) }),
       ]),
     );
+  }
+
+  onKeyLabels(): void {
+    // The trap bar is rebuilt on the next sync; the yard reads the labels afresh every frame.
+    this.trapSignature = '';
   }
 
   onKeyDown(code: string, event: KeyboardEvent): void {

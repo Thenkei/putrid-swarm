@@ -19,7 +19,8 @@ import { S, fmt } from '../engine/i18n';
 import { keepJam, rememberEnding } from '../engine/progress';
 import { hush, say } from '../engine/voice';
 import { Atmosphere, drawArm } from './atmosphere';
-import { TRAP_KEY_CODES, drawPlate, trapKeyLabels } from './common';
+import { TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
+import { drawPlate } from './common';
 import type { EndOptions } from './end';
 import { goEnd } from './flow';
 
@@ -599,6 +600,10 @@ export class FinaleScene implements Scene {
 
   onBlur(): void {
     this.chords.length = 0;
+  }
+
+  onKeyLabels(): void {
+    if (this.stage === 'jam') this.buildJamHud();
   }
 
   // ───────────────────────────── Loop ─────────────────────────────

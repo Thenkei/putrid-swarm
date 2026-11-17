@@ -3,15 +3,17 @@
 //   node tools/shots.mjs <outDir> [baseUrl]
 import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { chromium } from 'playwright-core';
+import { launch } from './browser.mjs';
 
 const OUT = resolve(process.argv[2] ?? 'shots');
 const URL = process.argv[3] ?? process.env.PS_URL ?? 'http://localhost:5173/';
 const only = process.argv[4]?.split(',');
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1, locale: 'fr-FR' });
+// The content warning is said once per browser: these tours are not here to read it.
+await page.addInitScript(() => localStorage.setItem('putrid-swarm.warned', '1'));
 const errors = [];
 page.on('console', (m) => {
   if (m.type() === 'error' || m.type() === 'warning') errors.push(`[${m.type()}] ${m.text()}`);

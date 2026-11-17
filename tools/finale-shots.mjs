@@ -15,7 +15,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright-core';
+import { launch } from './browser.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = resolve(process.argv[2] ?? 'shots');
@@ -27,8 +27,10 @@ mkdirSync(OUT, { recursive: true });
 
 const saves = JSON.parse(execFileSync('npx', ['tsx', 'tools/orchard-saves.ts'], { cwd: ROOT, encoding: 'utf8' }));
 const chart = JSON.parse(execFileSync('npx', ['tsx', '-e', `import('./src/core/finale.ts').then((m) => console.log(JSON.stringify(m.chartOf('${JAM}'))))`], { cwd: ROOT, encoding: 'utf8' }));
-const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1, locale: LANG === 'fr' ? 'fr-FR' : 'en-GB' });
+// The content warning is said once per browser: these tours are not here to read it.
+await page.addInitScript(() => localStorage.setItem('putrid-swarm.warned', '1'));
 const errors = [];
 page.on('console', (m) => {
   if (m.type() === 'error' || m.type() === 'warning') errors.push(`[${m.type()}] ${m.text()}`);
@@ -101,13 +103,30 @@ async function play(start, until, marks = []) {
     while (pending.length && note.time >= pending[0].at) await shot(pending.shift().name);
   }
   if (held !== null) await page.keyboard.up(CHORD_KEYS[held]);
-  console.log(`tally ${await page.locator('.jam-count b').textContent()}, ${await page.locator('.jam-combo').textContent()}`);
+  const fps = await page.evaluate(() => Math.round((window.__jamMeter.frames / (performance.now() - window.__jamMeter.since)) * 1000));
+  console.log(`tally ${await page.locator('.jam-count b').textContent()}, ${await page.locator('.jam-combo').textContent()}, ${fps} frames per second`);
 }
 
 /** Waits for the song to start; its clock starts then. */
 async function songStarts() {
   await page.waitForSelector('.jam', { state: 'attached', timeout: 20000 });
-  return Date.now();
+  // Frames drawn while the song is played: a slow browser misses notes for that reason alone.
+  await page.evaluate(() => {
+    const meter = { frames: 0, since: performance.now() };
+    window.__jamMeter = meter;
+    const tick = () => {
+      meter.frames++;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  // The song's own clock, read from the scene on a dev server: seeing the HUD appear is late by a
+  // different amount in each browser, and a tenth of a second is the whole of a note's window.
+  const started = await page.evaluate(() => {
+    const at = window.__app?.scene?.startedAt;
+    return typeof at === 'number' && at > 0 ? performance.timeOrigin + at : null;
+  });
+  return started ?? Date.now();
 }
 
 /** Leaves the song once leaving is offered, and waits for the horde. */

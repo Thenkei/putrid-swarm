@@ -3651,3 +3651,75 @@ button:disabled {
   text-transform: uppercase;
   color: rgba(216, 242, 232, 0.5);
 }
+
+/* ───────── Before the game: what it shows, and what it needs ───────── */
+
+.notice {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, #2a2118 0%, #0d0b09 70%);
+}
+
+.notice-card {
+  width: 760px;
+  padding: 30px 40px 28px;
+}
+
+.notice-card p {
+  font-size: 22px;
+}
+
+.notice-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+/* Outside the stage, in real pixels: this one has to be readable on a phone held upright. */
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: auto;
+  background: #0d0b09;
+  user-select: text;
+}
+
+.gate .notice-card {
+  width: min(100%, 560px);
+  padding: 22px 24px 20px;
+}
+
+.gate .notice-card h2 {
+  font-size: 26px;
+}
+
+.gate .notice-card p {
+  font-size: 17px;
+}
+
+.gate .notice-actions {
+  justify-content: stretch;
+}
+
+.gate .notice-actions .btn {
+  width: 100%;
+  min-height: 48px;
+  font-size: 18px;
+}
+
+/* A coach note sits where the subtitles are: while one is up, they are spoken above it. */
+#stage:has(.coach.on) #subtitle {
+  bottom: 256px;
+}
+
+#stage:has(.coach.on) #toast {
+  bottom: 344px;
+}

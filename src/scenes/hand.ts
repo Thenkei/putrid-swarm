@@ -8,7 +8,7 @@ import { SECTOR_IDS } from '../core/types';
 import { assetUrl } from '../engine/assets';
 import { el } from '../engine/dom';
 import { S } from '../engine/i18n';
-import { trapKeyLabels } from './common';
+import { trapKeyLabels } from '../engine/keys';
 
 const COACH_KEY = 'putrid-swarm.coach-hand';
 

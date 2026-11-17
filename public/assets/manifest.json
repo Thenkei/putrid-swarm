@@ -1438,5 +1438,10 @@
     "file": "sprites/por_ham.webp",
     "w": 279,
     "h": 360
+  },
+  "plate_shed_bench_bare": {
+    "file": "plates/plate_shed_bench_bare.webp",
+    "w": 1280,
+    "h": 853
   }
 }

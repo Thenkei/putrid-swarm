@@ -36,7 +36,7 @@ export const getLang = (): Lang => current;
 export const S = (): Strings => TABLES[current];
 
 /** French counts zero and one as singular; English only one. */
-const isSingular = (n: number): boolean => (current === 'fr' ? Math.abs(n) < 2 : n === 1);
+export const isSingular = (n: number): boolean => (current === 'fr' ? Math.abs(n) < 2 : n === 1);
 
 /** Fills `{name}` placeholders, and picks a word by number with `{n:pièce|pièces}`. */
 export function fmt(template: string, params: Readonly<Record<string, string | number>> = {}): string {

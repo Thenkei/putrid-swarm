@@ -10,6 +10,8 @@ const URL = process.argv[2] ?? process.env.PS_URL ?? 'http://localhost:5173/';
 const gpu = process.env.PS_GPU ? ['--enable-gpu', '--use-angle=metal', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'] : [];
 const browser = await chromium.launch({ channel: 'chrome', headless: true, args: gpu });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: Number(process.env.PS_SCALE ?? 2) });
+// The content warning is said once per browser: these tours are not here to read it.
+await page.addInitScript(() => localStorage.setItem('putrid-swarm.warned', '1'));
 await page.goto(URL);
 await page.waitForFunction(() => window.__app, null, { timeout: 30000 });
 await page.waitForTimeout(1500);

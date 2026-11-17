@@ -37,6 +37,8 @@ export const fr = {
     laterSub: 'Bon. La maison tient. Le break démarre encore. C’est déjà ça.',
   },
   res: { wood: 'Planches', scrap: 'Ferraille', springs: 'Ressorts', wire: 'Grillage & câbles', battery: 'Batteries' },
+  /** The same, for exactly one of them in a sentence (« 1 batterie »). */
+  resOne: { wood: 'planche', scrap: 'ferraille', springs: 'ressort', wire: 'grillage & câbles', battery: 'batterie' },
   sector: { portail: 'Portail', grange: 'Grange', arriere: 'Arrière', verger: 'Verger' },
   device: {
     fence: { name: 'Palissade', desc: 'Bloque les marcheurs et dessine leur chemin. Les béliers passent à travers, les sauteurs par-dessus.' },
@@ -281,6 +283,29 @@ export const fr = {
     intact: 'intacte',
     quiet: 'Le jardin est à refaire. La maison, elle, tient.',
     signal: 'plus de signal',
+  },
+  // Shown once, before the title, and to anyone who opens the game on a touch screen.
+  notice: {
+    warning: {
+      title: 'Avant de commencer',
+      lines: [
+        // Says what kind of thing is shown, never what happens: nothing here may give a scene away.
+        'Putrid Swarm est une comédie d’horreur.',
+        'Elle contient de la violence, du sang et des scènes qui peuvent heurter.',
+        'Certaines images clignotent ou tremblent.',
+      ],
+      note: 'Public averti. Se joue au clavier et à la souris, de préférence avec le son.',
+      go: 'J’ai compris',
+    },
+    keyboard: {
+      title: 'Il faut un clavier',
+      lines: [
+        'Putrid Swarm se joue au clavier et à la souris, sur un ordinateur.',
+        'Sur un téléphone ou une tablette, la plupart des scènes ne peuvent pas être jouées, et le jeu pèse plusieurs dizaines de mégaoctets.',
+      ],
+      note: 'Gardez le lien pour plus tard, devant un vrai clavier.',
+      go: 'Continuer quand même',
+    },
   },
   end: {
     lostTitle: 'La maison est tombée',

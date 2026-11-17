@@ -8,7 +8,7 @@ import { assetUrl, sprite } from '../engine/assets';
 import { audio, type Sfx } from '../engine/audio';
 import { sayAny } from '../engine/voice';
 import { el } from '../engine/dom';
-import { S, getLang } from '../engine/i18n';
+import { S, isSingular } from '../engine/i18n';
 
 // ───────────────────────────── The protagonist as he is ─────────────────────────────
 
@@ -125,37 +125,7 @@ export function inventoryBar(inventory: Inventory): HTMLElement {
 
 export function describeCost(cost: Cost): string {
   return RESOURCE_IDS.filter((id) => (cost[id] ?? 0) > 0)
-    .map((id) => `${cost[id]} ${S().res[id].toLowerCase()}`)
+    .map((id) => `${cost[id]} ${isSingular(cost[id] ?? 0) ? S().resOne[id] : S().res[id].toLowerCase()}`)
     .join(', ');
 }
 
-// ───────────────────────────── Keys ─────────────────────────────
-
-/** Trap hotkeys are the physical top-left letter row, so they sit under the left hand on any layout. */
-export const TRAP_KEY_CODES = ['KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'KeyY'] as const;
-
-const AZERTY = ['A', 'Z', 'E', 'R', 'T', 'Y'];
-const QWERTY = ['Q', 'W', 'E', 'R', 'T', 'Y'];
-let resolvedLabels: string[] | null = null;
-
-interface KeyboardLayoutApi {
-  getLayoutMap(): Promise<{ get(code: string): string | undefined }>;
-}
-
-/** Ask the browser what those physical keys are labelled; fall back on the language. */
-export async function resolveKeyLabels(): Promise<void> {
-  const keyboard = (navigator as Navigator & { keyboard?: KeyboardLayoutApi }).keyboard;
-  if (!keyboard?.getLayoutMap) return;
-  try {
-    const map = await keyboard.getLayoutMap();
-    const labels = TRAP_KEY_CODES.map((code) => map.get(code)?.toUpperCase());
-    if (labels.every((label): label is string => typeof label === 'string' && label.length === 1)) resolvedLabels = labels;
-  } catch {
-    // Not available (permissions, browser): the language guess stands.
-  }
-}
-
-export const trapKeyLabels = (): readonly string[] => resolvedLabels ?? (getLang() === 'fr' ? AZERTY : QWERTY);
-
-export const DIGIT_CODES = ['Digit1', 'Digit2', 'Digit3', 'Digit4'] as const;
-export const NUMPAD_CODES = ['Numpad1', 'Numpad2', 'Numpad3', 'Numpad4'] as const;
