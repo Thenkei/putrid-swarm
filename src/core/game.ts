@@ -1,4 +1,4 @@
-// Campaign state machine: day (home ⇄ outings) → night → morning → next day, plus lost / won.
+// Campaign state machine: day (home ⇄ outings) → night → morning → next day, until the house is lost or the seventh night held.
 // Every transition is a pure function; scenes never mutate GameState.
 
 import { BARRICADE, HOUSE_MAX_HP } from './data/devices';
@@ -6,7 +6,11 @@ import { BOSS_NIGHT, DAY_HOURS, LOCATIONS, SEARCH_HOURS, type LocationDef } from
 import { LAST_NIGHT } from './data/waves';
 import type { NightSim } from './night';
 import { NO_STOCK, rollAmbush, rollDispute, walkAway, type Resolution } from './encounters';
-import { ORCHARD, awaitsOrchard, daylight, isFate, type Ending } from './orchard';
+import { ORCHARD, awaitsOrchard, isFate, type Ending } from './orchard';
+import { chapterWaiting, dawnOf, openChapters, type ChapterId } from './chapters';
+import { SHED, awaitsShed, isShedFate, type ShedResult } from './shed';
+import { QUIET_RADIO, aftermathOf, awaitsRadio, rivalOf, stockAfter, type RadioResult } from './radio';
+import { acquaintance } from './encounters';
 import { createRng } from './rng';
 import type { Cost, DeviceInstance, GameState, Inventory, LocationId, LocationProgress, NeighborId, NightReport, OutingMark, ResourceId, Result } from './types';
 import { LOCATION_IDS, RESOURCE_IDS, err, ok } from './types';
@@ -72,6 +76,9 @@ export function newGame(seed: number): GameState {
     flags: {},
     lastNight: null,
     orchard: 'quiet',
+    shed: 'quiet',
+    intel: [],
+    radio: QUIET_RADIO,
     fate: null,
     totals: { kills: 0, triggers: 0, searches: 0 },
   };
@@ -293,28 +300,36 @@ export function startNight(state: GameState): Result<GameState, DayError> {
   return ok({ ...state, phase: 'night', hoursLeft: 0 });
 }
 
-/** Night → morning / lost / won. The yard handed to the next day is the simulation's own result. */
+/**
+ * Night → morning, or the end: `lost` when the house fell, `held` when the last night was survived.
+ * The yard handed to the next day is the simulation's own result.
+ */
 export function concludeNight(state: GameState, sim: NightSim): GameState {
   if (state.phase !== 'night') return state;
   const report: NightReport = sim.report();
   const kills = Object.values(report.kills).reduce((sum, n) => sum + (n ?? 0), 0);
-  const base: GameState = {
-    ...state,
-    yard: sim.toYard(state.yard),
-    lastNight: report,
-    // A camera that died in the night is still dark at dawn: someone has to go and look.
-    orchard: report.survived && report.cameraLost !== null && state.orchard === 'quiet' ? 'cut' : state.orchard,
-    totals: { ...state.totals, kills: state.totals.kills + kills, triggers: state.totals.triggers + report.triggers },
-  };
+  // A night survived may leave something to go and see in the morning (see core/chapters.ts).
+  const base: GameState = openChapters(
+    {
+      ...state,
+      yard: sim.toYard(state.yard),
+      lastNight: report,
+      totals: { ...state.totals, kills: state.totals.kills + kills, triggers: state.totals.triggers + report.triggers },
+    },
+    report,
+  );
   if (!report.survived) return { ...base, phase: 'lost' };
-  if (state.day >= LAST_NIGHT) return { ...base, phase: 'won' };
+  if (state.day >= LAST_NIGHT) return { ...base, phase: 'held' };
   return { ...base, phase: 'morning' };
 }
 
-/** Morning → next day. Not before the orchard has been seen to, when a camera is dark. */
+/** Morning → next day. Not before a chapter this morning waits for has been played (a camera is dark, someone is in the shed). */
 export function startNextDay(state: GameState): GameState {
-  if (state.phase !== 'morning' || awaitsOrchard(state)) return state;
-  return { ...state, phase: 'day', day: state.day + 1, hoursLeft: daylight(state), where: 'home', outing: null, encounter: null };
+  if (state.phase !== 'morning' || chapterWaiting(state) !== null) return state;
+  const next: GameState = { ...state, phase: 'day', day: state.day + 1, where: 'home', outing: null, encounter: null };
+  // What the chapters already played still do to every morning: a dressing, a man to water, a bundle at the gate.
+  const dawn = dawnOf(next);
+  return { ...next, hoursLeft: Math.max(0, DAY_HOURS + dawn.hours), inventory: gain(next.inventory, dawn.gift) };
 }
 
 // ───────────────────────────── The orchard ─────────────────────────────
@@ -334,10 +349,55 @@ export function settleOrchard(state: GameState, ending: Ending): Result<GameStat
   return ok(ending === 'maimed' ? { ...day, hoursLeft: Math.max(0, day.hoursLeft - ORCHARD.faintHours) } : day);
 }
 
-/** A run the orchard ended goes back to that morning, the night before still won. */
-export function retryOrchard(state: GameState): Result<GameState, OrchardError> {
+/** A run a chapter ended goes back to that morning, the night before still won, the chapter waiting again. */
+export function retryChapter(state: GameState): Result<{ state: GameState; chapter: ChapterId }, OrchardError> {
   if (state.phase !== 'lost' || state.fate === null) return err({ code: 'no_fate' });
-  return ok({ ...state, phase: 'morning', fate: null });
+  const morning: GameState = { ...state, phase: 'morning', fate: null };
+  const chapter = chapterWaiting(morning);
+  if (chapter === null) return err({ code: 'no_fate' });
+  return ok({ state: morning, chapter });
+}
+
+/** The orchard's own name for it, kept for its callers. */
+export function retryOrchard(state: GameState): Result<GameState, OrchardError> {
+  const again = retryChapter(state);
+  return again.ok ? ok(again.value.state) : again;
+}
+
+// ───────────────────────────── The shed ─────────────────────────────
+
+/**
+ * How the morning in the shed ended, written into the campaign: the day starts with what he told (his
+ * van's load in the stock, the rest on the "tonight" card) and the daylight the shed took — or the run
+ * stops there.
+ */
+export function settleShed(state: GameState, result: ShedResult): Result<GameState, OrchardError> {
+  if (!awaitsShed(state)) return err({ code: 'not_awaited' });
+  if (isShedFate(result.ending)) return ok({ ...state, phase: 'lost', fate: result.ending });
+  const learned = [...new Set([...state.intel, ...result.learned])];
+  const stocked = learned.includes('stash') && !state.intel.includes('stash') ? gain(state.inventory, SHED.stash) : state.inventory;
+  // The day that follows is the one the shed was played on: what it does to later mornings starts tomorrow.
+  const day = startNextDay({ ...state, shed: result.ending, intel: learned, inventory: stocked });
+  return ok({ ...day, hoursLeft: Math.max(0, day.hoursLeft - result.hours) });
+}
+
+// ───────────────────────────── The radio ─────────────────────────────
+
+/**
+ * How the morning on the radio ended, written into the campaign: the last day starts with what the call
+ * led to — a load in the stock or a visit taken out of it, daylight spent or given, the caller's opinion of
+ * the player — and the call itself kept, for the night's door and the end. Nothing here ends a run.
+ */
+export function settleRadio(state: GameState, result: RadioResult): Result<GameState, OrchardError> {
+  const call = state.radio.call;
+  if (!awaitsRadio(state) || !call) return err({ code: 'not_awaited' });
+  const after = aftermathOf(call, result.answer, state.inventory);
+  const { stock, took } = stockAfter(state.inventory, after);
+  const rival = rivalOf(call.caller);
+  const people = rival && after.standing ? { ...state.people, [rival]: { ...acquaintance(state, rival), standing: after.standing } } : state.people;
+  const radio = { stage: 'done', call, ending: result.ending, answer: result.answer, sighted: [...result.sighted], paid: after.pay, took } as const;
+  const day = startNextDay({ ...state, inventory: stock, people, radio });
+  return ok({ ...day, hoursLeft: Math.min(DAY_HOURS, Math.max(0, day.hoursLeft - result.hours - after.hours)) });
 }
 
 export const clockLabel = (hoursLeft: number): string => {

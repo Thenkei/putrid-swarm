@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_tarp",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[fond, under his breath] Toi, tu restes sous ta bâche. Pour l’instant.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:13.482Z",
+  "bytes": 46018,
+  "sha256": "a35e5babfb674f635947c004eb91786bd5a9dede52545365ef0740929a954e63"
+}

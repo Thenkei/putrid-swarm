@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_camper_owes_no",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] Non. Je suis désolé. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:26.517Z",
+  "bytes": 44764,
+  "sha256": "3dd0d0a50a594ddd58ed7b73ba388f6f2eeac9928a256423797ee5f421bc5b4f"
+}

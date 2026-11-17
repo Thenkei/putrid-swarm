@@ -1,6 +1,7 @@
 // Pieces shared by several scenes: plates, resource chips, key labels.
 
-import type { Cost, Inventory, ResourceId } from '../core/types';
+import { hasLeftArm } from '../core/orchard';
+import type { Cost, GameState, Inventory, ResourceId } from '../core/types';
 import { RESOURCE_IDS } from '../core/types';
 import { STAGE_H, STAGE_W } from '../engine/app';
 import { assetUrl, sprite } from '../engine/assets';
@@ -9,9 +10,40 @@ import { sayAny } from '../engine/voice';
 import { el } from '../engine/dom';
 import { S, getLang } from '../engine/i18n';
 
-/** Draws a plate so it covers the stage, with an optional slow push-in. `focusY` picks the vertical crop (0 top … 1 bottom). */
-export function drawPlate(ctx: CanvasRenderingContext2D, key: string, options: { zoom?: number; focusX?: number; focusY?: number; alpha?: number } = {}): void {
-  const art = sprite(key);
+// ───────────────────────────── The protagonist as he is ─────────────────────────────
+
+/** Pictures the protagonist is in that have a twin with his left sleeve empty and knotted, `<key>_one_arm`. */
+const ONE_ARMED_TWINS: ReadonlySet<string> = new Set([
+  'plate_control_room',
+  'plate_morning',
+  'plate_loc_garage',
+  'plate_town',
+  'plate_trunk',
+  'plate_return',
+  'plate_village',
+  'plate_van',
+  'plate_finale_swarmed',
+]);
+
+/** Whether the run on screen has lost the arm. No run (title, menus) is two arms. */
+export const oneArmed = (state: Pick<GameState, 'orchard'> | null | undefined): boolean => (state ? !hasLeftArm(state) : false);
+
+/**
+ * The picture to show for `key`: once the orchard has taken the arm, the twin he has one arm in.
+ * A twin that is missing (not generated, still loading) falls back on the picture itself.
+ */
+export function heroArt(key: string, armless: boolean): string {
+  if (!armless || !ONE_ARMED_TWINS.has(key)) return key;
+  const twin = `${key}_one_arm`;
+  return sprite(twin) ? twin : key;
+}
+
+/**
+ * Draws a plate so it covers the stage, with an optional slow push-in. `focusY` picks the vertical crop (0 top … 1 bottom).
+ * `oneArmed` shows the protagonist as he is once the orchard has taken his arm, in the pictures he is in.
+ */
+export function drawPlate(ctx: CanvasRenderingContext2D, key: string, options: { zoom?: number; focusX?: number; focusY?: number; alpha?: number; oneArmed?: boolean } = {}): void {
+  const art = sprite(heroArt(key, options.oneArmed ?? false));
   if (!art) {
     ctx.fillStyle = '#1b1610';
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);
@@ -56,10 +88,10 @@ const tripsSpoken = new Set<string>();
 const LATER_TRIP_CHANCE = 0.6;
 
 /** Getting into the break (`car`) or back from it (`home`): always remarked on once a day, then now and then. */
-export function tripLine(moment: 'car' | 'home', day: number): void {
-  const key = `${moment}:${day}`;
+export function tripLine(moment: 'car' | 'home', state: Pick<GameState, 'day' | 'orchard'>): void {
+  const key = `${moment}:${state.day}`;
   if (tripsSpoken.has(key) && Math.random() > LATER_TRIP_CHANCE) return;
-  if (sayAny(moment) > 0) tripsSpoken.add(key);
+  if (sayAny(moment, { oneArmed: oneArmed(state) }) > 0) tripsSpoken.add(key);
 }
 
 /** Door, then starter: leaving somewhere in the break. */

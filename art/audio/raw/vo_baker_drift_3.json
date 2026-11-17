@@ -1,0 +1,19 @@
+{
+  "id": "vo_baker_drift_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[mumbling, drowsy] Le levain… faut nourrir le levain…",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T17:02:39.849Z",
+  "bytes": 47272,
+  "sha256": "3a2623e589014cd64881c032f3f2b3e39340befcb5a27ba2d183bf1570a38538"
+}

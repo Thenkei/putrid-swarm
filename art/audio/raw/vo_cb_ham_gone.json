@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_ham_gone",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[sad, then brave] Bon. Ce n’était que le vent. [pause] CQ, CQ…",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-17T18:00:52.858Z",
+  "bytes": 82798,
+  "sha256": "775111ac680f8da2ee1e4d37374d5a18456c36f6e2328122f4795260b7540a7a"
+}

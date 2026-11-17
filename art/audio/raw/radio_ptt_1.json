@@ -1,0 +1,15 @@
+{
+  "id": "radio_ptt_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Pressing the push-to-talk bar on a CB hand microphone: one solid plastic click and a faint electrical pop from a loudspeaker. Very close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.5,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:59:45.881Z",
+  "bytes": 8820,
+  "sha256": "c31a2f8bcf7e27d3734b5420ac51a5414852fefe64bd1c2c8db6657d7d7cd437"
+}

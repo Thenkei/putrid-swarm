@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_owes_call_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[forced cheer] C’est la radio du camping-car. Elle marche, au moins elle. Quelqu’un ?",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:01:30.970Z",
+  "bytes": 74021,
+  "sha256": "55159e9d92bbfb2f98b8ca8270c371609b056d1155cba4b1d38246c6430cccc4"
+}

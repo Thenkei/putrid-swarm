@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_grudge_call_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[bitter] Allô ? Je sais que vous êtes là. Répondez.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:02:16.851Z",
+  "bytes": 53541,
+  "sha256": "460fcb41a6a747773950fbf14e17a7c2e48ae00934791de2e4f881a5a341eb7c"
+}

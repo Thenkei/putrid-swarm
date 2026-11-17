@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_owes_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[worried] Mon camping-car ne démarre plus. Ils tournent autour depuis l’aube. Ils tapent sur la tôle.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:01:38.552Z",
+  "bytes": 84470,
+  "sha256": "028a31186cd2f4985f5f63933bfdcef5d9df974b771d7284027815135ebe2700"
+}

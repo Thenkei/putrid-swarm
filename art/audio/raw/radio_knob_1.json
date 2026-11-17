@@ -1,0 +1,15 @@
+{
+  "id": "radio_knob_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Turning a big bakelite tuning knob on an old radio set: three soft ratcheting detent clicks and a faint scrape of plastic. Very close, quiet, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.7,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:59:41.902Z",
+  "bytes": 12163,
+  "sha256": "3035f8f456c94fec521f1fc1585a796abab0f8e6195daaccb0c203ccd59a737f"
+}

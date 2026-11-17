@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_camper_owes_shed",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[cautious] Venez. Mais vous dormez dans la cabane, fermée à clé. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:25.312Z",
+  "bytes": 76529,
+  "sha256": "2d1b72f9f14e8a138755d077598d34366053a89202b4de2fd244852e7dfe52af"
+}

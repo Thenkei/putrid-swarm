@@ -1,0 +1,19 @@
+{
+  "id": "vo_baker_chief",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[hurried, a faint smile] Le Chef ? Il comptait jusqu’à onze devant ma vitrine. Puis il sifflait. Il déteste qu’on l’éclaire.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T17:02:59.028Z",
+  "bytes": 97009,
+  "sha256": "63c0a2173246d585ead12929ae57b23a4df30f138bd8544fb625d9926da3723c"
+}

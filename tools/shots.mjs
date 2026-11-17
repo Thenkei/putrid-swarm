@@ -132,12 +132,12 @@ await wait(1200);
 await shot('19-lost');
 await page.evaluate(async () => {
   const app = window.__app;
-  app.state = { ...app.state, phase: 'won', day: 7 };
+  app.state = { ...app.state, phase: 'held', day: 7 };
   const flow = await import('/src/scenes/flow.ts');
   flow.goEnd(app);
 });
 await wait(1200);
-await shot('20-won');
+await shot('20-held');
 
 console.log(errors.length ? `console issues:\n${errors.slice(0, 20).join('\n')}` : 'no console issues');
 await browser.close();

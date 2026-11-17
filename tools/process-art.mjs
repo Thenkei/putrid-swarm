@@ -215,6 +215,7 @@ async function processSplit(entry, source) {
       y1: Math.max(...local.map((b) => b.y1)) + 3,
     };
     for (const { cell, name } of cells) {
+      if (!name) continue;
       const box = {
         x0: cell.x0 + union.x0,
         y0: cell.y0 + union.y0,
@@ -225,7 +226,8 @@ async function processSplit(entry, source) {
     }
     return;
   }
-  for (const { box, name } of cells) await writeSprite(img, pad(box, img), entry, `${entry.id}_${name}`);
+  // A null name is a cell made elsewhere now: cut, and left alone.
+  for (const { box, name } of cells) if (name) await writeSprite(img, pad(box, img), entry, `${entry.id}_${name}`);
 }
 
 /** Horizontal centre of mass of a figure's trunk (the middle band of its box), which moves far less than its limbs. */

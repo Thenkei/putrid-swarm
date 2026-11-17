@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_grudge_ask",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[trying to sound tough] Laissez une batterie devant votre portail, à midi. Et on vous laisse tranquille. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:02:25.279Z",
+  "bytes": 75275,
+  "sha256": "6f9ccde85ac941a757ba4d30ee82f3213a582d4b7c635309282d8e2c76eaf7b2"
+}

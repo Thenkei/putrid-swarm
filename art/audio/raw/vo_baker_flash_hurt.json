@@ -1,0 +1,19 @@
+{
+  "id": "vo_baker_flash_hurt",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[weak, hurt, ashamed] Arrêtez… La boulangère… Lui dites pas que j’ai crié.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T17:02:44.779Z",
+  "bytes": 66498,
+  "sha256": "bc41d20f81be0ea124b08f8476166af2987c038a82996dc1650633a82fa00940"
+}

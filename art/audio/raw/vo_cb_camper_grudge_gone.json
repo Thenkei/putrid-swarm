@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_grudge_gone",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[resigned] Pas de réponse. Je leur dirai. Terminé.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:02:28.268Z",
+  "bytes": 53541,
+  "sha256": "58736b85a7b141d20eb672c9d11e1f561ec95a269eaafb39cc3b5673e0403208"
+}

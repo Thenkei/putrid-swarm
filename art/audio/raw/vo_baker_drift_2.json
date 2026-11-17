@@ -1,0 +1,19 @@
+{
+  "id": "vo_baker_drift_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[mumbling, slurred] Ça sera tout ?…",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T17:02:38.590Z",
+  "bytes": 28046,
+  "sha256": "2f195846352a583c57f943b7cd995fc5c58be1dd3f79ebb6dda76ef7ddf4166d"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_dealer_grudge_address",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[resigned] Au bout du chemin du lavoir. Venez la chercher. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:27.944Z",
+  "bytes": 61065,
+  "sha256": "012306fe600dd1e8f406a5c6519554282ffd6c43586d1120ab684cee2af47f0b"
+}

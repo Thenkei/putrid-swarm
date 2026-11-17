@@ -1,0 +1,15 @@
+{
+  "id": "pour",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Water running from the little plastic tap of a jerrycan into a metal enamel bowl, filling it. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.4,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:48.985Z",
+  "bytes": 23030,
+  "sha256": "acd2142fad9abd933e4bc974c40361f2c31bb1c7d9951da5496eb686a277fc45"
+}

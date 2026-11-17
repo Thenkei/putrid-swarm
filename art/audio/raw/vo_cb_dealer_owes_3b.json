@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_dealer_owes_3b",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[dismissive] Ce canal, plus personne ne l’écoute. Le comité a cassé son poste.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-17T18:01:13.738Z",
+  "bytes": 70260,
+  "sha256": "3287d0a7e52497657bde5cae6fc6170bfab3b7e33797f754b88e8da60fd974b1"
+}

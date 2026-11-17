@@ -4,7 +4,9 @@
 import { BARRICADE, DEVICES, HOUSE_MAX_HP, HOUSE_REPAIR, facingsOf, isTrap, turned } from '../core/data/devices';
 import { DAY_HOURS } from '../core/data/locations';
 import { ORCHARD, hasLeftArm } from '../core/orchard';
-import { planForNight } from '../core/data/waves';
+import { SHED, briefingFor, type Briefing } from '../core/shed';
+import { allyFor, guestOf, lookoutFor } from '../core/radio';
+import { LAST_NIGHT, planForNight } from '../core/data/waves';
 import { bossOfNight, clockLabel, startNight } from '../core/game';
 import { ENTRIES, GRID_H, GRID_W, SPAWN_CELLS, idx } from '../core/map';
 import { computeField, traceRoute } from '../core/pathing';
@@ -155,6 +157,8 @@ export class DayScene implements Scene {
       daylight,
       el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { h: hours(state.hoursLeft) }) }),
       hasLeftArm(state) ? null : el('span', { class: 'chip-arm', text: s.day.oneArm, title: fmt(s.day.oneArmNote, { h: hours(ORCHARD.dressingHours) }) }),
+      state.shed === 'freed' ? el('span', { class: 'chip-arm chip-shed good', text: s.day.shedFreed, title: fmt(s.day.shedFreedNote, { n: SHED.delivery.wood ?? 0 }) }) : null,
+      state.shed === 'chained' ? el('span', { class: 'chip-arm chip-shed', text: s.day.shedChained, title: fmt(s.day.shedChainedNote, { h: hours(SHED.upkeepHours) }) }) : null,
       el('span', { class: 'grow' }),
       inventoryBar(state.inventory),
       el('span', { class: 'sep' }),
@@ -251,6 +255,8 @@ export class DayScene implements Scene {
       el('b', { text: `${s.day.tonight} · ${fmt(s.night.night, { n: state.day })}` }),
       el('div', { text: fmt(s.day.tonightFrom, { sectors: expected.map((sector) => s.sector[sector]).join(', ') }) }),
       el('div', { class: 'muted', text: boss ? fmt(s.day.tonightBoss, { name: s.neighbor[boss].name }) : s.day.tonightUnknown }),
+      this.briefing(briefingFor(state)),
+      this.radioBriefing(),
     ]);
 
     const viewTools = el('div', { class: 'view-tools' }, [
@@ -268,6 +274,57 @@ export class DayScene implements Scene {
     this.root.replaceChildren(topbar, panel, viewTools, doors, tonight, actions, this.info);
     this.updateInfo();
     this.maybeHint();
+  }
+
+  /** What the morning on the radio left for tonight: someone at a door, someone in the shed, where they will come from. */
+  private radioBriefing(): HTMLElement | null {
+    const s = S();
+    const state = this.state;
+    if (state.day !== LAST_NIGHT || !state.radio.call) return null;
+    const name = s.radio.caller[state.radio.call.caller].split(',')[0] ?? '';
+    const lines: HTMLElement[] = [];
+    const ally = allyFor(state);
+    if (ally) lines.push(el('div', { text: fmt(s.day.briefAlly, { name, sector: s.sector[ally.sector] }) }));
+    if (guestOf(state)) lines.push(el('div', { text: fmt(s.day.briefGuest, { name }) }));
+    const lookout = lookoutFor(state);
+    if (lookout) {
+      if (lookout.rows.length === 0) lines.push(el('div', { text: s.day.briefLookoutNone }));
+      else {
+        lines.push(el('div', { text: s.day.briefLookout }));
+        for (const row of lookout.rows) {
+          lines.push(
+            el('div', { class: 'brief-row' }, [
+              el('b', { text: fmt(s.day.briefSector, { sector: s.sector[row.sector], n: row.total }) }),
+              el('span', { text: [...row.kinds.map((k) => `${s.enemy[k.type]} ×${k.count}`), ...(row.boss ? [fmt(s.day.briefBoss, { name: s.enemy[row.boss.type], w: row.boss.wave })] : [])].join(', ') }),
+            ]),
+          );
+        }
+        if (lookout.missed > 0) lines.push(el('div', { class: 'muted', text: fmt(s.day.briefLookoutMissed, { n: lookout.missed }) }));
+      }
+    }
+    return lines.length > 0 ? el('div', { class: 'brief' }, lines) : null;
+  }
+
+  /** What the baker in the shed said about tonight, if he said anything that matters today. */
+  private briefing(brief: Briefing | null): HTMLElement | null {
+    if (!brief) return null;
+    const s = S();
+    if (brief.kind === 'chief') {
+      const c = brief.chief;
+      const n = (v: number): string => hours(v);
+      return el('div', { class: 'brief', text: fmt(s.day.briefChief, { every: n(c.whistleEvery), haste: c.whistleHaste, secs: n(c.whistleSeconds), radius: n(c.auraRadius), aura: c.auraShield, self: c.selfShield }) });
+    }
+    return el('div', { class: 'brief' }, [
+      el('div', { text: s.day.briefTonight }),
+      ...brief.sectors.map((row) =>
+        el('div', { class: 'brief-row' }, [
+          el('b', { text: fmt(s.day.briefSector, { sector: s.sector[row.sector], n: row.total }) }),
+          el('span', {
+            text: [...row.kinds.map((k) => `${s.enemy[k.type]} ×${k.count}`), ...(row.boss ? [fmt(s.day.briefBoss, { name: s.enemy[row.boss.type], w: row.boss.wave })] : [])].join(', '),
+          }),
+        ]),
+      ),
+    ]);
   }
 
   private maybeHint(): void {

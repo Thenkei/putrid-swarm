@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_news",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[flat] La télé de la semaine dernière. Elle n’a pas changé d’avis.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:06.265Z",
+  "bytes": 54795,
+  "sha256": "8106ea917e8424affbf9743e5965fba79f6a470c119e65a02029546856d452cb"
+}

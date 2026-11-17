@@ -1,27 +1,38 @@
-// The end of a run the house lost.
+// The end of a run: every run ends with the village in the garden.
 //
-// Before the fifth night it is brief: the control room door gives way. From the fifth night on, the
-// evening goes out through the shed — a ride-on mower with a blade on the front and two amplifier
-// stacks on the back, and the keyboard played like a guitar: a top-row key holds a chord, Space hits
-// the strings. core/finale.ts holds the chart and what a strum is worth; nothing played here changes
-// how it ends.
+// A house lost before the fifth night is brief: the control room door gives way. From the fifth night
+// on — and at the seventh dawn, when they do not leave — it goes out through the shed: a ride-on mower
+// with a blade on the front and two amplifier stacks on the back, and the keyboard played like a
+// guitar: a top-row key holds a chord, Space hits the strings. core/finale.ts holds the song, its chart
+// and what a strum is worth; nothing played here changes how it ends. What it was worth is handed to
+// the end screen, which is the last picture of this scene held still.
 
-import { FINALE, JAM, JAM_MODES, chartOf, chordRate, chordsOf, finaleOf, settle, startJam, strum, type FinaleKind, type Jam, type JamMode, type Note, type Verdict } from '../core/finale';
+import { endingsOf, FINAL_CHORD, FINALE, JAM, JAM_MODES, SONG, chartOf, chordRate, chordsOf, finaleOf, recordMode, sectionAt, settle, startJam, strum, type FinaleKind, type Jam, type JamMode, type Note, type Verdict } from '../core/finale';
 import { hasLeftArm } from '../core/orchard';
+import { guestOf } from '../core/radio';
 import type { GameState } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt } from '../engine/i18n';
+import { keepJam, rememberEnding } from '../engine/progress';
 import { hush, say } from '../engine/voice';
 import { Atmosphere, drawArm } from './atmosphere';
 import { TRAP_KEY_CODES, drawPlate, trapKeyLabels } from './common';
+import type { EndOptions } from './end';
 import { goEnd } from './flow';
 
-type Stage = 'fall' | 'devoured' | 'shed' | 'jam' | 'swarm';
+type Stage = 'dawn' | 'fall' | 'devoured' | 'shed' | 'jam' | 'swarm';
 
-const SECONDS: Readonly<Record<Exclude<Stage, 'jam'>, number>> = { fall: 3, devoured: 5.6, shed: 9, swarm: 9 };
+const SECONDS: Readonly<Record<Exclude<Stage, 'jam'>, number>> = { dawn: 10.4, fall: 3, devoured: 5.6, shed: 9, swarm: 9 };
+/** The seventh dawn: the quiet picture, then the same picture with everyone in it. */
+const DAWN = { reveal: 4.4, dissolve: 1.8, line: 6.4 } as const;
+
+export interface FinaleOptions {
+  /** Straight back to the shed, from the end screen: the song again, for the record. */
+  readonly encore?: boolean;
+}
 
 /** Where things are on the jam screen. */
 const GROUND = 640;
@@ -80,9 +91,14 @@ interface Pop {
   readonly text: string;
   readonly color: string;
   age: number;
+  /** A moment of the song rather than a verdict: larger, and longer on screen. */
+  readonly big?: boolean;
 }
 
 const CENTRE = { x: STAGE_W / 2, y: STAGE_H / 2 } as const;
+const popLife = (pop: Pop): number => (pop.big ? 1.4 : 0.7);
+/** The horde picture of each ending, and how dark it ends: the end screen takes it up from there. */
+export const SWARMED = { night: 'plate_finale_swarmed', dawn: 'plate_finale_swarmed_dawn', veil: 0.6, zoom: (t: number): number => 1.03 + t * 0.012 } as const;
 const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
@@ -121,6 +137,13 @@ export class FinaleScene implements Scene {
   private punch = 0;
   private flash = 0;
   private playedOut = false;
+  /** Every way the song was played this time: switching halfway decides which record it counts for. */
+  private readonly played = new Set<JamMode>();
+  /** What goes on to the end screen. */
+  private ending: EndOptions = {};
+  /** The section of the song last seen, and whether the last chord has been announced. */
+  private section: string | null = null;
+  private warned = false;
 
   private root!: HTMLElement;
   private countEl!: HTMLElement;
@@ -130,11 +153,18 @@ export class FinaleScene implements Scene {
   private readonly keyEls: HTMLElement[] = [];
   private spaceEl!: HTMLElement;
 
-  constructor(private readonly app: App) {
+  constructor(
+    private readonly app: App,
+    private readonly options: FinaleOptions = {},
+  ) {
     const state = this.state;
-    // Anything that is not a house lost has no business here; it is shown the short way out.
+    // A run that is not over has no business here; it is shown the short way out.
     this.kind = finaleOf(state) ?? 'desk';
     this.oneArmed = !hasLeftArm(state);
+  }
+
+  private get dawn(): boolean {
+    return this.kind === 'dawn';
   }
 
   private get state(): GameState {
@@ -151,10 +181,18 @@ export class FinaleScene implements Scene {
   }
 
   enter(): void {
-    audio.setAmbience('night');
+    audio.setAmbience(this.dawn ? 'day' : 'night');
     audio.setMusic('none');
     this.root = el('div', { class: 'finale' });
     this.app.ui.append(this.root);
+    if (this.options.encore && this.kind !== 'desk') {
+      this.go('shed');
+      return;
+    }
+    if (this.dawn) {
+      this.go('dawn');
+      return;
+    }
     audio.play('breach');
     this.shake = 20;
     this.red = 0.8;
@@ -185,6 +223,21 @@ export class FinaleScene implements Scene {
     this.queue.length = 0;
     const s = S();
     switch (stage) {
+      case 'dawn': {
+        // The quiet that winning used to be: its picture, its music, its line. Then they are all there.
+        audio.setMusic('won');
+        this.after(0.9, () => say('vo_won', { interrupt: true }));
+        const card = (text: { title: string; sub: string }): HTMLElement => el('div', { class: 'finale-title dawn' }, [el('h1', { text: text.title }), el('p', { text: text.sub })]);
+        this.root.replaceChildren(card(s.finale.calm), el('div', { class: 'finale-skip', text: s.finale.skip }));
+        this.after(DAWN.reveal, () => {
+          audio.setMusic('none');
+          audio.play('groan');
+          this.root.replaceChildren(card(s.finale.still), el('div', { class: 'finale-skip', text: s.finale.skip }));
+        });
+        this.after(DAWN.reveal + 0.9, () => audio.play('groan', 0.7));
+        this.after(DAWN.line, () => say('vo_finale_dawn', { interrupt: true }));
+        break;
+      }
       case 'fall':
         break;
       case 'devoured':
@@ -194,17 +247,24 @@ export class FinaleScene implements Scene {
         this.after(0.3, () => audio.play('groan'));
         this.after(2.6, () => audio.play('lost'));
         this.skipNote();
+        this.ending = { firstTime: this.remember() };
         break;
       case 'shed':
+        audio.setMusic('none');
         audio.play('shed_door');
         this.shake = 10;
-        this.after(0.9, () => say('vo_finale_shed', { interrupt: true }));
+        this.after(0.9, () => say(this.dawn ? 'vo_finale_shed_dawn' : 'vo_finale_shed', { interrupt: true }));
         this.after(1.6, () => audio.play('amp_on'));
         this.after(3.4, () => audio.play('mower_start'));
         if (this.oneArmed) this.after(3.6, () => say('vo_finale_one_arm', { interrupt: true }));
         this.modeEls.clear();
         this.root.replaceChildren(
-          el('div', { class: 'finale-title' }, [el('h1', { text: s.finale.shed }), el('p', { text: s.finale.shedSub })]),
+          el('div', { class: 'finale-title' }, [
+            el('h1', { text: s.finale.shed }),
+            el('p', { text: s.finale.shedSub }),
+            // Whoever the radio put in the shed for the night is still in it.
+            this.app.state && guestOf(this.app.state) ? el('p', { text: guestOf(this.app.state) === 'turned' ? s.finale.shedGuestTurned : s.finale.shedGuest }) : null,
+          ]),
           // How to play it is chosen here, before the engine drowns everything out.
           el('div', { class: 'jam-modes' }, [
             el('span', { class: 'pick', text: s.finale.pick }),
@@ -227,15 +287,16 @@ export class FinaleScene implements Scene {
         audio.play('amp_die');
         audio.play('horde');
         this.shake = 14;
-        this.after(1.8, () => say('vo_finale_end', { subtitle: false }));
+        const last = this.dawn ? 'vo_finale_end_dawn' : 'vo_finale_end';
+        this.after(1.8, () => say(last, { subtitle: false }));
         this.after(4.2, () => audio.play('devour', 0.7));
-        const jam = this.jam;
+        this.keepSong();
+        // No numbers here: the tally waits on the end screen, over this same picture.
         this.root.replaceChildren(
           el('div', { class: 'finale-swarm' }, [
             el('h1', { text: s.finale.swarmTitle }),
             el('p', { text: this.playedOut ? s.finale.swarmFull : s.finale.swarmEarly }),
-            el('p', { class: 'tally', text: fmt(s.finale.tally, { n: this.tally, best: jam.best, perfect: jam.perfect }) }),
-            el('p', { class: 'quote', text: `« ${s.voice.vo_finale_end} »` }),
+            el('p', { class: 'quote', text: `« ${s.voice[last]} »` }),
           ]),
           el('div', { class: 'finale-skip', text: s.finale.skip }),
         );
@@ -263,9 +324,24 @@ export class FinaleScene implements Scene {
     }
   }
 
+  /** Counts the endings this last scene reached. Says whether its scene was seen for the first time. */
+  private remember(): boolean {
+    const [scene, ...more] = endingsOf(this.kind, this.playedOut);
+    const first = scene ? rememberEnding(scene) : false;
+    for (const id of more) rememberEnding(id);
+    return first;
+  }
+
+  /** The song is over, one way or the other: weigh it against the record, and keep it for the end screen. */
+  private keepSong(): void {
+    const result = { mode: recordMode([...this.played]), mown: this.tally, best: this.jam.best, perfect: this.jam.perfect, full: this.playedOut };
+    this.ending = { song: { result, record: keepJam(result) }, firstTime: this.remember() };
+  }
+
   /** Changing one's mind mid-song: the other chart takes over from the next bar, the tally carries on. */
   private switchMode(): void {
     this.pickMode(this.mode === 'soft' ? 'hard' : 'soft');
+    this.played.add(this.mode);
     this.chart = chartOf(this.mode);
     const resume = this.now + 60 / FINALE.bpm;
     const next = this.chart.findIndex((note) => note.time > resume);
@@ -280,6 +356,9 @@ export class FinaleScene implements Scene {
   private advance(): void {
     if (this.left) return;
     switch (this.stage) {
+      case 'dawn':
+        this.go('shed');
+        break;
       case 'fall':
         this.go(this.kind === 'desk' ? 'devoured' : 'shed');
         break;
@@ -292,7 +371,7 @@ export class FinaleScene implements Scene {
       case 'devoured':
       case 'swarm':
         this.left = true;
-        goEnd(this.app);
+        goEnd(this.app, this.ending);
         break;
     }
   }
@@ -308,6 +387,8 @@ export class FinaleScene implements Scene {
     this.shake = 12;
     this.chart = chartOf(this.mode);
     this.jam = startJam();
+    this.played.clear();
+    this.played.add(this.mode);
     this.buildJamHud();
     for (let i = 0; i < 26; i++) this.spawn(640 + Math.random() * 760);
   }
@@ -439,7 +520,7 @@ export class FinaleScene implements Scene {
     for (const ring of this.rings) ring.age += dt;
     for (let i = this.rings.length - 1; i >= 0; i--) if ((this.rings[i] as Ring).age > 0.5) this.rings.splice(i, 1);
     for (const pop of this.pops) pop.age += dt;
-    for (let i = this.pops.length - 1; i >= 0; i--) if ((this.pops[i] as Pop).age > 0.7) this.pops.splice(i, 1);
+    for (let i = this.pops.length - 1; i >= 0; i--) if ((this.pops[i] as Pop).age > popLife(this.pops[i] as Pop)) this.pops.splice(i, 1);
 
     // HUD.
     const count = String(this.tally);
@@ -450,10 +531,31 @@ export class FinaleScene implements Scene {
     this.keyEls.forEach((key, i) => key.classList.toggle('held', i === sounding));
     this.outEl.classList.toggle('on', now >= FINALE.skipAfter);
     this.hintEl.classList.toggle('on', now < 14);
+    this.markTheSong(now);
 
-    if (now >= FINALE.seconds - 0.4 || (audio.musicEnded && now > FINALE.skipAfter)) {
+    // Once the last chord has rung out, the song is over.
+    if (now >= SONG.finalChord.silence || (audio.musicEnded && now > FINALE.skipAfter)) {
       this.playedOut = true;
       this.go('swarm');
+    }
+  }
+
+  /** What the song is doing, said once as it happens: the solo comes in, and the last chord is next. */
+  private markTheSong(now: number): void {
+    const s = S().finale;
+    const section = sectionAt(now)?.kind ?? null;
+    if (section !== this.section) {
+      if (section === 'solo') {
+        this.pops.push({ text: s.solo, color: '#fff1c9', age: 0, big: true });
+        this.flash = Math.max(this.flash, 0.3);
+        this.shake = Math.max(this.shake, 10);
+      }
+      this.section = section;
+    }
+    const warn = FINAL_CHORD - 2 * (60 / FINALE.bpm);
+    if (!this.warned && now >= warn) {
+      this.warned = true;
+      this.pops.push({ text: s.last, color: '#f2a531', age: 0, big: true });
     }
   }
 
@@ -559,6 +661,30 @@ export class FinaleScene implements Scene {
     ctx.globalAlpha = 1;
   }
 
+  /**
+   * The night pictures of the shed and the lane, at seven in the morning: a warm sky laid over them
+   * (soft light) and a rose haze lifting the shadows (screen). Blend modes, not filters.
+   */
+  private daybreak(ctx: CanvasRenderingContext2D, strength: number): void {
+    ctx.save();
+    ctx.globalAlpha = strength;
+    ctx.globalCompositeOperation = 'soft-light';
+    const sky = ctx.createLinearGradient(0, 0, 0, STAGE_H);
+    sky.addColorStop(0, '#ffc98a');
+    sky.addColorStop(0.55, '#f0a070');
+    sky.addColorStop(1, '#8a6a58');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = strength * 0.28;
+    const haze = ctx.createLinearGradient(0, 0, 0, STAGE_H);
+    haze.addColorStop(0, '#ffb48c');
+    haze.addColorStop(1, '#3a2a30');
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+    ctx.restore();
+  }
+
   private drawJam(ctx: CanvasRenderingContext2D): void {
     const now = this.now;
     const beat = 60 / FINALE.bpm;
@@ -582,7 +708,8 @@ export class FinaleScene implements Scene {
       ctx.drawImage(art.img, 0, 0, width, height);
       ctx.restore();
     }
-    this.veil(ctx, '#06070d', 0.22);
+    if (this.dawn) this.daybreak(ctx, 0.75);
+    else this.veil(ctx, '#06070d', 0.22);
 
     // Headlights.
     const cone = ctx.createLinearGradient(BLADE_X - 60, 0, BLADE_X + 620, 0);
@@ -671,10 +798,19 @@ export class FinaleScene implements Scene {
       const note = this.chart[i] as Note;
       const x = LANE.hitX + (note.time - now) * this.laneSpeed;
       if (x > STAGE_W + 30) break;
+      // The last one is the final chord: bigger, and ringed.
+      const size = i === this.chart.length - 1 ? 30 : 21;
       ctx.fillStyle = CHORD_COLORS[note.chord] ?? '#fff';
       ctx.beginPath();
-      ctx.roundRect(x - 21, LANE.y - 21, 42, 42, 9);
+      ctx.roundRect(x - size, LANE.y - size, size * 2, size * 2, 9);
       ctx.fill();
+      if (size > 21) {
+        ctx.strokeStyle = '#fff6e0';
+        ctx.lineWidth = 3 + onBeat * 3;
+        ctx.beginPath();
+        ctx.roundRect(x - size - 7, LANE.y - size - 7, size * 2 + 14, size * 2 + 14, 13);
+        ctx.stroke();
+      }
       ctx.fillStyle = '#17130d';
       ctx.fillText(labels[note.chord] ?? '', x, LANE.y + 2);
     }
@@ -684,11 +820,21 @@ export class FinaleScene implements Scene {
     ctx.roundRect(LANE.hitX - 27, LANE.y - 27, 54, 54, 12);
     ctx.stroke();
     for (const pop of this.pops) {
-      const t = pop.age / 0.7;
+      const t = pop.age / popLife(pop);
       ctx.globalAlpha = 1 - t * t;
       ctx.fillStyle = pop.color;
-      ctx.font = "700 34px 'DIN Condensed', 'Bahnschrift Condensed', 'Arial Narrow', sans-serif";
-      ctx.fillText(pop.text, LANE.hitX + 40, LANE.y + 62 + t * 18);
+      if (pop.big) {
+        // Across the middle of the picture, growing as it fades.
+        ctx.font = `700 ${Math.round(78 + t * 26)}px 'DIN Condensed', 'Bahnschrift Condensed', 'Arial Narrow', sans-serif`;
+        // A hard drop shadow: no blur.
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillText(pop.text, STAGE_W / 2 + 124, 276 - t * 20);
+        ctx.fillStyle = pop.color;
+        ctx.fillText(pop.text, STAGE_W / 2 + 120, 272 - t * 20);
+      } else {
+        ctx.font = "700 34px 'DIN Condensed', 'Bahnschrift Condensed', 'Arial Narrow', sans-serif";
+        ctx.fillText(pop.text, LANE.hitX + 40, LANE.y + 62 + t * 18);
+      }
       ctx.globalAlpha = 1;
     }
     ctx.textAlign = 'left';
@@ -707,8 +853,8 @@ export class FinaleScene implements Scene {
     ctx.save();
     ctx.translate((Math.random() * 2 - 1) * this.shake, (Math.random() * 2 - 1) * this.shake);
     const t = this.stageTime;
-    // Leaving the desk and landing on the next picture is one turn of the head, not a cut.
-    const out = this.stage === 'fall' ? clamp01((t - (SECONDS.fall - WHIP)) / WHIP) : 0;
+    // Leaving the desk (or the garden at dawn) and landing on the next picture is one turn of the head, not a cut.
+    const out = this.stage === 'fall' || this.stage === 'dawn' ? clamp01((t - (SECONDS[this.stage] - WHIP)) / WHIP) : 0;
     const into = this.stage === 'devoured' || this.stage === 'shed' ? 1 - clamp01(t / WHIP) : 0;
     const whip = out > 0 ? -out * out * STAGE_W : into * into * STAGE_W;
     const smeared = (draw: () => void): void => {
@@ -726,8 +872,18 @@ export class FinaleScene implements Scene {
       }
     };
     switch (this.stage) {
+      case 'dawn': {
+        // The same garden twice: empty, then — without a cut — full.
+        const zoom = 1.02 + t * 0.008;
+        const full = clamp01((t - DAWN.reveal) / DAWN.dissolve);
+        smeared(() => {
+          drawPlate(ctx, 'plate_victory', { zoom, focusY: 0.45 });
+          if (full > 0) drawPlate(ctx, 'plate_finale_dawn', { zoom, focusY: 0.45, alpha: full * full * (3 - 2 * full) });
+        });
+        break;
+      }
       case 'fall':
-        smeared(() => drawPlate(ctx, 'plate_control_room', { zoom: 1.06 + t * 0.02, focusY: 0.42 }));
+        smeared(() => drawPlate(ctx, 'plate_control_room', { zoom: 1.06 + t * 0.02, focusY: 0.42, oneArmed: this.oneArmed }));
         this.atmo.drawFront(ctx);
         break;
       case 'devoured': {
@@ -747,6 +903,7 @@ export class FinaleScene implements Scene {
       case 'shed': {
         const start = clamp01((t - 3.5) / 0.6);
         smeared(() => drawPlate(ctx, 'plate_finale_shed', { zoom: 1.2 - Math.min(1, t / 5) * 0.16, focusX: 0.55, focusY: 0.55 }));
+        if (this.dawn) this.daybreak(ctx, 0.6);
         // The headlights come up with the engine.
         if (start > 0) this.veil(ctx, '#ffdf9a', start * (0.1 + Math.sin(this.time * 38) * 0.03));
         this.atmo.drawFront(ctx);
@@ -763,7 +920,7 @@ export class FinaleScene implements Scene {
         this.drawJam(ctx);
         break;
       case 'swarm':
-        drawPlate(ctx, 'plate_finale_swarmed', { zoom: 1.03 + t * 0.012, focusY: 0.5 });
+        drawPlate(ctx, this.dawn ? SWARMED.dawn : SWARMED.night, { zoom: SWARMED.zoom(t), focusY: 0.5, oneArmed: this.oneArmed });
         this.atmo.drawFront(ctx);
         break;
     }
@@ -777,9 +934,11 @@ export class FinaleScene implements Scene {
     }
     if (this.stage === 'shed') this.veil(ctx, '#fff', clamp01((t - (SECONDS.shed - 0.35)) / 0.35));
     if (this.stage === 'jam') this.veil(ctx, '#fff', 1 - this.clock / 0.4);
+    if (this.stage === 'dawn') this.veil(ctx, '#fff8e8', 1 - t / 0.9);
     if (this.stage === 'swarm') {
       this.veil(ctx, '#fff', 1 - t / 0.5);
-      this.veil(ctx, '#0a0604', 0.3 + clamp01((t - 5.5) / 3.2) * 0.7);
+      // It does not go to black: the end screen holds this picture, this dark.
+      this.veil(ctx, '#0a0604', 0.3 + clamp01((t - 5.5) / 3.2) * (SWARMED.veil - 0.3));
     }
   }
 }

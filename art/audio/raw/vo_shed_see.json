@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_see",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[sad, softly] Le boulanger. Il me rendait la monnaie en centimes.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:12.077Z",
+  "bytes": 59811,
+  "sha256": "53209f6c7e201d2b088683f457f3d7acf6fada1b58a351fc646d3e23de932654"
+}

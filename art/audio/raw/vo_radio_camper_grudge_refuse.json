@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_camper_grudge_refuse",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Non. Pas de batterie. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:06:52.102Z",
+  "bytes": 36823,
+  "sha256": "fcdd1316d084dfd45441ffdda9b8dc96e4e46c764ae972fe977f54c2d677bf86"
+}

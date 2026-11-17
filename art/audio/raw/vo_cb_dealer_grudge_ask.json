@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_dealer_grudge_ask",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[official] Le comité demande une contribution. Dites-nous où passer la prendre. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-17T18:02:03.640Z",
+  "bytes": 72767,
+  "sha256": "e76fac52b8f699c65b119bc77c38f54f1b9d249e25fadda688dee9643a9ff3d2"
+}

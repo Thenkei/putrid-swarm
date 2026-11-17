@@ -4,19 +4,21 @@
 import { BARRICADE, COMBAT, DEVICES, HOUSE_MAX_HP, isAuto, isManual } from '../core/data/devices';
 import { concludeNight } from '../core/game';
 import { ENTRIES, HOUSE, sectorOf } from '../core/map';
-import { NightSim, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
-import { outageFor } from '../core/orchard';
+import { NightSim, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
+import { deskFor, outageFor } from '../core/orchard';
+import { allyFor } from '../core/radio';
 import type { DeviceTypeId, GameState, NeighborId, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/app';
 import { assetUrl } from '../engine/assets';
 import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt } from '../engine/i18n';
+import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
 import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, pickDevice, type DeviceVisual, type Fallen, type Light, type Particle, type View, type WorldFrame } from '../render/world';
-import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, drawPlate, trapKeyLabels } from './common';
-import { goEnd, goFinale, goMorning, goNight, goTitle } from './flow';
+import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, drawPlate, oneArmed, trapKeyLabels } from './common';
+import { goFinale, goMorning, goNight, goTitle } from './flow';
+import { HandGauge, cameraAwaitingHand, handCoachSeen, markHandCoachSeen, trapsAwaitingHand } from './hand';
 
 const MAIN = { x: 12, y: 54, w: 884, h: 497 } as const;
 const MINI = { x: 906, w: 362, h: 159, ys: [54, 223, 392] } as const;
@@ -51,7 +53,7 @@ export class NightfallScene implements Scene {
     audio.setAmbience('night');
     audio.setMusic('night');
     // The line is the screen's own text: no subtitle.
-    const line = pickLine('nightfall');
+    const line = pickLine('nightfall', oneArmed(this.app.state));
     say(line, { subtitle: false });
     const s = S();
     const night = this.app.state?.day ?? 1;
@@ -69,7 +71,7 @@ export class NightfallScene implements Scene {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    drawPlate(ctx, 'plate_control_room', { zoom: 1.02 + this.time * 0.004, focusY: 0.42 });
+    drawPlate(ctx, 'plate_control_room', { zoom: 1.02 + this.time * 0.004, focusY: 0.42, oneArmed: oneArmed(this.app.state) });
   }
 
   onKeyDown(code: string): void {
@@ -121,6 +123,8 @@ export class NightScene implements Scene {
   private trapSignature = '';
 
   private coach: Coach | null = null;
+  /** The one hand on the trap bar, on a one-armed night. */
+  private hand: HandGauge | null = null;
   private readonly coachPending = new Set<CoachStep>();
   private coachEl!: HTMLElement;
   private coachNoteUntil = 0;
@@ -133,7 +137,7 @@ export class NightScene implements Scene {
 
   constructor(private readonly app: App) {
     const state = this.state;
-    this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state));
+    this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state), deskFor(state), allyFor(state));
     try {
       // The evening as it stood, so a lost night can be replayed with the same yard.
       sessionStorage.setItem('putrid-swarm.evening', JSON.stringify(state));
@@ -209,6 +213,7 @@ export class NightScene implements Scene {
     this.coachEl = el('div', { class: 'coach' });
     this.root = el('div', {}, [topbar, frame, ...minis, this.trapBar, this.banners, this.coachEl, this.overlay]);
     this.app.ui.append(this.root);
+    if (this.sim.handView()) this.hand = new HandGauge();
     this.layoutMinis();
     for (const sector of SECTOR_IDS) this.renderMini(sector);
     this.syncHud(true);
@@ -216,10 +221,23 @@ export class NightScene implements Scene {
       this.coachNote(s.night.coachIntro, 9);
       sayOnce('night1', 'vo_night1', { subtitle: false });
     }
+    if (this.hand && !handCoachSeen()) {
+      this.coachNote(fmt(s.night.hand.coachIntro, { s: hours(deskFor(this.state)?.crossSeconds ?? 0) }), 10);
+      say('vo_one_hand', { subtitle: false });
+    }
+    // Someone from the radio came to hold a door.
+    const ally = allyFor(this.state);
+    if (ally && this.state.radio.call) this.coachNote(fmt(s.night.ally, { name: this.allyName(), sector: s.sector[ally.sector] }), 9);
   }
 
   exit(): void {
     hush();
+  }
+
+  /** Who came from the radio, as the night names him. */
+  private allyName(): string {
+    const call = this.state.radio.call;
+    return call ? (S().radio.caller[call.caller].split(',')[0] ?? '') : '';
   }
 
   // ───────────────────────────── First-night coaching ─────────────────────────────
@@ -300,7 +318,13 @@ export class NightScene implements Scene {
     }
   }
 
+  /** A camera key or a thumbnail: through the desk, which may have to wait for the one hand. */
   private switchCam(sector: SectorId): void {
+    this.press({ kind: 'look', sector });
+  }
+
+  /** The desk now shows `sector`: the simulation says when. */
+  private showCam(sector: SectorId): void {
     if (sector === this.cam) return;
     audio.play('camera');
     this.endCoach('switch');
@@ -367,6 +391,7 @@ export class NightScene implements Scene {
     for (const d of this.sim.devices) if (isAuto(d.type) && d.state !== 'broken' && sectorOf(d.x, d.y) === this.cam) autos.set(d.type, (autos.get(d.type) ?? 0) + 1);
     const autoLines = autos.size > 0 ? [...autos].map(([type, n]) => el('span', { text: `${s.device[type].name} ×${n}` })) : [el('span', { text: s.night.autoNone })];
     children.push(el('div', { class: 'trap-auto' }, [el('b', { text: s.night.autoTraps }), ...autoLines]));
+    if (this.hand) children.push(this.hand.root);
     children.push(el('div', { class: 'trap-hint' }, [el('span', { text: s.night.cameras }), el('span', { text: getSpaceHint() })]));
     this.trapBar.replaceChildren(...children);
   }
@@ -395,13 +420,17 @@ export class NightScene implements Scene {
 
     setText(this.camLabel, fmt(s.night.cam, { i: String(SECTOR_IDS.indexOf(this.cam) + 1).padStart(2, '0'), name: s.sector[this.cam] }));
 
+    const handView = sim.handView();
+    if (this.hand && handView) this.hand.sync(handView, sim);
+    const lookAwaited = cameraAwaitingHand(handView);
+    const fireAwaited = trapsAwaitingHand(handView, sim);
     for (const [sector, mini] of this.miniEls) {
       const threat = sim.threat(sector);
       const barricade = sim.barricades[sector];
       const ratio = Math.max(0, barricade.hp / BARRICADE.maxHp[barricade.level]);
       const dark = this.isDark(sector);
       const danger = dark ? threat.atDoor > 0 : threat.atDoor > 0 || threat.boss !== null || (threat.breached && threat.count > 0);
-      const cls = `mini ${danger ? 'danger' : !dark && threat.count > 0 ? 'alert' : ''}${this.sectorCue(sector) ? ' cue' : ''}${dark ? ' dark' : ''}`;
+      const cls = `mini ${danger ? 'danger' : !dark && threat.count > 0 ? 'alert' : ''}${this.sectorCue(sector) ? ' cue' : ''}${dark ? ' dark' : ''}${lookAwaited === sector ? ' queued' : ''}`;
       if (mini.root.className !== cls) mini.root.className = cls;
       setText(mini.count, dark ? '' : threat.count > 0 ? `${threat.count}${threat.boss ? ` · ${s.enemy[threat.boss]}` : ''}` : '');
       mini.door.style.width = `${ratio * 100}%`;
@@ -450,6 +479,10 @@ export class NightScene implements Scene {
         cls += opportunity.now ? ' ready now' : ' ready';
         status = opportunity.now ? s.night.now : opportunity.targets > 0 ? `${s.night.ready} ×${opportunity.targets}` : s.night.ready;
       }
+      if (fireAwaited.has(id)) {
+        cls += ' queued';
+        status = s.night.hand.coming;
+      }
       if (this.hoverDevice === id) cls += ' focus';
       if (button.root.classList.contains('shake')) cls += ' shake';
       if (button.lastClass !== cls) {
@@ -483,8 +516,13 @@ export class NightScene implements Scene {
   // ───────────────────────────── Input ─────────────────────────────
 
   private fire(deviceId: number): void {
+    this.press({ kind: 'fire', deviceId });
+  }
+
+  /** Everything the desk does goes through the simulation, which knows whether a hand is free for it. */
+  private press(press: DeskPress): void {
     if (this.paused || this.ending) return;
-    if (this.sim.trigger(deviceId).ok) this.endCoach('fire');
+    this.sim.act(press);
     // Feedback is produced from the simulation's own events, so it cannot disagree with what happened.
     this.consume(this.sim.drainEvents());
   }
@@ -558,10 +596,8 @@ export class NightScene implements Scene {
       return;
     }
     const trapIndex = (TRAP_KEY_CODES as readonly string[]).indexOf(code);
-    if (trapIndex >= 0) {
-      const device = this.camTraps()[trapIndex];
-      if (device) this.fire(device.id);
-    }
+    // A trap key stands for a trap of the camera on screen when the hand gets to it.
+    if (trapIndex >= 0) this.press({ kind: 'key', slot: trapIndex });
   }
 
   private deviceVisuals(sector: SectorId | null): DeviceVisual[] {
@@ -639,6 +675,7 @@ export class NightScene implements Scene {
           const sound = TRIGGER_SOUND[event.device];
           // Automatic traps are part of the background; the ones fired by hand are louder.
           if (sound) audio.play(sound, event.auto ? 0.6 : 1);
+          if (!event.auto) this.endCoach('fire');
           if (!event.auto && event.kills >= 2) this.remark('praise', 14);
           const def = DEVICES[event.device];
           const cx = event.x + 0.5;
@@ -712,15 +749,36 @@ export class NightScene implements Scene {
           this.lostAt = this.time;
           this.syncHud(true);
           break;
+        case 'ally_turned':
+          audio.play('breach');
+          this.banner(fmt(s.night.allyTurned, { name: this.allyName(), sector: s.sector[event.sector] }), 'bad');
+          break;
         case 'outcome':
           this.ending = { survived: event.survived, t: 0 };
           this.coach = null;
           this.coachEl.className = 'coach';
           audio.setMusic('none');
           audio.play(event.survived ? 'dawn' : 'lost');
-          if (event.survived) sayAny('dawn', { interrupt: true });
+          if (event.survived) sayAny('dawn', { interrupt: true, oneArmed: oneArmed(this.state) });
           else say('vo_lost', { interrupt: true });
           this.banner(event.survived ? s.night.dawn : s.end.lostTitle, event.survived ? 'good' : 'bad');
+          break;
+        case 'look':
+          this.showCam(event.sector);
+          break;
+        case 'hand_wait':
+          audio.play('hand');
+          if (handCoachSeen()) this.remark('hand', 45);
+          else {
+            this.coachNote(s.night.hand.coachWait, 7);
+            markHandCoachSeen();
+            // The note says it already: no aside on top of it for a while.
+            this.lastSaid.set('hand', this.time);
+          }
+          break;
+        case 'hand_full':
+          audio.play('deny');
+          this.hand?.refuse();
           break;
         case 'spawn':
           break;
@@ -792,9 +850,8 @@ export class NightScene implements Scene {
     this.app.state = concludeNight(this.state, this.sim);
     this.app.save();
     if (this.app.state.phase === 'morning') goMorning(this.app);
-    // A house that fell is not shown the door straight away: it gets its last scene first.
-    else if (this.app.state.phase === 'lost') goFinale(this.app);
-    else goEnd(this.app);
+    // A house that fell, or the seventh dawn, is not shown the door straight away: it gets its last scene first.
+    else goFinale(this.app);
   }
 
   private frame(sector: SectorId, main: boolean): WorldFrame {

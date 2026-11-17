@@ -1,0 +1,16 @@
+{
+  "id": "radio_static",
+  "kind": "loop",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Steady CB radio static between two stations: a dense white-noise hiss with soft irregular crackles and the faint ghost of a far-away whistle, no voices, no music, no melody. Seamless loop.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 10,
+    "prompt_influence": 0.4,
+    "loop": true
+  },
+  "generatedAt": "2026-11-17T17:59:40.495Z",
+  "bytes": 160957,
+  "sha256": "f709e4a2ae330f5c98ac1c8375194374c857d181cace52843175750ac941dd24"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_arrive",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly, surprised] La CB. Six nuits qu’elle ne fait que grésiller. Et là, quelqu’un parle.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:59:56.789Z",
+  "bytes": 88232,
+  "sha256": "2d48b3c10b4160dda22b14bb609094bbfa8996417848a4d092c07cb6fceef3dd"
+}

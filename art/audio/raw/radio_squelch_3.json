@@ -1,0 +1,15 @@
+{
+  "id": "radio_squelch_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old radio receiver closing its squelch: a rush of white noise cut short by a relay click. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:59:53.270Z",
+  "bytes": 15089,
+  "sha256": "2aa76cbb9bb05fb361f306968b461c5890eb079b2126ab36b5b6ad48fe4ac3c7"
+}

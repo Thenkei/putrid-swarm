@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_cut_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[urgent] Non, non, restez avec moi !",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:30.670Z",
+  "bytes": 31807,
+  "sha256": "6b46f43e41f2d49adc353f2fa8a6fa9ba799018da9c75af0450f8acbbc43a3cf"
+}

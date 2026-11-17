@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_ham_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[delighted, flustered] Oh ! Quelqu’un ! Pardon, je ne m’y attendais plus. Ici la ferme du haut, sur la colline.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-17T18:00:42.476Z",
+  "bytes": 89486,
+  "sha256": "570c03e59307fd1c33d84a85e4c9202e798e8e3d0d23d77c2e116d7aa23a420b"
+}

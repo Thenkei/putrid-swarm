@@ -1,0 +1,15 @@
+{
+  "id": "radio_knob_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A heavy plastic radio dial nudged a little: one soft click, a dry scrape, a second click. Very close, quiet, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.7,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:59:44.196Z",
+  "bytes": 12163,
+  "sha256": "52fc8a8f8611e90023d0de1d62b9f694e5018c2f2416bc6c536458b188f96cd9"
+}

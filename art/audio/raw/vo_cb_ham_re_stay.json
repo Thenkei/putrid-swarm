@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_ham_re_stay",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[pleased, careful] Alors écoutez bien. Ce soir, ils viennent surtout par le portail, avec madame le maire. Beaucoup par l’arrière. Moins par le verger. Presque rien par la grange.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-17T18:00:55.942Z",
+  "bytes": 162211,
+  "sha256": "b03697a70322dfe9cb3f79228e168912d47b1a553fbd7d7050a3282a30b1b413"
+}

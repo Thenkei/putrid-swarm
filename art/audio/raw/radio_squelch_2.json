@@ -1,0 +1,15 @@
+{
+  "id": "radio_squelch_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A CB transmission ending: a crackle, a quick rising chirp of static, a click, silence. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:59:51.755Z",
+  "bytes": 13835,
+  "sha256": "2fb4868180cdfa2ce5c2b086ec87e66aeedea782cd376f4a8e8f7e62ab2a7aad"
+}

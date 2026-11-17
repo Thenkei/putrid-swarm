@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_one_hand",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[wry] Un bouton, un micro. Il faut deux mains. J’en ai une.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:04.801Z",
+  "bytes": 72767,
+  "sha256": "889317c990b7f728e4622fb03ecb8bb2d4858b5ccb77083672f4b27736d23341"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_flour",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[softly, hopeful] De la farine. Ça vous dit quelque chose ?",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:25.500Z",
+  "bytes": 46018,
+  "sha256": "9e9763cfc32c4cb9332a6e68c05b010cb377b04384445daf8c602a34b21ee8ff"
+}

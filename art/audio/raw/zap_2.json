@@ -1,0 +1,15 @@
+{
+  "id": "zap_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Electric arcing from a car battery through a metal chain: a buzzing hum with spitting crackles and snapping sparks, steady. No voice.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 3,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:44.749Z",
+  "bytes": 48944,
+  "sha256": "a0db2452ede9c705f3abdb167090b8a8888644a71ef24e7f9d7efbbc23e1f3d6"
+}

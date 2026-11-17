@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_grudge_re_battery",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[relieved, quietly] Une batterie à midi. D’accord. Merci. Terminé.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:02:29.705Z",
+  "bytes": 56049,
+  "sha256": "d447f49392f46b051e5b0159186c812c569d7275a4208a5439c74fc0c28292fb"
+}

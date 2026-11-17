@@ -1,0 +1,15 @@
+{
+  "id": "chain_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A heavy rusty iron chain dragged across an earth floor and rattling against a wooden post as someone shifts at the end of it. Close, dry, inside a small wooden shed.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.4,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:33.459Z",
+  "bytes": 23030,
+  "sha256": "3b07926889c8be51c0aa402b65cba24c9313d64550156dd8a68b2d00600c5edc"
+}

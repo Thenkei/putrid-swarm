@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_hammer",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[flat] Le marteau. Au cas où.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:26.567Z",
+  "bytes": 34315,
+  "sha256": "913ad257aa006204974a5bd8d2f16da49e1dc7e2b5ab09e8da3dd94a19e87fbb"
+}

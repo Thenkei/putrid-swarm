@@ -4,8 +4,10 @@
 // It is a pure reducer over a small state — `tick` for time and held keys, `press` for key presses —
 // so every branch can be walked in tests, and the scene only draws it and makes it heard.
 
+import { ONE_HAND } from './data/desk';
 import { DAY_HOURS } from './data/locations';
-import type { Fate, GameState, SectorId } from './types';
+import type { OneHand } from './night';
+import type { GameState, OrchardFate, SectorId } from './types';
 
 export const ORCHARD = {
   /** The night a camera stops sending, the wave during which it happens and how far into it. */
@@ -39,9 +41,9 @@ export const ORCHARD = {
   bleedSeconds: 6,
 
   /** Daylight lost on the day itself, lying in the grass. */
-  faintHours: 2,
+  faintHours: 3,
   /** Daylight lost every morning afterwards: a dressing takes two hands, and there is one. */
-  dressingHours: 1,
+  dressingHours: 1.5,
 } as const;
 
 // ───────────────────────────── What it costs the campaign ─────────────────────────────
@@ -63,6 +65,9 @@ export const hasLeftArm = (state: Pick<GameState, 'orchard'>): boolean => state.
 
 /** Hours of daylight a day starts with. */
 export const daylight = (state: Pick<GameState, 'orchard'>): number => (hasLeftArm(state) ? DAY_HOURS : DAY_HOURS - ORCHARD.dressingHours);
+
+/** How the night's desk is worked: with one hand, once the orchard has taken the other. Null is two hands. */
+export const deskFor = (state: Pick<GameState, 'orchard'>): OneHand | null => (hasLeftArm(state) ? null : ONE_HAND);
 
 // ───────────────────────────── The scene ─────────────────────────────
 
@@ -91,8 +96,8 @@ export type Beat =
   | 'mend'
   | 'over';
 
-export type Ending = 'spared' | 'maimed' | Fate;
-export const isFate = (ending: Ending): ending is Fate => ending === 'throat' || ending === 'turned' || ending === 'bled';
+export type Ending = 'spared' | 'maimed' | OrchardFate;
+export const isFate = (ending: Ending): ending is OrchardFate => ending === 'throat' || ending === 'turned' || ending === 'bled';
 
 /** What was done, in order, for the recap at the end. */
 export type Step = 'clapped' | 'approached' | 'guarded' | 'late' | 'torn' | 'rope' | 'tied' | 'saw' | 'cut' | 'mended';

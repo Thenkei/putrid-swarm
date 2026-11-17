@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_grudge_call_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[sullen] Le break jaune, répondez. C’est le campeur.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:02:15.353Z",
+  "bytes": 58557,
+  "sha256": "e7d62101efd0650f6f3a78973073ca608b9f28377a8895a9ba44f4233f1c61ca"
+}

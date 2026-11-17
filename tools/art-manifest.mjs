@@ -93,6 +93,84 @@ export const ART = [
   { id: 'plate_return', kind: 'plate', w: 1280, source: { concept: C('10-return-before-night.png') } },
   { id: 'plate_village', kind: 'plate', w: 1280, source: { concept: C('05-neighborhood-scavenging.png') } },
 
+  // ───────────────────────────── The protagonist with one arm ─────────────────────────────
+  // Once the orchard has taken his left arm, every picture he is in is shown from its twin below:
+  // a retouch of the same picture with that one change (scenes/common.ts `heroArt` picks it).
+  // Which arm is his left is read from the way he faces: turned toward the right of the picture, his
+  // left side is the far one, so the arm that goes is the one the picture hardly shows, and the knot
+  // may not show at all.
+  ...[
+    {
+      id: 'plate_control_room_one_arm',
+      edit: C('12-surveillance-room.png'),
+      change:
+        'The scruffy bearded man seated at the desk, seen from behind and turned toward the computer on the right, has lost his LEFT arm, which is the arm on the FAR side of his body: the one reaching past his near arm to the computer MOUSE. ' +
+        'That forearm and that hand disappear completely, and the mouse lies alone on its mat with no hand on it. ' +
+        'The arm NEARER to the viewer — the one with the stitched patch on its elbow, whose hand rests on the small wooden box with three coloured buttons — stays EXACTLY as it is: same sleeve, same elbow patch, same hand on the box, no knot on it.',
+    },
+    {
+      id: 'plate_morning_one_arm',
+      edit: C('17-morning-after.png'),
+      change:
+        'The bearded man standing in the doorway with a steaming mug, facing the viewer, has lost his LEFT arm, which is the arm on the RIGHT side of the picture: in the original its hand is tucked in his trouser pocket. ' +
+        'Redraw that side of him with NO arm at all: no hand in the pocket, no forearm, no elbow — the trouser pocket is empty and flat, and between his body and the door frame there is only the dark wooden door. ' +
+        'From his shoulder on that side hangs only a short empty mustard-yellow sleeve, flattened, folded up and tied in one big knot just below the shoulder, so the missing arm is obvious at a glance. ' +
+        'His right hand, on the LEFT side of the picture, still holds the steaming mug exactly as before.',
+    },
+    {
+      id: 'plate_loc_garage_one_arm',
+      edit: C('15-neighbor-garage-interior.png'),
+      change:
+        'The man with the backpack at the workbench, seen from behind, has lost his LEFT arm, which is the one on the left side of the picture, whose hand rests on the car battery on the bench: it is gone, and the battery stays on the bench with no hand on it. ' +
+        'The empty left sleeve of his mustard-yellow jacket is folded up and tied in a single knot. His right hand still holds the lit torch, exactly as before.',
+    },
+    {
+      id: 'plate_town_one_arm',
+      edit: C('08-town-supply-run.png'),
+      change:
+        'The man with the backpack pushing the shopping trolley toward the left of the picture has lost his LEFT arm, which is the one nearer to the viewer, gripping the trolley handle in front of his body: it is gone, and the empty mustard-yellow sleeve is folded up and tied in a single knot. ' +
+        'He pushes the loaded trolley with his right hand alone, on the far side of his body, its hand on the handle.',
+    },
+    {
+      id: 'plate_trunk_one_arm',
+      edit: C('09-car-trunk-resources.png'),
+      change:
+        'The bearded man crouching on the left of the picture, turned toward the open boot on the right, has lost his LEFT arm, which is the arm on the FAR side of his body: the one whose hand is raised to his chin. ' +
+        'That hand and the forearm leading up to it disappear completely; his bearded chin and jaw are seen clearly, untouched. ' +
+        'The arm NEARER to the viewer, hanging from his shoulder down to the hand resting on his knee, stays EXACTLY as it is: same sleeve, same hand on the knee, no knot on it. He still looks at the open boot, thinking.',
+    },
+    {
+      id: 'plate_return_one_arm',
+      edit: C('10-return-before-night.png'),
+      change:
+        'The man in the yellow hooded jacket carrying a car battery from the station wagon to the workbench has lost his LEFT arm. ' +
+        'He now carries the car battery with his right hand alone, by the handle on its top, the battery hanging at his side; his left arm is not there.',
+    },
+    {
+      id: 'plate_village_one_arm',
+      edit: C('05-neighborhood-scavenging.png'),
+      change:
+        'The man with the backpack carrying a car battery toward the open boot of the station wagon, on the left, has lost his LEFT arm. ' +
+        'He now carries the car battery with his right hand alone, by the handle on its top, the battery hanging at his side; the empty left sleeve of his mustard-yellow jacket, on the side nearer to the viewer, is folded up and tied in a single knot.',
+    },
+    {
+      id: 'plate_van_one_arm',
+      edit: 'art/raw/plate_van.png',
+      change:
+        'The man in the mustard-yellow jacket with the backpack, walking away from the viewer toward the white van, has lost his LEFT arm, which is the arm on the LEFT side of the picture, swinging beside his body. ' +
+        'That arm must disappear completely: no hand, no forearm, nothing swinging. On that side the empty sleeve is folded up and tied in a single knot at the height of his ribs, against his side. His other arm stays hidden by his body and the backpack, as before.',
+    },
+  ].map(({ id, edit, change }) => ({
+    id,
+    kind: 'plate',
+    w: 1280,
+    edit,
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, every person and object in the same position and at the same size, same line work, same colours, same light, same canvas proportions — with only this change. ' +
+      `${change} ` +
+      'Paint in cleanly whatever the missing arm and hand used to hide. No blood, no bandage, no stump showing. Nobody and nothing else in the picture changes.',
+  })),
+
   // ───────────────────────────── Generated plates ─────────────────────────────
   {
     // First pass of the title desk. Not shipped: plate_title_desk below is a retouch of it.
@@ -801,6 +879,233 @@ export const ART = [
       `No flowers, nothing pink or purple. Each element is tall and nearly fills the height of the canvas. ${KEY} ${STYLE}`,
   },
 
+  // ───────────────────────────── The shed, the morning after night 4 ─────────────────────────────
+  // A played cut-scene in the same shed as the last scene, by day: one wide shot to walk in on, three places
+  // to stand at, a wall to look at instead, and the man chained to the post drawn separately so he can move.
+  {
+    id: 'plate_shed',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_finale_shed.png', REF_MORNING],
+    prompt: plate(
+      'First-person view from standing eye level in the open doorway of the same old wooden garden shed as the first attached picture, looking INTO it, but on a cold misty morning: pale daylight falls in from behind the viewer in a long slanting beam full of dust, the back of the shed stays dim. No person, no hands, no animal in the frame. ' +
+        'Composition, left to right: on the LEFT wall, a long scarred workbench under a wall of hanging tools (coiled orange hose, pruning saw, spade, pliers), a car battery and a tangle of red and black jump leads lying on the bench, a claw hammer beside them; ' +
+        'in the CENTRE at the back, a thick square wooden roof post rising from the earth floor to the roof beam, a heavy rusty iron chain padlocked around its foot and lying slack on the floor; the patch of trampled floor just in front of the post is completely EMPTY — nobody sits there — with a dented white enamel bowl knocked over beside it; ' +
+        'on the RIGHT, a low plank shelf with a blue plastic water jerrycan with a tap, an open plain paper sack of flour with a tin scoop in it, glass jars; and in the far right corner, something big hidden under a dirty olive-green canvas tarpaulin tied down with orange ratchet straps — a low wide hump in front and two tall boxy shapes behind it — one thick orange cable snaking out from under the tarpaulin to a row of three car batteries on the floor. ' +
+        'Cobwebs, a small dusty window high on the right wall, flowerpots, sacks. Quiet, uneasy, a little absurd.',
+    ),
+  },
+  {
+    id: 'plate_shed_post',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_shed.png', 'art/raw/plate_finale_shed.png'],
+    prompt: plate(
+      'The first attached picture shows the inside of a wooden garden shed on a misty morning with a thick wooden post at the back: this new picture is a much closer first-person view of the foot of that same post, same light, same dust, same earth floor (no person, no hands, no animal in the frame). ' +
+        'Seen from standing eye level, looking slightly down: the thick square wooden post rises in the upper centre, a heavy rusty iron chain wrapped twice around its foot and closed with a big old brass padlock, the free end of the chain lying in loose coils on the floor toward the lower left. ' +
+        'The whole lower centre of the picture, in front of the post, is a patch of trampled earth floor that is completely EMPTY — nothing sits, lies or stands there — with scuff marks and a little spilled flour. ' +
+        'Behind the post, the dim plank back wall of the shed with a hanging coil of rope and a cobweb; a pale stripe of daylight from the door crosses the floor.',
+    ),
+  },
+  {
+    id: 'plate_shed_bench',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_shed.png', 'art/raw/plate_finale_shed.png'],
+    prompt: plate(
+      'The first attached picture shows the inside of a wooden garden shed on a misty morning with a workbench on its left: this new picture is a much closer first-person view of that same workbench, same light, same dust (no person, no hands in the frame). ' +
+        'Seen from standing eye level: the scarred wooden workbench runs across the lower half; on it, on the LEFT, a heavy old car battery with a pair of red and black jump leads coiled beside it, their copper clamps open; in the CENTRE-RIGHT a claw hammer lying on its side, a vice, screws in a tin. ' +
+        'Above the bench, the plank wall with hanging tools: a coiled orange hose, a pruning saw, a spade, pliers, a pair of shears; a small grimy window with cobwebs letting in pale light at the top right. Jerrycans under the bench.',
+    ),
+  },
+  {
+    id: 'plate_shed_shelf',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_shed.png', 'art/raw/plate_finale_shed.png'],
+    prompt: plate(
+      'The first attached picture shows the inside of a wooden garden shed on a misty morning with a shelf and a tarpaulin-covered shape on its right: this new picture is a much closer first-person view of that same corner, same light, same dust (no person, no hands in the frame). ' +
+        'Seen from standing eye level: on the LEFT half, a low rough plank shelf holding a blue plastic water jerrycan with a little tap, an open plain brown paper sack of flour with a tin scoop stuck in it and some flour spilled on the plank, glass jars and a stack of old terracotta flowerpots; ' +
+        'on the RIGHT half, the side of something big hidden under a dirty olive-green canvas tarpaulin held down by tight orange ratchet straps: the tarpaulin drapes over a tall flat-fronted boxy shape, and at its lower corner it has slipped a hand’s width, showing only a strip of black speaker-grille cloth and one chrome metal corner protector. ' +
+        'A thick orange cable comes out from under the tarpaulin and runs along the floor to a row of three car batteries. Nothing explains what it is.',
+    ),
+  },
+  {
+    // Where the protagonist looks while the current runs: anything but the man.
+    id: 'plate_shed_wall',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_shed.png'],
+    prompt: plate(
+      'Inside the same wooden garden shed as the attached picture, a close first-person view of a bare stretch of its plank wall beside the small cobwebbed window, on a misty morning: thin bright stripes of daylight come through the gaps between the weathered vertical planks and lie across the wall, dust hangs in them. ' +
+        'The middle of the wall is a large, plain, evenly lit area of old pale planks with nothing hanging on it, like a screen. At the top, the dim roof beam with a cobweb; at the bottom edge, the top of a stack of empty flowerpots. No person, no shadow of a person, no hands.',
+    ),
+  },
+  {
+    // The way the morning in the shed ends a run, seen from the floor.
+    id: 'plate_shed_end',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_shed.png', REF_NEIGHBORS],
+    prompt: plate(
+      'View from the earth floor of the same wooden garden shed as the first attached picture, misty morning light: the viewer lies on their side, so the picture is tilted about 25 degrees; a knocked-over white enamel bowl and a spill of flour are very close in the foreground. ' +
+        'A few steps away, sitting calmly against the wooden post with a slack iron chain at his ankle, an infected village baker — round, balding, grey moustache, white flour-dusted vest and a long white apron, pale grey-green skin, one milky white eye — looks straight at the viewer with an almost apologetic expression, a little flour on his cheek and dark blood on his chin. ' +
+        'Dust in the slanting light. Eerie, quiet, faintly absurd. No other people, no hands.',
+    ),
+  },
+  {
+    // The man chained to the post. Four states of the same figure, all sitting at the same place on the floor.
+    id: 'shed_baker',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['feral', 'drift', 'lucid', 'lunge'],
+    h: 560,
+    refs: [REF_NEIGHBORS],
+    prompt:
+      'Game asset sheet: a 2x2 grid showing the SAME man four times, one pose per quadrant, each figure centred in its quadrant with wide empty margins, all at the same scale, seen from the front at the eye level of a person standing in front of him. ' +
+      'He is the village baker, infected, drawn like the infected neighbours of the attached concept art: a round, heavy-set man in his fifties, balding with a grey fringe and a thick grey moustache, bare thick forearms, a white sleeveless vest and a long white baker’s apron, both dusted with flour and stained, rolled grey trousers, worn clogs; pale grey-green skin with dark veins at the temples. ' +
+      'An old iron shackle is closed around his left ankle (no chain attached in the picture). ' +
+      'Top-left (FERAL): crouched low on his haunches on the floor, straining forward, shoulders hunched, both hands clawed, lips pulled back over his teeth, both eyes milky white, a snarl. ' +
+      'Top-right (DRIFTING): sitting on the floor with his legs folded, slumped, head lolling to one side, mouth half open, eyes half closed and cloudy; his hands in his lap are busy kneading the air as if working an invisible ball of dough — an old habit. ' +
+      'Bottom-left (LUCID): sitting up straight on the floor, looking straight at the viewer; his left eye is still milky white but his right eye has come back — a clear, warm brown, human eye — tired, sad and a little embarrassed, the corner of his moustache lifting in a faint apologetic smile, hands resting open on his knees. ' +
+      'Bottom-right (LUNGE): launching himself straight AT the viewer on hands and knees, strongly foreshortened, both arms flung forward, fingers spread, mouth wide open, both eyes white. ' +
+      `${KEY} ${STYLE}`,
+  },
+  {
+    // More of him, so that he moves instead of being swapped.
+    id: 'shed_baker_more',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['drink', 'knead', 'slump', 'stand'],
+    h: 560,
+    refs: [REF_NEIGHBORS],
+    sheet: 'art/raw/shed_baker.png',
+    prompt:
+      'Game asset sheet: a 2x2 grid showing the SAME man four times, one pose per quadrant, each figure centred in its quadrant with wide empty margins, all at the same scale as in the attached sheet, seen from the front at the eye level of a person standing in front of him. ' +
+      'The first attached image is the existing sheet of this man, the infected village baker: he must be exactly the same man — same face, moustache, white vest and apron, flour, grey-green skin, iron shackle on the left ankle, same drawing style, same size in his quadrant. ' +
+      'Top-left (DRINKING): sitting on the floor, leaning forward with his chin raised and his lips pushed out toward something held just in front of his face, eyes closed, both hands raised and cupped in the air in front of his chest. ' +
+      'Top-right (KNEADING): sitting on the floor with his legs folded, his hands and forearms white with flour, kneading a small lump of flour paste on his apron with tender concentration, looking down at his hands; his right eye is a clear human brown, a calm, almost happy face. ' +
+      'Bottom-left (SPENT): sitting on the floor, slumped forward and to the side, exhausted, head hanging low, hair stuck with sweat, arms limp, trembling, a thin wisp of smoke rising from the singed edge of his apron, both eyes white and empty. ' +
+      'Bottom-right (STANDING): standing up straight, seen from the front, his right hand pressed flat on his heart and his head bowed in a small grateful nod, his right eye clear and human, a little flour on his cheek, the open iron shackle lying at his feet. ' +
+      `${KEY} ${STYLE}`,
+  },
+  {
+    // The protagonist's right hand, for every gesture of the scene.
+    id: 'shed_hands',
+    kind: 'split',
+    cols: 5,
+    rows: 1,
+    names: ['bowl', 'flour', 'key', 'leads', 'hammer'],
+    cut: 'gaps',
+    h: 640,
+    refs: [REF_STORYBOARD],
+    sheet: 'art/raw/desk.png',
+    prompt:
+      'Game asset sheet: FIVE separate first-person views of a man’s RIGHT hand and forearm seen from his own eyes, standing in a single row, evenly spaced with wide empty gaps between them, each centred in its own fifth of the canvas. ' +
+      'The first attached image shows this man’s right hand in the worn mustard-yellow sleeve of his work jacket: every hand here is that same hand, same sleeve, same skin and same drawing style — the back of the hand at the top, reaching away from the viewer, and the long sleeve running straight down below it, ending at the bottom in a clean straight horizontal cut. From left to right: ' +
+      '(1) the hand holding a dented white enamel bowl full of clear water from underneath, fingers spread under it, the bowl level; ' +
+      '(2) the hand cupped palm up, holding a small heap of white flour, a little of it dusting off the fingers; ' +
+      '(3) the hand holding a small old iron key pinched between thumb and index finger, the key pointing up and away; ' +
+      '(4) the hand holding a red copper battery clamp of a jump lead, the clamp open, its red cable running down along the sleeve; ' +
+      '(5) the hand gripping a claw hammer by its wooden handle, the steel head up. ' +
+      `Cold daylight from the upper left. The five arms are tall figures that nearly fill the height of the canvas. ${KEY} ${STYLE}`,
+  },
+  {
+    // What is between the eye and the picture: it slides faster than the plate behind it.
+    id: 'shed_fg',
+    kind: 'split',
+    cols: 3,
+    rows: 1,
+    names: ['door', 'pots', 'rope'],
+    cut: 'gaps',
+    h: 600,
+    refs: ['art/raw/plate_shed.png'],
+    prompt:
+      'Game asset sheet: THREE separate foreground elements standing in a row with wide empty gaps between them, drawn like the wooden shed of the attached picture but darker and simpler, as things seen very close and slightly out of focus, with a thin rim of cold morning light. From left to right: ' +
+      '(1) the edge of an open wooden shed door seen edge-on: a tall narrow strip of weathered grey-green planks with a rusty iron hinge and a cross brace, standing up from a flat bottom edge to nearly the full height; ' +
+      '(2) a stack of old terracotta flowerpots and a slumped hessian sack, growing up from a flat bottom edge; ' +
+      '(3) a coil of old hemp rope and a dusty hurricane lantern hanging down on a hook from a flat top edge, with a cobweb. ' +
+      `Nothing pink or purple. Each element is tall and nearly fills the height of the canvas. ${KEY} ${STYLE}`,
+  },
+
+  // ───────────────────────────── The radio, the morning after night 6 ─────────────────────────────
+  // A played cut-scene at the camera desk: the old CB set that only ever gave static, seen from the chair,
+  // then close on its front panel. The needle, the readout, the trace on the monitor, the knob turning and
+  // the microphone are drawn or moved by the scene: the plates leave them blank or empty.
+  {
+    id: 'plate_radio',
+    kind: 'plate',
+    w: 1280,
+    refs: [C('12-surveillance-room.png'), REF_MORNING],
+    prompt: plate(
+      'First-person view from the wooden chair of the improvised surveillance room in the first attached picture (same room, same desk, same boarded window, same salvaged monitors, same desk lamp, same warm brown wood), looking down at the desk on a grey early morning. No person, no hands, no arms in the frame. ' +
+        'Pale cold daylight comes through the gaps between the planks nailed over the window on the LEFT; the desk lamp is still on and throws a warm pool of light; dust hangs in the light. ' +
+        'In the CENTRE of the desk, pulled to the front edge and filling the lower middle of the picture, an old 1970s CB radio transceiver: a wide, low box in a dented grey-green metal case with wood-grain side panels. On its front panel, from left to right: a round analog signal meter with a plain cream dial face behind a small glass window, with NO needle and NO markings on it; a dark empty rectangular readout window; one very big round black bakelite tuning knob; a row of small chrome toggle switches along the bottom edge. ' +
+        'On the right side of the set, an empty bent-wire hook where a hand microphone should hang, and a curly black coiled cable coming out of the set. A thin antenna wire runs from the back of the set up to the window frame, taped with grey tape. ' +
+        'Around it on the desk: a chipped enamel mug of coffee, an ashtray with old butts, a notepad with illegible pencil scribbles, a screwdriver, two cassette tapes, a pencil, a battery. Behind the set, the stack of salvaged CCTV monitors on their wooden shelf, every screen showing grey snow. ' +
+        'Quiet, lonely, a little absurd.',
+    ),
+  },
+  {
+    id: 'plate_radio_set',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_radio.png', C('12-surveillance-room.png')],
+    prompt: plate(
+      'The first attached picture shows an old CB radio transceiver on a wooden desk in a dim room at dawn: this new picture is a much closer first-person view of the FRONT PANEL of that same transceiver, same set, same colours, same light, seen straight on from the chair, slightly from above. No person, no hands, no microphone in the frame. ' +
+        'The front panel fills most of the picture: on the LEFT third, a large round analog signal meter behind a glass window, its cream dial face completely plain and empty — NO needle, NO scale, NO markings at all — with a faint warm backlight; in the CENTRE, a wide dark rectangular readout window, plain black glass, empty; on the RIGHT third, one very big round black bakelite tuning knob with a knurled rim; along the bottom edge, a row of small chrome toggle switches and a small round speaker grille. ' +
+        'The dented grey-green metal case, scratched, with wood-grain side panels; on the right edge of the set, an empty bent-wire hook where a hand microphone hangs. Around the set, the edge of the wooden desk, a mug, a pencil, cigarette ash, cassette tapes; the lamp light warm from the upper left, cold daylight from a boarded window. Dust in the air.',
+    ),
+  },
+  {
+    // What the scene moves on the set: the knob turns, the microphone hangs and is picked up.
+    id: 'radio_parts',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    // The knob came out in perspective, as on the plates: the scene marks its turning on the plate's own knob.
+    names: [null, 'mic'],
+    cut: 'gaps',
+    h: 420,
+    refs: ['art/raw/plate_radio.png'],
+    prompt:
+      'Game asset sheet: TWO separate objects side by side with a wide empty gap between them, drawn like the old CB radio of the attached picture. ' +
+      '(1) LEFT: one very big round black bakelite tuning knob seen exactly from the front, perfectly circular, a knurled ridged rim, a slightly domed centre with a little chrome cap, and one thin white pointer line painted from the centre to the rim, pointing straight up. ' +
+      '(2) RIGHT: a chunky black 1970s CB hand microphone seen from the front, hanging upright: a rounded rectangular body with a perforated chrome grille on its upper half, a ridged push-to-talk bar along its left side, and a short stub of black curly coiled cord coming out of its bottom end and cut off. ' +
+      `Nothing pink or purple. ${KEY} ${STYLE}`,
+  },
+  {
+    // The protagonist's right hand on the set: turning the knob, or holding the microphone up to his mouth.
+    id: 'radio_hands',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['dial', 'mic'],
+    cut: 'gaps',
+    h: 640,
+    refs: [REF_STORYBOARD, 'art/raw/plate_radio.png'],
+    sheet: 'art/raw/desk.png',
+    prompt:
+      'Game asset sheet: TWO separate first-person views of a man’s RIGHT hand and forearm seen from his own eyes, standing side by side with a wide empty gap between them, each centred in its own half of the canvas. ' +
+      'The first attached image shows this man’s right hand in the worn mustard-yellow sleeve of his work jacket: every hand here is that same hand, same sleeve, same skin and same drawing style — the hand at the top, reaching away from the viewer, and the long sleeve running straight down below it, ending at the bottom in a clean straight horizontal cut. ' +
+      '(1) LEFT: the hand seen from above and behind, its thumb and fingertips curled and pinched together around the rim of a big round knob that is NOT drawn — an empty circle of air between the fingertips, as if turning a radio dial, the wrist slightly twisted. ' +
+      '(2) RIGHT: the hand holding a chunky black 1970s CB hand microphone upright, the thumb pressing the ridged push-to-talk bar on its side, the perforated chrome grille at the top pointing away, a black curly coiled cord hanging from the bottom of the microphone down along the sleeve. ' +
+      `Grey dawn light from the upper left. The two arms are tall figures that nearly fill the height of the canvas. ${KEY} ${STYLE}`,
+  },
+  {
+    // Who calls when the run met nobody: never seen in the scene, only on the card at the end.
+    id: 'por_ham',
+    kind: 'sprite',
+    h: 360,
+    refs: [REF_NEIGHBORS],
+    prompt:
+      'One head-and-shoulders bust portrait of a living (not infected) old man, framed like the busts in the reference: a radio amateur in his seventies on a hill farm, thin white hair and big ears, a grey stubble, a shapeless brown cardigan buttoned wrong over a checked flannel shirt, a pair of old binoculars hanging from his neck, big old-fashioned headphones pushed down around his neck, holding a black CB hand microphone close to his mouth with both hands as if it were precious; ' +
+      'he smiles politely at nobody, eyes a little wet, a hopeful and very lonely face. Healthy skin tones, normal eyes. Only the one person, centred, with wide margins. ' +
+      `${KEY} ${STYLE}`,
+  },
+
   // ───────────────────────────── The end ─────────────────────────────
   // The house always falls in the end. Early on, that is the desk and a door giving way; from the
   // fifth night it is the ride-on mower from the shed, two amplifier stacks and a guitar.
@@ -851,11 +1156,57 @@ export const ART = [
     ),
   },
   {
+    // The seventh dawn: the quiet village of plate_victory, and then the same picture with everyone in it.
+    // An edit, so the two can be dissolved into one another without anything else moving.
+    id: 'plate_finale_dawn',
+    kind: 'plate',
+    w: 1280,
+    edit: 'art/raw/plate_victory.png',
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, the same cottage, car, fences, vegetable beds, mown strip and objects lying in the grass, every one in the same position and at the same size, the same golden sunrise light, the same line work and colours, the same canvas size — with only this change: ' +
+      'the garden, the mown strip, the vegetable beds, the lane and the hillside beyond the gate are now crowded with infected villagers, about forty of them, standing perfectly still, every one of them turned toward the front door of the cottage, arms hanging, waiting: ' +
+      'pale grey-green skin, white eyes, torn everyday autumn clothes — knitted cardigans, aprons, flat caps, slippers, overalls, a dressing gown. Each casts a long morning shadow. Nobody moves and nobody attacks: they simply did not leave at sunrise. ' +
+      'The crow is still on the fence post. Unsettling, quiet and absurdly patient.',
+  },
+  {
+    // How it ends after the seventh dawn: the same picture as plate_finale_swarmed, in the morning.
+    id: 'plate_finale_swarmed_dawn',
+    kind: 'plate',
+    w: 1280,
+    edit: 'art/raw/plate_finale_swarmed.png',
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, the same mower, amplifier stacks, raised guitar, sparks and crowd, every figure in the same position and at the same size, the same line work, the same canvas size — with only this change: it is early morning instead of night. ' +
+      'Remove the moon and the dark night sky: a pale sunrise sky, pink and gold, the low sun breaking between the rooftops at the top left; long golden morning light rakes across the crowd from the left; thin morning mist in the lane behind; the street lamps and the windows are unlit. The mower headlights and the sparks still glow. Nothing else changes.',
+  },
+  {
+    // With one arm there is one hand on the guitar: the one at the top of the neck goes.
+    id: 'plate_finale_swarmed_one_arm',
+    kind: 'plate',
+    w: 1280,
+    edit: 'art/raw/plate_finale_swarmed.png',
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, every figure and object in the same position and at the same size, same line work, same colours, same light, same canvas proportions — with only this change: ' +
+      'the electric guitar raised above the crowd in the centre is held up by ONE hand only, the hand at the end of the single mustard-yellow sleeve rising from the mower seat. Remove the other hand, the one gripping the top of the guitar neck near the headstock, and its wrist: paint the sparks, the orange glow and the night behind it instead. ' +
+      'The mustard-yellow sleeved arm, its hand, the guitar and its strap stay exactly as they are. Nobody and nothing else in the picture changes.',
+  },
+  {
+    // The same, for the morning the seventh dawn ends on.
+    id: 'plate_finale_swarmed_dawn_one_arm',
+    kind: 'plate',
+    w: 1280,
+    edit: 'art/raw/plate_finale_swarmed_dawn.png',
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, every figure and object in the same position and at the same size, same line work, same colours, same morning light, same canvas proportions — with only this change: ' +
+      'the electric guitar raised above the crowd in the centre is held up by ONE hand only, the hand at the end of the single mustard-yellow sleeve rising from the mower seat. Remove the other hand, the one gripping the top of the guitar neck near the headstock, and its wrist: paint the sparks and the pale morning sky behind it instead. ' +
+      'The mustard-yellow sleeved arm, its hand, the guitar and its strap stay exactly as they are. Nobody and nothing else in the picture changes.',
+  },
+  {
     id: 'finale_mower',
     kind: 'split',
     cols: 2,
     rows: 1,
-    names: ['rider', 'rider_one_arm'],
+    // The one-armed rider of this sheet lost the wrong arm (the near one, his right): it is redrawn below.
+    names: ['rider', null],
     h: 520,
     refs: ['art/raw/plate_finale_shed.png', 'art/raw/plate_smoke.png'],
     prompt:
@@ -867,6 +1218,20 @@ export const ART = [
       `${KEY} ${STYLE}`,
   },
 
+  {
+    // The rider of the sheet above, his left arm gone. Seen from the side facing right, his left arm is
+    // the far one, whose hand is on the neck; the near one, his right, keeps strumming.
+    id: 'finale_mower_rider_one_arm',
+    kind: 'sprite',
+    h: 520,
+    refs: ['art/raw/finale_mower.png'],
+    prompt:
+      'Game asset: ONE single drawing, centred, with wide empty margins. Draw again, identically, the LEFT drawing of the attached sheet — the modified red ride-on lawn mower with the huge steel blade at the front (on the right) and the two black amplifier stacks strapped at the back (on the left), and the scruffy bearded man in the mustard-yellow work jacket standing on its footplates, head thrown back, yelling — same mower, same man, same pose, same angle (exactly from the side, facing RIGHT), same proportions, same colours, same line work. ' +
+      'Only one change: the man has lost his LEFT arm, which — as he faces right with his chest toward the viewer — is the arm on the FAR side of his body, the one that reaches forward along the guitar neck to the frets. ' +
+      'That arm and its hand are gone: nothing holds the guitar neck, which points up and forward, the guitar hanging on its strap. At his far shoulder, partly hidden behind his chest and the guitar neck, only a short empty sleeve tied in a knot. ' +
+      'The arm NEARER to the viewer — the one on the LEFT side of the drawing, coming down from the shoulder closest to the amplifiers — keeps its full sleeve, no knot, and its hand strums hard over the strings on the body of the guitar, exactly as in the attached left drawing. ' +
+      `${KEY} ${STYLE}`,
+  },
   {
     // What comes into the picture at the desk, from its edges.
     id: 'finale_hands',

@@ -1,0 +1,15 @@
+{
+  "id": "step_shed_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single heavy footstep on hard earth and a loose floorboard that creaks a little, inside a small wooden shed. Very close, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:30.930Z",
+  "bytes": 10492,
+  "sha256": "5fc4b8cb8cd5d32b3e51916e74406d40b6db1f0a2a404255bb393ce79d0f6a5c"
+}

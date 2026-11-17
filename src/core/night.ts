@@ -6,6 +6,7 @@ import { BOSS, ENEMIES, type EnemyDef } from './data/enemies';
 import { NIGHT_LEAD_IN, planForNight } from './data/waves';
 import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlocked, sectorOf } from './map';
 import type { CameraOutage } from './orchard';
+import type { Ally } from './radio';
 import { computeField, nextStep, type Field } from './pathing';
 import { createRng, type Rng } from './rng';
 import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, NeighborId, NightReport, Result, SectorId, YardState } from './types';
@@ -88,9 +89,52 @@ export type SimEvent =
   | { readonly type: 'reinforcements'; readonly sector: SectorId }
   | { readonly type: 'jump'; readonly x: number; readonly y: number }
   | { readonly type: 'camera_lost'; readonly sector: SectorId }
+  /** Whoever was holding a door has turned, at the start of a wave: the door loses part of its barricade and is held no more. */
+  | { readonly type: 'ally_turned'; readonly sector: SectorId }
+  /** The desk now shows this camera. */
+  | { readonly type: 'look'; readonly sector: SectorId }
+  /** A press has to wait for the one hand to get to its row; it will be done in `seconds`. */
+  | { readonly type: 'hand_wait'; readonly row: HandRow; readonly seconds: number }
+  /** A press the hand had no room left for. */
+  | { readonly type: 'hand_full' }
   | { readonly type: 'outcome'; readonly survived: boolean };
 
 export type TriggerError = 'unknown' | 'passive' | 'automatic' | 'broken' | 'busy' | 'rearming' | 'no_energy' | 'over';
+
+// ───────────────────────────── The desk ─────────────────────────────
+
+/** The two rows of keys a hand works at the desk: the trap row, and the camera keys. */
+export type HandRow = 'traps' | 'cameras';
+
+/** What the desk is asked to do: fire a trap picked in the feed, fire whatever a trap key stands for, show a camera. */
+export type DeskPress =
+  | { readonly kind: 'fire'; readonly deviceId: number }
+  /** A trap key: the `slot`-th hand-fired trap of the camera on screen when the press is carried out. */
+  | { readonly kind: 'key'; readonly slot: number }
+  | { readonly kind: 'look'; readonly sector: SectorId };
+
+/** Done now; waiting for the hand; or refused because too much is already waiting for it. */
+export type DeskOutcome = 'done' | 'waiting' | 'refused';
+
+/** The desk with a single hand. Passed in by whoever runs the night, like the outage; null is two hands. */
+export interface OneHand {
+  readonly crossSeconds: number;
+  readonly queueLimit: number;
+}
+
+/** The one hand as the desk shows it. */
+export interface HandView {
+  /** The row it last pressed on; null before the first press. */
+  readonly row: HandRow | null;
+  /** 0 right after a press, 1 once the other row can be reached. */
+  readonly ready: number;
+  /** Presses waiting for it, in the order they will be carried out. */
+  readonly queue: readonly DeskPress[];
+}
+
+export const rowOf = (press: DeskPress): HandRow => (press.kind === 'look' ? 'cameras' : 'traps');
+const samePress = (a: DeskPress, b: DeskPress): boolean =>
+  a.kind === b.kind && (a.kind === 'look' ? a.sector === (b as typeof a).sector : a.kind === 'key' ? a.slot === (b as typeof a).slot : a.deviceId === (b as typeof a).deviceId);
 
 /** What firing a manual trap right now would catch. `now` is the desk's cue: enough is under it to be worth it. */
 export interface Opportunity {
@@ -172,15 +216,27 @@ export class NightSim {
   /** A camera that stopped sending. The lot goes on without it: only the desk is blind. */
   cameraLost: SectorId | null = null;
   private outageAt: number | null = null;
+  /** Someone is holding this door from inside: until they turn, if they do. */
+  heldDoor: SectorId | null;
   private readonly barricadeStart: Record<SectorId, number>;
   private readonly houseStart: number;
+
+  /** The camera on the desk's main screen. Only what is watched changes: the lot goes on regardless. */
+  camera: SectorId = 'portail';
+  /** The one hand, when there is only one: the row it last pressed on, when, and what waits for it. */
+  private hand: { row: HandRow | null; at: number; queue: DeskPress[] } | null;
 
   constructor(
     night: number,
     yard: YardState,
     seed: number,
     private readonly outage: CameraOutage | null = null,
+    private readonly oneHand: OneHand | null = null,
+    /** Someone holding a door, from the radio (core/radio.ts). Null is nobody. */
+    private readonly ally: Ally | null = null,
   ) {
+    this.hand = oneHand ? { row: null, at: -Infinity, queue: [] } : null;
+    this.heldDoor = ally?.sector ?? null;
     this.night = night;
     this.rng = createRng(seed ^ (night * 0x9e3779b1));
     this.houseHp = yard.houseHp;
@@ -285,6 +341,85 @@ export class NightSim {
   }
 
   // ───────────────────────────── Player input ─────────────────────────────
+
+  /**
+   * Everything the desk does goes through here. With two hands it is done at once. With one, a press
+   * on the other row than the last one waits until the hand gets there — it is never dropped — and
+   * presses are carried out in the order they were made.
+   */
+  act(press: DeskPress): DeskOutcome {
+    const hand = this.hand;
+    if (!hand || !this.oneHand) {
+      this.carryOut(press);
+      return 'done';
+    }
+    if (hand.queue.length === 0 && this.canReach(rowOf(press))) {
+      this.carryOut(press);
+      return 'done';
+    }
+    const tail = hand.queue.at(-1);
+    // Changing one's mind about a camera while the hand is on its way: only the last one counts.
+    if (press.kind === 'look' && tail?.kind === 'look') {
+      hand.queue[hand.queue.length - 1] = press;
+      return 'waiting';
+    }
+    // Hammering a key while the hand is on its way changes nothing.
+    if (hand.queue.some((waiting) => samePress(waiting, press))) return 'waiting';
+    if (hand.queue.length >= this.oneHand.queueLimit) {
+      this.events.push({ type: 'hand_full' });
+      return 'refused';
+    }
+    const first = hand.queue.length === 0;
+    hand.queue.push(press);
+    if (first) this.events.push({ type: 'hand_wait', row: rowOf(press), seconds: Math.max(0, hand.at + this.oneHand.crossSeconds - this.time) });
+    return 'waiting';
+  }
+
+  /** The one hand, for the desk to show; null with two. */
+  handView(): HandView | null {
+    if (!this.hand || !this.oneHand) return null;
+    const since = this.time - this.hand.at;
+    return { row: this.hand.row, ready: Math.min(1, Math.max(0, since / this.oneHand.crossSeconds)), queue: [...this.hand.queue] };
+  }
+
+  /** Whether the one hand can press on `row` right now. */
+  private canReach(row: HandRow): boolean {
+    if (!this.hand || !this.oneHand) return true;
+    return this.hand.row === null || this.hand.row === row || this.time - this.hand.at >= this.oneHand.crossSeconds;
+  }
+
+  /** Carries out whatever waits for the hand and can now be reached, in order. */
+  private serveHand(): void {
+    const hand = this.hand;
+    if (!hand || !this.oneHand) return;
+    while (hand.queue.length > 0 && this.canReach(rowOf(hand.queue[0] as DeskPress))) {
+      this.carryOut(hand.queue.shift() as DeskPress);
+      const next = hand.queue[0];
+      if (next && !this.canReach(rowOf(next))) this.events.push({ type: 'hand_wait', row: rowOf(next), seconds: this.oneHand.crossSeconds });
+    }
+  }
+
+  private carryOut(press: DeskPress): void {
+    if (this.hand) {
+      this.hand.row = rowOf(press);
+      this.hand.at = this.time;
+    }
+    switch (press.kind) {
+      case 'look':
+        if (press.sector === this.camera) return;
+        this.camera = press.sector;
+        this.events.push({ type: 'look', sector: press.sector });
+        return;
+      case 'key': {
+        const device = this.manualDevicesIn(this.camera)[press.slot];
+        if (device) this.trigger(device.id);
+        return;
+      }
+      case 'fire':
+        this.trigger(press.deviceId);
+        return;
+    }
+  }
 
   /**
    * The one way a trap fires. A device only leaves `armed` here, so hammering the key during the
@@ -407,6 +542,7 @@ export class NightSim {
       this.cameraLost = this.outage.sector;
       this.events.push({ type: 'camera_lost', sector: this.outage.sector });
     }
+    this.serveHand();
     if (this.fieldsDirty) this.rebuildFields();
     this.updateDevices(dt);
     this.updateAuras();
@@ -430,6 +566,7 @@ export class NightSim {
         this.waveIndex = spawn.wave;
         this.events.push({ type: 'wave', index: spawn.wave, total: this.waveCount });
         if (this.outage && spawn.wave === this.outage.wave && this.cameraLost === null) this.outageAt = this.time + this.outage.delay;
+        if (this.ally && this.heldDoor !== null && spawn.wave === this.ally.turnsAtWave) this.allyTurns(this.ally);
       }
       this.spawn(spawn.type, spawn.sector);
     }
@@ -742,9 +879,19 @@ export class NightSim {
     this.events.push({ type: 'entered', sector, enemy: e.type, damage: e.def.houseDamage });
   }
 
+  /** What was bitten turns, from inside: the planks he was holding are pulled half off. */
+  private allyTurns(ally: Ally): void {
+    this.heldDoor = null;
+    const barricade = this.barricades[ally.sector];
+    barricade.hp = Math.round(barricade.hp * (1 - ally.loss));
+    this.events.push({ type: 'ally_turned', sector: ally.sector });
+  }
+
   private hitBarricade(sector: SectorId, amount: number, announce: boolean): void {
     const barricade = this.barricades[sector];
     if (barricade.hp <= 0) return;
+    // Someone on the other side of the planks, leaning on them.
+    if (this.ally && this.heldDoor === sector) amount *= this.ally.factor;
     barricade.hp = Math.max(0, barricade.hp - amount);
     if (announce) this.events.push({ type: 'barricade_hit', sector });
     if (barricade.hp <= 0) {

@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_baker_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[cheerful, far away] Le pain de campagne est en retard. Je m’excuse auprès de la clientèle…",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T18:02:42.236Z",
+  "bytes": 58557,
+  "sha256": "6ec1a503255214cd473363ba635aefd6fe6fd1696c05c23a550a9c4ab86c4626"
+}

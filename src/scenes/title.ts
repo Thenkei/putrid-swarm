@@ -6,8 +6,9 @@ import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, getLang, setLang } from '../engine/i18n';
+import { S, fmt, getLang, setLang } from '../engine/i18n';
 import { haze } from '../engine/haze';
+import { endingsTally } from '../engine/progress';
 import { hush, say, sayOnce } from '../engine/voice';
 import { drawPlate } from './common';
 import { JOINT, MUG, POWER, SPEAKER, VOLUME_STEP_CLICK, VOLUME_STEP_WHEEL, desk, inside } from './desk';
@@ -165,7 +166,10 @@ export class TitleScene implements Scene {
     if (newsUrl) inset.style.backgroundImage = `url(${newsUrl})`;
 
     const note = this.view === 'confirm' ? s.title.confirmNew : '';
-    this.root.replaceChildren(el('div', { class: 'crt-menu' }, [logo, menu, inset, el('div', { class: 'crt-note', text: note })]));
+    // Endings seen, in a corner of the screen, once there is at least one: nothing to count before that.
+    const endings = endingsTally();
+    const seen = endings.seen > 0 && this.view !== 'confirm' ? el('div', { class: 'crt-endings', text: fmt(s.title.endings, { n: endings.seen, total: endings.total }) }) : null;
+    this.root.replaceChildren(el('div', { class: 'crt-menu' }, [logo, menu, inset, el('div', { class: 'crt-note', text: note }), seen]));
   }
 
   private begin(): void {

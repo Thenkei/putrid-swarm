@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_leave",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] Je reviendrai. Avec de l’eau.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:36.008Z",
+  "bytes": 36823,
+  "sha256": "722ccd5eebda55cd67a4346c56ffe597cb94302c77a6936e41a495c7c8d45648"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_baker_lucid_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[confused, worried] Il est quelle heure ? J’ai pas lancé la fournée.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T17:02:47.549Z",
+  "bytes": 43510,
+  "sha256": "baa115e8c9aafa5321429afdcbec9a56a3963d6021b1b35f470231fc63030c79"
+}

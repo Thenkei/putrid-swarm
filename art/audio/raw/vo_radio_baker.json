@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_baker",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[softly, moved] Le boulanger. Il prend encore les commandes.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:07.651Z",
+  "bytes": 48526,
+  "sha256": "5519d94e34b45f49f479019cea1169bdd3315949d491a0cfd28b6ffd79a103be"
+}

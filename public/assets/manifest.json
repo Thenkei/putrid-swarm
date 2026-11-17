@@ -1186,7 +1186,7 @@
   },
   "finale_mower_rider_one_arm": {
     "file": "sprites/finale_mower_rider_one_arm.webp",
-    "w": 623,
+    "w": 613,
     "h": 520
   },
   "orchard_rabbit_more_ears": {
@@ -1238,5 +1238,205 @@
     "file": "sprites/finale_hands_c.webp",
     "w": 267,
     "h": 600
+  },
+  "plate_finale_dawn": {
+    "file": "plates/plate_finale_dawn.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_finale_swarmed_dawn": {
+    "file": "plates/plate_finale_swarmed_dawn.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_loc_garage_one_arm": {
+    "file": "plates/plate_loc_garage_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_town_one_arm": {
+    "file": "plates/plate_town_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_return_one_arm": {
+    "file": "plates/plate_return_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_village_one_arm": {
+    "file": "plates/plate_village_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_finale_swarmed_one_arm": {
+    "file": "plates/plate_finale_swarmed_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_control_room_one_arm": {
+    "file": "plates/plate_control_room_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_trunk_one_arm": {
+    "file": "plates/plate_trunk_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_van_one_arm": {
+    "file": "plates/plate_van_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_morning_one_arm": {
+    "file": "plates/plate_morning_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_shed": {
+    "file": "plates/plate_shed.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_shed_post": {
+    "file": "plates/plate_shed_post.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_shed_bench": {
+    "file": "plates/plate_shed_bench.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_shed_shelf": {
+    "file": "plates/plate_shed_shelf.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_shed_wall": {
+    "file": "plates/plate_shed_wall.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_shed_end": {
+    "file": "plates/plate_shed_end.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "shed_baker_feral": {
+    "file": "sprites/shed_baker_feral.webp",
+    "w": 495,
+    "h": 484
+  },
+  "shed_baker_drift": {
+    "file": "sprites/shed_baker_drift.webp",
+    "w": 494,
+    "h": 539
+  },
+  "shed_baker_lucid": {
+    "file": "sprites/shed_baker_lucid.webp",
+    "w": 471,
+    "h": 560
+  },
+  "shed_baker_lunge": {
+    "file": "sprites/shed_baker_lunge.webp",
+    "w": 579,
+    "h": 560
+  },
+  "shed_baker_more_drink": {
+    "file": "sprites/shed_baker_more_drink.webp",
+    "w": 487,
+    "h": 558
+  },
+  "shed_baker_more_knead": {
+    "file": "sprites/shed_baker_more_knead.webp",
+    "w": 508,
+    "h": 560
+  },
+  "shed_baker_more_slump": {
+    "file": "sprites/shed_baker_more_slump.webp",
+    "w": 496,
+    "h": 526
+  },
+  "shed_baker_more_stand": {
+    "file": "sprites/shed_baker_more_stand.webp",
+    "w": 268,
+    "h": 560
+  },
+  "shed_hands_bowl": {
+    "file": "sprites/shed_hands_bowl.webp",
+    "w": 245,
+    "h": 640
+  },
+  "shed_hands_flour": {
+    "file": "sprites/shed_hands_flour.webp",
+    "w": 220,
+    "h": 640
+  },
+  "shed_hands_key": {
+    "file": "sprites/shed_hands_key.webp",
+    "w": 157,
+    "h": 640
+  },
+  "shed_hands_leads": {
+    "file": "sprites/shed_hands_leads.webp",
+    "w": 189,
+    "h": 640
+  },
+  "shed_hands_hammer": {
+    "file": "sprites/shed_hands_hammer.webp",
+    "w": 233,
+    "h": 640
+  },
+  "shed_fg_door": {
+    "file": "sprites/shed_fg_door.webp",
+    "w": 139,
+    "h": 600
+  },
+  "shed_fg_pots": {
+    "file": "sprites/shed_fg_pots.webp",
+    "w": 246,
+    "h": 600
+  },
+  "shed_fg_rope": {
+    "file": "sprites/shed_fg_rope.webp",
+    "w": 236,
+    "h": 600
+  },
+  "plate_finale_swarmed_dawn_one_arm": {
+    "file": "plates/plate_finale_swarmed_dawn_one_arm.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_radio": {
+    "file": "plates/plate_radio.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_radio_set": {
+    "file": "plates/plate_radio_set.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "radio_parts_mic": {
+    "file": "sprites/radio_parts_mic.webp",
+    "w": 222,
+    "h": 420
+  },
+  "radio_hands_dial": {
+    "file": "sprites/radio_hands_dial.webp",
+    "w": 204,
+    "h": 640
+  },
+  "radio_hands_mic": {
+    "file": "sprites/radio_hands_mic.webp",
+    "w": 208,
+    "h": 640
+  },
+  "por_ham": {
+    "file": "sprites/por_ham.webp",
+    "w": 279,
+    "h": 360
   }
 }

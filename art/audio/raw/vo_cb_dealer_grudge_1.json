@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_dealer_grudge_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[icy] C’est la Brocanteuse. Pour le comité. Vous voyez très bien qui c’est.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-17T18:01:57.040Z",
+  "bytes": 71514,
+  "sha256": "94928b1a0dcfe229f4a27af1a1bbdc745e0038fb7249a64f843367fce750b94a"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_news_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/m5U7XCsc8v988k2RJAqN",
+  "request": {
+    "text": "[calm, official] … ce message est diffusé en boucle. Restez à l’écoute…",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.6,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Manon",
+  "generatedAt": "2026-11-17T18:02:38.488Z",
+  "bytes": 53541,
+  "sha256": "6780566414fc5a837908d7a7eaaf2a39c938c5e390f707ca7880e514d3fd89d5"
+}

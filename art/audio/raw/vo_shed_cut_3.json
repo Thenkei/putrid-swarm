@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_cut_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[urgent, exasperated] Pas maintenant. Finissez votre phrase !",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:36:59.496Z",
+  "bytes": 39331,
+  "sha256": "07e6b8ee587046fc737a8c92089a356eec097b06f1d538e2747476e9f1c2d8a2"
+}

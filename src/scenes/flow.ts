@@ -1,23 +1,26 @@
 // Scene navigation in one place. Scenes call these instead of constructing each other,
 // which keeps the phase order (day → night → morning → …) readable and avoids import knots.
 
+import type { ChapterId } from '../core/chapters';
 import { LAST_NIGHT } from '../core/data/waves';
 import { affordableDevices } from '../core/yard';
 import { units } from '../core/encounters';
 import { arriveHome, type NeighborMeeting } from '../core/game';
 import type { GameState, LocationId } from '../core/types';
-import type { App } from '../engine/app';
+import type { App, Scene } from '../engine/app';
 import { S, fmt } from '../engine/i18n';
 import { tripLine } from './common';
 import { DayScene } from './day';
-import { EndScene } from './end';
-import { FinaleScene } from './finale';
+import { EndScene, type EndOptions } from './end';
+import { FinaleScene, type FinaleOptions } from './finale';
 import { AmbushScene } from './encounter';
 import { LocationScene } from './location';
 import { MapScene } from './map';
 import { MorningScene } from './morning';
 import { NightScene, NightfallScene } from './night';
 import { OrchardScene } from './orchard';
+import { RadioScene } from './radio';
+import { ShedScene } from './shed';
 import { TitleScene } from './title';
 import { TravelScene, type TravelOptions } from './travel';
 
@@ -30,10 +33,20 @@ export const goTravel = (app: App, options: TravelOptions): void => app.go(() =>
 export const goNightfall = (app: App): void => app.go(() => new NightfallScene(app));
 export const goNight = (app: App): void => app.go(() => new NightScene(app));
 export const goMorning = (app: App): void => app.go(() => new MorningScene(app));
-export const goEnd = (app: App): void => app.go(() => new EndScene(app));
+export const goEnd = (app: App, options: EndOptions = {}): void => app.go(() => new EndScene(app, options));
 export const goOrchard = (app: App): void => app.go(() => new OrchardScene(app));
-/** How a lost house plays out, before the end screen. */
-export const goFinale = (app: App): void => app.go(() => new FinaleScene(app));
+
+/** The played chapters: the scene each one is, and the picture a run it ended is remembered by. */
+const CHAPTER_SCENES: Readonly<Record<ChapterId, { readonly scene: (app: App) => Scene; readonly endPlate: string }>> = {
+  orchard: { scene: (app) => new OrchardScene(app), endPlate: 'plate_orchard_end' },
+  shed: { scene: (app) => new ShedScene(app), endPlate: 'plate_shed_end' },
+  // Nothing on the radio ends a run: its plate is never shown as an end, it is only the desk it happens at.
+  radio: { scene: (app) => new RadioScene(app), endPlate: 'plate_radio' },
+};
+export const goChapter = (app: App, chapter: ChapterId): void => app.go(() => CHAPTER_SCENES[chapter].scene(app));
+export const chapterEndPlate = (chapter: ChapterId): string => CHAPTER_SCENES[chapter].endPlate;
+/** How a finished run plays out — a house lost, or the seventh dawn — before the end screen. */
+export const goFinale = (app: App, options: FinaleOptions = {}): void => app.go(() => new FinaleScene(app, options));
 
 /** Pulls into the yard: the load joins the refuge's stock, and the day goes on from there. */
 function unload(app: App): void {
@@ -46,7 +59,7 @@ function unload(app: App): void {
     }
   }
   goDay(app);
-  if (state) tripLine('home', state.day);
+  if (state) tripLine('home', state);
 }
 
 /**
@@ -89,8 +102,9 @@ export function resumeGame(app: App, state: GameState): void {
     case 'night':
       goNightfall(app);
       break;
+    // A run that is over reopens on its end screen, from which the song can still be played again.
     case 'lost':
-    case 'won':
+    case 'held':
       goEnd(app);
       break;
   }

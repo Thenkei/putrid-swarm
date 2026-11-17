@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_dealer_owes_re_landmark",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[amused] Ha ! Là où on s’est disputé la caisse. Malin. Elle y sera. Terminé.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-17T18:01:23.253Z",
+  "bytes": 81545,
+  "sha256": "aa3bf90d8a6775ae917e33d961a9b8c47363a06a12bc058c5981aa050679643e"
+}

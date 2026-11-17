@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_lost_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[tense, quietly] Je te perds. Ne bouge pas.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:06:49.881Z",
+  "bytes": 39331,
+  "sha256": "2a6ff9d57b7b43766390380c4d1e9bd06a8dcc398b4fecafb4a7ac52ad0a6afd"
+}

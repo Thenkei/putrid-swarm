@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_dealer_owes_landmark",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[knowing] Là où on s’est vus la première fois. Vous savez où. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:21.430Z",
+  "bytes": 61065,
+  "sha256": "67b7aea3d4f5e884627e98beadbc35fed215beb30e666408b6f0954467891f59"
+}

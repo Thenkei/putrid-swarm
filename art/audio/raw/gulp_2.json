@@ -1,0 +1,15 @@
+{
+  "id": "gulp_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Someone drinking thirstily, three long swallows and a wet sigh. Very close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.5,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:51.547Z",
+  "bytes": 24702,
+  "sha256": "5e207750d3306c52b77e7523faa4d45d1f013d40e049963a24e52a36616df167"
+}

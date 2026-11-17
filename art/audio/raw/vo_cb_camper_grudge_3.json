@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_grudge_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[sullen, then homesick] Ils veulent une batterie. Moi, je veux juste rentrer chez moi. À Dunkerque.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:02:23.369Z",
+  "bytes": 79037,
+  "sha256": "517f1bb00e46e1ec7d4308fb82faf078be623d12734ed9a1081be49e5d0a30dd"
+}

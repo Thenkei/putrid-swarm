@@ -1,0 +1,15 @@
+{
+  "id": "snarl_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A heavy-set man turned feral growls through clenched teeth: a low wet rattling snarl rising into a hiss. Very close, inside a small wooden shed. No words.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.4,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:37.516Z",
+  "bytes": 23030,
+  "sha256": "f71fc0540e4104df873586d38839540fc289528667b38da18945a12d869b2298"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_dealer_grudge_re_address",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[satisfied] Le chemin du lavoir. Noté au registre. On passe à midi. Terminé.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-17T18:02:08.519Z",
+  "bytes": 80291,
+  "sha256": "0a3382f10e04507191008f859ad44714c08b29b526c15debb4cccd548cca2cb8"
+}

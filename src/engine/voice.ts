@@ -21,7 +21,35 @@ export const LINES = {
   dawn: numbered('vo_dawn', 4),
   praise: ['vo_good_1', 'vo_good_2', 'vo_good_3'],
   smoke: ['vo_egg_smoke_1', 'vo_egg_smoke_2', 'vo_egg_smoke_3'],
+  /** The one hand had to go from one row of keys to the other (one-armed nights only). */
+  hand: numbered('vo_hand', 4),
+  // The shed: what comes back every time he drifts, comes to, is talked to, goes for you, or is lost mid-sentence.
+  shedName: ['vo_shed_name_1', 'vo_shed_name_2', 'vo_shed_name_3'],
+  shedDodge: ['vo_shed_dodge_1', 'vo_shed_dodge_2', 'vo_shed_dodge_3'],
+  shedCut: ['vo_shed_cut_1', 'vo_shed_cut_2', 'vo_shed_cut_3'],
+  bakerDrift: ['vo_baker_drift_1', 'vo_baker_drift_2', 'vo_baker_drift_3', 'vo_baker_drift_4'],
+  bakerLucid: ['vo_baker_lucid_1', 'vo_baker_lucid_2', 'vo_baker_lucid_3', 'vo_baker_lucid_4'],
+  // The radio: the voice slipping off the dial, every time it does.
+  radioLost: ['vo_radio_lost_1', 'vo_radio_lost_2', 'vo_radio_lost_3'],
 } as const satisfies Record<string, readonly VoiceId[]>;
+
+/**
+ * What a moment's lines become once the orchard has taken the arm: some lines about it join the
+ * others, and the lines a man with both arms would say leave.
+ */
+const ONE_ARMED: Partial<Record<Moment, { readonly add: readonly VoiceId[]; readonly drop?: readonly VoiceId[] }>> = {
+  car: { add: numbered('vo_car_arm', 3) },
+  home: { add: numbered('vo_home_arm', 3), drop: ['vo_home_3'] },
+  nightfall: { add: numbered('vo_nightfall_arm', 3) },
+  dawn: { add: numbered('vo_dawn_arm', 3) },
+};
+
+/** The lines a moment can be spoken with, with both arms or with one. */
+export function linesFor(moment: Moment, oneArmed = false): readonly VoiceId[] {
+  const change = oneArmed ? ONE_ARMED[moment] : undefined;
+  if (!change) return LINES[moment];
+  return [...LINES[moment].filter((line) => !change.drop?.includes(line)), ...change.add];
+}
 let hideTimer: number | null = null;
 
 const host = (): HTMLElement | null => document.getElementById('subtitle');
@@ -34,6 +62,8 @@ export interface SayOptions {
   readonly subtitle?: boolean;
   /** Cut off a line in progress instead of being dropped. */
   readonly interrupt?: boolean;
+  /** For a recurring moment: the protagonist has one arm left, and some of what he says knows it. */
+  readonly oneArmed?: boolean;
 }
 
 /** Speaks a line. Returns its duration in seconds, or 0 if it was dropped because another line is running. */
@@ -56,12 +86,12 @@ export function sayOnce(key: string, id: VoiceId, options: SayOptions = {}): num
 export type Moment = keyof typeof LINES;
 
 /** The next line for a recurring moment, never the one picked last time. */
-export const pickLine = (moment: Moment): VoiceId => decks.next(moment, LINES[moment]) as VoiceId;
+export const pickLine = (moment: Moment, oneArmed = false): VoiceId => decks.next(moment, linesFor(moment, oneArmed)) as VoiceId;
 
 /** Speaks one of the lines written for a recurring moment. A line is only used up when it can be said. */
 export function sayAny(moment: Moment, options: SayOptions = {}): number {
   if (audio.speaking && !options.interrupt) return 0;
-  return say(pickLine(moment), options);
+  return say(pickLine(moment, options.oneArmed), options);
 }
 
 export function showSubtitle(text: string, seconds: number): void {

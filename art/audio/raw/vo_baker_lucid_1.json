@@ -1,0 +1,19 @@
+{
+  "id": "vo_baker_lucid_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[tired, kind] Vous avez maigri, vous. Vous preniez une tradition, avant.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T17:02:46.291Z",
+  "bytes": 58557,
+  "sha256": "7d443374797506fa6bd7ac3a3d3b4bb7798581f5871f1d27d55a81222d8410b2"
+}

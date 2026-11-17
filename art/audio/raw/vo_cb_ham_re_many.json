@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_ham_re_many",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[relieved, a little lost] Nombreux ? Oh, tant mieux. Tant mieux. Alors je ne vous dérange pas. Bonne journée à tous. Terminé.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-17T18:01:01.638Z",
+  "bytes": 106204,
+  "sha256": "4a2c25405450f3d1d9dac6828866f0dbb2e5728533aa700ab72962faaccec4bb"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_dealer_grudge_nudge",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[dry] Allô ? Le silence aussi, ça se note au registre. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-17T18:02:05.282Z",
+  "bytes": 67752,
+  "sha256": "cb7919aa3f4ff4c95e0e6f041269d960e833c1bbeee0e0efc0f7379c837019be"
+}

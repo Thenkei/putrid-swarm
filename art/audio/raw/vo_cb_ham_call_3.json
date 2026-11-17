@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_ham_call_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[old, tired] Ici la ferme du haut. Six jours que j’appelle. Quelqu’un ?",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-17T18:00:39.909Z",
+  "bytes": 72767,
+  "sha256": "27daf07cb39bf1ab0104cb958a1ff08b9a71940596525e0d9a48093028078c77"
+}

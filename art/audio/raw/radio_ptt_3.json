@@ -1,0 +1,15 @@
+{
+  "id": "radio_ptt_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A hand microphone lifted off a metal hook, the curly cord rattling, then the side switch clicked. Very close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.5,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:59:48.385Z",
+  "bytes": 8820,
+  "sha256": "4bf825fa6ecdd42ad20a99bc53ff8b574211addda5f30b02350ef72df105dcb8"
+}

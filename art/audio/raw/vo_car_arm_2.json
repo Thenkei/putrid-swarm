@@ -1,0 +1,19 @@
+{
+  "id": "vo_car_arm_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Le volant avec le genou. Ça, on ne l’apprend pas à l’auto-école.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:09:55.343Z",
+  "bytes": 65244,
+  "sha256": "d36a7b9927cb53e3a5c86e64bde7fa0beb8d588f19275e653a47ec763d14827f"
+}

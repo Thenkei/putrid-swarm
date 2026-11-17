@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_end_bargained",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[wry] Négocié. Comme au marché.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:11.082Z",
+  "bytes": 47272,
+  "sha256": "73fb8206b909335c4075f97dbf0f8973a958b3004a7978cd2c4e923e8b266dcc"
+}
