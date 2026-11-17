@@ -1067,6 +1067,12 @@
     "seconds": 80.04,
     "gain": 0.62
   },
+  "mus_credits": {
+    "file": "mus_credits.mp3",
+    "kind": "music",
+    "seconds": 75.054,
+    "gain": 0.5
+  },
   "vo_broadcast": {
     "file": "vo_broadcast.mp3",
     "kind": "voice",

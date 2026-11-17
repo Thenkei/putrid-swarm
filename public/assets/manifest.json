@@ -1443,5 +1443,20 @@
     "file": "plates/plate_shed_bench_bare.webp",
     "w": 1280,
     "h": 853
+  },
+  "plate_credits_flat": {
+    "file": "plates/plate_credits_flat.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "credits_sofa": {
+    "file": "sprites/credits_sofa.webp",
+    "w": 1180,
+    "h": 799
+  },
+  "credits_photo": {
+    "file": "plates/credits_photo.webp",
+    "w": 720,
+    "h": 385
   }
 }

@@ -11,6 +11,7 @@ import { haze } from '../engine/haze';
 import { endingsTally } from '../engine/progress';
 import { hush, say, sayOnce } from '../engine/voice';
 import { drawPlate } from './common';
+import { CreditsScene } from './credits';
 import { JOINT, MUG, POWER, SPEAKER, VOLUME_STEP_CLICK, VOLUME_STEP_WHEEL, desk, inside } from './desk';
 import { goDay, resumeGame } from './flow';
 
@@ -158,6 +159,7 @@ export class TitleScene implements Scene {
           this.view = 'options';
           this.build();
         }),
+        item(S().credits.menu, () => this.app.go(() => new CreditsScene(this.app))),
       ]);
     }
 

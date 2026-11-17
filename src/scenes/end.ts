@@ -13,6 +13,7 @@ import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt } from '../engine/i18n';
+import { CreditsScene } from './credits';
 import { endingsTally } from '../engine/progress';
 import { drawPlate } from './common';
 import { SWARMED } from './finale';
@@ -101,6 +102,7 @@ export class EndScene implements Scene {
         goDay(this.app, { reveal: true });
       }),
       el('button', { class: 'btn', text: s.end.menu, onClick: () => goTitle(this.app) }),
+      el('button', { class: 'btn', text: s.credits.menu, onClick: () => this.app.go(() => new CreditsScene(this.app)) }),
     );
 
     const title = fate ? s.end.fate[fate].title : this.kind === 'dawn' ? s.end.dawn.title : this.kind === 'rampage' ? s.end.rampage.title : s.end.lostTitle;

@@ -307,6 +307,27 @@ export const fr = {
       go: 'Continuer quand même',
     },
   },
+  // Where the game comes from. Names are spelt as their owners spell them and are not translated.
+  credits: {
+    menu: 'Crédits',
+    skip: 'Passer',
+    date: 'Été 2013 · Le Puy-en-Velay',
+    lines: ['Un canapé, dans un appartement étudiant.', 'Trois amis, et une idée qui ne voulait plus partir :', 'tenir une maison contre tout un village.'],
+    sofa: { title: 'Sur le canapé, cet été-là', names: ['Alexis Lafont', 'Alexandre Guillamier', 'Morgan Perre'] },
+    later: 'Treize ans plus tard',
+    roll: [
+      { role: 'Un jeu de', names: ['Morgan Perre'] },
+      { role: 'D’après une idée née à l’été 2013 avec', names: ['Alexis Lafont', 'Alexandre Guillamier'] },
+      { role: 'Images, voix, bruitages et musique', names: ['créés avec des outils d’IA générative'] },
+      { role: 'Code', names: ['écrit avec Claude Code'] },
+    ],
+    disclaimer: 'Aucun voisin n’a été blessé pendant le développement de ce jeu.',
+    // Under the photograph of that summer, on the monitor.
+    summer: 'Été 2013',
+    photoAlt: 'Trois amis serrés sur une banquette, les yeux levés vers le plafond.',
+    thanks: 'Merci d’avoir joué.',
+    sign: 'A²&M',
+  },
   end: {
     lostTitle: 'La maison est tombée',
     lostText: 'Nuit {n}. Ils sont entrés. Les écrans sont restés allumés un moment.',
