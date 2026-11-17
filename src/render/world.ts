@@ -2,33 +2,20 @@
 // One renderer serves the daytime yard and all four night cameras, so the views cannot disagree.
 
 import { BARRICADE, DEVICES } from '../core/data/devices';
-import { ENTRIES, GRID_H, GRID_W, HOUSE, HOUSE_CENTER, PROPS, sectorOf, terrainAt, type PropKind, type Terrain } from '../core/map';
+import { ENTRIES, GRID_W, HOUSE, HOUSE_CENTER, PROPS, sectorOf, type PropKind } from '../core/map';
 import type { DeviceRuntimeState, Enemy } from '../core/night';
 import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { sprite, type Sprite } from '../engine/assets';
+import { drawGround, prepareGround, setGroundDresser } from './ground';
+import { calmMotion, drawCloudShadows, drawMist, type Light } from './lighting';
+import { hash2 } from './noise';
+import { TH, TW, depthOf, groundMatrix, inView, project, unproject, viewX, viewY, type Rot, type View } from './projection';
+import { TREES, type Tree } from './scenery';
+import { castShadow, contactShadow, groundPatch } from './shadows';
 
-export const TW = 64;
-export const TH = 32;
-const MARGIN = 6;
-const GROUND_SCALE = 1.5;
-const TEXTURE_PX_PER_CELL = 96;
-
-/** 0 looks from the gate side (sees gate + barn doors); 1 looks from the back (sees back + orchard doors). */
-export type Rot = 0 | 1;
-
-export interface View {
-  readonly rot: Rot;
-  readonly zoom: number;
-  /** Grid point shown at the centre of the rectangle. */
-  readonly cx: number;
-  readonly cy: number;
-  /** Stage rectangle the view is drawn into. */
-  readonly x: number;
-  readonly y: number;
-  readonly w: number;
-  readonly h: number;
-}
+export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
+export { applyCctv, applyDaylight, applyNight, type Light } from './lighting';
 
 export interface DeviceVisual {
   readonly id: number;
@@ -103,50 +90,6 @@ export interface WorldFrame {
   readonly focusSector?: SectorId;
   readonly showBuildable?: boolean;
   readonly doorHighlight?: SectorId | null;
-}
-
-// ───────────────────────────── Projection ─────────────────────────────
-
-const viewX = (rot: Rot, gx: number): number => (rot === 0 ? gx : GRID_W - gx);
-const viewY = (rot: Rot, gy: number): number => (rot === 0 ? gy : GRID_H - gy);
-
-/** Grid → un-zoomed world pixels for a rotation. */
-function world(rot: Rot, gx: number, gy: number): { x: number; y: number } {
-  const vx = viewX(rot, gx);
-  const vy = viewY(rot, gy);
-  return { x: ((vx - vy) * TW) / 2, y: ((vx + vy) * TH) / 2 };
-}
-
-export function project(view: View, gx: number, gy: number): { x: number; y: number } {
-  const p = world(view.rot, gx, gy);
-  const c = world(view.rot, view.cx, view.cy);
-  return { x: view.x + view.w / 2 + (p.x - c.x) * view.zoom, y: view.y + view.h / 2 + (p.y - c.y) * view.zoom };
-}
-
-export function unproject(view: View, sx: number, sy: number): { gx: number; gy: number } {
-  const c = world(view.rot, view.cx, view.cy);
-  const wx = (sx - view.x - view.w / 2) / view.zoom + c.x;
-  const wy = (sy - view.y - view.h / 2) / view.zoom + c.y;
-  const vx = wy / TH + wx / TW;
-  const vy = wy / TH - wx / TW;
-  return view.rot === 0 ? { gx: vx, gy: vy } : { gx: GRID_W - vx, gy: GRID_H - vy };
-}
-
-export const inView = (view: View, sx: number, sy: number): boolean => sx >= view.x && sy >= view.y && sx < view.x + view.w && sy < view.y + view.h;
-
-const depthOf = (rot: Rot, gx: number, gy: number): number => viewX(rot, gx) + viewY(rot, gy);
-
-/** The camera framing of each sector: which side it is seen from and where it is centred. */
-export function cameraView(sector: SectorId, rect: { x: number; y: number; w: number; h: number }, zoom: number): View {
-  const rot: Rot = sector === 'portail' || sector === 'grange' ? 0 : 1;
-  const reach = 5.4;
-  const centre: Record<SectorId, Cell> = {
-    portail: { x: HOUSE_CENTER.x - 0.4, y: HOUSE_CENTER.y + reach },
-    grange: { x: HOUSE_CENTER.x + reach, y: HOUSE_CENTER.y - 0.4 },
-    arriere: { x: HOUSE_CENTER.x + 0.4, y: HOUSE_CENTER.y - reach },
-    verger: { x: HOUSE_CENTER.x - reach, y: HOUSE_CENTER.y + 0.4 },
-  };
-  return { rot, zoom, cx: centre[sector].x, cy: centre[sector].y, ...rect };
 }
 
 // ───────────────────────────── Sprite tables ─────────────────────────────
@@ -255,178 +198,87 @@ const PROP_ART: Readonly<Record<PropKind, { key: string; h: number; lift: number
 
 const HOUSE_DRAW_WIDTH = 300;
 const HOUSE_LIFT = 10;
+/** Width of the house paintings, in their own pixels: lamp and chimney positions below are given in them. */
+const HOUSE_ART_WIDTH = 760;
+const HOUSE_ART_HEIGHT = 741;
 
-// ───────────────────────────── Ground cache ─────────────────────────────
+interface HouseLamp {
+  /** Where it is on the painting. */
+  readonly x: number;
+  readonly y: number;
+  /** How far its light reaches, in cells. */
+  readonly radius: number;
+  readonly strength: number;
+  readonly glow: number;
+  readonly flicker: number;
+}
 
-const groundCache: Partial<Record<Rot, HTMLCanvasElement>> = {};
-const GROUND_W = (GRID_W + GRID_H + 4 * MARGIN) * (TW / 2);
-const GROUND_H = (GRID_W + GRID_H + 4 * MARGIN) * (TH / 2);
-/** World x of the ground cache's left edge, and world y of its top edge. */
-const GROUND_X0 = -(GRID_H + 2 * MARGIN) * (TW / 2);
-const GROUND_Y0 = -(2 * MARGIN) * (TH / 2);
-
-const TERRAIN_TEXTURE: Readonly<Record<Exclude<Terrain, 'house'>, string>> = {
-  grass: 'tex_ground_grass',
-  path: 'tex_ground_path',
-  gravel: 'tex_ground_gravel',
-  forest: 'tex_ground_forest',
+/** What is painted on each side of the house that gives light or smoke. */
+const HOUSE_ART: Readonly<Record<Rot, { readonly key: string; readonly chimney: { readonly x: number; readonly y: number }; readonly lamps: readonly HouseLamp[] }>> = {
+  0: {
+    key: 'obj_house_front',
+    chimney: { x: 557, y: 26 },
+    lamps: [
+      { x: 240, y: 312, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25 },
+      { x: 523, y: 357, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25 },
+      // The lantern by the barn door.
+      { x: 468, y: 548, radius: 2.3, strength: 0.85, glow: 0.9, flicker: 0.55 },
+    ],
+  },
+  1: {
+    key: 'obj_house_back',
+    chimney: { x: 302, y: 28 },
+    lamps: [
+      { x: 224, y: 330, radius: 1.3, strength: 0.4, glow: 0.3, flicker: 0.25 },
+      // The glazed doors of the kitchen.
+      { x: 562, y: 520, radius: 2.2, strength: 0.6, glow: 0.6, flicker: 0.2 },
+    ],
+  },
 };
-const TERRAIN_FALLBACK: Readonly<Record<Exclude<Terrain, 'house'>, string>> = {
-  grass: '#6f7a3a',
-  path: '#8a6a47',
-  gravel: '#9c917c',
-  forest: '#4a3a28',
+
+/** The grid corner the house painting is hung from, for a side. */
+const houseCorner = (rot: Rot): Cell => ({ x: rot === 0 ? HOUSE.x1 + 1 : HOUSE.x0, y: rot === 0 ? HOUSE.y1 + 1 : HOUSE.y0 });
+
+/** A point of the house painting as an offset from that corner, in stage units at zoom 1 (x to the right, y up). */
+function housePoint(x: number, y: number): { dx: number; lift: number } {
+  const k = HOUSE_DRAW_WIDTH / HOUSE_ART_WIDTH;
+  return { dx: (x - HOUSE_ART_WIDTH / 2) * k, lift: (HOUSE_ART_HEIGHT - y) * k - HOUSE_LIFT };
+}
+
+/** The lit windows and the lantern of the house, for the side a view looks from. */
+export function houseLights(rot: Rot): readonly Light[] {
+  const corner = houseCorner(rot);
+  return HOUSE_ART[rot].lamps.map((lamp) => ({
+    gx: corner.x,
+    gy: corner.y,
+    ...housePoint(lamp.x, lamp.y),
+    radius: lamp.radius,
+    color: `rgba(255, 198, 118, ${lamp.strength})`,
+    glow: lamp.glow,
+    flicker: lamp.flicker,
+    round: true,
+  }));
+}
+
+/** How each fixed thing meets the ground: a soft patch under it and, if it stands tall, the shadow it throws. */
+const PROP_SHADOW: Readonly<Record<PropKind, { readonly rx: number; readonly ry: number; readonly contact: number; readonly cast: number }>> = {
+  car: { rx: 1.3, ry: 1.8, contact: 0.5, cast: 0 },
+  well: { rx: 0.62, ry: 0.62, contact: 0.46, cast: 0.2 },
+  woodpile: { rx: 0.7, ry: 0.7, contact: 0.46, cast: 0 },
+  veg: { rx: 1.1, ry: 0.62, contact: 0.42, cast: 0 },
+  apple: { rx: 0.6, ry: 0.6, contact: 0.42, cast: 0.26 },
+  oak: { rx: 0.66, ry: 0.66, contact: 0.44, cast: 0.28 },
+  rock: { rx: 0.58, ry: 0.58, contact: 0.42, cast: 0 },
+  barrel: { rx: 0.46, ry: 0.46, contact: 0.46, cast: 0.16 },
+  mailbox: { rx: 0.3, ry: 0.3, contact: 0.4, cast: 0.24 },
+  bush: { rx: 0.62, ry: 0.62, contact: 0.4, cast: 0 },
 };
 
-function mirroredTile(source: Sprite): HTMLCanvasElement {
-  // The swatches are not seamless; mirroring them 2x2 makes every edge meet itself.
-  const size = source.w;
-  const canvas = document.createElement('canvas');
-  canvas.width = size * 2;
-  canvas.height = size * 2;
-  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-  for (const [fx, fy] of [[0, 0], [1, 0], [0, 1], [1, 1]] as const) {
-    ctx.save();
-    ctx.translate(fx ? size * 2 : 0, fy ? size * 2 : 0);
-    ctx.scale(fx ? -1 : 1, fy ? -1 : 1);
-    ctx.drawImage(source.img, 0, 0, size, size);
-    ctx.restore();
-  }
-  return canvas;
-}
+/** Devices tall enough to throw a shadow of their own. */
+const DEVICE_CAST: Readonly<Partial<Record<DeviceTypeId, number>>> = { log: 0.2, net: 0.18, floodlight: 0.24, horn: 0.16 };
 
-function terrainOfViewCell(rot: Rot, vx: number, vy: number): Exclude<Terrain, 'house'> {
-  const gx = rot === 0 ? vx : GRID_W - 1 - vx;
-  const gy = rot === 0 ? vy : GRID_H - 1 - vy;
-  if (gx < 0 || gy < 0 || gx >= GRID_W || gy >= GRID_H) return 'forest';
-  const terrain = terrainAt(gx, gy);
-  return terrain === 'house' ? 'path' : terrain;
-}
-
-function buildGround(rot: Rot): HTMLCanvasElement {
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(GROUND_W * GROUND_SCALE);
-  canvas.height = Math.round(GROUND_H * GROUND_SCALE);
-  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-  const canBlur = typeof ctx.filter === 'string';
-
-  const toGrid = (target: CanvasRenderingContext2D): void => {
-    const s = GROUND_SCALE;
-    target.setTransform((TW / 2) * s, (TH / 2) * s, (-TW / 2) * s, (TH / 2) * s, -GROUND_X0 * s, -GROUND_Y0 * s);
-  };
-
-  // Two scratch layers, shared by every terrain: the cells of one, then those cells textured.
-  const scratch = (): CanvasRenderingContext2D => {
-    const layerCanvas = document.createElement('canvas');
-    layerCanvas.width = canvas.width;
-    layerCanvas.height = canvas.height;
-    return layerCanvas.getContext('2d') as CanvasRenderingContext2D;
-  };
-  const mctx = scratch();
-  const pctx = scratch();
-
-  const layer = (terrain: Exclude<Terrain, 'house'>, everywhere: boolean): void => {
-    // 1. Mask: the cells of this terrain.
-    mctx.setTransform(1, 0, 0, 1, 0, 0);
-    mctx.clearRect(0, 0, canvas.width, canvas.height);
-    toGrid(mctx);
-    mctx.fillStyle = '#fff';
-    for (let vy = -MARGIN; vy < GRID_H + MARGIN; vy++) {
-      for (let vx = -MARGIN; vx < GRID_W + MARGIN; vx++) {
-        if (everywhere || terrainOfViewCell(rot, vx, vy) === terrain) mctx.fillRect(vx - 0.02, vy - 0.02, 1.04, 1.04);
-      }
-    }
-
-    // Slightly feathered, so paths melt into the grass. The mask is blurred whole, in one pass: a
-    // filter left on while the cells are filled blurs each of them as a full-size layer of its own,
-    // which froze the first frame of the yard for half a second.
-    pctx.setTransform(1, 0, 0, 1, 0, 0);
-    pctx.globalCompositeOperation = 'copy';
-    if (canBlur && !everywhere) pctx.filter = `blur(${5 * GROUND_SCALE}px)`;
-    pctx.drawImage(mctx.canvas, 0, 0);
-    pctx.filter = 'none';
-
-    // 2. Texture, laid flat on the ground plane, kept only where the mask is.
-    toGrid(pctx);
-    pctx.globalCompositeOperation = 'source-in';
-    const texture = sprite(TERRAIN_TEXTURE[terrain]);
-    if (texture) {
-      const pattern = pctx.createPattern(mirroredTile(texture), 'repeat') as CanvasPattern;
-      pattern.setTransform(new DOMMatrix().scale(1 / TEXTURE_PX_PER_CELL));
-      pctx.fillStyle = pattern;
-    } else {
-      pctx.fillStyle = TERRAIN_FALLBACK[terrain];
-    }
-    pctx.fillRect(-MARGIN, -MARGIN, GRID_W + 2 * MARGIN, GRID_H + 2 * MARGIN);
-
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.drawImage(pctx.canvas, 0, 0);
-  };
-
-  layer('forest', true);
-  layer('grass', false);
-  layer('gravel', false);
-  layer('path', false);
-
-  // Darken toward the tree line so the lot reads as a clearing.
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  const cx = canvas.width / 2;
-  const cy = ((GRID_W + GRID_H) / 2) * (TH / 2) * GROUND_SCALE - GROUND_Y0 * GROUND_SCALE;
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.scale(1, 0.5);
-  const shade = ctx.createRadialGradient(0, 0, canvas.width * 0.2, 0, 0, canvas.width * 0.5);
-  shade.addColorStop(0, 'rgba(20,14,8,0)');
-  shade.addColorStop(0.75, 'rgba(20,14,8,0.35)');
-  shade.addColorStop(1, 'rgba(12,8,4,0.78)');
-  ctx.fillStyle = shade;
-  ctx.fillRect(-canvas.width, -canvas.height * 2, canvas.width * 2, canvas.height * 4);
-  ctx.restore();
-  return canvas;
-}
-
-function ground(rot: Rot): HTMLCanvasElement {
-  let canvas = groundCache[rot];
-  if (!canvas) {
-    canvas = buildGround(rot);
-    groundCache[rot] = canvas;
-  }
-  return canvas;
-}
-
-// ───────────────────────────── Forest ring ─────────────────────────────
-
-interface Tree {
-  readonly gx: number;
-  readonly gy: number;
-  readonly key: string;
-  readonly h: number;
-  readonly flip: boolean;
-}
-
-const TREES: readonly Tree[] = (() => {
-  // Deterministic scatter so both rotations and every camera agree on the tree line.
-  let seed = 1337;
-  const rand = (): number => {
-    seed = (seed * 16807) % 2147483647;
-    return seed / 2147483647;
-  };
-  const trees: Tree[] = [];
-  const add = (gx: number, gy: number): void => {
-    const pine = rand() < 0.7;
-    trees.push({ gx, gy, key: pine ? 'obj_trees_pine' : 'obj_trees_oak', h: (pine ? 185 : 165) * (0.82 + rand() * 0.4), flip: rand() < 0.5 });
-  };
-  for (let ring = 0; ring < 3; ring++) {
-    const offset = 0.6 + ring * 1.25;
-    for (let t = -MARGIN; t < GRID_W + MARGIN; t += 1.15 + rand() * 0.5) {
-      add(t + rand() * 0.6, -offset - rand() * 0.5);
-      add(t + rand() * 0.6, GRID_H + offset + rand() * 0.5);
-      add(-offset - rand() * 0.5, t + rand() * 0.6);
-      add(GRID_W + offset + rand() * 0.5, t + rand() * 0.6);
-    }
-  }
-  return trees;
-})();
+/** Things with leaves, which the wind moves. */
+const SWAYS: ReadonlySet<PropKind> = new Set<PropKind>(['apple', 'oak', 'bush']);
 
 // ───────────────────────────── Drawing helpers ─────────────────────────────
 
@@ -435,18 +287,68 @@ interface Drawable {
   draw(): void;
 }
 
-function drawSprite(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, height: number, flip = false, alpha = 1): { w: number; h: number } | null {
-  const art = sprite(key);
-  if (!art) return null;
+/** Anything `drawImage` takes, with the size it is meant to be read at. */
+interface Picture {
+  readonly img: CanvasImageSource;
+  readonly w: number;
+  readonly h: number;
+}
+
+/** `lean` shears the picture about its foot (the wind in a tree): its top moves by `lean` times its height. */
+function drawPicture(ctx: CanvasRenderingContext2D, art: Picture, x: number, y: number, height: number, flip = false, alpha = 1, lean = 0): { w: number; h: number } {
   const h = height;
   const w = (art.w / art.h) * h;
   ctx.save();
   ctx.globalAlpha *= alpha;
-  ctx.translate(x, y);
+  if (lean !== 0) ctx.transform(1, 0, -lean, 1, x, y);
+  else ctx.translate(x, y);
   if (flip) ctx.scale(-1, 1);
   ctx.drawImage(art.img, -w / 2, -h, w, h);
   ctx.restore();
   return { w, h };
+}
+
+function drawSprite(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, height: number, flip = false, alpha = 1, lean = 0): { w: number; h: number } | null {
+  const art = sprite(key);
+  return art ? drawPicture(ctx, art, x, y, height, flip, alpha, lean) : null;
+}
+
+const recessed = new Map<string, Picture>();
+/** How much of the wood's darkness each row of trees has taken on. */
+const ROW_DIM = [0, 0.15, 0.29, 0.42] as const;
+
+/**
+ * A tree as it looks from the lot when it stands `row` rows back: the same painting with the
+ * shade of the wood over it. The rows behind the first sink into the dark instead of standing
+ * out as a wall of equally bright trees.
+ */
+function recessedSprite(key: string, row: number): Picture | undefined {
+  const art = sprite(key);
+  const dim = ROW_DIM[Math.min(row, ROW_DIM.length - 1)] ?? 0;
+  if (!art || dim <= 0) return art;
+  const id = `${key}:${row}`;
+  const known = recessed.get(id);
+  if (known) return known;
+  const canvas = document.createElement('canvas');
+  canvas.width = art.w;
+  canvas.height = art.h;
+  const cctx = canvas.getContext('2d');
+  if (!cctx) return art;
+  cctx.drawImage(art.img, 0, 0, art.w, art.h);
+  cctx.globalCompositeOperation = 'source-atop';
+  cctx.fillStyle = `rgba(14, 18, 26, ${dim})`;
+  cctx.fillRect(0, 0, art.w, art.h);
+  const picture: Picture = { img: canvas, w: art.w, h: art.h };
+  recessed.set(id, picture);
+  return picture;
+}
+
+/** How far the wind leans something with leaves, right now. Each thing has its own beat. */
+function swayOf(time: number, beat: number): number {
+  if (calmMotion()) return 0;
+  // A slow swell that comes and goes, with a quicker shiver on top.
+  const swell = 0.55 + 0.45 * Math.sin(time * 0.23 + beat * 2.1);
+  return (Math.sin(time * 0.9 + beat * 6.283) * 0.011 + Math.sin(time * 2.3 + beat * 11.7) * 0.004) * swell;
 }
 
 function placeholder(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string, label: string): void {
@@ -463,11 +365,25 @@ function placeholder(ctx: CanvasRenderingContext2D, x: number, y: number, w: num
   ctx.fillText(label, x, y - h / 2 + 3);
 }
 
-function shadow(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, zoom: number): void {
-  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+/** A status bar over something in the world: dark seat, rounded ends, a thin highlight so it reads on any ground. */
+function meter(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, ratio: number, color: string): void {
+  const r = h / 2;
+  ctx.fillStyle = 'rgba(12, 9, 6, 0.86)';
   ctx.beginPath();
-  ctx.ellipse(x, y, radius * zoom, radius * 0.45 * zoom, 0, 0, Math.PI * 2);
+  ctx.roundRect(x - 1.5, y - 1.5, w + 3, h + 3, r + 1.5);
   ctx.fill();
+  const filled = w * Math.max(0, Math.min(1, ratio));
+  if (filled > 0.5) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, r);
+    ctx.clip();
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, filled, h);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.fillRect(x, y, filled, h * 0.38);
+    ctx.restore();
+  }
 }
 
 function diamond(ctx: CanvasRenderingContext2D, view: View, gx: number, gy: number, inset = 0): void {
@@ -499,7 +415,72 @@ function deviceSpriteState(device: DeviceVisual): DeviceSpriteState {
   return 'resting';
 }
 
+// ───────────────────────────── Fixed scenery ─────────────────────────────
+
+/** On a side of the lot the view looks across to: its trees stand behind everything. */
+const standsFar = (rot: Rot, tree: Tree): boolean => viewX(rot, tree.gx) < 0 || viewY(rot, tree.gy) < 0;
+
+/** On the near sides only some of the trees are shown, and as something low. */
+const isUndergrowth = (tree: Tree): boolean => tree.trait < 0.27;
+
+function undergrowthOf(tree: Tree): { key: string; h: number; flip: boolean; sways: boolean } {
+  const bush = tree.flip;
+  return { key: bush ? 'obj_props2_bush' : 'obj_props2_rock', h: bush ? 40 : 30, flip: tree.trait < 0.12, sways: bush };
+}
+
+/**
+ * Painted into the ground once, per side of the house: the shadow of everything that never moves,
+ * and the rows of trees behind the first. Those rows are behind anything that can happen on the
+ * lot, so nothing is lost by not sorting them every frame, and a camera has a third as much to draw.
+ */
+function dressGround(ctx: CanvasRenderingContext2D, view: View): void {
+  const z = view.zoom;
+  const trees = TREES.filter((tree) => standsFar(view.rot, tree) || isUndergrowth(tree));
+
+  ctx.save();
+  ctx.transform(...groundMatrix(view));
+  for (const tree of trees) {
+    if (standsFar(view.rot, tree)) {
+      if (tree.row === 0) contactShadow(ctx, tree.gx, tree.gy, 0.6, 0.6, 0.4);
+    } else contactShadow(ctx, tree.gx, tree.gy, 0.5, 0.5, 0.36);
+  }
+  for (const prop of PROPS) {
+    if (prop.kind === 'car') continue;
+    const ground = PROP_SHADOW[prop.kind];
+    contactShadow(ctx, prop.x + prop.w / 2, prop.y + prop.h / 2, ground.rx, ground.ry, ground.contact);
+  }
+  ctx.restore();
+
+  for (const tree of trees) {
+    if (!standsFar(view.rot, tree) || tree.row !== 0) continue;
+    const p = project(view, tree.gx, tree.gy);
+    castShadow(ctx, tree.key, p.x, p.y + 2 * z, tree.h * z, tree.flip, 0.2, 0.8);
+  }
+  for (const prop of PROPS) {
+    const ground = PROP_SHADOW[prop.kind];
+    if (ground.cast <= 0) continue;
+    const art = PROP_ART[prop.kind];
+    const p = project(view, view.rot === 0 ? prop.x + prop.w : prop.x, view.rot === 0 ? prop.y + prop.h : prop.y);
+    castShadow(ctx, art.key, p.x, p.y + (art.lift - 6) * z, art.h * z, false, ground.cast);
+  }
+
+  // The wood behind the first row, furthest first.
+  const back = trees.filter((tree) => standsFar(view.rot, tree) && tree.row > 0).sort((a, b) => depthOf(view.rot, a.gx, a.gy) - depthOf(view.rot, b.gx, b.gy));
+  for (const tree of back) {
+    const art = recessedSprite(tree.key, tree.row);
+    const p = project(view, tree.gx, tree.gy);
+    if (art) drawPicture(ctx, art, p.x, p.y + 6 * z, tree.h * z, tree.flip);
+  }
+}
+
+setGroundDresser(dressGround);
+
 // ───────────────────────────── Main entry ─────────────────────────────
+
+/** Paints whatever is painted once (the ground of both sides of the house), ahead of the first frame. */
+export function prepareWorld(): void {
+  prepareGround();
+}
 
 export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): void {
   const z = view.zoom;
@@ -507,43 +488,47 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   ctx.beginPath();
   ctx.rect(view.x, view.y, view.w, view.h);
   ctx.clip();
-  ctx.fillStyle = '#17120c';
+  ctx.fillStyle = '#0c0906';
   ctx.fillRect(view.x, view.y, view.w, view.h);
   // Sprites are drawn at a third of their size or less: plain bilinear filtering turns their ink lines to mush.
   ctx.imageSmoothingQuality = 'high';
 
-  // Ground.
-  const c = world(view.rot, view.cx, view.cy);
-  const gx0 = view.x + view.w / 2 + (GROUND_X0 - c.x) * z;
-  const gy0 = view.y + view.h / 2 + (GROUND_Y0 - c.y) * z;
-  ctx.drawImage(ground(view.rot), gx0, gy0, GROUND_W * z, GROUND_H * z);
-
-  drawDecals(ctx, view, frame);
-  drawGroundOverlays(ctx, view, frame);
+  drawGround(ctx, view);
 
   const drawables: Drawable[] = [];
+  /** Shadows go down before anything stands on them; they are collected as the scene is. */
+  const contacts: { gx: number; gy: number; rx: number; ry: number; alpha: number }[] = [];
+  const casts: (() => void)[] = [];
+  // By night the only shadows left are what the moon gives.
+  const shade = frame.night ? 0.6 : 1;
+  const onScreen = (p: { x: number; y: number }, reach: number): boolean => p.x > view.x - reach * z && p.x < view.x + view.w + reach * z && p.y > view.y - 20 && p.y < view.y + view.h + reach * 1.9 * z;
 
-  // Tree line: only the far sides, so the forest never hides the action.
+  // Tree line: only the far sides, so the forest never hides the action. The row that borders the
+  // lot is drawn here, where the wind can move it and the infected can walk out from behind it; the
+  // rows behind it are part of the ground.
   for (const tree of TREES) {
-    const vx = viewX(view.rot, tree.gx);
-    const vy = viewY(view.rot, tree.gy);
-    const far = vx < 0 || vy < 0;
+    const far = standsFar(view.rot, tree);
+    if (far ? tree.row > 0 : !isUndergrowth(tree)) continue;
     const p = project(view, tree.gx, tree.gy);
-    if (p.x < view.x - 120 * z || p.x > view.x + view.w + 120 * z || p.y < view.y - 20 || p.y > view.y + view.h + 220 * z) continue;
+    if (!onScreen(p, 120)) continue;
+    const depth = depthOf(view.rot, tree.gx, tree.gy);
     if (far) {
-      drawables.push({ depth: vx + vy, draw: () => void drawSprite(ctx, tree.key, p.x, p.y + 6 * z, tree.h * z, tree.flip) });
-    } else if (Math.round(tree.h * 7) % 4 === 0) {
+      const lean = swayOf(frame.time, tree.trait) * (tree.key === 'obj_trees_pine' ? 0.7 : 1);
+      drawables.push({ depth, draw: () => void drawSprite(ctx, tree.key, p.x, p.y + 6 * z, tree.h * z, tree.flip, 1, lean) });
+    } else {
       // Near side: undergrowth only, low enough to hide nothing.
-      const low = tree.flip ? 'obj_props2_bush' : 'obj_props2_rock';
-      drawables.push({ depth: vx + vy, draw: () => void drawSprite(ctx, low, p.x, p.y + 8 * z, (tree.flip ? 40 : 30) * z, tree.h > 190) });
+      const growth = undergrowthOf(tree);
+      const art = recessedSprite(growth.key, tree.row);
+      const lean = growth.sways ? swayOf(frame.time, tree.trait) * 1.4 : 0;
+      if (art) drawables.push({ depth, draw: () => void drawPicture(ctx, art, p.x, p.y + 8 * z, growth.h * z, growth.flip, 1, lean) });
     }
   }
 
   // House.
   {
-    const corner = project(view, view.rot === 0 ? HOUSE.x1 + 1 : HOUSE.x0, view.rot === 0 ? HOUSE.y1 + 1 : HOUSE.y0);
-    const key = view.rot === 0 ? 'obj_house_front' : 'obj_house_back';
-    const art = sprite(key);
+    const side = HOUSE_ART[view.rot];
+    const corner = project(view, houseCorner(view.rot).x, houseCorner(view.rot).y);
+    const art = sprite(side.key);
     const depth = depthOf(view.rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.2;
     drawables.push({
       depth,
@@ -552,6 +537,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           const w = HOUSE_DRAW_WIDTH * z;
           const h = (art.h / art.w) * w;
           ctx.drawImage(art.img, corner.x - w / 2, corner.y + HOUSE_LIFT * z - h, w, h);
+          const chimney = housePoint(side.chimney.x, side.chimney.y);
+          drawChimneySmoke(ctx, corner.x + chimney.dx * z, corner.y - chimney.lift * z, z, frame.time);
         } else {
           placeholder(ctx, corner.x, corner.y, 240 * z, 200 * z, '#8a6a47', 'house');
         }
@@ -569,19 +556,32 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const p = project(view, nearX, nearY);
     const key = prop.kind === 'car' ? `${art.key}_${view.rot === 0 ? 'front' : 'back'}` : art.key;
     const centreDepth = depthOf(view.rot, prop.x + prop.w / 2, prop.y + prop.h / 2) + 0.4;
+    const lean = SWAYS.has(prop.kind) ? swayOf(frame.time, hash2(prop.x, prop.y, 3)) : 0;
     drawables.push({
       depth: centreDepth,
       draw: () => {
-        const drawn = drawSprite(ctx, key, p.x, p.y + art.lift * z, art.h * z);
+        const drawn = drawSprite(ctx, key, p.x, p.y + art.lift * z, art.h * z, false, 1, lean);
         if (!drawn) placeholder(ctx, p.x, p.y, 40 * z, 40 * z, '#5a6a4a', prop.kind);
       },
     });
+    // The car comes and goes; everything else that is fixed has its shadow in the ground already.
+    if (prop.kind === 'car') {
+      const ground = PROP_SHADOW.car;
+      contacts.push({ gx: prop.x + prop.w / 2, gy: prop.y + prop.h / 2, rx: ground.rx, ry: ground.ry, alpha: ground.contact });
+    }
   }
 
   // Devices.
   for (const device of frame.devices) {
     const p = project(view, device.x + 0.5, device.y + 0.5);
     drawables.push({ depth: depthOf(view.rot, device.x + 0.5, device.y + 0.5) + 0.3, draw: () => drawDevice(ctx, view, frame, device, p) });
+    const broken = device.state === 'broken';
+    contacts.push({ gx: device.x + 0.5, gy: device.y + 0.5, rx: 0.56, ry: 0.56, alpha: device.type === 'fence' ? 0.3 : broken ? 0.3 : 0.42 });
+    const cast = broken ? 0 : (DEVICE_CAST[device.type] ?? 0);
+    if (cast > 0) {
+      const art = deviceArt(device.type, device.facing, deviceSpriteState(device));
+      casts.push(() => castShadow(ctx, art.key, p.x, p.y + (art.lift - 6) * z, art.h * z, art.flip, cast * shade, 0.85));
+    }
   }
 
   // Placement ghost.
@@ -613,11 +613,105 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     drawables.push({ depth: depthOf(view.rot, particle.x, particle.y) + 0.6, draw: () => drawParticle(ctx, view, particle) });
   }
 
+  // Shadows first, on the bare ground: what is painted over it afterwards (routes, rings) stays legible.
+  ctx.save();
+  ctx.transform(...groundMatrix(view));
+  for (const patch of contacts) contactShadow(ctx, patch.gx, patch.gy, patch.rx, patch.ry, patch.alpha * shade);
+  ctx.restore();
+  for (const cast of casts) cast();
+
+  drawDecals(ctx, view, frame);
+  drawGroundOverlays(ctx, view, frame);
+
   drawables.sort((a, b) => a.depth - b.depth);
   for (const drawable of drawables) drawable.draw();
 
+  // What is in the air over all of it.
+  if (frame.night) drawMist(ctx, view, frame.time);
+  else {
+    drawCloudShadows(ctx, view, frame.time);
+    drawLeaves(ctx, view, frame.time);
+  }
   drawTopOverlays(ctx, view, frame);
   ctx.restore();
+}
+
+let puff: HTMLCanvasElement | null = null;
+
+function softPuff(): HTMLCanvasElement {
+  if (puff) return puff;
+  puff = document.createElement('canvas');
+  puff.width = 64;
+  puff.height = 64;
+  const pctx = puff.getContext('2d');
+  if (pctx) {
+    const gradient = pctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gradient.addColorStop(0, 'rgba(232, 226, 214, 1)');
+    gradient.addColorStop(0.5, 'rgba(226, 220, 208, 0.5)');
+    gradient.addColorStop(1, 'rgba(220, 214, 204, 0)');
+    pctx.fillStyle = gradient;
+    pctx.fillRect(0, 0, 64, 64);
+  }
+  return puff;
+}
+
+const SMOKE_PUFFS = 7;
+
+/**
+ * Someone lives here: a thin smoke from the chimney, leaning with the wind. Each puff is a
+ * function of the time alone, so every camera sees the same smoke and a paused night holds it still.
+ */
+function drawChimneySmoke(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, time: number): void {
+  const blob = softPuff();
+  const t = calmMotion() ? 0 : time;
+  for (let i = 0; i < SMOKE_PUFFS; i++) {
+    const age = (t * 0.075 + i / SMOKE_PUFFS) % 1;
+    const size = (9 + age * 34) * z;
+    const px = x + (age * age * 58 + Math.sin(age * 5.2 + i * 1.9) * 4) * z;
+    const py = y - (4 + age * 92) * z;
+    ctx.globalAlpha = Math.min(1, age / 0.1) * Math.pow(1 - age, 1.4) * 0.5;
+    ctx.drawImage(blob, px - size, py - size, size * 2, size * 2);
+  }
+  ctx.globalAlpha = 1;
+}
+
+const LEAF_COLORS = ['#d98a2b', '#c9561f', '#e0b23a', '#a8662a', '#8f3b1c'] as const;
+const LEAVES = 18;
+
+/**
+ * Autumn: a few leaves coming down over the lot. Each one falls onto a point of the ground, so it
+ * drifts with the view when the yard is panned instead of sliding over the picture.
+ */
+function drawLeaves(ctx: CanvasRenderingContext2D, view: View, time: number): void {
+  if (calmMotion()) return;
+  const z = view.zoom;
+  for (let i = 0; i < LEAVES; i++) {
+    const period = 7 + hash2(i, 1, 9) * 6;
+    const t = time / period + hash2(i, 2, 9) * 10;
+    const fallIndex = Math.floor(t);
+    const fall = t - fallIndex;
+    const gx = -3 + hash2(i, fallIndex, 11) * (GRID_W + 6);
+    const gy = -3 + hash2(i, fallIndex, 12) * (GRID_W + 6);
+    const landing = project(view, gx, gy);
+    const up = 1 - fall;
+    const x = landing.x - up * 54 * z + Math.sin(fall * 9 + i) * 9 * z * up;
+    const y = landing.y - up * 190 * z;
+    if (x < view.x - 10 || x > view.x + view.w + 10 || y < view.y - 10 || y > view.y + view.h + 10) continue;
+    const size = (2.2 + hash2(i, 3, 9) * 1.8) * z;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, fall / 0.08) * Math.min(1, up / 0.1) * 0.9;
+    ctx.translate(x, y);
+    ctx.rotate(fall * (5 + hash2(i, 4, 9) * 9) + i);
+    // Seen edge-on half the time, as a tumbling leaf is.
+    ctx.scale(1, 0.35 + Math.abs(Math.sin(fall * 13 + i)) * 0.65);
+    ctx.fillStyle = LEAF_COLORS[i % LEAF_COLORS.length] as string;
+    ctx.beginPath();
+    ctx.moveTo(-size, 0);
+    ctx.quadraticCurveTo(0, -size * 0.75, size, 0);
+    ctx.quadraticCurveTo(0, size * 0.75, -size, 0);
+    ctx.fill();
+    ctx.restore();
+  }
 }
 
 function drawDecals(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): void {
@@ -680,21 +774,21 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
 
   // Where they are predicted to walk: every cell some route steps on, darker where more of them do.
   if (frame.traffic) {
+    // Laid as soft patches that run into each other: trodden ground, not a grid of red tiles.
+    ctx.save();
+    ctx.transform(...groundMatrix(view));
     for (const [cellIndex, count] of frame.traffic) {
-      diamond(ctx, view, cellIndex % GRID_W, Math.floor(cellIndex / GRID_W), 0.06);
-      ctx.fillStyle = `rgba(255,96,64,${Math.min(0.34, 0.07 + count * 0.022)})`;
-      ctx.fill();
+      groundPatch(ctx, '255, 86, 56', (cellIndex % GRID_W) + 0.5, Math.floor(cellIndex / GRID_W) + 0.5, 0.86, 0.86, Math.min(0.5, 0.12 + count * 0.034));
     }
+    ctx.restore();
   }
 
   // Predicted walking routes: the visible half of the placement rule.
   if (frame.routes) {
-    ctx.lineWidth = 3 * z;
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     ctx.setLineDash([8 * z, 7 * z]);
-    ctx.lineDashOffset = -frame.time * 22 * z;
-    ctx.strokeStyle = 'rgba(255,96,64,0.9)';
+    ctx.lineDashOffset = calmMotion() ? 0 : -frame.time * 22 * z;
     for (const route of frame.routes) {
       ctx.beginPath();
       route.forEach((cell, i) => {
@@ -702,6 +796,12 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
         if (i === 0) ctx.moveTo(p.x, p.y);
         else ctx.lineTo(p.x, p.y);
       });
+      // A dark seat under the dashes keeps them legible on pale gravel as on dark earth.
+      ctx.lineWidth = 5.5 * z;
+      ctx.strokeStyle = 'rgba(46, 12, 6, 0.42)';
+      ctx.stroke();
+      ctx.lineWidth = 2.8 * z;
+      ctx.strokeStyle = 'rgba(255, 108, 72, 0.95)';
       ctx.stroke();
     }
     ctx.setLineDash([]);
@@ -787,13 +887,12 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
           ctx.lineWidth = 2;
           ctx.strokeRect(p.x - 26 * z, p.y - 62 * z, 52 * z, 74 * z);
         }
-        // Door health: always visible, it is the thing being defended.
-        const barW = 46 * z;
-        const barY = p.y - 66 * z;
-        ctx.fillStyle = 'rgba(10,8,6,0.8)';
-        ctx.fillRect(p.x - barW / 2 - 1, barY - 1, barW + 2, 6 * z + 2);
-        ctx.fillStyle = ratio > 0.5 ? '#9fcf5a' : ratio > 0.2 ? '#f2a531' : '#e0432e';
-        ctx.fillRect(p.x - barW / 2, barY, barW * Math.max(0, ratio), 6 * z);
+        // Door health: always in sight by night, it is the thing being defended. By day a sound
+        // door needs no bar; the panel has the figures.
+        if (frame.night || ratio < 0.999 || frame.doorHighlight === sector) {
+          const barW = 46 * z;
+          meter(ctx, p.x - barW / 2, p.y - 68 * z, barW, 5 * z, ratio, ratio > 0.5 ? '#9fcf5a' : ratio > 0.2 ? '#f2a531' : '#e0432e');
+        }
       },
     },
   ];
@@ -820,10 +919,7 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
 
   if (device.type !== 'fence' && device.hpRatio < 0.999 && state !== 'broken') {
     const barW = 28 * z;
-    ctx.fillStyle = 'rgba(10,8,6,0.75)';
-    ctx.fillRect(p.x - barW / 2, p.y + (art.lift + 3) * z, barW, 3 * z);
-    ctx.fillStyle = '#d98f3a';
-    ctx.fillRect(p.x - barW / 2, p.y + (art.lift + 3) * z, barW * device.hpRatio, 3 * z);
+    meter(ctx, p.x - barW / 2, p.y + (art.lift + 3) * z, barW, 3 * z, device.hpRatio, '#d98f3a');
   }
 
   if (!frame.night) return;
@@ -993,7 +1089,7 @@ function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame,
   pushY -= dirY * recoil * 3.5 * z;
   tilt += (front ? 1 : -1) * recoil * 0.12;
 
-  shadow(ctx, p.x, p.y, 15 * enemy.def.size, z);
+  contactShadow(ctx, p.x, p.y + 1 * z, 19 * enemy.def.size * z, 8.5 * enemy.def.size * z, 0.62);
   if (moving && gait.dust && within < 0.3) {
     // Footfall.
     const t = within / 0.3;
@@ -1233,104 +1329,3 @@ export function pickDoor(view: View, sx: number, sy: number): SectorId | null {
 }
 
 export { sectorOf };
-
-// ───────────────────────────── Night & CCTV ─────────────────────────────
-
-const lightCanvas = document.createElement('canvas');
-
-export interface Light {
-  readonly gx: number;
-  readonly gy: number;
-  /** Radius on the ground, in cells. */
-  readonly radius: number;
-  readonly color: string;
-  /** Screen-space lift, for lights that hang above the ground (lanterns). */
-  readonly lift?: number;
-}
-
-/** Multiplies a light map over a view that has just been drawn: dark teal night, warm pools of light. */
-export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: readonly Light[], ambient = '#6d86b4'): void {
-  const scale = 0.5;
-  const w = Math.ceil(view.w * scale);
-  const h = Math.ceil(view.h * scale);
-  if (lightCanvas.width !== w || lightCanvas.height !== h) {
-    lightCanvas.width = w;
-    lightCanvas.height = h;
-  }
-  const lctx = lightCanvas.getContext('2d') as CanvasRenderingContext2D;
-  lctx.globalCompositeOperation = 'source-over';
-  lctx.fillStyle = ambient;
-  lctx.fillRect(0, 0, w, h);
-  lctx.globalCompositeOperation = 'lighter';
-  for (const light of lights) {
-    const p = project(view, light.gx, light.gy);
-    const x = (p.x - view.x) * scale;
-    const y = (p.y - view.y - (light.lift ?? 0) * view.zoom) * scale;
-    const rx = light.radius * Math.SQRT2 * (TW / 2) * view.zoom * scale;
-    lctx.save();
-    lctx.translate(x, y);
-    lctx.scale(1, 0.62);
-    const gradient = lctx.createRadialGradient(0, 0, 0, 0, 0, rx);
-    gradient.addColorStop(0, light.color);
-    gradient.addColorStop(1, 'rgba(0,0,0,0)');
-    lctx.fillStyle = gradient;
-    lctx.beginPath();
-    lctx.arc(0, 0, rx, 0, Math.PI * 2);
-    lctx.fill();
-    lctx.restore();
-  }
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(view.x, view.y, view.w, view.h);
-  ctx.clip();
-  ctx.globalCompositeOperation = 'multiply';
-  ctx.drawImage(lightCanvas, view.x, view.y, view.w, view.h);
-  ctx.restore();
-}
-
-let scanlines: CanvasPattern | null = null;
-
-/** The monitor look: teal cast, scanlines, vignette, a little roll and noise. */
-export function applyCctv(ctx: CanvasRenderingContext2D, view: View, time: number, strength = 1): void {
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(view.x, view.y, view.w, view.h);
-  ctx.clip();
-
-  ctx.globalCompositeOperation = 'color';
-  ctx.fillStyle = `rgba(86,140,150,${0.2 * strength})`;
-  ctx.fillRect(view.x, view.y, view.w, view.h);
-  ctx.globalCompositeOperation = 'source-over';
-
-  if (!scanlines) {
-    const tile = document.createElement('canvas');
-    tile.width = 4;
-    tile.height = 3;
-    const tctx = tile.getContext('2d') as CanvasRenderingContext2D;
-    tctx.fillStyle = 'rgba(0,0,0,0.22)';
-    tctx.fillRect(0, 2, 4, 1);
-    scanlines = ctx.createPattern(tile, 'repeat');
-  }
-  if (scanlines) {
-    ctx.fillStyle = scanlines;
-    ctx.globalAlpha = strength;
-    ctx.fillRect(view.x, view.y, view.w, view.h);
-    ctx.globalAlpha = 1;
-  }
-
-  // A slow bright band rolling down the tube.
-  const band = view.y + ((time * 46) % (view.h + 120)) - 60;
-  const roll = ctx.createLinearGradient(0, band - 40, 0, band + 40);
-  roll.addColorStop(0, 'rgba(255,255,255,0)');
-  roll.addColorStop(0.5, `rgba(255,255,255,${0.045 * strength})`);
-  roll.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = roll;
-  ctx.fillRect(view.x, band - 40, view.w, 80);
-
-  const vignette = ctx.createRadialGradient(view.x + view.w / 2, view.y + view.h / 2, view.h * 0.35, view.x + view.w / 2, view.y + view.h / 2, view.w * 0.72);
-  vignette.addColorStop(0, 'rgba(0,0,0,0)');
-  vignette.addColorStop(1, `rgba(0,0,0,${0.5 * strength})`);
-  ctx.fillStyle = vignette;
-  ctx.fillRect(view.x, view.y, view.w, view.h);
-  ctx.restore();
-}

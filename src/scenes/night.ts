@@ -15,7 +15,7 @@ import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
-import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, pickDevice, type DeviceVisual, type Fallen, type Light, type Particle, type View, type WorldFrame } from '../render/world';
+import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
 import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, drawPlate, oneArmed, trapKeyLabels } from './common';
 import { goFinale, goMorning, goNight, goTitle } from './flow';
 import { HandGauge, cameraAwaitingHand, handCoachSeen, markHandCoachSeen, trapsAwaitingHand } from './hand';
@@ -158,6 +158,8 @@ export class NightScene implements Scene {
   enter(): void {
     audio.setAmbience('night');
     audio.setMusic('night');
+    // Both sides of the house are on the monitors at once: painted now, while the screen is dark.
+    prepareWorld();
     const s = S();
     this.waveEl = el('span', { class: 'label-strong' });
     this.energyEl = el('span');
@@ -873,15 +875,22 @@ export class NightScene implements Scene {
     };
   }
 
-  private lights(): Light[] {
+  /** Everything that gives light on the lot, as seen from one side of the house. */
+  private lights(rot: Rot): Light[] {
     const lights: Light[] = [
-      // Lanterns by the four doors and the glow of the house itself.
-      { gx: (HOUSE.x0 + HOUSE.x1 + 1) / 2, gy: (HOUSE.y0 + HOUSE.y1 + 1) / 2, radius: 4.2, color: 'rgba(255,214,150,0.55)', lift: 40 },
+      // What spills out of the house on every side, then its windows and its lantern.
+      { gx: (HOUSE.x0 + HOUSE.x1 + 1) / 2, gy: (HOUSE.y0 + HOUSE.y1 + 1) / 2, radius: 4.4, color: 'rgba(255,214,150,0.5)', lift: 40 },
+      ...houseLights(rot),
     ];
-    for (const sector of SECTOR_IDS) lights.push({ gx: ENTRIES[sector].x + 0.5, gy: ENTRIES[sector].y + 0.5, radius: 2.6, color: 'rgba(255,196,120,0.75)', lift: 10 });
+    // A lamp over each door: the doorsteps are where the night is decided.
+    for (const sector of SECTOR_IDS) lights.push({ gx: ENTRIES[sector].x + 0.5, gy: ENTRIES[sector].y + 0.5, radius: 2.6, color: 'rgba(255,196,120,0.72)', lift: 10, flicker: 0.35 });
     for (const device of this.sim.devices) {
       if (device.state === 'broken') continue;
-      if (device.type === 'floodlight' && device.state === 'active') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: DEVICES.floodlight.radius, color: 'rgba(255,244,214,1)' });
+      if (device.type === 'floodlight' && device.state === 'active') {
+        // The pool it throws on the ground, and the lamp itself at the top of its pole.
+        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: DEVICES.floodlight.radius, color: 'rgba(255,244,214,1)' });
+        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.2, color: 'rgba(255,244,214,0.6)', lift: 62, glow: 1, round: true });
+      }
       else if (device.state === 'active') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.6, color: 'rgba(255,180,90,0.6)' });
       else if (device.state === 'armed') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 0.9, color: 'rgba(255,170,70,0.35)', lift: 20 });
     }
@@ -906,7 +915,7 @@ export class NightScene implements Scene {
     }
     const view = this.viewFor(sector, rect, (MAIN_ZOOM * MINI.w) / MAIN.w);
     drawWorld(mctx, view, this.frame(sector, false));
-    applyNight(mctx, view, this.lights());
+    applyNight(mctx, view, this.lights(view.rot), this.time);
     applyCctv(mctx, view, this.time + SECTOR_IDS.indexOf(sector) * 1.7, 1);
   }
 
@@ -920,7 +929,7 @@ export class NightScene implements Scene {
     } else {
       const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
       drawWorld(ctx, view, this.frame(this.cam, true));
-      applyNight(ctx, view, this.lights());
+      applyNight(ctx, view, this.lights(view.rot), this.time);
       applyCctv(ctx, view, this.time, 0.85);
     }
 

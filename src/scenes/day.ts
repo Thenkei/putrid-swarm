@@ -35,16 +35,22 @@ import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { sayOnce } from '../engine/voice';
-import { drawWorld, inView, pickDevice, pickDoor, unproject, type DeviceVisual, type Ghost, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
+import { applyDaylight, drawWorld, houseLights, inView, pickDevice, pickDoor, prepareWorld, unproject, type DeviceVisual, type Ghost, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
 import { costLine, describeCost, inventoryBar } from './common';
 import { goMap, goNightfall, goTitle } from './flow';
 
 type Mode = { readonly kind: 'idle' } | { readonly kind: 'build'; readonly type: DeviceTypeId } | { readonly kind: 'repair' } | { readonly kind: 'dismantle' };
 
 const RECT = { x: 292, y: 56, w: 976, h: 652 } as const;
+/** Corner radius of the yard's frame; `.yard-frame` in the stylesheet has the same. */
+const FRAME_RADIUS = 8;
 const MIN_ZOOM = 0.62;
 const MAX_ZOOM = 1.5;
 const HINT_KEY = 'putrid-swarm.hint.v2';
+
+/** The view can be centred anywhere on the lot but its outermost cells: past them there is only wood to look at. */
+const PAN_INSET = 2;
+const panLimit = (value: number, size: number): number => Math.min(size - PAN_INSET, Math.max(PAN_INSET, value));
 
 /** How close a predicted route must pass for a device there to do anything. A barrier only holds what walks into it. */
 const coverReach = (type: DeviceTypeId): number => (type === 'barrier' ? 0.5 : DEVICES[type].reach);
@@ -136,6 +142,8 @@ export class DayScene implements Scene {
   enter(): void {
     audio.setAmbience('day');
     audio.setMusic('day');
+    // Painted while the screen is still dark from the scene change, not during the first frame.
+    prepareWorld();
     this.root = el('div');
     this.app.ui.append(this.root);
     this.refresh();
@@ -271,7 +279,9 @@ export class DayScene implements Scene {
     ]);
 
     this.info = el('div', { class: 'panel info-card' });
-    this.root.replaceChildren(topbar, panel, viewTools, doors, tonight, actions, this.info);
+    // The window onto the yard, seated in the desk like the panels around it.
+    const frame = el('div', { class: 'yard-frame', style: { left: `${RECT.x}px`, top: `${RECT.y}px`, width: `${RECT.w}px`, height: `${RECT.h}px` } });
+    this.root.replaceChildren(frame, topbar, panel, viewTools, doors, tonight, actions, this.info);
     this.updateInfo();
     this.maybeHint();
   }
@@ -611,16 +621,15 @@ export class DayScene implements Scene {
 
     ctx.fillStyle = '#120e09';
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+    // The picture has the corners of its frame.
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(RECT.x, RECT.y, RECT.w, RECT.h, FRAME_RADIUS);
+    ctx.clip();
     drawWorld(ctx, this.view, frame);
-
-    // Warm afternoon grade, deepening as the daylight runs out.
-    const dusk = 1 - state.hoursLeft / DAY_HOURS;
-    ctx.fillStyle = `rgba(255, 150, 60, ${0.04 + dusk * 0.14})`;
-    ctx.fillRect(RECT.x, RECT.y, RECT.w, RECT.h);
-    if (dusk > 0.7) {
-      ctx.fillStyle = `rgba(30, 30, 80, ${(dusk - 0.7) * 0.6})`;
-      ctx.fillRect(RECT.x, RECT.y, RECT.w, RECT.h);
-    }
+    // The hour it is: the light warms as the daylight runs out, and the lamps come on before dark.
+    applyDaylight(ctx, this.view, 1 - state.hoursLeft / DAY_HOURS, houseLights(this.rot), this.time);
+    ctx.restore();
 
     if (this.reveal > 0) {
       // The smoke of the opening clears onto the fortified house.
@@ -748,8 +757,8 @@ export class DayScene implements Scene {
         const wy = dy / this.zoom;
         const dvx = wy / 32 + wx / 64;
         const dvy = wy / 32 - wx / 64;
-        this.cx = Math.min(GRID_W, Math.max(0, drag.cx - dvx * sign));
-        this.cy = Math.min(GRID_H, Math.max(0, drag.cy - dvy * sign));
+        this.cx = panLimit(drag.cx - dvx * sign, GRID_W);
+        this.cy = panLimit(drag.cy - dvy * sign, GRID_H);
         return;
       }
       if (!drag.pan && this.paintsLine()) {
@@ -805,8 +814,8 @@ export class DayScene implements Scene {
     const before = unproject(this.view, pointer.x, pointer.y);
     this.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, this.zoom * Math.exp(-deltaY * 0.0015)));
     const after = unproject(this.view, pointer.x, pointer.y);
-    this.cx = Math.min(GRID_W, Math.max(0, this.cx + before.gx - after.gx));
-    this.cy = Math.min(GRID_H, Math.max(0, this.cy + before.gy - after.gy));
+    this.cx = panLimit(this.cx + before.gx - after.gx, GRID_W);
+    this.cy = panLimit(this.cy + before.gy - after.gy, GRID_H);
   }
 
   onKeyDown(code: string): void {
