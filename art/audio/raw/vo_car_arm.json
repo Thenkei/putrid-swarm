@@ -1,0 +1,19 @@
+{
+  "id": "vo_car_arm",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[wry] Clé, vitesse, volant. D’une main, c’est un numéro de cirque.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:09:53.616Z",
+  "bytes": 79037,
+  "sha256": "663ab3f8988690fc3435cfb3ebe80fc49bd6d78bc405ed9aea86b50d06740a0a"
+}

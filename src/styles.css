@@ -1607,6 +1607,121 @@ button:disabled {
   white-space: nowrap;
 }
 
+/* A press waiting for the one hand: it will be done, as soon as the hand is there. */
+.trap.queued {
+  border-style: dashed;
+  border-color: #ffd23c;
+}
+
+.trap.queued .status {
+  background: #ffd23c;
+  color: #201405;
+}
+
+.mini.queued {
+  border-style: dashed;
+  border-color: #ffd23c;
+}
+
+/* The one hand left: which row of keys it is on, and how far along its way to the other. */
+.hand-gauge {
+  flex: none;
+  width: 196px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  margin-left: auto;
+  border-left: 2px solid var(--edge);
+}
+
+.trap-auto + .hand-gauge,
+.hand-gauge + .trap-hint {
+  margin-left: 0;
+}
+
+.hand-gauge.full {
+  animation: shake 0.22s linear;
+}
+
+.hand-title {
+  font-weight: 400;
+  font-size: 17px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cream-dim);
+}
+
+.hand-track {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  padding-top: 26px;
+}
+
+.hand-pad {
+  flex: 1 1 0;
+  padding: 4px 2px 2px;
+  text-align: center;
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6f685d;
+  background: #171411;
+  border: 2px solid #3a342c;
+  border-radius: 5px;
+}
+
+.hand-pad.on {
+  color: #f1dfb8;
+  border-color: #b9812a;
+}
+
+.hand-glyph {
+  position: absolute;
+  top: -14px;
+  height: 52px;
+  font-size: 34px;
+  line-height: 52px;
+  transform: translateX(-50%);
+  transition: left 0.1s linear;
+  filter: drop-shadow(0 2px 3px #000);
+  pointer-events: none;
+}
+
+.hand-meter {
+  height: 6px;
+  background: #0e0b08;
+  border: 1px solid #0c0a08;
+}
+
+.hand-meter i {
+  display: block;
+  height: 100%;
+  background: #cfd6d0;
+}
+
+.hand-gauge.wait .hand-meter i {
+  background: #ffd23c;
+}
+
+.hand-queue {
+  display: flex;
+  gap: 4px;
+  min-height: 22px;
+}
+
+.hand-queue b {
+  padding: 2px 7px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #201405;
+  background: #ffd23c;
+  border-radius: 4px;
+  animation: trap-now 0.42s ease-in-out infinite alternate;
+}
+
 .trap-empty {
   align-self: center;
   padding: 0 16px;

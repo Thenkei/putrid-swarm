@@ -9,7 +9,7 @@ import type { App, Scene } from '../engine/app';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt } from '../engine/i18n';
-import { drawPlate } from './common';
+import { drawPlate, oneArmed } from './common';
 import { goDay, goOrchard } from './flow';
 
 export class MorningScene implements Scene {
@@ -81,7 +81,7 @@ export class MorningScene implements Scene {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    drawPlate(ctx, 'plate_morning', { zoom: 1.03 + this.time * 0.003, focusX: 0.1, focusY: 0.5 });
+    drawPlate(ctx, 'plate_morning', { zoom: 1.03 + this.time * 0.003, focusX: 0.1, focusY: 0.5, oneArmed: oneArmed(this.app.state) });
   }
 
   onKeyDown(code: string): void {

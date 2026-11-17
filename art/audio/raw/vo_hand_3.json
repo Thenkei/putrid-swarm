@@ -1,0 +1,19 @@
+{
+  "id": "vo_hand_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[wry] Avant, j’avais une main pour chaque.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:11:30.703Z",
+  "bytes": 41838,
+  "sha256": "1ff59e6d0a02edb379d390c200fbb51abce20b14e4e05625708003c7d576dc9b"
+}

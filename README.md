@@ -39,6 +39,7 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Night | `1`–`4`, `Tab` | switch camera (or click a thumbnail) |
 | Night | `Space` | jump to the most threatened camera |
 | Night | `A Z E R T Y` (the top-left letter row on any layout) | fire the hand-fired traps of the current camera |
+| Night, one arm | the same keys | one hand works both rows: a key on the other row than the last one waits for the hand to get there (the hand on the trap bar shows it), then is done by itself |
 | Night | click a hand-fired trap in the feed | fire it |
 | Night | `Esc` / `P` | pause |
 | Night | `F3` | debug overlay: phase, wave, balances, per-sector counts, trap states |
@@ -70,7 +71,8 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 4. **The orchard, once.** During the second wave of night 2 the orchard camera stops sending: its feed is snow, its thumbnail counts nothing, its traps can still be fired blind and only its door is still heard. The next morning the day does not start before someone has been to look. That is a played cut-scene, seen through the protagonist's eyes: walk in, look around, and find a small white rabbit chewing the cable.
    - **Clap**, and it is gone; the cable is spliced and nothing is lost.
    - **Go up to it**, and it turns round. There is under a second to get the left arm up: too late is the end of the run; in time, the bite is on the arm, the rabbit has to be torn off, and the infection climbs. The saw is at the foot of the apple tree, the rope on the fence. Sawing with the rope tied above the bite costs the left arm; sawing without it, the rest; doing nothing, everything.
-   - **One arm, for the rest of the run.** The day it happens starts three hours late; every day after that, one hour late — a dressing takes two hands. It shows on the day's top bar and on the end screen.
+   - **One arm, for the rest of the run.** The day it happens starts four and a half hours late; every day after that, an hour and a half late — a dressing takes two hands. It shows on the day's top bar and on the end screen, and in every picture he is in from then on: the left sleeve is empty and knotted.
+   - **One hand at the desk.** Two hands work the desk at once, one on the trap row, one on the camera keys. One cannot be on both: after a press on one row, the other row is a second away. A press made in that second is not lost: it waits for the hand and is carried out when it gets there, in the order the keys were pressed — a trap key pressed after a camera key fires on the new camera. Pressing again on the same row costs nothing, and a hand that has rested a second is ready for either. The hand sits on the trap bar between the two rows: where it is, how far along its way, and the keys waiting for it; a trap or a thumbnail waiting for it is outlined. The first one-armed night says so, twice: as it begins, and the first time the hand has to cross.
 
    A run the orchard ends goes back to that morning, not to the night before.
 
@@ -122,7 +124,9 @@ The handoff listed these as open. They are settled here so the game could be bui
 | Chance in encounters | rolled once when the encounter appears (who, which lot, their three washers, their three intentions) and saved; no outcome is drawn after a button is pressed, and a reload replays nothing |
 | Power | one battery gauge per night, spent only by the horn and the floodlight |
 | Loss | house integrity reaches zero — or, once, the orchard |
-| The orchard | a scripted chapter, not a random event: night 2, second wave, the orchard camera. Its choices are made by doing the gesture (walk up, clap), never from a menu; its whole logic is a pure reducer (`core/orchard.ts`), the scene only draws it. Losing the arm is a standing cost in daylight rather than in combat, so the nights keep their balance |
+| The orchard | a scripted chapter, not a random event: night 2, second wave, the orchard camera. Its choices are made by doing the gesture (walk up, clap), never from a menu; its whole logic is a pure reducer (`core/orchard.ts`), the scene only draws it |
+| What one arm costs | daylight every morning, and a second at the desk each time the hand changes rows. Nothing else changes: the nights, the devices and the waves are the same with one arm. Tuned with `pnpm balance --arm`: a careful operator bound to the desk still holds every night on the yard its daylight pays for, and loses about a third more house over nights 3 to 7 than with two arms (it lost a twentieth more before the desk counted) |
+| One hand at the desk | the hand travels between the two rows rather than the keys being locked: a press is queued, never refused (four at most may wait), so the desk never seems to drop a key. The rule lives in `NightSim.act`, passed in like the camera outage; `trigger` stays the trap's own rule |
 | The amputation | implied, not shown: the protagonist looks up at the branches while he saws |
 | How the cut-scenes move | painted plates brought to life rather than frame-by-frame animation: several poses per character played in sequence (the rabbit stops chewing, pricks its ears, looks round, gathers itself, leaps), the protagonist's own hands coming into the frame for every gesture, a foreground that slides faster than the picture behind it, and procedural mist, leaves, breath and sparks. No blur filters: a whip-pan is the picture and two ghosts of itself |
 | The last scene | decided by the night the house falls on: the desk up to night 4, the mower from night 5. Its chart is laid on the measured beat of the track (`tools/beat.mjs`) and its chords are one recording replayed on a pentatonic, so nothing played can sound wrong. It has no fail state: what is played changes the tally, not the ending |
@@ -136,7 +140,7 @@ Still open: the protagonist's identity, what the opening ellipsis covers, the tr
 
 ```
 src/core/      simulation and rules: no DOM, deterministic, unit-tested
-  data/        every tunable number: devices, infected, waves, locations
+  data/        every tunable number: devices, infected, waves, locations, the one-handed desk
   night.ts     the night simulation
   yard.ts      building, repairing, the placement rule
   game.ts      campaign transitions: day (refuge ⇄ outing ⇄ road) → night → morning
@@ -145,18 +149,18 @@ src/core/      simulation and rules: no DOM, deterministic, unit-tested
   finale.ts    how a lost house ends: which scene, the chart of the song, what a strum is worth
 src/render/    isometric renderer, night lighting, CCTV effect, the infected's gaits
                (the two played cut-scenes animate their painted plates with scenes/atmosphere.ts: mist, leaves, breath, sparks, arms reaching into the frame)
-src/scenes/    title and opening (desk.ts: the desk and what can be poked on it), day, map, interiors, encounters (encounter.ts, washers.ts), night desk, morning, the orchard (orchard.ts), the last scene (finale.ts), endings
+src/scenes/    title and opening (desk.ts: the desk and what can be poked on it), day, map, interiors, encounters (encounter.ts, washers.ts), night desk (hand.ts: the one hand on the trap bar), morning, the orchard (orchard.ts), the last scene (finale.ts), endings
 src/engine/    app shell, assets, audio (recordings over a synthesised fallback), voice lines, variant decks, translations
 tests/         rule tests and the automatic operator used for balancing
 tools/         art and audio pipelines, development aids
 docs/          concept, lore and art direction
 ```
 
-Tuning never requires touching combat logic: change `src/core/data/*`, then run `pnpm balance` to replay all seven nights against reference layouts. Encounter numbers (odds, tolls, prices, daylight, how well each survivor throws) are in `src/core/data/rivals.ts`.
+Tuning never requires touching combat logic: change `src/core/data/*`, then run `pnpm balance` to replay all seven nights against reference layouts. `pnpm balance --arm` plays two arms against one, night by night, with an operator that watches one camera at a time through the same desk as the player; each run gets the yard its own daylight pays for, from a day-by-day model of searching and building (`yardBy` in `tests/operator.ts`, which says what it leaves out). Encounter numbers (odds, tolls, prices, daylight, how well each survivor throws) are in `src/core/data/rivals.ts`.
 
 `node tools/encounter-shots.mjs <dir> [url]` opens a running dev server on each kind of encounter, plays through the ways out and saves a screenshot of every step (`PS_LANG=en` for the English texts).
 
-`node tools/orchard-shots.mjs <dir> [spared,maimed,throat,bled,turned,night] [url]` plays the orchard down each branch the same way, and `node tools/finale-shots.mjs <dir> [desk,rampage,onearm] [url]` loses a night on purpose and plays what follows, chart included. `node tools/beat.mjs <track>` measures a track's tempo and first beat; its output is what `FINALE` in `src/core/finale.ts` records.
+`node tools/orchard-shots.mjs <dir> [spared,maimed,throat,bled,turned,night] [url]` plays the orchard down each branch the same way, and `node tools/finale-shots.mjs <dir> [desk,rampage,onearm] [url]` loses a night on purpose and plays what follows, chart included. `node tools/arm-shots.mjs <dir> [url]` plays the screens of a one-armed run — the day, a drive and a search, the way home, the van, the morning, the evening, a night with the hand crossing between the rows — and saves a screenshot of each. `node tools/beat.mjs <track>` measures a track's tempo and first beat; its output is what `FINALE` in `src/core/finale.ts` records.
 
 ## Art
 
@@ -172,6 +176,8 @@ pnpm art:process   # public/assets/ + manifest.json (chroma key, cut, resize)
 Every infected and every neighbour has an animation sheet per view: three poses of a walk cycle and one action pose (attack, wind-up, speech), generated with the character's own turnaround as reference and cut so that all poses share one scale and one centre line. The renderer plays them at each kind's cadence (a limp, a sprint, a gallop), and falls back to the single turnaround sprite wherever a pose is missing.
 
 The title desk is a retouch of a first pass (`edit:` entries): the painted smoke, the mug and the joint were taken out because the game draws its own, and the sticky note was moved off the glass and signed.
+
+Every picture the protagonist is in has a one-armed twin made the same way (`<plate>_one_arm`: the control room, the morning, the garage, the town, the boot, the return, the village, the van, the swarmed mower, and the rider on it). `heroArt` in `src/scenes/common.ts` picks the twin once the arm is gone, through `drawPlate(…, { oneArmed })`; a missing twin falls back on the original.
 
 `tools/art-manifest.mjs` is the single list of every image, its prompt and its references. The game tolerates missing art and draws placeholders, so one sprite can be regenerated without touching code. Generated images are derivatives of the concepts, not recovered originals; the old `Thendeo/PutridSwarm` ArtWorks folder is still unrecovered.
 

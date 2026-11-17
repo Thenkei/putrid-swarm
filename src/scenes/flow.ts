@@ -46,7 +46,7 @@ function unload(app: App): void {
     }
   }
   goDay(app);
-  if (state) tripLine('home', state.day);
+  if (state) tripLine('home', state);
 }
 
 /**

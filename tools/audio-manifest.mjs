@@ -64,6 +64,10 @@ export const AUDIO = [
 
   // ───────────── Desk and day ─────────────
   sfx('camera', 0.5, 'Switching channel on an old CCTV monitor: a very short burst of static and a relay click.', { gain: 0.6 }),
+  // The one hand left going from the trap row to the camera keys: heard often on a one-armed night.
+  sfx('hand_1', 0.6, 'A single hand sliding quickly across a wooden desk: a short dry rustle of a canvas jacket sleeve and fingertips brushing wood. Close, quiet, dry.', { gain: 0.5 }),
+  sfx('hand_2', 0.6, 'A canvas work jacket sleeve brushing over a keyboard and a wooden desk top in one quick sweep, then a soft tap of fingers landing on keys. Close, quiet, dry.', { gain: 0.5 }),
+  sfx('hand_3', 0.6, 'A quick swish of fabric as one arm reaches across a desk, a wooden chair creaking slightly under the shifted weight. Close, quiet, dry.', { gain: 0.5 }),
   sfx('alert', 0.7, 'A security console warning: two short urgent electronic beeps, old hardware. Dry.', { gain: 0.6 }),
   sfx('build', 1.1, 'Three quick hammer blows driving a nail into a wooden plank. Outdoors, dry.', { gain: 0.8 }),
   sfx('build_2', 1.0, 'Two hammer blows on a nail, then a plank knocked into place with the side of the hammer. Outdoors, dry.', { gain: 0.8 }),
@@ -225,10 +229,26 @@ export const AUDIO = [
   voice('vo_home_8', 'hero', 'Le soleil descend. Pas le temps de traîner.'),
   voice('vo_home_9', 'hero', '[weary] Chez soi. Enfin, ce qu’il en reste.'),
   voice('vo_home_10', 'hero', 'Encore un trajet sans croiser personne. Ça me va.'),
+  // Said only once the orchard has taken the arm, mixed into their moment's lines.
+  voice('vo_car_arm', 'hero', '[wry] Clé, vitesse, volant. D’une main, c’est un numéro de cirque.'),
+  voice('vo_car_arm_2', 'hero', 'Le volant avec le genou. Ça, on ne l’apprend pas à l’auto-école.'),
+  voice('vo_car_arm_3', 'hero', '[sighs] Ceinture. C’est plus long d’une main. Mais ceinture.'),
+  voice('vo_home_arm', 'hero', 'Rentré. Clouer d’une main : on tient le clou avec les dents.'),
+  voice('vo_home_arm_2', 'hero', '[exhales] Presque entier. Le break, lui, l’est encore.'),
+  voice('vo_home_arm_3', 'hero', 'On vide le coffre. Un carton à la fois.'),
   voice('vo_nightfall', 'hero', '[quietly] Quatre écrans. Une seule paire d’yeux.'),
   voice('vo_nightfall_2', 'hero', '[quietly] Les volets sont fermés. Les écrans sont allumés.'),
   voice('vo_nightfall_3', 'hero', '[quietly] Allez. Encore une nuit à regarder la télé.'),
   voice('vo_nightfall_4', 'hero', '[quietly] Ils sortent avec le noir. Comme les moustiques.'),
+  voice('vo_nightfall_arm', 'hero', '[quietly] Quatre écrans. Une seule main. On fera avec.'),
+  voice('vo_nightfall_arm_2', 'hero', '[quietly] Le bras me gratte. Celui qui n’est plus là.'),
+  voice('vo_nightfall_arm_3', 'hero', '[quietly] Une main sur les pièges, un œil sur les caméras. Allez.'),
+  // The desk with one hand: once when it is first worked that way, and now and then when the hand has to cross.
+  voice('vo_one_hand', 'hero', '[quietly] Une seule main. Les pièges, ou les caméras. Pas les deux à la fois.'),
+  voice('vo_hand', 'hero', '[muttering] Les pièges ou les caméras. Faut choisir.'),
+  voice('vo_hand_2', 'hero', '[hurried] Attends. J’arrive. J’ai qu’une main.'),
+  voice('vo_hand_3', 'hero', '[wry] Avant, j’avais une main pour chaque.'),
+  voice('vo_hand_4', 'hero', '[under his breath] Doucement. Une chose à la fois.'),
   voice('vo_night1', 'hero', 'Les pieux et le filet partent tout seuls. Le reste, c’est moi qui appuie.'),
   voice('vo_fire', 'hero', '[tense] Maintenant !'),
   voice('vo_switch', 'hero', '[tense] Ça bouge sur une autre caméra.'),
@@ -248,6 +268,9 @@ export const AUDIO = [
   voice('vo_dawn_2', 'hero', '[exhales] Le coq. Je n’ai jamais autant aimé ce coq.'),
   voice('vo_dawn_3', 'hero', '[relieved] Il fait jour. Ils s’en vont.'),
   voice('vo_dawn_4', 'hero', '[tired] Une de plus. Café.'),
+  voice('vo_dawn_arm', 'hero', '[exhales] Le jour. Je n’ai rien perdu cette nuit. Rien de plus.'),
+  voice('vo_dawn_arm_2', 'hero', '[relieved] Tenu. D’une main, mais tenu.'),
+  voice('vo_dawn_arm_3', 'hero', '[tired] Le coq. Je l’applaudirais bien.'),
   voice('vo_lost', 'hero', '[quietly] C’est fini. La maison est à eux.'),
   voice('vo_won', 'hero', 'Sept nuits. Plus personne ne frappe à la porte.'),
 

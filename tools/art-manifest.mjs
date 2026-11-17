@@ -93,6 +93,84 @@ export const ART = [
   { id: 'plate_return', kind: 'plate', w: 1280, source: { concept: C('10-return-before-night.png') } },
   { id: 'plate_village', kind: 'plate', w: 1280, source: { concept: C('05-neighborhood-scavenging.png') } },
 
+  // ───────────────────────────── The protagonist with one arm ─────────────────────────────
+  // Once the orchard has taken his left arm, every picture he is in is shown from its twin below:
+  // a retouch of the same picture with that one change (scenes/common.ts `heroArt` picks it).
+  // Which arm is his left is read from the way he faces: turned toward the right of the picture, his
+  // left side is the far one, so the arm that goes is the one the picture hardly shows, and the knot
+  // may not show at all.
+  ...[
+    {
+      id: 'plate_control_room_one_arm',
+      edit: C('12-surveillance-room.png'),
+      change:
+        'The scruffy bearded man seated at the desk, seen from behind and turned toward the computer on the right, has lost his LEFT arm, which is the arm on the FAR side of his body: the one reaching past his near arm to the computer MOUSE. ' +
+        'That forearm and that hand disappear completely, and the mouse lies alone on its mat with no hand on it. ' +
+        'The arm NEARER to the viewer — the one with the stitched patch on its elbow, whose hand rests on the small wooden box with three coloured buttons — stays EXACTLY as it is: same sleeve, same elbow patch, same hand on the box, no knot on it.',
+    },
+    {
+      id: 'plate_morning_one_arm',
+      edit: C('17-morning-after.png'),
+      change:
+        'The bearded man standing in the doorway with a steaming mug, facing the viewer, has lost his LEFT arm, which is the arm on the RIGHT side of the picture: in the original its hand is tucked in his trouser pocket. ' +
+        'Redraw that side of him with NO arm at all: no hand in the pocket, no forearm, no elbow — the trouser pocket is empty and flat, and between his body and the door frame there is only the dark wooden door. ' +
+        'From his shoulder on that side hangs only a short empty mustard-yellow sleeve, flattened, folded up and tied in one big knot just below the shoulder, so the missing arm is obvious at a glance. ' +
+        'His right hand, on the LEFT side of the picture, still holds the steaming mug exactly as before.',
+    },
+    {
+      id: 'plate_loc_garage_one_arm',
+      edit: C('15-neighbor-garage-interior.png'),
+      change:
+        'The man with the backpack at the workbench, seen from behind, has lost his LEFT arm, which is the one on the left side of the picture, whose hand rests on the car battery on the bench: it is gone, and the battery stays on the bench with no hand on it. ' +
+        'The empty left sleeve of his mustard-yellow jacket is folded up and tied in a single knot. His right hand still holds the lit torch, exactly as before.',
+    },
+    {
+      id: 'plate_town_one_arm',
+      edit: C('08-town-supply-run.png'),
+      change:
+        'The man with the backpack pushing the shopping trolley toward the left of the picture has lost his LEFT arm, which is the one nearer to the viewer, gripping the trolley handle in front of his body: it is gone, and the empty mustard-yellow sleeve is folded up and tied in a single knot. ' +
+        'He pushes the loaded trolley with his right hand alone, on the far side of his body, its hand on the handle.',
+    },
+    {
+      id: 'plate_trunk_one_arm',
+      edit: C('09-car-trunk-resources.png'),
+      change:
+        'The bearded man crouching on the left of the picture, turned toward the open boot on the right, has lost his LEFT arm, which is the arm on the FAR side of his body: the one whose hand is raised to his chin. ' +
+        'That hand and the forearm leading up to it disappear completely; his bearded chin and jaw are seen clearly, untouched. ' +
+        'The arm NEARER to the viewer, hanging from his shoulder down to the hand resting on his knee, stays EXACTLY as it is: same sleeve, same hand on the knee, no knot on it. He still looks at the open boot, thinking.',
+    },
+    {
+      id: 'plate_return_one_arm',
+      edit: C('10-return-before-night.png'),
+      change:
+        'The man in the yellow hooded jacket carrying a car battery from the station wagon to the workbench has lost his LEFT arm. ' +
+        'He now carries the car battery with his right hand alone, by the handle on its top, the battery hanging at his side; his left arm is not there.',
+    },
+    {
+      id: 'plate_village_one_arm',
+      edit: C('05-neighborhood-scavenging.png'),
+      change:
+        'The man with the backpack carrying a car battery toward the open boot of the station wagon, on the left, has lost his LEFT arm. ' +
+        'He now carries the car battery with his right hand alone, by the handle on its top, the battery hanging at his side; the empty left sleeve of his mustard-yellow jacket, on the side nearer to the viewer, is folded up and tied in a single knot.',
+    },
+    {
+      id: 'plate_van_one_arm',
+      edit: 'art/raw/plate_van.png',
+      change:
+        'The man in the mustard-yellow jacket with the backpack, walking away from the viewer toward the white van, has lost his LEFT arm, which is the arm on the LEFT side of the picture, swinging beside his body. ' +
+        'That arm must disappear completely: no hand, no forearm, nothing swinging. On that side the empty sleeve is folded up and tied in a single knot at the height of his ribs, against his side. His other arm stays hidden by his body and the backpack, as before.',
+    },
+  ].map(({ id, edit, change }) => ({
+    id,
+    kind: 'plate',
+    w: 1280,
+    edit,
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, every person and object in the same position and at the same size, same line work, same colours, same light, same canvas proportions — with only this change. ' +
+      `${change} ` +
+      'Paint in cleanly whatever the missing arm and hand used to hide. No blood, no bandage, no stump showing. Nobody and nothing else in the picture changes.',
+  })),
+
   // ───────────────────────────── Generated plates ─────────────────────────────
   {
     // First pass of the title desk. Not shipped: plate_title_desk below is a retouch of it.
@@ -851,11 +929,23 @@ export const ART = [
     ),
   },
   {
+    // With one arm there is one hand on the guitar: the one at the top of the neck goes.
+    id: 'plate_finale_swarmed_one_arm',
+    kind: 'plate',
+    w: 1280,
+    edit: 'art/raw/plate_finale_swarmed.png',
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, every figure and object in the same position and at the same size, same line work, same colours, same light, same canvas proportions — with only this change: ' +
+      'the electric guitar raised above the crowd in the centre is held up by ONE hand only, the hand at the end of the single mustard-yellow sleeve rising from the mower seat. Remove the other hand, the one gripping the top of the guitar neck near the headstock, and its wrist: paint the sparks, the orange glow and the night behind it instead. ' +
+      'The mustard-yellow sleeved arm, its hand, the guitar and its strap stay exactly as they are. Nobody and nothing else in the picture changes.',
+  },
+  {
     id: 'finale_mower',
     kind: 'split',
     cols: 2,
     rows: 1,
-    names: ['rider', 'rider_one_arm'],
+    // The one-armed rider of this sheet lost the wrong arm (the near one, his right): it is redrawn below.
+    names: ['rider', null],
     h: 520,
     refs: ['art/raw/plate_finale_shed.png', 'art/raw/plate_smoke.png'],
     prompt:
@@ -867,6 +957,20 @@ export const ART = [
       `${KEY} ${STYLE}`,
   },
 
+  {
+    // The rider of the sheet above, his left arm gone. Seen from the side facing right, his left arm is
+    // the far one, whose hand is on the neck; the near one, his right, keeps strumming.
+    id: 'finale_mower_rider_one_arm',
+    kind: 'sprite',
+    h: 520,
+    refs: ['art/raw/finale_mower.png'],
+    prompt:
+      'Game asset: ONE single drawing, centred, with wide empty margins. Draw again, identically, the LEFT drawing of the attached sheet — the modified red ride-on lawn mower with the huge steel blade at the front (on the right) and the two black amplifier stacks strapped at the back (on the left), and the scruffy bearded man in the mustard-yellow work jacket standing on its footplates, head thrown back, yelling — same mower, same man, same pose, same angle (exactly from the side, facing RIGHT), same proportions, same colours, same line work. ' +
+      'Only one change: the man has lost his LEFT arm, which — as he faces right with his chest toward the viewer — is the arm on the FAR side of his body, the one that reaches forward along the guitar neck to the frets. ' +
+      'That arm and its hand are gone: nothing holds the guitar neck, which points up and forward, the guitar hanging on its strap. At his far shoulder, partly hidden behind his chest and the guitar neck, only a short empty sleeve tied in a knot. ' +
+      'The arm NEARER to the viewer — the one on the LEFT side of the drawing, coming down from the shoulder closest to the amplifiers — keeps its full sleeve, no knot, and its hand strums hard over the strings on the body of the guitar, exactly as in the attached left drawing. ' +
+      `${KEY} ${STYLE}`,
+  },
   {
     // What comes into the picture at the desk, from its edges.
     id: 'finale_hands',

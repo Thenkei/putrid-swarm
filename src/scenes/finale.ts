@@ -727,7 +727,7 @@ export class FinaleScene implements Scene {
     };
     switch (this.stage) {
       case 'fall':
-        smeared(() => drawPlate(ctx, 'plate_control_room', { zoom: 1.06 + t * 0.02, focusY: 0.42 }));
+        smeared(() => drawPlate(ctx, 'plate_control_room', { zoom: 1.06 + t * 0.02, focusY: 0.42, oneArmed: this.oneArmed }));
         this.atmo.drawFront(ctx);
         break;
       case 'devoured': {
@@ -763,7 +763,7 @@ export class FinaleScene implements Scene {
         this.drawJam(ctx);
         break;
       case 'swarm':
-        drawPlate(ctx, 'plate_finale_swarmed', { zoom: 1.03 + t * 0.012, focusY: 0.5 });
+        drawPlate(ctx, 'plate_finale_swarmed', { zoom: 1.03 + t * 0.012, focusY: 0.5, oneArmed: this.oneArmed });
         this.atmo.drawFront(ctx);
         break;
     }

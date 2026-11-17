@@ -1,0 +1,19 @@
+{
+  "id": "vo_dawn_arm_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[relieved] Tenu. D’une main, mais tenu.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:10:15.539Z",
+  "bytes": 48526,
+  "sha256": "3708b9df312068bc50fd2452a8973ac78bb570c7c70d3f86a6e11ebddcf62a22"
+}
