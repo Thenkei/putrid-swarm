@@ -1,0 +1,15 @@
+{
+  "id": "cry_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A man behind the listener cries out in pain through clenched teeth, a strangled muffled shout that turns into a long shaking groan. Inside a small wooden shed. No words.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:46.431Z",
+  "bytes": 36405,
+  "sha256": "d21d1d573dc59ff0ca5e7c2077949a53c7c1660f1f955f069692217e62b19ed2"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "step_shed_4",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single quick footstep on a gritty earth floor, a faint scuff of the sole, inside a small wooden shed. Very close, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:32.240Z",
+  "bytes": 10492,
+  "sha256": "e40f8e50323c2dfaf415b91068747f82dec49db8d670ecccbed4ba2101a2583d"
+}

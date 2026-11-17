@@ -1,0 +1,15 @@
+{
+  "id": "chain_snap",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A heavy man lunges and a thick iron chain snaps taut with a violent metallic jerk, the wooden post it is locked to creaking under the strain, a short snarl. Very close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:42.134Z",
+  "bytes": 17179,
+  "sha256": "cc032df205e5f04625da7ecca2b8144c668144e58b6cd2b3e8f0ab988443cde9"
+}

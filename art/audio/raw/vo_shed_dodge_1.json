@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_dodge_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[startled, breathless] Pas les doigts !",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:27.574Z",
+  "bytes": 20105,
+  "sha256": "42e83d7b2a86fc8b363334d904d347e70d2b6620ec2f56e0abec46a2872ca69a"
+}

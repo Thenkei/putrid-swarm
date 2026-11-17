@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_name_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[softly] Pensez au fournil. À la boulangère.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:21.687Z",
+  "bytes": 43510,
+  "sha256": "d94f2573f2aef9275931cf58254c902c979520166fbf42e47156a2fbb613aa12"
+}

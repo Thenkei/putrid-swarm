@@ -75,6 +75,19 @@ export type Sfx =
   | 'heartbeat'
   | 'splice'
   | 'body_fall'
+  | 'step_shed'
+  | 'chain'
+  | 'snarl'
+  | 'chain_snap'
+  | 'zap'
+  | 'cry'
+  | 'pour'
+  | 'gulp'
+  | 'flour'
+  | 'knead'
+  | 'clamp'
+  | 'unlock'
+  | 'thud'
   | 'devour'
   | 'shed_door'
   | 'amp_on'
@@ -87,7 +100,7 @@ export type Sfx =
   | 'amp_die';
 
 export type Ambience = 'none' | 'room' | 'day' | 'night' | 'car';
-export type Music = 'none' | 'title' | 'day' | 'night' | 'boss' | 'morning' | 'won' | 'orchard' | 'panic' | 'finale';
+export type Music = 'none' | 'title' | 'day' | 'night' | 'boss' | 'morning' | 'won' | 'orchard' | 'shed' | 'panic' | 'finale';
 
 const STORAGE_KEY = 'putrid-swarm.sound';
 const MUSIC_KEY = 'putrid-swarm.music';
@@ -146,12 +159,18 @@ const VARIANTS: Partial<Record<Sfx, readonly string[]>> = {
   saw: numbered('saw', 4, false),
   heartbeat: numbered('heartbeat', 2, false),
   hand: numbered('hand', 3, false),
+  step_shed: numbered('step_shed', 4, false),
+  chain: numbered('chain', 3, false),
+  snarl: numbered('snarl', 3, false),
+  zap: numbered('zap', 2, false),
+  cry: numbered('cry', 2, false),
+  gulp: numbered('gulp', 2, false),
 };
 /** Effects heard many times in a row: a little pitch drift keeps them from sounding stamped. */
-const PITCH_DRIFT: Partial<Record<Sfx, number>> = { hit: 0.1, kill: 0.08, door: 0.06, spikes: 0.05, groan: 0.1, build: 0.05, rummage: 0.05, loot: 0.06, car_door: 0.04, engine: 0.03, washer: 0.08, tin: 0.06, scuffle: 0.05, step_grass: 0.08, chew: 0.06, pain: 0.05, yank: 0.06, saw: 0.06, heartbeat: 0.03, hand: 0.06 };
+const PITCH_DRIFT: Partial<Record<Sfx, number>> = { hit: 0.1, kill: 0.08, door: 0.06, spikes: 0.05, groan: 0.1, build: 0.05, rummage: 0.05, loot: 0.06, car_door: 0.04, engine: 0.03, washer: 0.08, tin: 0.06, scuffle: 0.05, step_grass: 0.08, chew: 0.06, pain: 0.05, yank: 0.06, saw: 0.06, heartbeat: 0.03, hand: 0.06, step_shed: 0.08, chain: 0.06, snarl: 0.06, cry: 0.04, gulp: 0.05 };
 /** Minimum seconds between two plays of the same effect. */
 const MIN_GAP: Partial<Record<Sfx, number>> = { hit: 0.09, kill: 0.14, door: 0.35, spikes: 0.08, groan: 1.5 };
-const LOOPING_MUSIC: ReadonlySet<Music> = new Set<Music>(['title', 'day', 'night', 'boss', 'orchard', 'panic']);
+const LOOPING_MUSIC: ReadonlySet<Music> = new Set<Music>(['title', 'day', 'night', 'boss', 'orchard', 'shed', 'panic']);
 const LOOP_CROSSFADE = 1.4;
 const DUCK = 0.4;
 /** Nothing stops dead: beds, voices and music are always faded out over these durations (seconds). */
@@ -844,6 +863,52 @@ class AudioEngine {
       case 'body_fall':
         this.tone('sine', 90, 38, 0.3, 0.45);
         this.noise('lowpass', 500, 160, 0.5, 0.3, 0.1);
+        break;
+      case 'step_shed':
+        this.noise('bandpass', 900 + Math.random() * 400, 500, 0.12, 0.14, 0, 0.9);
+        break;
+      case 'chain':
+        for (let i = 0; i < 6; i++) this.tone('triangle', 1800 + Math.random() * 900, 1500, 0.05, 0.05, i * 0.09);
+        break;
+      case 'snarl':
+        this.tone('sawtooth', 110 + Math.random() * 30, 80, 0.7, 0.1);
+        this.noise('bandpass', 700, 400, 0.6, 0.12, 0, 1.5);
+        break;
+      case 'chain_snap':
+        this.tone('square', 1400, 600, 0.12, 0.12);
+        this.noise('bandpass', 2600, 1200, 0.2, 0.3, 0, 2);
+        this.tone('sawtooth', 120, 70, 0.4, 0.1, 0.05);
+        break;
+      case 'zap':
+        // Buzz and spit, faded in and out like everything else: it is cut by fadeOut when let go.
+        this.tone('sawtooth', 100, 100, 1.4, 0.07);
+        for (let i = 0; i < 7; i++) this.noise('highpass', 4000, 2500, 0.05, 0.16, i * 0.19, 2);
+        break;
+      case 'cry':
+        this.tone('sawtooth', 260, 170, 1.1, 0.06);
+        break;
+      case 'pour':
+        this.noise('bandpass', 1800, 1300, 1.1, 0.12, 0, 1.4);
+        break;
+      case 'gulp':
+        for (let i = 0; i < 3; i++) this.tone('sine', 220, 120, 0.12, 0.18, i * 0.38);
+        break;
+      case 'flour':
+      case 'knead':
+        for (let i = 0; i < 3; i++) this.noise('lowpass', 700, 300, 0.2, 0.14, i * (name === 'knead' ? 0.5 : 0.22));
+        break;
+      case 'clamp':
+        this.tone('square', 2200, 1600, 0.04, 0.12);
+        this.tone('square', 2100, 1500, 0.04, 0.12, 0.2);
+        break;
+      case 'unlock':
+        this.tone('triangle', 1600, 1300, 0.06, 0.12);
+        this.tone('square', 900, 500, 0.08, 0.12, 0.25);
+        for (let i = 0; i < 5; i++) this.tone('triangle', 1400 + Math.random() * 700, 1100, 0.06, 0.05, 0.5 + i * 0.1);
+        break;
+      case 'thud':
+        this.tone('sine', 80, 40, 0.3, 0.4);
+        this.noise('lowpass', 400, 140, 0.4, 0.25, 0.08);
         break;
       case 'devour':
         for (let i = 0; i < 5; i++) this.noise('bandpass', 500 + Math.random() * 500, 240, 0.3, 0.3, i * 0.4, 1.4);

@@ -6,6 +6,7 @@
 // is the catalogue and the rules for reading what was stored; keeping it is the engine's business.
 
 import type { Ending as OrchardEnding } from './orchard';
+import type { Ending as ShedEnding } from './shed';
 
 /**
  * In the order they are listed to the player. Never rename an entry: ids are what browsers have
@@ -14,6 +15,8 @@ import type { Ending as OrchardEnding } from './orchard';
 export const ENDINGS = {
   /** The morning after night 2: shooed off, an arm, or the three ways it ends the run. */
   orchard: ['spared', 'maimed', 'throat', 'turned', 'bled'] satisfies readonly OrchardEnding[],
+  /** The morning after night 4: what became of the baker on his chain, or of whoever leaned too close. */
+  shed: ['freed', 'chained', 'finished', 'emptied', 'bitten'] satisfies readonly ShedEnding[],
   /**
    * How the house is left: at the desk (nights 1–4), on the mower after the house fell (5–7), on the
    * mower after the seventh dawn; and, whichever night it was, the song played to its last chord.

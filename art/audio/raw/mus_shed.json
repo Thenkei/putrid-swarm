@@ -1,0 +1,15 @@
+{
+  "id": "mus_shed",
+  "kind": "music",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/music",
+  "request": {
+    "prompt": "A dim garden shed at dawn, a man on a chain. A solo accordion plays a slow, sad French waltz phrase that keeps faltering and stopping halfway, over a low sustained cello drone and the faint creak of wood; a few soft plucked double-bass notes. Melancholy, tender, uneasy, very sparse, 60 bpm in three-four time, no percussion, no climax. Instrumental, loops cleanly.",
+    "model_id": "music_v2_5",
+    "music_length_ms": 70000,
+    "force_instrumental": true
+  },
+  "generatedAt": "2026-11-17T17:02:09.220Z",
+  "bytes": 1120592,
+  "sha256": "d721fd3a3b0c839c5f4063503e2cad8e9de8bc52e0ad2059b2e973996c1796cc"
+}

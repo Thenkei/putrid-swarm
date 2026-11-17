@@ -23,6 +23,12 @@ export const LINES = {
   smoke: ['vo_egg_smoke_1', 'vo_egg_smoke_2', 'vo_egg_smoke_3'],
   /** The one hand had to go from one row of keys to the other (one-armed nights only). */
   hand: numbered('vo_hand', 4),
+  // The shed: what comes back every time he drifts, comes to, is talked to, goes for you, or is lost mid-sentence.
+  shedName: ['vo_shed_name_1', 'vo_shed_name_2', 'vo_shed_name_3'],
+  shedDodge: ['vo_shed_dodge_1', 'vo_shed_dodge_2', 'vo_shed_dodge_3'],
+  shedCut: ['vo_shed_cut_1', 'vo_shed_cut_2', 'vo_shed_cut_3'],
+  bakerDrift: ['vo_baker_drift_1', 'vo_baker_drift_2', 'vo_baker_drift_3', 'vo_baker_drift_4'],
+  bakerLucid: ['vo_baker_lucid_1', 'vo_baker_lucid_2', 'vo_baker_lucid_3', 'vo_baker_lucid_4'],
 } as const satisfies Record<string, readonly VoiceId[]>;
 
 /**

@@ -1,0 +1,19 @@
+{
+  "id": "vo_baker_lucid_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[ashamed, quiet] Excusez-moi. Pour tout ça.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T17:02:48.814Z",
+  "bytes": 39331,
+  "sha256": "59ace2fe33026bfc5e29b1f2fca3f5024160d60fb42414f110d0a47c6e9a8162"
+}

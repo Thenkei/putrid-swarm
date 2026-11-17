@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_wired",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly, uncomfortable] Si je fais ça, je ne pourrai plus le regarder.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:16.763Z",
+  "bytes": 51034,
+  "sha256": "97e61eb91921b05c437f80d98c19c0fb9e5a15760e2f17d0a3efce09ba425e7b"
+}

@@ -7,7 +7,7 @@
 import { ONE_HAND } from './data/desk';
 import { DAY_HOURS } from './data/locations';
 import type { OneHand } from './night';
-import type { Fate, GameState, SectorId } from './types';
+import type { GameState, OrchardFate, SectorId } from './types';
 
 export const ORCHARD = {
   /** The night a camera stops sending, the wave during which it happens and how far into it. */
@@ -96,8 +96,8 @@ export type Beat =
   | 'mend'
   | 'over';
 
-export type Ending = 'spared' | 'maimed' | Fate;
-export const isFate = (ending: Ending): ending is Fate => ending === 'throat' || ending === 'turned' || ending === 'bled';
+export type Ending = 'spared' | 'maimed' | OrchardFate;
+export const isFate = (ending: Ending): ending is OrchardFate => ending === 'throat' || ending === 'turned' || ending === 'bled';
 
 /** What was done, in order, for the recap at the end. */
 export type Step = 'clapped' | 'approached' | 'guarded' | 'late' | 'torn' | 'rope' | 'tied' | 'saw' | 'cut' | 'mended';

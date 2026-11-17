@@ -1,0 +1,19 @@
+{
+  "id": "vo_baker_first_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[struggling, urgent] Il avait la clé. La clé de la…",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T17:03:02.602Z",
+  "bytes": 35569,
+  "sha256": "951c230dca6462782acb33bc41d568212f12a592d2836e6ee9956e0f65278223"
+}

@@ -2,9 +2,10 @@
 // dawn comes and they do not leave — or, once, the orchard. After the mower, this is the last picture
 // of that scene held still, with what the song was worth written over it.
 
+import { chapterOfFate } from '../core/chapters';
 import { finaleOf, type FinaleKind, type JamResult, type RecordOutcome } from '../core/finale';
 import { LAST_NIGHT } from '../core/data/waves';
-import { newGame, retryOrchard } from '../core/game';
+import { newGame, retryChapter } from '../core/game';
 import { hasLeftArm } from '../core/orchard';
 import type { GameState } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
@@ -14,7 +15,7 @@ import { S, fmt } from '../engine/i18n';
 import { endingsTally } from '../engine/progress';
 import { drawPlate } from './common';
 import { SWARMED } from './finale';
-import { goDay, goFinale, goNightfall, goOrchard, goTitle } from './flow';
+import { chapterEndPlate, goChapter, goDay, goFinale, goNightfall, goTitle } from './flow';
 
 /** What the last scene hands over. Empty when a finished run is merely reloaded. */
 export interface EndOptions {
@@ -67,15 +68,15 @@ export class EndScene implements Scene {
 
     const buttons: HTMLElement[] = [];
     const primary = (label: string, onClick: () => void): HTMLElement => el('button', { class: `btn ${buttons.length === 0 ? 'btn-primary' : ''}`, text: label, onClick });
-    // The orchard ended it: the night before was won, so it is that morning that is played again.
-    const again = state ? retryOrchard(state) : null;
+    // A chapter ended it: the night before was won, so it is that morning that is played again.
+    const again = state ? retryChapter(state) : null;
     if (again?.ok) {
-      const morning = again.value;
+      const { state: morning, chapter } = again.value;
       buttons.push(
-        primary(s.end.retryOrchard, () => {
+        primary(s.chapter[chapter].retry, () => {
           this.app.state = morning;
           this.app.save();
-          goOrchard(this.app);
+          goChapter(this.app, chapter);
         }),
       );
     }
@@ -155,7 +156,7 @@ export class EndScene implements Scene {
   render(ctx: CanvasRenderingContext2D): void {
     const state = this.app.state;
     if (state?.fate) {
-      drawPlate(ctx, 'plate_orchard_end', { zoom: 1.02 + this.time * 0.003, focusY: 0.45 });
+      drawPlate(ctx, chapterEndPlate(chapterOfFate(state.fate)), { zoom: 1.02 + this.time * 0.003, focusY: 0.45 });
       return;
     }
     if (this.kind === 'desk' || this.kind === null) {

@@ -2718,6 +2718,223 @@ button:disabled {
   margin: 6px 0;
 }
 
+/* ───────────────────────────── The shed ───────────────────────────── */
+
+/* Where he is, between the virus and the man: four bands and a needle. */
+.shed-gauge {
+  position: absolute;
+  left: 50%;
+  top: 66px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px 6px;
+  background: rgba(14, 10, 6, 0.72);
+  border: 2px solid rgba(226, 202, 150, 0.35);
+  border-radius: 8px;
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+.shed-gauge.on {
+  opacity: 1;
+}
+
+.shed-gauge .row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shed-gauge .bands {
+  position: relative;
+  display: flex;
+  width: 340px;
+  height: 14px;
+  border-radius: 7px;
+  overflow: visible;
+}
+
+.shed-gauge .band {
+  height: 100%;
+  opacity: 0.55;
+}
+
+.shed-gauge .band.feral {
+  background: #2f4a24;
+  border-radius: 7px 0 0 7px;
+}
+
+.shed-gauge .band.drift {
+  background: #8a6a2c;
+}
+
+.shed-gauge .band.lucid {
+  background: #f0dcaa;
+}
+
+.shed-gauge .band.breaking {
+  background: #b0301c;
+  border-radius: 0 7px 7px 0;
+}
+
+.shed-gauge[data-zone='feral'] .band.feral,
+.shed-gauge[data-zone='drift'] .band.drift,
+.shed-gauge[data-zone='lucid'] .band.lucid,
+.shed-gauge[data-zone='breaking'] .band.breaking {
+  opacity: 1;
+}
+
+.shed-gauge .needle {
+  position: absolute;
+  top: -6px;
+  width: 4px;
+  height: 26px;
+  margin-left: -2px;
+  background: #fff6e0;
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px rgba(10, 8, 5, 0.8);
+  transition: left 0.08s linear;
+}
+
+.shed-gauge b {
+  min-width: 118px;
+  font-family: var(--hud-font);
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cream);
+}
+
+.shed-gauge[data-zone='feral'] b {
+  color: #a8c98a;
+}
+
+.shed-gauge[data-zone='lucid'] b {
+  color: var(--amber);
+}
+
+.shed-gauge[data-zone='breaking'] b {
+  color: #ff9a88;
+  animation: danger 0.5s steps(2) infinite;
+}
+
+.shed-gauge .remnant {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #ffd9cf;
+}
+
+.shed-gauge .remnant.on {
+  display: flex;
+}
+
+.shed-gauge .remnant .bar {
+  width: 200px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.shed-gauge .remnant .bar i {
+  display: block;
+  height: 100%;
+  background: #e2ca96;
+}
+
+.shed-gauge .remnant.low .bar i {
+  background: var(--red);
+}
+
+/* The window in which he can be asked something: a header over the questions. */
+.shed-window {
+  position: absolute;
+  left: 58px;
+  top: 150px;
+  font-family: var(--slab-font);
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+  text-shadow: 0 2px 8px #000;
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+
+.shed-window.on {
+  opacity: 1;
+  animation: shed-window 1.1s ease-in-out infinite alternate;
+}
+
+@keyframes shed-window {
+  to {
+    color: #fff6e0;
+  }
+}
+
+.qte.ask {
+  transform: translate(0, -50%);
+  animation: qte-ask-in 0.22s ease-out both;
+}
+
+@keyframes qte-ask-in {
+  from {
+    opacity: 0;
+    transform: translate(-16px, -50%);
+  }
+}
+
+.qte.ask kbd {
+  min-width: 40px;
+  height: 40px;
+  font-size: 22px;
+}
+
+.qte.ask .what {
+  font-size: 22px;
+}
+
+.shed-card .learned {
+  margin: 4px 0 10px;
+  padding: 0 0 0 20px;
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+.chip-arm.chip-shed.good {
+  color: #e8f5d6;
+  background: rgba(60, 100, 40, 0.55);
+  border-color: rgba(120, 170, 80, 0.7);
+}
+
+.tonight .brief {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(226, 202, 150, 0.3);
+  font-size: 15px;
+  line-height: 1.25;
+  color: var(--cream);
+}
+
+.tonight .brief-row {
+  margin-top: 3px;
+}
+
+.tonight .brief-row b {
+  margin-right: 6px;
+  color: var(--amber);
+  font-weight: 400;
+}
+
 /* ───────────────────────────── The end ───────────────────────────── */
 
 .finale-skip {

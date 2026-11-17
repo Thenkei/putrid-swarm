@@ -1,0 +1,15 @@
+{
+  "id": "step_shed_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single slow footstep on a packed earth floor scattered with dry leaves, inside a small wooden shed: a soft gritty crunch. Very close, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:28.348Z",
+  "bytes": 10492,
+  "sha256": "054d7b845ef5eb6b6b9b733378bae2490e09f4cf6ac875280d8836d8a6ea8160"
+}

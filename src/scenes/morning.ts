@@ -1,8 +1,8 @@
 // The morning after: what the night cost, told by the yard itself.
 
 import { BARRICADE, HOUSE_MAX_HP } from '../core/data/devices';
+import { chapterWaiting } from '../core/chapters';
 import { bossOfNight, startNextDay } from '../core/game';
-import { awaitsOrchard } from '../core/orchard';
 import type { GameState } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import type { App, Scene } from '../engine/app';
@@ -10,7 +10,7 @@ import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt } from '../engine/i18n';
 import { drawPlate, oneArmed } from './common';
-import { goDay, goOrchard } from './flow';
+import { goChapter, goDay } from './flow';
 
 export class MorningScene implements Scene {
   private time = 0;
@@ -50,25 +50,27 @@ export class MorningScene implements Scene {
       }),
     ];
 
-    // A camera that went dark in the night comes before anything else.
-    const dark = awaitsOrchard(state) ? report?.cameraLost ?? null : null;
+    // A chapter waiting for this morning comes before anything else: a camera gone dark, someone in the shed.
+    const chapter = chapterWaiting(state);
+    const dark = chapter !== null ? report?.cameraLost ?? null : null;
     if (dark) rows.push(row(fmt(s.night.cam, { i: String(SECTOR_IDS.indexOf(dark) + 1).padStart(2, '0'), name: s.sector[dark] }), s.morning.signal, 'bad'));
     this.app.ui.append(
-      el('div', { class: `card report${dark ? ' tight' : ''}` }, [
+      el('div', { class: `card report${chapter ? ' tight' : ''}` }, [
         el('h2', { text: s.morning.title }),
         el('p', { text: fmt(s.morning.survived, { n: night }) }),
         el('table', {}, rows),
         el('p', { class: 'note', text: bossLine }),
-        dark ? el('p', { class: 'note alarm', text: s.morning.orchard }) : null,
-        el('div', { class: 'actions' }, [el('button', { class: 'btn btn-primary', text: dark ? s.morning.toOrchard : fmt(s.morning.next, { n: state.day + 1 }), onClick: () => this.next() })]),
+        chapter ? el('p', { class: 'note alarm', text: s.chapter[chapter].note }) : null,
+        el('div', { class: 'actions' }, [el('button', { class: 'btn btn-primary', text: chapter ? s.chapter[chapter].go : fmt(s.morning.next, { n: state.day + 1 }), onClick: () => this.next() })]),
       ]),
     );
   }
 
-  /** On to the day — or to the orchard first, when a camera has to be seen to. */
+  /** On to the day — or to the chapter this morning is waiting for. */
   private next(): void {
-    if (awaitsOrchard(this.state)) {
-      goOrchard(this.app);
+    const chapter = chapterWaiting(this.state);
+    if (chapter) {
+      goChapter(this.app, chapter);
       return;
     }
     this.app.state = startNextDay(this.state);

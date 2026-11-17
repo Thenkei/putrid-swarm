@@ -1,0 +1,15 @@
+{
+  "id": "gulp_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A man drinking water greedily from a bowl held to his lips: slurps and gulps, a little splashing, a gasp for breath. Very close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:50.142Z",
+  "bytes": 26792,
+  "sha256": "7e51805ff1fcf66700f08bcb71467e063fea0115958bee5cb018a78f34be9478"
+}

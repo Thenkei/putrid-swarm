@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_sit",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[sighs, calm] Bon. On va attendre. Tous les deux.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:19.514Z",
+  "bytes": 56049,
+  "sha256": "2011d1fe865760f58822d1416b35c2b3aa652d268f6a041e18f111086689eb6d"
+}

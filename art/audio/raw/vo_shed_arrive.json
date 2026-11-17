@@ -1,0 +1,19 @@
+{
+  "id": "vo_shed_arrive",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly, tired] Il est toujours là. La chaîne aussi.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T17:02:10.564Z",
+  "bytes": 44764,
+  "sha256": "6199275cbc447a996e34c4c7353ab580f208ca6e360e67fbd5241332a3ad44a1"
+}

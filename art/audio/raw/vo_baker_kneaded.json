@@ -1,0 +1,19 @@
+{
+  "id": "vo_baker_kneaded",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[surprised, tender] Oh. Ça, je connais.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T17:03:06.536Z",
+  "bytes": 36823,
+  "sha256": "c5e4a3930e739a0e6faa12f8fa02f2b80d8b5d869ebd1c61be80367f84880802"
+}

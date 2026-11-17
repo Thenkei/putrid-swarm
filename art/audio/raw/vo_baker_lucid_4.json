@@ -1,0 +1,19 @@
+{
+  "id": "vo_baker_lucid_4",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[sniffs, then embarrassed] Ça sent le levain, ici. Ah non. C’est moi.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T17:02:50.555Z",
+  "bytes": 66498,
+  "sha256": "3fc555c57a0d80a4b9e3b1790e02d18302b4098ad84ecec290383016ceb10e94"
+}

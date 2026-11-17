@@ -1,0 +1,15 @@
+{
+  "id": "chain_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A rusty chain being shaken impatiently at a wooden post: a rattling jangle, a scrape, a last clink. Close, dry, inside a small shed.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.5,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:35.977Z",
+  "bytes": 24702,
+  "sha256": "e0862ba6cab7741b4ee0f13449b6f7555c3e16eca83dd0ba26a19ba728d8ce0f"
+}

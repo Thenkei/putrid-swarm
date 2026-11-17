@@ -1,0 +1,15 @@
+{
+  "id": "cry_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A heavy-set man moaning in pain, half a sob and half a growl, his breath catching. Muffled, a few steps away, inside a small wooden shed. No words.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:01:47.787Z",
+  "bytes": 33061,
+  "sha256": "1165a4c5e8fb1bfa7f87899094bafdb0de0f9498e37dc2ec0361c577aa8354f5"
+}
