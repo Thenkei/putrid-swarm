@@ -16,7 +16,7 @@ import { S, fmt } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
 import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, pickDevice, type DeviceVisual, type Fallen, type Light, type Particle, type View, type WorldFrame } from '../render/world';
 import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, drawPlate, trapKeyLabels } from './common';
-import { goEnd, goFinale, goMorning, goNight, goTitle } from './flow';
+import { goFinale, goMorning, goNight, goTitle } from './flow';
 
 const MAIN = { x: 12, y: 54, w: 884, h: 497 } as const;
 const MINI = { x: 906, w: 362, h: 159, ys: [54, 223, 392] } as const;
@@ -792,9 +792,8 @@ export class NightScene implements Scene {
     this.app.state = concludeNight(this.state, this.sim);
     this.app.save();
     if (this.app.state.phase === 'morning') goMorning(this.app);
-    // A house that fell is not shown the door straight away: it gets its last scene first.
-    else if (this.app.state.phase === 'lost') goFinale(this.app);
-    else goEnd(this.app);
+    // A house that fell, or the seventh dawn, is not shown the door straight away: it gets its last scene first.
+    else goFinale(this.app);
   }
 
   private frame(sector: SectorId, main: boolean): WorldFrame {

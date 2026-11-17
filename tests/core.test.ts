@@ -514,11 +514,21 @@ describe('campaign', () => {
     expect(fresh.yard.houseHp).toBe(100);
   });
 
-  it('the last night won ends the campaign', () => {
+  it('the last night held ends the campaign on the seventh dawn, not on a morning', () => {
     const state: GameState = { ...newGame(1), day: 7, phase: 'night' };
     const sim = new NightSim(7, state.yard, 1);
     (sim as unknown as { outcome: string }).outcome = 'survived';
-    expect(concludeNight(state, sim).phase).toBe('won');
+    const held = concludeNight(state, sim);
+    expect(held.phase).toBe('held');
+    expect(held.lastNight?.survived).toBe(true);
+    // Nothing follows it: there is no eighth day.
+    expect(startNextDay(held)).toBe(held);
+  });
+
+  it('loads a run saved as won, from before nobody could win, as a run that held', () => {
+    const won = { ...newGame(1), day: 7, phase: 'won' };
+    expect(deserialize(JSON.stringify(won))).toMatchObject({ phase: 'held', day: 7 });
+    expect(deserialize(JSON.stringify({ ...won, phase: 'victorious' }))).toBeNull();
   });
 
   it('outings cost daylight, loot comes home in the boot, and spots empty for good', () => {

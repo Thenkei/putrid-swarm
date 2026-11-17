@@ -851,6 +851,29 @@ export const ART = [
     ),
   },
   {
+    // The seventh dawn: the quiet village of plate_victory, and then the same picture with everyone in it.
+    // An edit, so the two can be dissolved into one another without anything else moving.
+    id: 'plate_finale_dawn',
+    kind: 'plate',
+    w: 1280,
+    edit: 'art/raw/plate_victory.png',
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, the same cottage, car, fences, vegetable beds, mown strip and objects lying in the grass, every one in the same position and at the same size, the same golden sunrise light, the same line work and colours, the same canvas size — with only this change: ' +
+      'the garden, the mown strip, the vegetable beds, the lane and the hillside beyond the gate are now crowded with infected villagers, about forty of them, standing perfectly still, every one of them turned toward the front door of the cottage, arms hanging, waiting: ' +
+      'pale grey-green skin, white eyes, torn everyday autumn clothes — knitted cardigans, aprons, flat caps, slippers, overalls, a dressing gown. Each casts a long morning shadow. Nobody moves and nobody attacks: they simply did not leave at sunrise. ' +
+      'The crow is still on the fence post. Unsettling, quiet and absurdly patient.',
+  },
+  {
+    // How it ends after the seventh dawn: the same picture as plate_finale_swarmed, in the morning.
+    id: 'plate_finale_swarmed_dawn',
+    kind: 'plate',
+    w: 1280,
+    edit: 'art/raw/plate_finale_swarmed.png',
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, the same mower, amplifier stacks, raised guitar, sparks and crowd, every figure in the same position and at the same size, the same line work, the same canvas size — with only this change: it is early morning instead of night. ' +
+      'Remove the moon and the dark night sky: a pale sunrise sky, pink and gold, the low sun breaking between the rooftops at the top left; long golden morning light rakes across the crowd from the left; thin morning mist in the lane behind; the street lamps and the windows are unlit. The mower headlights and the sparks still glow. Nothing else changes.',
+  },
+  {
     id: 'finale_mower',
     kind: 'split',
     cols: 2,

@@ -276,6 +276,10 @@ export const AUDIO = [
   voice('vo_finale_one_arm', 'hero', '[short laugh] Un bras. Ça tombe bien : c’est du hard rock.'),
   voice('vo_finale_go', 'hero', '[shouting, exhilarated] Vous vouliez du bruit ?!', { stability: 0.3 }),
   voice('vo_finale_end', 'hero', '[tired, satisfied] C’était une belle soirée, quand même.'),
+  // The seventh dawn, which does not send them home.
+  voice('vo_finale_dawn', 'hero', '[quietly, puzzled] Ils ne partent pas. [beat] Ils attendent un rappel.'),
+  voice('vo_finale_shed_dawn', 'hero', '[fond, grinning] Bonjour, ma belle. Ce matin… on tond.'),
+  voice('vo_finale_end_dawn', 'hero', '[tired, satisfied] C’était une belle matinée, quand même.'),
 
   // ───────────── What is left of the neighbours ─────────────
   voice('bark_mayor_1', 'mayor', '[hoarse, rasping, through a megaphone] Mes chers… concitoyens ! Votez… pour… la stabilité !', { fx: 'megaphone', stability: 0.3 }),

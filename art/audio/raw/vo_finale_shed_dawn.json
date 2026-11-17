@@ -1,0 +1,19 @@
+{
+  "id": "vo_finale_shed_dawn",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[fond, grinning] Bonjour, ma belle. Ce matin… on tond.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T16:53:40.621Z",
+  "bytes": 62318,
+  "sha256": "0ff34cf1f9e9082f0dcfb76a45cf02464dd6b4c5848aa02b285b0d859f9185f6"
+}

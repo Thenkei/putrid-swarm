@@ -4,6 +4,7 @@
 // the sky while sawing), makes it heard, and puts the keys on screen. Nothing here changes the
 // campaign except `settle`, once, at the very end.
 
+import { endingId } from '../core/endings';
 import { settleOrchard } from '../core/game';
 import {
   ORCHARD,
@@ -30,6 +31,7 @@ import { sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
+import { endingsTally, rememberEnding as remember } from '../engine/progress';
 import { hush, say, type VoiceId } from '../engine/voice';
 import { Atmosphere, drawArm } from './atmosphere';
 import { goDay, goEnd, goTitle } from './flow';
@@ -154,28 +156,8 @@ const CLAP_SECONDS = 0.6;
 const TAKE_SECONDS = 0.5;
 const FLING_SECONDS = 0.7;
 const OUTRO: Readonly<Record<Ending, number>> = { spared: 2.8, maimed: 5.4, throat: 2.4, turned: 3.2, bled: 2.2 };
-const ENDINGS: readonly Ending[] = ['spared', 'maimed', 'throat', 'turned', 'bled'];
-const SEEN_KEY = 'putrid-swarm.orchard.seen';
-
-function seenEndings(): Ending[] {
-  try {
-    const raw: unknown = JSON.parse(localStorage.getItem(SEEN_KEY) ?? '[]');
-    return Array.isArray(raw) ? ENDINGS.filter((ending) => raw.includes(ending)) : [];
-  } catch {
-    return [];
-  }
-}
-
-function rememberEnding(ending: Ending): Ending[] {
-  const seen = seenEndings();
-  if (!seen.includes(ending)) seen.push(ending);
-  try {
-    localStorage.setItem(SEEN_KEY, JSON.stringify(seen));
-  } catch {
-    // Non-fatal: the count will simply start again.
-  }
-  return seen;
-}
+/** The orchard's endings are counted with every other in the game (core/endings.ts). */
+const rememberEnding = (ending: Ending): boolean => remember(endingId('orchard', ending));
 
 /** A vein: a crooked line from the bite, toward the hand (`up`) or the elbow, in fractions of the arm sprite. */
 interface Vein {
@@ -499,7 +481,7 @@ export class OrchardScene implements Scene {
     audio.setMusic('morning');
     const s = S();
     const text = s.orchard.ending[ending];
-    const seen = seenEndings();
+    const seen = endingsTally('orchard');
     const cost = ending === 'maimed' ? fmt(text.cost, { faint: hours(ORCHARD.faintHours + ORCHARD.dressingHours), dressing: hours(ORCHARD.dressingHours) }) : text.cost;
     const card = el('div', { class: `card orchard-card ${ending}` }, [
       el('h2', { text: text.title }),
@@ -513,7 +495,7 @@ export class OrchardScene implements Scene {
       // His last word on it is on the card itself, so it is not laid over the button as a subtitle.
       ending === 'maimed' ? el('p', { class: 'quote', text: `« ${s.voice.vo_orchard_one_arm} »` }) : null,
       el('div', { class: 'actions' }, [
-        el('span', { class: 'paths', text: fmt(s.orchard.paths, { n: seen.length, total: ENDINGS.length }) }),
+        el('span', { class: 'paths', text: fmt(s.orchard.paths, { n: seen.seen, total: seen.total }) }),
         el('button', { class: 'btn btn-primary', text: fmt(s.orchard.next, { n: this.state.day + 1 }), onClick: () => this.settle() }),
       ]),
     ]);

@@ -1313,6 +1313,24 @@
     "seconds": 2.299,
     "gain": 1
   },
+  "vo_finale_dawn": {
+    "file": "vo_finale_dawn.mp3",
+    "kind": "voice",
+    "seconds": 2.9,
+    "gain": 1
+  },
+  "vo_finale_shed_dawn": {
+    "file": "vo_finale_shed_dawn.mp3",
+    "kind": "voice",
+    "seconds": 3.527,
+    "gain": 1
+  },
+  "vo_finale_end_dawn": {
+    "file": "vo_finale_end_dawn.mp3",
+    "kind": "voice",
+    "seconds": 2.325,
+    "gain": 1
+  },
   "bark_mayor_1": {
     "file": "bark_mayor_1.mp3",
     "kind": "voice",

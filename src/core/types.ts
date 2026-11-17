@@ -92,7 +92,12 @@ export interface YardState {
   readonly decals: readonly Decal[];
 }
 
-export type Phase = 'day' | 'night' | 'morning' | 'lost' | 'won';
+/**
+ * `lost`: the house fell (or, with a `fate`, the orchard ended it). `held`: the seventh night was held —
+ * and the seventh dawn does not send them home, so the run ends on the mower all the same. There is no
+ * phase for a run that was won: every run ends with the village in the garden.
+ */
+export type Phase = 'day' | 'night' | 'morning' | 'lost' | 'held';
 
 export interface NightReport {
   readonly night: number;

@@ -8,7 +8,9 @@ import { LOCATIONS } from './data/locations';
 import { GROUP_IDS, LOCATION_IDS, RESOURCE_IDS, RIVAL_IDS, SECTOR_IDS } from './types';
 
 export const SAVE_VERSION = 1;
-const PHASES: readonly Phase[] = ['day', 'night', 'morning', 'lost', 'won'];
+const PHASES: readonly Phase[] = ['day', 'night', 'morning', 'lost', 'held'];
+/** Saved when holding the seventh night still counted as winning: the same run, under its new name. */
+const LEGACY_PHASES: Readonly<Record<string, Phase>> = { won: 'held' };
 
 export const serialize = (state: GameState): string => JSON.stringify(state);
 
@@ -155,7 +157,8 @@ export function deserialize(raw: string): GameState | null {
   }
   if (!isRecord(data) || data['version'] !== SAVE_VERSION) return null;
   if (!isNumber(data['seed']) || !isNumber(data['rng']) || !isNumber(data['day']) || !isNumber(data['hoursLeft'])) return null;
-  if (!PHASES.includes(data['phase'] as Phase)) return null;
+  const phase = LEGACY_PHASES[data['phase'] as string] ?? data['phase'];
+  if (!PHASES.includes(phase as Phase)) return null;
   if (data['where'] !== 'home' && data['where'] !== 'road' && !isLocation(data['where'])) return null;
 
   const inventory = data['inventory'];
@@ -174,7 +177,7 @@ export function deserialize(raw: string): GameState | null {
   if (!isRecord(data['flags']) || !isRecord(data['totals'])) return null;
 
   // A night in progress is not resumable: restart that night from the evening.
-  const parsed = data as unknown as GameState;
+  const parsed = { ...data, phase } as unknown as GameState;
   // Reports saved before automatic traps existed have no count for them.
   const lastNight = parsed.lastNight && {
     ...parsed.lastNight,

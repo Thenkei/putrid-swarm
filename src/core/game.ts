@@ -1,4 +1,4 @@
-// Campaign state machine: day (home ⇄ outings) → night → morning → next day, plus lost / won.
+// Campaign state machine: day (home ⇄ outings) → night → morning → next day, until the house is lost or the seventh night held.
 // Every transition is a pure function; scenes never mutate GameState.
 
 import { BARRICADE, HOUSE_MAX_HP } from './data/devices';
@@ -293,7 +293,10 @@ export function startNight(state: GameState): Result<GameState, DayError> {
   return ok({ ...state, phase: 'night', hoursLeft: 0 });
 }
 
-/** Night → morning / lost / won. The yard handed to the next day is the simulation's own result. */
+/**
+ * Night → morning, or the end: `lost` when the house fell, `held` when the last night was survived.
+ * The yard handed to the next day is the simulation's own result.
+ */
 export function concludeNight(state: GameState, sim: NightSim): GameState {
   if (state.phase !== 'night') return state;
   const report: NightReport = sim.report();
@@ -307,7 +310,7 @@ export function concludeNight(state: GameState, sim: NightSim): GameState {
     totals: { ...state.totals, kills: state.totals.kills + kills, triggers: state.totals.triggers + report.triggers },
   };
   if (!report.survived) return { ...base, phase: 'lost' };
-  if (state.day >= LAST_NIGHT) return { ...base, phase: 'won' };
+  if (state.day >= LAST_NIGHT) return { ...base, phase: 'held' };
   return { ...base, phase: 'morning' };
 }
 

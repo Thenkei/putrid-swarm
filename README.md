@@ -2,7 +2,7 @@
 
 A 2D isometric survival and defense game. By day, take the old yellow break into the village, search what the neighbours left behind and set improvised traps around the house. By night, sit at the camera desk: the simple traps go off by themselves, the big ones wait for your signal, one sector at a time, while familiar neighbours come back as bosses who still cling to their habits.
 
-The game is playable from the opening on the protagonist's computer screen to the seventh dawn. French is the source language; English is available in the options.
+The game is playable from the opening on the protagonist's computer screen to the seventh dawn, and past it to the one way every run ends. French is the source language; English is available in the options.
 
 ## Play
 
@@ -49,6 +49,7 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Orchard | `Esc` | pause (every prompt can also be clicked or held with the pointer) |
 | The end | hold one of `A Z E R T Y`, hit `Space` | a chord, and the strings; `Enter` leaves once it is offered |
 | The end | `←` `→` at the shed, `Tab` during the song | choose how it is played: easy (three keys, slower notes, the default) or furious (six keys) |
+| End screen | "Rejouer le morceau" | after the mower: the song again from the shed, for the record; the run stays where it ended |
 | Title | click the monitor's power button, the joint, the mug, the speaker (wheel for fine volume) | nothing useful |
 
 ## The loop as built
@@ -76,7 +77,13 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 
 The house falls when its integrity reaches zero; infected only get in through a door whose barricade is down. A night ends when the lot is clear or at first light, whichever comes first.
 
-**A lost house gets a last scene.** On the first four nights it is short: the control room door gives way. From the fifth night it goes out through the shed, on a ride-on mower with a blade on the front and two amplifier stacks on the back, the keyboard played like a guitar over eighty seconds of hard rock: a top-row key holds a chord, `Space` hits the strings, right notes on the beat carry further. After thirty seconds leaving is offered; the song can also be played to its last chord. Either way it ends the same, and then the usual choice: play that night again, or start over.
+**Every run ends the same way: eaten.** There is no winning. A house lost on the first four nights is short: the control room door gives way. From the fifth night it goes out through the shed, on a ride-on mower with a blade on the front and two amplifier stacks on the back, the keyboard played like a guitar over eighty seconds of hard rock: a top-row key holds a chord, `Space` hits the strings, right notes on the beat carry further. After thirty seconds leaving is offered; the song can also be played to its last chord. Either way the petrol runs out among them.
+
+**Holding the seventh night earns the best of it.** The seventh dawn comes, the quiet village of the old victory screen with its music and its line, "Sept nuits. Plus personne ne frappe à la porte." Then the same picture with the whole village standing in the garden, facing the door. They do not leave. "Ils attendent un rappel." The shed, in the morning light, and the same song.
+
+**The end screen is the last picture held still.** After the mower it stays on the horde, and writes over it what the song was worth: how many were mown, the best streak, the perfect notes, which way it was played and whether to the last chord, and how that stands against the record kept for that way of playing (a song switched halfway counts as the easy one). A new record lands like a stamp. A lost house offers to replay its night; a run that held all seven does not, it only offers the song again. Its words and its picture follow the ending: the desk, the mower after a lost house, the mower at the seventh dawn, or one of the orchard's three deaths.
+
+**Endings seen.** The game keeps, in this browser, which endings have been reached: the orchard's five and the last scene's four (the desk, the mower after a lost house, the mower at the seventh dawn, and the song played to its last chord). The end screen counts them, and so does a corner of the title monitor once there is one to count.
 
 **The first night teaches itself.** The yard starts with a palisade across the drive, automatic stakes in its one gap, a log over the front step and stakes on the barn doorstep. The night holds still twice, the first time each thing matters: once until the log has been dropped, once until the camera has been switched. After that the yellow key is the only prompt.
 
@@ -121,16 +128,17 @@ The handoff listed these as open. They are settled here so the game could be bui
 | Load and stock | separate. An encounter can only take from the boot, and only what it announced |
 | Chance in encounters | rolled once when the encounter appears (who, which lot, their three washers, their three intentions) and saved; no outcome is drawn after a button is pressed, and a reload replays nothing |
 | Power | one battery gauge per night, spent only by the horn and the floodlight |
-| Loss | house integrity reaches zero — or, once, the orchard |
+| Loss | house integrity reaches zero — or, once, the orchard. A run that holds the seventh night is lost too, at dawn, on the mower |
 | The orchard | a scripted chapter, not a random event: night 2, second wave, the orchard camera. Its choices are made by doing the gesture (walk up, clap), never from a menu; its whole logic is a pure reducer (`core/orchard.ts`), the scene only draws it. Losing the arm is a standing cost in daylight rather than in combat, so the nights keep their balance |
 | The amputation | implied, not shown: the protagonist looks up at the branches while he saws |
 | How the cut-scenes move | painted plates brought to life rather than frame-by-frame animation: several poses per character played in sequence (the rabbit stops chewing, pricks its ears, looks round, gathers itself, leaps), the protagonist's own hands coming into the frame for every gesture, a foreground that slides faster than the picture behind it, and procedural mist, leaves, breath and sparks. No blur filters: a whip-pan is the picture and two ghosts of itself |
-| The last scene | decided by the night the house falls on: the desk up to night 4, the mower from night 5. Its chart is laid on the measured beat of the track (`tools/beat.mjs`) and its chords are one recording replayed on a pentatonic, so nothing played can sound wrong. It has no fail state: what is played changes the tally, not the ending |
-| Winning | unchanged: the seventh dawn still ends the run on the quiet village. Whether that should also end on the mower is open |
+| The last scene | decided by how the run ends: the desk for a house lost up to night 4, the mower for one lost from night 5 and for the seventh dawn. Its chart follows the track as measured, not as heard: `tools/beat.mjs --bars` finds where each bar starts, the riff, the guitar line over it and where it holds a note, the drum fills and the final chord, and the chart gives each its own character — the root while the riff chugs, held notes where the line holds, nothing during a fill, the solo (the second line section, the one guess in it) as the busiest and highest stretch, and the last note on the final chord. Its chords are one recording replayed on a pentatonic, so nothing played can sound wrong. It has no fail state: what is played changes the tally and the record, not the ending |
+| Winning | there is none. Holding the seventh night leads to the mower like a house lost on the fifth, through the quiet dawn that used to be the victory; the run is told apart by its words, its morning light, its nights held and by offering no night to replay. A save made as `won` before this loads as a run that held |
+| Records and endings seen | kept in the browser's local storage, apart from the save, so a new run keeps them; one record per way of playing; endings listed by chapter in `core/endings.ts`, where a new chapter adds its own in one line. The title only shows the count once one ending has been seen |
 | Campaign | seven scripted nights; neighbours turn on fixed nights |
 | Setting | a French village, following the concept art; names stay role labels |
 
-Still open: the protagonist's identity, what the opening ellipsis covers, the truth about patient zero, and whether the run should continue past the seventh night. The broadcast is newly written from the provisional one in `docs/LORE.md`. The protagonist speaks with a young male French voice because a voice had to be chosen; his lines say nothing about who he is.
+Still open: the protagonist's identity, what the opening ellipsis covers, and the truth about patient zero. The broadcast is newly written from the provisional one in `docs/LORE.md`. The protagonist speaks with a young male French voice because a voice had to be chosen; his lines say nothing about who he is.
 
 ## Layout
 
@@ -142,11 +150,12 @@ src/core/      simulation and rules: no DOM, deterministic, unit-tested
   game.ts      campaign transitions: day (refuge ⇄ outing ⇄ road) → night → morning
   encounters.ts  disputed lots and roadblocks: who appears, every way out, what each costs
   orchard.ts   the morning after night 2: every beat, key and timing of the scene, and what it costs afterwards
-  finale.ts    how a lost house ends: which scene, the chart of the song, what a strum is worth
+  finale.ts    how a run ends: which scene, the measured shape of the song and the chart laid on it, what a strum is worth, the record
+  endings.ts   every ending of the game, by chapter, and how to read what a browser kept of them
 src/render/    isometric renderer, night lighting, CCTV effect, the infected's gaits
                (the two played cut-scenes animate their painted plates with scenes/atmosphere.ts: mist, leaves, breath, sparks, arms reaching into the frame)
-src/scenes/    title and opening (desk.ts: the desk and what can be poked on it), day, map, interiors, encounters (encounter.ts, washers.ts), night desk, morning, the orchard (orchard.ts), the last scene (finale.ts), endings
-src/engine/    app shell, assets, audio (recordings over a synthesised fallback), voice lines, variant decks, translations
+src/scenes/    title and opening (desk.ts: the desk and what can be poked on it), day, map, interiors, encounters (encounter.ts, washers.ts), night desk, morning, the orchard (orchard.ts), the last scene (finale.ts), the end screen (end.ts)
+src/engine/    app shell, assets, audio (recordings over a synthesised fallback), voice lines, variant decks, translations, what is kept between runs (progress.ts: endings seen, records)
 tests/         rule tests and the automatic operator used for balancing
 tools/         art and audio pipelines, development aids
 docs/          concept, lore and art direction
@@ -156,7 +165,7 @@ Tuning never requires touching combat logic: change `src/core/data/*`, then run 
 
 `node tools/encounter-shots.mjs <dir> [url]` opens a running dev server on each kind of encounter, plays through the ways out and saves a screenshot of every step (`PS_LANG=en` for the English texts).
 
-`node tools/orchard-shots.mjs <dir> [spared,maimed,throat,bled,turned,night] [url]` plays the orchard down each branch the same way, and `node tools/finale-shots.mjs <dir> [desk,rampage,onearm] [url]` loses a night on purpose and plays what follows, chart included. `node tools/beat.mjs <track>` measures a track's tempo and first beat; its output is what `FINALE` in `src/core/finale.ts` records.
+`node tools/orchard-shots.mjs <dir> [spared,maimed,throat,bled,turned,night] [url]` plays the orchard down each branch the same way, and `node tools/finale-shots.mjs <dir> [desk,rampage,onearm,dawn,fates,title] [url]` ends runs on purpose (a lost night, a seventh night that cannot be lost) and plays what follows, chart, records, end screens and the title's count included. `node tools/beat.mjs <track>` measures a track's tempo and first beat; with `--bars` it then describes the track bar by bar (beat one, loudness, attacks, brightness, how far a single line stands out and how far it wanders, drum fills, sections, the final chord and the silence after it). Its output is what `FINALE` and `SONG` in `src/core/finale.ts` record.
 
 ## Art
 

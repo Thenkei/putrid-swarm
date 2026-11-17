@@ -1,0 +1,19 @@
+{
+  "id": "vo_finale_dawn",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly, puzzled] Ils ne partent pas. [beat] Ils attendent un rappel.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T16:53:01.216Z",
+  "bytes": 52287,
+  "sha256": "86d2e098cf04c309ed1b688f5526c2b9a20c5451f1b92d18a717bb9c1f491245"
+}

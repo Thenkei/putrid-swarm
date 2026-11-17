@@ -1238,5 +1238,15 @@
     "file": "sprites/finale_hands_c.webp",
     "w": 267,
     "h": 600
+  },
+  "plate_finale_dawn": {
+    "file": "plates/plate_finale_dawn.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_finale_swarmed_dawn": {
+    "file": "plates/plate_finale_swarmed_dawn.webp",
+    "w": 1280,
+    "h": 853
   }
 }
