@@ -1,0 +1,15 @@
+{
+  "id": "radio_squelch_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "The squelch tail of a CB radio after someone stops talking: a short harsh burst of static, \"kssshh\", ending on a click. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:59:50.055Z",
+  "bytes": 13835,
+  "sha256": "ef0f053e88aaaffaa0de82aae0f65c4305f7c090e5b66f410e50dbc137cde431"
+}

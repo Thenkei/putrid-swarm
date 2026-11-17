@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_dealer_owes_gone",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[sighs] Bon. Personne. Je garde le lot. Comme d’habitude. Terminé.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-17T18:01:19.720Z",
+  "bytes": 86978,
+  "sha256": "dab47394613566a9a87ffe85627762f1b8a1f0b48d95f683d1ff19071a0efc1b"
+}

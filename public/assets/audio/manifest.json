@@ -803,6 +803,72 @@
     "seconds": 1.019,
     "gain": 0.8
   },
+  "radio_static": {
+    "file": "radio_static.mp3",
+    "kind": "loop",
+    "seconds": 10.005,
+    "gain": 0.55
+  },
+  "radio_knob_1": {
+    "file": "radio_knob_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.392,
+    "gain": 0.55
+  },
+  "radio_knob_2": {
+    "file": "radio_knob_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.209,
+    "gain": 0.55
+  },
+  "radio_knob_3": {
+    "file": "radio_knob_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.705,
+    "gain": 0.55
+  },
+  "radio_ptt_1": {
+    "file": "radio_ptt_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.496,
+    "gain": 0.6
+  },
+  "radio_ptt_2": {
+    "file": "radio_ptt_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.575,
+    "gain": 0.6
+  },
+  "radio_ptt_3": {
+    "file": "radio_ptt_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.47,
+    "gain": 0.6
+  },
+  "radio_squelch_1": {
+    "file": "radio_squelch_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.81,
+    "gain": 0.6
+  },
+  "radio_squelch_2": {
+    "file": "radio_squelch_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.81,
+    "gain": 0.6
+  },
+  "radio_squelch_3": {
+    "file": "radio_squelch_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.366,
+    "gain": 0.6
+  },
+  "radio_off": {
+    "file": "radio_off.mp3",
+    "kind": "sfx",
+    "seconds": 1.567,
+    "gain": 0.75
+  },
   "devour": {
     "file": "devour.mp3",
     "kind": "sfx",
@@ -1791,6 +1857,612 @@
     "file": "vo_baker_kneaded.mp3",
     "kind": "voice",
     "seconds": 1.959,
+    "gain": 1
+  },
+  "vo_radio_arrive": {
+    "file": "vo_radio_arrive.mp3",
+    "kind": "voice",
+    "seconds": 5.016,
+    "gain": 1
+  },
+  "vo_radio_found": {
+    "file": "vo_radio_found.mp3",
+    "kind": "voice",
+    "seconds": 2.116,
+    "gain": 1
+  },
+  "vo_radio_hello": {
+    "file": "vo_radio_hello.mp3",
+    "kind": "voice",
+    "seconds": 4.153,
+    "gain": 1
+  },
+  "vo_radio_lost_1": {
+    "file": "vo_radio_lost_1.mp3",
+    "kind": "voice",
+    "seconds": 1.881,
+    "gain": 1
+  },
+  "vo_radio_lost_2": {
+    "file": "vo_radio_lost_2.mp3",
+    "kind": "voice",
+    "seconds": 2.116,
+    "gain": 1
+  },
+  "vo_radio_lost_3": {
+    "file": "vo_radio_lost_3.mp3",
+    "kind": "voice",
+    "seconds": 2.064,
+    "gain": 1
+  },
+  "vo_radio_one_hand": {
+    "file": "vo_radio_one_hand.mp3",
+    "kind": "voice",
+    "seconds": 4.18,
+    "gain": 1
+  },
+  "vo_radio_news": {
+    "file": "vo_radio_news.mp3",
+    "kind": "voice",
+    "seconds": 2.952,
+    "gain": 1
+  },
+  "vo_radio_baker": {
+    "file": "vo_radio_baker.mp3",
+    "kind": "voice",
+    "seconds": 2.534,
+    "gain": 1
+  },
+  "vo_radio_off": {
+    "file": "vo_radio_off.mp3",
+    "kind": "voice",
+    "seconds": 2.273,
+    "gain": 1
+  },
+  "vo_radio_end_trusted": {
+    "file": "vo_radio_end_trusted.mp3",
+    "kind": "voice",
+    "seconds": 1.855,
+    "gain": 1
+  },
+  "vo_radio_end_bargained": {
+    "file": "vo_radio_end_bargained.mp3",
+    "kind": "voice",
+    "seconds": 2.508,
+    "gain": 1
+  },
+  "vo_radio_end_lied": {
+    "file": "vo_radio_end_lied.mp3",
+    "kind": "voice",
+    "seconds": 0.418,
+    "gain": 1
+  },
+  "vo_radio_end_refused": {
+    "file": "vo_radio_end_refused.mp3",
+    "kind": "voice",
+    "seconds": 1.463,
+    "gain": 1
+  },
+  "vo_radio_end_silence": {
+    "file": "vo_radio_end_silence.mp3",
+    "kind": "voice",
+    "seconds": 1.541,
+    "gain": 1
+  },
+  "vo_radio_ham_stay": {
+    "file": "vo_radio_ham_stay.mp3",
+    "kind": "voice",
+    "seconds": 2.612,
+    "gain": 1
+  },
+  "vo_radio_ham_info": {
+    "file": "vo_radio_ham_info.mp3",
+    "kind": "voice",
+    "seconds": 2.064,
+    "gain": 1
+  },
+  "vo_radio_ham_many": {
+    "file": "vo_radio_ham_many.mp3",
+    "kind": "voice",
+    "seconds": 2.664,
+    "gain": 1
+  },
+  "vo_radio_dealer_owes_address": {
+    "file": "vo_radio_dealer_owes_address.mp3",
+    "kind": "voice",
+    "seconds": 4.833,
+    "gain": 1
+  },
+  "vo_radio_dealer_owes_landmark": {
+    "file": "vo_radio_dealer_owes_landmark.mp3",
+    "kind": "voice",
+    "seconds": 3.553,
+    "gain": 1
+  },
+  "vo_radio_dealer_owes_keep": {
+    "file": "vo_radio_dealer_owes_keep.mp3",
+    "kind": "voice",
+    "seconds": 2.56,
+    "gain": 1
+  },
+  "vo_radio_camper_owes_shelter": {
+    "file": "vo_radio_camper_owes_shelter.mp3",
+    "kind": "voice",
+    "seconds": 2.717,
+    "gain": 1
+  },
+  "vo_radio_camper_owes_shed": {
+    "file": "vo_radio_camper_owes_shed.mp3",
+    "kind": "voice",
+    "seconds": 4.624,
+    "gain": 1
+  },
+  "vo_radio_camper_owes_no": {
+    "file": "vo_radio_camper_owes_no.mp3",
+    "kind": "voice",
+    "seconds": 2.247,
+    "gain": 1
+  },
+  "vo_radio_dealer_grudge_address": {
+    "file": "vo_radio_dealer_grudge_address.mp3",
+    "kind": "voice",
+    "seconds": 3.5,
+    "gain": 1
+  },
+  "vo_radio_dealer_grudge_lie": {
+    "file": "vo_radio_dealer_grudge_lie.mp3",
+    "kind": "voice",
+    "seconds": 3.082,
+    "gain": 1
+  },
+  "vo_radio_dealer_grudge_planks": {
+    "file": "vo_radio_dealer_grudge_planks.mp3",
+    "kind": "voice",
+    "seconds": 3.082,
+    "gain": 1
+  },
+  "vo_radio_camper_grudge_battery": {
+    "file": "vo_radio_camper_grudge_battery.mp3",
+    "kind": "voice",
+    "seconds": 4.258,
+    "gain": 1
+  },
+  "vo_radio_camper_grudge_refuse": {
+    "file": "vo_radio_camper_grudge_refuse.mp3",
+    "kind": "voice",
+    "seconds": 2.064,
+    "gain": 1
+  },
+  "vo_radio_camper_grudge_invite": {
+    "file": "vo_radio_camper_grudge_invite.mp3",
+    "kind": "voice",
+    "seconds": 2.429,
+    "gain": 1
+  },
+  "vo_cb_ham_call_1": {
+    "file": "vo_cb_ham_call_1.mp3",
+    "kind": "voice",
+    "seconds": 3.553,
+    "gain": 1
+  },
+  "vo_cb_ham_call_2": {
+    "file": "vo_cb_ham_call_2.mp3",
+    "kind": "voice",
+    "seconds": 3.918,
+    "gain": 1
+  },
+  "vo_cb_ham_call_3": {
+    "file": "vo_cb_ham_call_3.mp3",
+    "kind": "voice",
+    "seconds": 4.127,
+    "gain": 1
+  },
+  "vo_cb_ham_1": {
+    "file": "vo_cb_ham_1.mp3",
+    "kind": "voice",
+    "seconds": 5.355,
+    "gain": 1
+  },
+  "vo_cb_ham_2": {
+    "file": "vo_cb_ham_2.mp3",
+    "kind": "voice",
+    "seconds": 5.669,
+    "gain": 1
+  },
+  "vo_cb_ham_3": {
+    "file": "vo_cb_ham_3.mp3",
+    "kind": "voice",
+    "seconds": 5.433,
+    "gain": 1
+  },
+  "vo_cb_ham_ask": {
+    "file": "vo_cb_ham_ask.mp3",
+    "kind": "voice",
+    "seconds": 4.65,
+    "gain": 1
+  },
+  "vo_cb_ham_nudge": {
+    "file": "vo_cb_ham_nudge.mp3",
+    "kind": "voice",
+    "seconds": 4.258,
+    "gain": 1
+  },
+  "vo_cb_ham_gone": {
+    "file": "vo_cb_ham_gone.mp3",
+    "kind": "voice",
+    "seconds": 4.807,
+    "gain": 1
+  },
+  "vo_cb_ham_re_stay": {
+    "file": "vo_cb_ham_re_stay.mp3",
+    "kind": "voice",
+    "seconds": 9.822,
+    "gain": 1
+  },
+  "vo_cb_ham_re_stay_2": {
+    "file": "vo_cb_ham_re_stay_2.mp3",
+    "kind": "voice",
+    "seconds": 3.762,
+    "gain": 1
+  },
+  "vo_cb_ham_re_info": {
+    "file": "vo_cb_ham_re_info.mp3",
+    "kind": "voice",
+    "seconds": 3.396,
+    "gain": 1
+  },
+  "vo_cb_ham_re_many": {
+    "file": "vo_cb_ham_re_many.mp3",
+    "kind": "voice",
+    "seconds": 6.243,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_call_1": {
+    "file": "vo_cb_dealer_owes_call_1.mp3",
+    "kind": "voice",
+    "seconds": 3.736,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_call_2": {
+    "file": "vo_cb_dealer_owes_call_2.mp3",
+    "kind": "voice",
+    "seconds": 4.545,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_call_3": {
+    "file": "vo_cb_dealer_owes_call_3.mp3",
+    "kind": "voice",
+    "seconds": 2.952,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_1": {
+    "file": "vo_cb_dealer_owes_1.mp3",
+    "kind": "voice",
+    "seconds": 4.833,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_2": {
+    "file": "vo_cb_dealer_owes_2.mp3",
+    "kind": "voice",
+    "seconds": 4.65,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_3a": {
+    "file": "vo_cb_dealer_owes_3a.mp3",
+    "kind": "voice",
+    "seconds": 4.023,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_3b": {
+    "file": "vo_cb_dealer_owes_3b.mp3",
+    "kind": "voice",
+    "seconds": 4.049,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_ask": {
+    "file": "vo_cb_dealer_owes_ask.mp3",
+    "kind": "voice",
+    "seconds": 6.609,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_nudge": {
+    "file": "vo_cb_dealer_owes_nudge.mp3",
+    "kind": "voice",
+    "seconds": 3.004,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_gone": {
+    "file": "vo_cb_dealer_owes_gone.mp3",
+    "kind": "voice",
+    "seconds": 5.068,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_re_address": {
+    "file": "vo_cb_dealer_owes_re_address.mp3",
+    "kind": "voice",
+    "seconds": 3.109,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_re_landmark": {
+    "file": "vo_cb_dealer_owes_re_landmark.mp3",
+    "kind": "voice",
+    "seconds": 4.859,
+    "gain": 1
+  },
+  "vo_cb_dealer_owes_re_keep": {
+    "file": "vo_cb_dealer_owes_re_keep.mp3",
+    "kind": "voice",
+    "seconds": 5.251,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_call_1": {
+    "file": "vo_cb_camper_owes_call_1.mp3",
+    "kind": "voice",
+    "seconds": 3.657,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_call_2": {
+    "file": "vo_cb_camper_owes_call_2.mp3",
+    "kind": "voice",
+    "seconds": 3.605,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_call_3": {
+    "file": "vo_cb_camper_owes_call_3.mp3",
+    "kind": "voice",
+    "seconds": 4.545,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_1": {
+    "file": "vo_cb_camper_owes_1.mp3",
+    "kind": "voice",
+    "seconds": 4.807,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_2a": {
+    "file": "vo_cb_camper_owes_2a.mp3",
+    "kind": "voice",
+    "seconds": 3.736,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_2b": {
+    "file": "vo_cb_camper_owes_2b.mp3",
+    "kind": "voice",
+    "seconds": 3.5,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_3": {
+    "file": "vo_cb_camper_owes_3.mp3",
+    "kind": "voice",
+    "seconds": 4.833,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_ask": {
+    "file": "vo_cb_camper_owes_ask.mp3",
+    "kind": "voice",
+    "seconds": 5.042,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_nudge": {
+    "file": "vo_cb_camper_owes_nudge.mp3",
+    "kind": "voice",
+    "seconds": 3.866,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_gone": {
+    "file": "vo_cb_camper_owes_gone.mp3",
+    "kind": "voice",
+    "seconds": 5.486,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_re_shelter": {
+    "file": "vo_cb_camper_owes_re_shelter.mp3",
+    "kind": "voice",
+    "seconds": 4.65,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_re_shed": {
+    "file": "vo_cb_camper_owes_re_shed.mp3",
+    "kind": "voice",
+    "seconds": 5.773,
+    "gain": 1
+  },
+  "vo_cb_camper_owes_re_no": {
+    "file": "vo_cb_camper_owes_re_no.mp3",
+    "kind": "voice",
+    "seconds": 4.31,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_call_1": {
+    "file": "vo_cb_dealer_grudge_call_1.mp3",
+    "kind": "voice",
+    "seconds": 3.579,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_call_2": {
+    "file": "vo_cb_dealer_grudge_call_2.mp3",
+    "kind": "voice",
+    "seconds": 2.638,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_call_3": {
+    "file": "vo_cb_dealer_grudge_call_3.mp3",
+    "kind": "voice",
+    "seconds": 3.004,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_1": {
+    "file": "vo_cb_dealer_grudge_1.mp3",
+    "kind": "voice",
+    "seconds": 4.049,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_2a": {
+    "file": "vo_cb_dealer_grudge_2a.mp3",
+    "kind": "voice",
+    "seconds": 4.31,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_2b": {
+    "file": "vo_cb_dealer_grudge_2b.mp3",
+    "kind": "voice",
+    "seconds": 3.971,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_3": {
+    "file": "vo_cb_dealer_grudge_3.mp3",
+    "kind": "voice",
+    "seconds": 3.396,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_ask": {
+    "file": "vo_cb_dealer_grudge_ask.mp3",
+    "kind": "voice",
+    "seconds": 4.389,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_nudge": {
+    "file": "vo_cb_dealer_grudge_nudge.mp3",
+    "kind": "voice",
+    "seconds": 3.788,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_gone": {
+    "file": "vo_cb_dealer_grudge_gone.mp3",
+    "kind": "voice",
+    "seconds": 2.534,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_re_address": {
+    "file": "vo_cb_dealer_grudge_re_address.mp3",
+    "kind": "voice",
+    "seconds": 4.598,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_re_lie": {
+    "file": "vo_cb_dealer_grudge_re_lie.mp3",
+    "kind": "voice",
+    "seconds": 5.433,
+    "gain": 1
+  },
+  "vo_cb_dealer_grudge_re_planks": {
+    "file": "vo_cb_dealer_grudge_re_planks.mp3",
+    "kind": "voice",
+    "seconds": 4.206,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_call_1": {
+    "file": "vo_cb_camper_grudge_call_1.mp3",
+    "kind": "voice",
+    "seconds": 3.291,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_call_2": {
+    "file": "vo_cb_camper_grudge_call_2.mp3",
+    "kind": "voice",
+    "seconds": 3.318,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_call_3": {
+    "file": "vo_cb_camper_grudge_call_3.mp3",
+    "kind": "voice",
+    "seconds": 3.004,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_1": {
+    "file": "vo_cb_camper_grudge_1.mp3",
+    "kind": "voice",
+    "seconds": 3.605,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_2a": {
+    "file": "vo_cb_camper_grudge_2a.mp3",
+    "kind": "voice",
+    "seconds": 2.743,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_2b": {
+    "file": "vo_cb_camper_grudge_2b.mp3",
+    "kind": "voice",
+    "seconds": 3.187,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_3": {
+    "file": "vo_cb_camper_grudge_3.mp3",
+    "kind": "voice",
+    "seconds": 4.65,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_ask": {
+    "file": "vo_cb_camper_grudge_ask.mp3",
+    "kind": "voice",
+    "seconds": 4.336,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_nudge": {
+    "file": "vo_cb_camper_grudge_nudge.mp3",
+    "kind": "voice",
+    "seconds": 3.762,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_gone": {
+    "file": "vo_cb_camper_grudge_gone.mp3",
+    "kind": "voice",
+    "seconds": 3.161,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_re_battery": {
+    "file": "vo_cb_camper_grudge_re_battery.mp3",
+    "kind": "voice",
+    "seconds": 3.37,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_re_refuse": {
+    "file": "vo_cb_camper_grudge_re_refuse.mp3",
+    "kind": "voice",
+    "seconds": 3.892,
+    "gain": 1
+  },
+  "vo_cb_camper_grudge_re_invite": {
+    "file": "vo_cb_camper_grudge_re_invite.mp3",
+    "kind": "voice",
+    "seconds": 4.206,
+    "gain": 1
+  },
+  "vo_cb_news_1": {
+    "file": "vo_cb_news_1.mp3",
+    "kind": "voice",
+    "seconds": 5.355,
+    "gain": 1
+  },
+  "vo_cb_news_2": {
+    "file": "vo_cb_news_2.mp3",
+    "kind": "voice",
+    "seconds": 3.997,
+    "gain": 1
+  },
+  "vo_cb_news_3": {
+    "file": "vo_cb_news_3.mp3",
+    "kind": "voice",
+    "seconds": 3.03,
+    "gain": 1
+  },
+  "vo_cb_baker_1": {
+    "file": "vo_cb_baker_1.mp3",
+    "kind": "voice",
+    "seconds": 4.232,
+    "gain": 1
+  },
+  "vo_cb_baker_2": {
+    "file": "vo_cb_baker_2.mp3",
+    "kind": "voice",
+    "seconds": 3.239,
+    "gain": 1
+  },
+  "vo_cb_baker_3": {
+    "file": "vo_cb_baker_3.mp3",
+    "kind": "voice",
+    "seconds": 3.344,
     "gain": 1
   },
   "vo_finale_desk": {

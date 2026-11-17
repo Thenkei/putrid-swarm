@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_ham_re_stay_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[moved] Merci d’être resté. Ça fait du bien, une voix. Terminé.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-17T18:00:57.580Z",
+  "bytes": 66498,
+  "sha256": "08cc1a37ec911f9015a89fe33d3c6a156bc9dcf9455fe91b3ecd83d5c2171123"
+}

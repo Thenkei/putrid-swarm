@@ -7,6 +7,7 @@ import { finaleOf, type FinaleKind, type JamResult, type RecordOutcome } from '.
 import { LAST_NIGHT } from '../core/data/waves';
 import { newGame, retryChapter } from '../core/game';
 import { hasLeftArm } from '../core/orchard';
+import { allyOf, epilogueOf } from '../core/radio';
 import type { GameState } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { audio } from '../engine/audio';
@@ -115,6 +116,7 @@ export class EndScene implements Scene {
         el('h1', { text: title }),
         el('p', { text }),
         this.songCard(),
+        this.radioLine(state),
         el('p', { class: 'muted', text: `${fmt(s.end.stats, { ...totals, held })}${state && !hasLeftArm(state) ? ` · ${s.end.oneArm}` : ''}` }),
         el('div', { class: 'row' }, buttons),
         el('p', { class: 'end-seen', text: fmt(s.end.seen, { n: endings.seen, total: endings.total }) }),
@@ -125,6 +127,15 @@ export class EndScene implements Scene {
 
   exit(): void {
     this.left = true;
+  }
+
+  /** One line about the morning on the radio, if it led anywhere. */
+  private radioLine(state: GameState | null): HTMLElement | null {
+    const epilogue = state ? epilogueOf(state) : null;
+    if (!state || !epilogue || !state.radio.call) return null;
+    const ally = allyOf(state.radio.call, state.radio.answer);
+    const text = fmt(S().end.radio[epilogue], { sector: ally ? S().sector[ally.sector] : '' });
+    return el('p', { class: 'end-radio', text });
   }
 
   /** The song: how many, how well, which way, whether to the end; and the record. */

@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_dealer_owes_ask",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[businesslike] Alors, je vous laisse le lot où ? Des planches, de la ferraille, des ressorts, et une batterie presque neuve. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-17T18:01:16.404Z",
+  "bytes": 109966,
+  "sha256": "046cd0c429e3bc77bb07640f1a23317ae78e071b58bf1980d71637b58396529e"
+}

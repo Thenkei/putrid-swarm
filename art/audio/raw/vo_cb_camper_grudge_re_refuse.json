@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_grudge_re_refuse",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[worried] Non ? Bon. [pause] Ils ne vont pas aimer. Terminé.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:02:31.358Z",
+  "bytes": 69006,
+  "sha256": "d47fdee2af3344d3d5b107988cd13f13626447accfcec5ad8e7a07b2238f5b4e"
+}

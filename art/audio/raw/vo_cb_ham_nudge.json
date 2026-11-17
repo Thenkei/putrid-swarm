@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_ham_nudge",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[uncertain] Allô ? J’ai cru entendre quelqu’un. Vous êtes toujours là ? À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-17T18:00:50.675Z",
+  "bytes": 75275,
+  "sha256": "a46b5103ca32a575739a406cfe605039f6afc6adcd2331bd6b0913d297d70afc"
+}

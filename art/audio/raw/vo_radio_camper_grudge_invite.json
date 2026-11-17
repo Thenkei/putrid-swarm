@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_camper_grudge_invite",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[gently] Venez seul. On parle. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:34.843Z",
+  "bytes": 48526,
+  "sha256": "e5e4162380a8ef0ece2d72cdb58119e2c4ba0759ad187a77c109d7cf58eb6b95"
+}

@@ -6,6 +6,7 @@ import { BOSS, ENEMIES, type EnemyDef } from './data/enemies';
 import { NIGHT_LEAD_IN, planForNight } from './data/waves';
 import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlocked, sectorOf } from './map';
 import type { CameraOutage } from './orchard';
+import type { Ally } from './radio';
 import { computeField, nextStep, type Field } from './pathing';
 import { createRng, type Rng } from './rng';
 import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, NeighborId, NightReport, Result, SectorId, YardState } from './types';
@@ -88,6 +89,8 @@ export type SimEvent =
   | { readonly type: 'reinforcements'; readonly sector: SectorId }
   | { readonly type: 'jump'; readonly x: number; readonly y: number }
   | { readonly type: 'camera_lost'; readonly sector: SectorId }
+  /** Whoever was holding a door has turned, at the start of a wave: the door loses part of its barricade and is held no more. */
+  | { readonly type: 'ally_turned'; readonly sector: SectorId }
   /** The desk now shows this camera. */
   | { readonly type: 'look'; readonly sector: SectorId }
   /** A press has to wait for the one hand to get to its row; it will be done in `seconds`. */
@@ -213,6 +216,8 @@ export class NightSim {
   /** A camera that stopped sending. The lot goes on without it: only the desk is blind. */
   cameraLost: SectorId | null = null;
   private outageAt: number | null = null;
+  /** Someone is holding this door from inside: until they turn, if they do. */
+  heldDoor: SectorId | null;
   private readonly barricadeStart: Record<SectorId, number>;
   private readonly houseStart: number;
 
@@ -227,8 +232,11 @@ export class NightSim {
     seed: number,
     private readonly outage: CameraOutage | null = null,
     private readonly oneHand: OneHand | null = null,
+    /** Someone holding a door, from the radio (core/radio.ts). Null is nobody. */
+    private readonly ally: Ally | null = null,
   ) {
     this.hand = oneHand ? { row: null, at: -Infinity, queue: [] } : null;
+    this.heldDoor = ally?.sector ?? null;
     this.night = night;
     this.rng = createRng(seed ^ (night * 0x9e3779b1));
     this.houseHp = yard.houseHp;
@@ -558,6 +566,7 @@ export class NightSim {
         this.waveIndex = spawn.wave;
         this.events.push({ type: 'wave', index: spawn.wave, total: this.waveCount });
         if (this.outage && spawn.wave === this.outage.wave && this.cameraLost === null) this.outageAt = this.time + this.outage.delay;
+        if (this.ally && this.heldDoor !== null && spawn.wave === this.ally.turnsAtWave) this.allyTurns(this.ally);
       }
       this.spawn(spawn.type, spawn.sector);
     }
@@ -870,9 +879,19 @@ export class NightSim {
     this.events.push({ type: 'entered', sector, enemy: e.type, damage: e.def.houseDamage });
   }
 
+  /** What was bitten turns, from inside: the planks he was holding are pulled half off. */
+  private allyTurns(ally: Ally): void {
+    this.heldDoor = null;
+    const barricade = this.barricades[ally.sector];
+    barricade.hp = Math.round(barricade.hp * (1 - ally.loss));
+    this.events.push({ type: 'ally_turned', sector: ally.sector });
+  }
+
   private hitBarricade(sector: SectorId, amount: number, announce: boolean): void {
     const barricade = this.barricades[sector];
     if (barricade.hp <= 0) return;
+    // Someone on the other side of the planks, leaning on them.
+    if (this.ally && this.heldDoor === sector) amount *= this.ally.factor;
     barricade.hp = Math.max(0, barricade.hp - amount);
     if (announce) this.events.push({ type: 'barricade_hit', sector });
     if (barricade.hp <= 0) {

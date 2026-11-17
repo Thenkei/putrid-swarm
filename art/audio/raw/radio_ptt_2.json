@@ -1,0 +1,15 @@
+{
+  "id": "radio_ptt_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A CB hand microphone keyed: a stiff plastic switch clacks loudly under a thumb, then a short soft hiss of an open channel. Very close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.7,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T18:03:36.068Z",
+  "bytes": 12163,
+  "sha256": "729180afbc4169a8821354a70c8a163da780e2a031e7fabcddef7b9516a729c4"
+}

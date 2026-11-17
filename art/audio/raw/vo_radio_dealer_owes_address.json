@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_dealer_owes_address",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Chez moi. Au bout du chemin du lavoir, la maison aux fenêtres clouées. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:19.900Z",
+  "bytes": 80291,
+  "sha256": "098d211a1043d0158ecbc0f95294d64e8f17e2e2ddd65fcab3c03ced5e1ae367"
+}

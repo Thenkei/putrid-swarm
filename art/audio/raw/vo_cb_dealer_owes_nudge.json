@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_dealer_owes_nudge",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[annoyed] Allô ? Je ne parle pas aux murs, moi. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-17T18:01:17.806Z",
+  "bytes": 52287,
+  "sha256": "c43276a790783fa22f392d1409390533d9de8f3876c79cfa7ba0ff7485ab4d8c"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_baker_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[cheerful, a little slurred] Tournée du matin. Deux baguettes pour la mairie. Une tradition bien cuite…",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-17T18:02:40.418Z",
+  "bytes": 71514,
+  "sha256": "227d162a18aa71675b1dc89a008d1da6ff42c02bd395a924cda68bae5710221d"
+}

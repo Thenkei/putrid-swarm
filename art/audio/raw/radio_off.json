@@ -1,0 +1,15 @@
+{
+  "id": "radio_off",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old valve radio set switched off: a heavy toggle switch clack, the static hiss collapsing into a falling electronic whine, then a faint tick of cooling metal and silence.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:59:54.538Z",
+  "bytes": 26792,
+  "sha256": "41e9c7f80741f20ae1c9e5581b73a52ec873b1a7c042c3bcef251e556a8d7ce8"
+}

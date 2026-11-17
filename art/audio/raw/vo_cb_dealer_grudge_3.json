@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_dealer_grudge_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[official] Le comité a voté. À l’unanimité moins une voix.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-17T18:02:01.885Z",
+  "bytes": 62318,
+  "sha256": "e654e1af43d3ab368c0bfbf06aac57da00b9755e347da49ac2fb0dd4396315e6"
+}

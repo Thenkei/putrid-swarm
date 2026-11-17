@@ -7,6 +7,7 @@
 
 import type { Ending as OrchardEnding } from './orchard';
 import type { Ending as ShedEnding } from './shed';
+import type { Ending as RadioEnding } from './radio';
 
 /**
  * In the order they are listed to the player. Never rename an entry: ids are what browsers have
@@ -17,6 +18,8 @@ export const ENDINGS = {
   orchard: ['spared', 'maimed', 'throat', 'turned', 'bled'] satisfies readonly OrchardEnding[],
   /** The morning after night 4: what became of the baker on his chain, or of whoever leaned too close. */
   shed: ['freed', 'chained', 'finished', 'emptied', 'bitten'] satisfies readonly ShedEnding[],
+  /** The morning after night 6: what was said into the CB — trusted, a deal, a lie, a no — or nothing, or the set switched off. */
+  radio: ['trusted', 'bargained', 'lied', 'refused', 'silence', 'off'] satisfies readonly RadioEnding[],
   /**
    * How the house is left: at the desk (nights 1–4), on the mower after the house fell (5–7), on the
    * mower after the seventh dawn; and, whichever night it was, the song played to its last chord.

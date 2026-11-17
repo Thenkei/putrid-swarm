@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_lost_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[muttering] Non, non, reste là.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:00.683Z",
+  "bytes": 35569,
+  "sha256": "44a724d8825fc90a7b3d2ae4d5f35ffa4096084a5202433ac2f65e063b23e248"
+}

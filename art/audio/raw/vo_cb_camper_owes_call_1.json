@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_owes_call_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[nervous] Allô ? Allô, c’est le campeur. Il y a quelqu’un ?",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:01:27.474Z",
+  "bytes": 59811,
+  "sha256": "71208976dbbb112a25e47951b1ab756e4e6c1b3b3dab81edca86f0a8de4edce3"
+}

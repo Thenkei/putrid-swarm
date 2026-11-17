@@ -1,17 +1,20 @@
 // Headless balance sweep: every night against reference layouts, played by the automatic operator.
 //   pnpm balance             every night against every reference tier
 //   pnpm balance --arm       two arms against one, night by night, each with the yard its daylight pays for
+//   pnpm balance --radio     the last night with nobody, a door held by someone from the radio, and one held by someone bitten
 import { ONE_HAND } from '../src/core/data/desk';
 import { LAST_NIGHT } from '../src/core/data/waves';
 import { newGame } from '../src/core/game';
 import { NightSim, type OneHand } from '../src/core/night';
 import { ORCHARD } from '../src/core/orchard';
+import { RADIO, type Ally } from '../src/core/radio';
 import type { YardState } from '../src/core/types';
 import { UPKEEP_HOURS, daylightOfDays, layout, layoutCost, operate, operateDesk, tierOf, yardBy, type Tier } from '../tests/operator';
 
 const MAX_TICKS = 60 * 900;
 
 if (process.argv.includes('--arm')) armSweep();
+else if (process.argv.includes('--radio')) radioSweep();
 else tierSweep();
 
 function tierSweep(): void {
@@ -45,12 +48,12 @@ interface Outcome {
   readonly worst: number;
 }
 
-function play(night: number, yard: (seed: number) => YardState, hand: OneHand | null, seeds: readonly number[]): Outcome {
+function play(night: number, yard: (seed: number) => YardState, hand: OneHand | null, seeds: readonly number[], ally: Ally | null = null): Outcome {
   let wins = 0;
   let house = 0;
   let worst = Infinity;
   for (const seed of seeds) {
-    const sim = new NightSim(night, yard(seed), seed, null, hand);
+    const sim = new NightSim(night, yard(seed), seed, null, hand, ally);
     for (let t = 0; t < MAX_TICKS && sim.outcome === 'ongoing'; t++) {
       operateDesk(sim);
       sim.step(1 / 60);
@@ -96,4 +99,24 @@ function armSweep(): void {
     );
   }
   console.log(`house lost on nights ${ORCHARD.night + 1}-${LAST_NIGHT}, on average: two arms ${lost.a} · one arm, two-arm yard ${lost.b} · one arm ${lost.c}`);
+}
+
+/**
+ * The last night with what the radio can put at a door: nobody, someone holding it to the end, or someone
+ * bitten who holds it until a wave and then turns. Two arms and one, each with the yard its daylight pays for.
+ */
+function radioSweep(): void {
+  const seeds = Array.from({ length: 16 }, (_, i) => 11 * (i + 1));
+  const door = RADIO.ally.door;
+  const held: Ally = { sector: door, factor: RADIO.ally.factor, turnsAtWave: null, loss: RADIO.ally.turnLoss };
+  const turned: Ally = { ...held, turnsAtWave: RADIO.ally.turnWave };
+  const cell = (r: Outcome) => `${r.wins}/${seeds.length} ⌂${String(r.house).padStart(3)} ≥${String(r.worst).padStart(3)}`.padEnd(17);
+  console.log(`night ${LAST_NIGHT}, the ${door} door held at ×${RADIO.ally.factor}, turning at wave ${RADIO.ally.turnWave} (−${RADIO.ally.turnLoss * 100} % of that barricade) · ${seeds.length} seeds`);
+  console.log('arms | nobody           | held             | held, then turned');
+  for (const arms of [2, 1] as const) {
+    const days = daylightOfDays(arms, LAST_NIGHT);
+    const yard = (seed: number) => yardBy(newGame(seed), days, LAST_NIGHT).state.yard;
+    const hand = arms === 1 ? ONE_HAND : null;
+    console.log(`  ${arms}  | ${cell(play(LAST_NIGHT, yard, hand, seeds))}| ${cell(play(LAST_NIGHT, yard, hand, seeds, held))}| ${cell(play(LAST_NIGHT, yard, hand, seeds, turned))}`);
+  }
 }

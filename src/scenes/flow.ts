@@ -19,6 +19,7 @@ import { MapScene } from './map';
 import { MorningScene } from './morning';
 import { NightScene, NightfallScene } from './night';
 import { OrchardScene } from './orchard';
+import { RadioScene } from './radio';
 import { ShedScene } from './shed';
 import { TitleScene } from './title';
 import { TravelScene, type TravelOptions } from './travel';
@@ -39,6 +40,8 @@ export const goOrchard = (app: App): void => app.go(() => new OrchardScene(app))
 const CHAPTER_SCENES: Readonly<Record<ChapterId, { readonly scene: (app: App) => Scene; readonly endPlate: string }>> = {
   orchard: { scene: (app) => new OrchardScene(app), endPlate: 'plate_orchard_end' },
   shed: { scene: (app) => new ShedScene(app), endPlate: 'plate_shed_end' },
+  // Nothing on the radio ends a run: its plate is never shown as an end, it is only the desk it happens at.
+  radio: { scene: (app) => new RadioScene(app), endPlate: 'plate_radio' },
 };
 export const goChapter = (app: App, chapter: ChapterId): void => app.go(() => CHAPTER_SCENES[chapter].scene(app));
 export const chapterEndPlate = (chapter: ChapterId): string => CHAPTER_SCENES[chapter].endPlate;

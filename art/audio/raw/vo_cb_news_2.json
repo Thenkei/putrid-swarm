@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_news_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/m5U7XCsc8v988k2RJAqN",
+  "request": {
+    "text": "[calm, official] … les secours évaluent la situation. Un nouveau point sera fait dans la soirée…",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.6,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Manon",
+  "generatedAt": "2026-11-17T18:02:36.979Z",
+  "bytes": 72767,
+  "sha256": "29a6a2c48c81dc50f81a535ec40caa35e1dd98efe2ea611ae95fcdd98c97e733"
+}

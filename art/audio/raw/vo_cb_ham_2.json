@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_ham_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[chatty] J’ai des jumelles et une grande fenêtre. D’ici, je vois tout le village. Je les vois se rassembler, le soir.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-17T18:00:44.548Z",
+  "bytes": 95755,
+  "sha256": "a7e5cc4bf116da16866b46dd4a3eb9bbbabffdc9535c5a531db62530bb87f4e3"
+}

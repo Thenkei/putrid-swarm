@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_ham_stay",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[gently] Je reste. Racontez-moi. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:15.230Z",
+  "bytes": 51034,
+  "sha256": "450650ecad0bc62f57d3cb76af6b3ac0111a56e927df6f5572bc1a43e55fe23e"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_ham_many",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[too cheerful] On est nombreux, ici. Tout va bien. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:18.005Z",
+  "bytes": 49780,
+  "sha256": "6f2da88a7f2338dc9a2559e8bbdf4b404e8ada414ce7bb2d85338aa327f0b6bb"
+}

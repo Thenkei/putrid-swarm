@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_owes_call_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[nervous] Ici le camping-car. Enfin, le campeur. Vous me recevez ?",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:01:29.103Z",
+  "bytes": 65244,
+  "sha256": "f9b91119fce9aabcb008d0f61676dc5fc1ba67396d5a35832a31744c9c7c9ef9"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_ham_ask",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[shy] Vous voulez bien rester un peu en ligne ? Je peux vous dire par où ils viendront ce soir. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-17T18:00:48.832Z",
+  "bytes": 80291,
+  "sha256": "693fff0f3aae94d43e4c3b91efcd62240e0809d4fd66710bab020d489b57ab5f"
+}

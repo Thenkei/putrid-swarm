@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_owes_2b",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[proud] Je n’ai rien, hein. Pas une égratignure. J’ai vérifié deux fois.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:01:36.239Z",
+  "bytes": 62318,
+  "sha256": "4957cb7b8a45f64de09076b0743e64908fd958c435ea04ccb1c6280390ed9063"
+}

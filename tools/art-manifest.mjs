@@ -1030,6 +1030,82 @@ export const ART = [
       `Nothing pink or purple. Each element is tall and nearly fills the height of the canvas. ${KEY} ${STYLE}`,
   },
 
+  // ───────────────────────────── The radio, the morning after night 6 ─────────────────────────────
+  // A played cut-scene at the camera desk: the old CB set that only ever gave static, seen from the chair,
+  // then close on its front panel. The needle, the readout, the trace on the monitor, the knob turning and
+  // the microphone are drawn or moved by the scene: the plates leave them blank or empty.
+  {
+    id: 'plate_radio',
+    kind: 'plate',
+    w: 1280,
+    refs: [C('12-surveillance-room.png'), REF_MORNING],
+    prompt: plate(
+      'First-person view from the wooden chair of the improvised surveillance room in the first attached picture (same room, same desk, same boarded window, same salvaged monitors, same desk lamp, same warm brown wood), looking down at the desk on a grey early morning. No person, no hands, no arms in the frame. ' +
+        'Pale cold daylight comes through the gaps between the planks nailed over the window on the LEFT; the desk lamp is still on and throws a warm pool of light; dust hangs in the light. ' +
+        'In the CENTRE of the desk, pulled to the front edge and filling the lower middle of the picture, an old 1970s CB radio transceiver: a wide, low box in a dented grey-green metal case with wood-grain side panels. On its front panel, from left to right: a round analog signal meter with a plain cream dial face behind a small glass window, with NO needle and NO markings on it; a dark empty rectangular readout window; one very big round black bakelite tuning knob; a row of small chrome toggle switches along the bottom edge. ' +
+        'On the right side of the set, an empty bent-wire hook where a hand microphone should hang, and a curly black coiled cable coming out of the set. A thin antenna wire runs from the back of the set up to the window frame, taped with grey tape. ' +
+        'Around it on the desk: a chipped enamel mug of coffee, an ashtray with old butts, a notepad with illegible pencil scribbles, a screwdriver, two cassette tapes, a pencil, a battery. Behind the set, the stack of salvaged CCTV monitors on their wooden shelf, every screen showing grey snow. ' +
+        'Quiet, lonely, a little absurd.',
+    ),
+  },
+  {
+    id: 'plate_radio_set',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_radio.png', C('12-surveillance-room.png')],
+    prompt: plate(
+      'The first attached picture shows an old CB radio transceiver on a wooden desk in a dim room at dawn: this new picture is a much closer first-person view of the FRONT PANEL of that same transceiver, same set, same colours, same light, seen straight on from the chair, slightly from above. No person, no hands, no microphone in the frame. ' +
+        'The front panel fills most of the picture: on the LEFT third, a large round analog signal meter behind a glass window, its cream dial face completely plain and empty — NO needle, NO scale, NO markings at all — with a faint warm backlight; in the CENTRE, a wide dark rectangular readout window, plain black glass, empty; on the RIGHT third, one very big round black bakelite tuning knob with a knurled rim; along the bottom edge, a row of small chrome toggle switches and a small round speaker grille. ' +
+        'The dented grey-green metal case, scratched, with wood-grain side panels; on the right edge of the set, an empty bent-wire hook where a hand microphone hangs. Around the set, the edge of the wooden desk, a mug, a pencil, cigarette ash, cassette tapes; the lamp light warm from the upper left, cold daylight from a boarded window. Dust in the air.',
+    ),
+  },
+  {
+    // What the scene moves on the set: the knob turns, the microphone hangs and is picked up.
+    id: 'radio_parts',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    // The knob came out in perspective, as on the plates: the scene marks its turning on the plate's own knob.
+    names: [null, 'mic'],
+    cut: 'gaps',
+    h: 420,
+    refs: ['art/raw/plate_radio.png'],
+    prompt:
+      'Game asset sheet: TWO separate objects side by side with a wide empty gap between them, drawn like the old CB radio of the attached picture. ' +
+      '(1) LEFT: one very big round black bakelite tuning knob seen exactly from the front, perfectly circular, a knurled ridged rim, a slightly domed centre with a little chrome cap, and one thin white pointer line painted from the centre to the rim, pointing straight up. ' +
+      '(2) RIGHT: a chunky black 1970s CB hand microphone seen from the front, hanging upright: a rounded rectangular body with a perforated chrome grille on its upper half, a ridged push-to-talk bar along its left side, and a short stub of black curly coiled cord coming out of its bottom end and cut off. ' +
+      `Nothing pink or purple. ${KEY} ${STYLE}`,
+  },
+  {
+    // The protagonist's right hand on the set: turning the knob, or holding the microphone up to his mouth.
+    id: 'radio_hands',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['dial', 'mic'],
+    cut: 'gaps',
+    h: 640,
+    refs: [REF_STORYBOARD, 'art/raw/plate_radio.png'],
+    sheet: 'art/raw/desk.png',
+    prompt:
+      'Game asset sheet: TWO separate first-person views of a man’s RIGHT hand and forearm seen from his own eyes, standing side by side with a wide empty gap between them, each centred in its own half of the canvas. ' +
+      'The first attached image shows this man’s right hand in the worn mustard-yellow sleeve of his work jacket: every hand here is that same hand, same sleeve, same skin and same drawing style — the hand at the top, reaching away from the viewer, and the long sleeve running straight down below it, ending at the bottom in a clean straight horizontal cut. ' +
+      '(1) LEFT: the hand seen from above and behind, its thumb and fingertips curled and pinched together around the rim of a big round knob that is NOT drawn — an empty circle of air between the fingertips, as if turning a radio dial, the wrist slightly twisted. ' +
+      '(2) RIGHT: the hand holding a chunky black 1970s CB hand microphone upright, the thumb pressing the ridged push-to-talk bar on its side, the perforated chrome grille at the top pointing away, a black curly coiled cord hanging from the bottom of the microphone down along the sleeve. ' +
+      `Grey dawn light from the upper left. The two arms are tall figures that nearly fill the height of the canvas. ${KEY} ${STYLE}`,
+  },
+  {
+    // Who calls when the run met nobody: never seen in the scene, only on the card at the end.
+    id: 'por_ham',
+    kind: 'sprite',
+    h: 360,
+    refs: [REF_NEIGHBORS],
+    prompt:
+      'One head-and-shoulders bust portrait of a living (not infected) old man, framed like the busts in the reference: a radio amateur in his seventies on a hill farm, thin white hair and big ears, a grey stubble, a shapeless brown cardigan buttoned wrong over a checked flannel shirt, a pair of old binoculars hanging from his neck, big old-fashioned headphones pushed down around his neck, holding a black CB hand microphone close to his mouth with both hands as if it were precious; ' +
+      'he smiles politely at nobody, eyes a little wet, a hopeful and very lonely face. Healthy skin tones, normal eyes. Only the one person, centred, with wide margins. ' +
+      `${KEY} ${STYLE}`,
+  },
+
   // ───────────────────────────── The end ─────────────────────────────
   // The house always falls in the end. Early on, that is the desk and a door giving way; from the
   // fifth night it is the ride-on mower from the shed, two amplifier stacks and a guitar.

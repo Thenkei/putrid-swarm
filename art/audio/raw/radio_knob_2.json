@@ -1,0 +1,15 @@
+{
+  "id": "radio_knob_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A large radio tuning knob turned slowly between finger and thumb: two gritty clicks and a small squeak of an old shaft. Very close, quiet, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.7,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T17:59:43.039Z",
+  "bytes": 12163,
+  "sha256": "e7687dadf04374102bfd8a7cb937255b49a89a4a9d42a8931c61342b5a306939"
+}

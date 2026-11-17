@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_news_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/m5U7XCsc8v988k2RJAqN",
+  "request": {
+    "text": "[calm, official] … restez chez vous, portes et volets fermés. N’ouvrez à personne. Même à un voisin…",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.6,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Manon",
+  "generatedAt": "2026-11-17T18:02:35.358Z",
+  "bytes": 90740,
+  "sha256": "9a733553ffbaae3ad87d1c2a96b19c88a477f0049a052a48610028557c7065b0"
+}

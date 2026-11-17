@@ -1,5 +1,7 @@
 // Domain types for the Putrid Swarm simulation. Nothing in src/core touches the DOM.
 
+import type { RadioChapter } from './radio';
+
 export type Result<T, E> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: E };
 export const ok = <T>(value: T): Result<T, never> => ({ ok: true, value });
 export const err = <E>(error: E): Result<never, E> => ({ ok: false, error });
@@ -293,6 +295,8 @@ export interface GameState {
   readonly shed: ShedChapter;
   /** What the man in the shed told. */
   readonly intel: readonly Intel[];
+  /** The morning on the radio: who called, what was answered, and what came of it (core/radio.ts). */
+  readonly radio: RadioChapter;
   /** Why the run stopped, when it was not the house that fell. */
   readonly fate: Fate | null;
   readonly totals: {

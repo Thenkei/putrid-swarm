@@ -3,6 +3,8 @@
 
 import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, Fate, Fight, GameState, Intel, Inventory, OrchardChapter, Outing, Phase, RivalId, SectorId, ShedChapter, Stance, Standing } from './types';
 import { chapterOfFate, chapterWaiting } from './chapters';
+import { CALLERS, ENDINGS as RADIO_ENDINGS, QUIET_RADIO, optionOf, rollCall, type AnswerId, type Call, type CallerId, type Ending as RadioEnding, type RadioStage } from './radio';
+import { createRng } from './rng';
 import { facingsOf } from './data/devices';
 import { ENCOUNTER } from './data/rivals';
 import { LOCATIONS } from './data/locations';
@@ -159,6 +161,38 @@ function parseShed(data: Record<string, unknown>): Pick<GameState, 'shed' | 'int
   return { shed, intel };
 }
 
+// ───────────────────────────── The radio ─────────────────────────────
+// Saved before the radio existed, a game has heard nothing on it. A call that is malformed while one is
+// waiting is rolled again from the run's seed rather than lost; anything else malformed is dropped.
+
+const RADIO_STAGES: readonly RadioStage[] = ['quiet', 'waiting', 'done'];
+const isUnit = (v: unknown): v is number => isNumber(v) && v >= 0 && v <= 1;
+
+function parseCall(v: unknown): Call | null {
+  if (!isRecord(v)) return null;
+  const valid =
+    CALLERS.includes(v['caller'] as CallerId) &&
+    typeof v['secret'] === 'boolean' &&
+    isUnit(v['at']) &&
+    isNumber(v['phase']) &&
+    isUnit(v['news']) &&
+    (v['baker'] === null || isUnit(v['baker']));
+  return valid ? { caller: v['caller'] as CallerId, secret: v['secret'] as boolean, at: v['at'] as number, phase: v['phase'] as number, news: v['news'] as number, baker: v['baker'] as number | null } : null;
+}
+
+function parseRadio(data: Record<string, unknown>, people: GameState['people'], shed: ShedChapter, seed: number): Pick<GameState, 'radio'> {
+  const raw = data['radio'];
+  if (!isRecord(raw) || !RADIO_STAGES.includes(raw['stage'] as RadioStage) || raw['stage'] === 'quiet') return { radio: QUIET_RADIO };
+  const call = parseCall(raw['call']);
+  if (raw['stage'] === 'waiting') return { radio: { ...QUIET_RADIO, stage: 'waiting', call: call ?? rollCall({ people, shed }, createRng(seed ^ 0x5ad10)) } };
+  const ending = RADIO_ENDINGS.includes(raw['ending'] as RadioEnding) ? (raw['ending'] as RadioEnding) : null;
+  if (!call || !ending) return { radio: QUIET_RADIO };
+  // Only an answer that call offers, and only for an ending that is an answer.
+  const answer = ending !== 'silence' && ending !== 'off' && optionOf(call.caller, raw['answer'] as AnswerId) ? (raw['answer'] as AnswerId) : null;
+  const sighted = Array.isArray(raw['sighted']) && answer ? SECTOR_IDS.filter((id) => (raw['sighted'] as unknown[]).includes(id)) : [];
+  return { radio: { stage: 'done', call, ending, answer, sighted, paid: isCost(raw['paid']) ? raw['paid'] : {}, took: isCost(raw['took']) ? raw['took'] : {} } };
+}
+
 /** A fate only means something on a run a chapter ended, on the morning that chapter was waiting. */
 function parseFate(data: Record<string, unknown>, state: GameState): Fate | null {
   const fate = FATES.includes(data['fate'] as Fate) ? (data['fate'] as Fate) : null;
@@ -203,7 +237,9 @@ export function deserialize(raw: string): GameState | null {
     // Reports saved before a camera could go dark have none.
     cameraLost: SECTOR_IDS.includes(parsed.lastNight.cameraLost as SectorId) ? parsed.lastNight.cameraLost : null,
   };
-  const chaptered: GameState = { ...parsed, lastNight, ...parseOrchard(data), ...parseShed(data), fate: null };
+  const shed = parseShed(data);
+  const radio = parseRadio(data, parsePeople(data['people']), shed.shed, data['seed'] as number);
+  const chaptered: GameState = { ...parsed, lastNight, ...parseOrchard(data), ...shed, ...radio, fate: null };
   const reported: GameState = { ...chaptered, fate: parseFate(data, chaptered) };
   // Outside the day nobody is out: the trip, if a save still carries one, is over.
   const trip = parseTrip(data, parsed.phase === 'day' ? parsed.where : 'home');

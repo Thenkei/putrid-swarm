@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_dealer_owes_keep",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[kindly] Gardez-le. Partez tranquille. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:22.569Z",
+  "bytes": 48526,
+  "sha256": "3de2806de11314ef4297b6358e5b22593dc2b6e68c79af9936b762b1f001df9e"
+}

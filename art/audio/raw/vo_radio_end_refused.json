@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_end_refused",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] Désolé. Vraiment.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:12.897Z",
+  "bytes": 33061,
+  "sha256": "eac1e8a4f73d2061d56d70e728d60f2031b5c4a37bb1f2e38e73813b68b834d1"
+}

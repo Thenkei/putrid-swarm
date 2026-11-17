@@ -6,10 +6,11 @@
 
 import { DAY_HOURS } from './data/locations';
 import { awaitsOrchard, daylight } from './orchard';
+import { awaitsRadio, opensRadio, radioDawn } from './radio';
 import { awaitsShed, opensShed, shedDawn } from './shed';
 import type { Cost, Fate, GameState, NightReport } from './types';
 
-export const CHAPTER_IDS = ['orchard', 'shed'] as const;
+export const CHAPTER_IDS = ['orchard', 'shed', 'radio'] as const;
 export type ChapterId = (typeof CHAPTER_IDS)[number];
 
 /** What a chapter does to the start of a day: hours of daylight added (negative: taken), and things found at the door. */
@@ -44,6 +45,15 @@ const CHAPTERS: readonly Chapter[] = [
     opens: opensShed,
     dawn: shedDawn,
     fates: ['bitten'],
+  },
+  {
+    // The morning after night 6: a voice on the CB. Nothing in it ends the run; what it leads to is the
+    // last day's and the last night's, and settled when it is played.
+    id: 'radio',
+    awaits: awaitsRadio,
+    opens: opensRadio,
+    dawn: radioDawn,
+    fates: [],
   },
 ];
 

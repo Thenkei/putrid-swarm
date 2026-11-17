@@ -33,6 +33,12 @@ const FX = {
   far: 'highpass=f=220,lowpass=f=3800,aecho=0.8:0.6:60:0.25',
   /** A small wooden shed: close, a short boxy reflection, the top shaved off. */
   shed: 'highpass=f=85,lowpass=f=7200,aecho=0.8:0.55:19|31:0.16|0.09',
+  /**
+   * A CB set: a narrow telephone band, squashed hard, the peaks clipped soft the way a cheap speaker
+   * breaks up, and a few bits shaved off. The hiss is not baked in: the scene lays its own static under
+   * it, as loud as the dial is far from the voice.
+   */
+  radio: 'highpass=f=330,lowpass=f=2900,acompressor=threshold=-26dB:ratio=8:attack=1:release=60,volume=7dB,asoftclip=type=tanh,acrusher=bits=10:mix=0.35,highpass=f=300,lowpass=f=3100',
 };
 
 /** Fades the last `seconds` out without needing to know how long the sound is. */

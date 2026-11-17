@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_owes_ask",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[pleading] Je peux venir chez vous, ce soir ? Je tiendrai une porte. Je sais tenir une porte. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:01:40.820Z",
+  "bytes": 88232,
+  "sha256": "22d189ee599228089aae1b8e8c89b544fba661cf59c8a3a9cb5cb8ca495752c2"
+}

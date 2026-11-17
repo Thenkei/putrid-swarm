@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_ham_info",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[curt] Dites-moi juste par où ils viennent. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:16.493Z",
+  "bytes": 39331,
+  "sha256": "3cb9d11ad917e3ed6c3c9bdb80c606360faf2c3e693092a7d08cd8a7ccbca112"
+}

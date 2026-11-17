@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_dealer_grudge_call_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[cold] Comité de quartier. On sait que vous écoutez.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-17T18:01:53.655Z",
+  "bytes": 51034,
+  "sha256": "c65d2816b06e54da473e4085a2eb9d23f8397557e41e2d6715709c7c2f7ca4a4"
+}

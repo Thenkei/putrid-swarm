@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_ham_re_info",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[hurt, polite] Ah. Oui. Bien sûr. Surtout par le portail. Terminé.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-17T18:00:59.246Z",
+  "bytes": 58557,
+  "sha256": "f40069f2b9af5da6e91ad2d82d536798a82c4c47af11a45a3844ce3f655e7adc"
+}

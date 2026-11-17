@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_ham_call_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[old, hopeful] CQ, CQ. Ici la ferme du haut. Quelqu’un ?",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-17T18:00:36.681Z",
+  "bytes": 63990,
+  "sha256": "7590e1f410f9c6e3d40cf6f514745698ee7af8a2f4d33cd93859ef8cc6e2414d"
+}

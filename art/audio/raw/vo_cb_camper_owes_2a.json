@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_owes_2a",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[too casual] Je me suis fait mordre à la main, hier soir. C’est rien. C’est superficiel.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:01:34.678Z",
+  "bytes": 63990,
+  "sha256": "377dafac81a52b431351d0aa7d9c8c6870fe8f91b7e884c415e8939560481cac"
+}

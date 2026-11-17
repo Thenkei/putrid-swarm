@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_grudge_2b",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[tired] Je suis tout seul, là. Ceux de la camionnette dorment.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:02:21.413Z",
+  "bytes": 53541,
+  "sha256": "d0a1b64dbf8fc7d7ec1ef8f1afe777156f15a98ea3699d61b8e9a9529e035631"
+}

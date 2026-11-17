@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_grudge_2a",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[whispering, scared] Ils sont juste à côté de moi. Ils écoutent tout.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:02:19.771Z",
+  "bytes": 51034,
+  "sha256": "bf0ef5bc6648dadfcbe300fb54ac8e1a2a00f855fc6b7179f0210330f2ba3f05"
+}

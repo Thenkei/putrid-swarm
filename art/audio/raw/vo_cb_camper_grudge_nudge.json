@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_grudge_nudge",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[nervous] Allô ? Vous m’entendez ? Ne faites pas semblant. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:02:26.952Z",
+  "bytes": 66498,
+  "sha256": "e46a197f867ad9dc8478bec0bcef84c5f6886a0aa9ac2165d5f01f0add56f8a5"
+}

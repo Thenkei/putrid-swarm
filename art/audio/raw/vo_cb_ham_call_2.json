@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_ham_call_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[old, patient] Appel général. N’importe qui. Vraiment, n’importe qui.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-17T18:00:38.163Z",
+  "bytes": 67752,
+  "sha256": "9d80a4efb88c7c565f74fe6610fdeb5b9b4116fb054569fe72708bf3e65e85b7"
+}

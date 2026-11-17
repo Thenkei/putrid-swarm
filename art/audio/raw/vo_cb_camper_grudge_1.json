@@ -1,0 +1,19 @@
+{
+  "id": "vo_cb_camper_grudge_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[bitter] C’est le campeur. Celui que vous avez bousculé, l’autre jour.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-17T18:02:18.444Z",
+  "bytes": 62318,
+  "sha256": "3474adad9e2c23939843d8d1e363b759c6d6447caaef75ae1c1a34121e242c2f"
+}

@@ -1408,5 +1408,35 @@
     "file": "plates/plate_finale_swarmed_dawn_one_arm.webp",
     "w": 1280,
     "h": 853
+  },
+  "plate_radio": {
+    "file": "plates/plate_radio.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_radio_set": {
+    "file": "plates/plate_radio_set.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "radio_parts_mic": {
+    "file": "sprites/radio_parts_mic.webp",
+    "w": 222,
+    "h": 420
+  },
+  "radio_hands_dial": {
+    "file": "sprites/radio_hands_dial.webp",
+    "w": 204,
+    "h": 640
+  },
+  "radio_hands_mic": {
+    "file": "sprites/radio_hands_mic.webp",
+    "w": 208,
+    "h": 640
+  },
+  "por_ham": {
+    "file": "sprites/por_ham.webp",
+    "w": 279,
+    "h": 360
   }
 }

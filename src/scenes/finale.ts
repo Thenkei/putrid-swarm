@@ -9,6 +9,7 @@
 
 import { endingsOf, FINAL_CHORD, FINALE, JAM, JAM_MODES, SONG, chartOf, chordRate, chordsOf, finaleOf, recordMode, sectionAt, settle, startJam, strum, type FinaleKind, type Jam, type JamMode, type Note, type Verdict } from '../core/finale';
 import { hasLeftArm } from '../core/orchard';
+import { guestOf } from '../core/radio';
 import type { GameState } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { sprite } from '../engine/assets';
@@ -258,7 +259,12 @@ export class FinaleScene implements Scene {
         if (this.oneArmed) this.after(3.6, () => say('vo_finale_one_arm', { interrupt: true }));
         this.modeEls.clear();
         this.root.replaceChildren(
-          el('div', { class: 'finale-title' }, [el('h1', { text: s.finale.shed }), el('p', { text: s.finale.shedSub })]),
+          el('div', { class: 'finale-title' }, [
+            el('h1', { text: s.finale.shed }),
+            el('p', { text: s.finale.shedSub }),
+            // Whoever the radio put in the shed for the night is still in it.
+            this.app.state && guestOf(this.app.state) ? el('p', { text: guestOf(this.app.state) === 'turned' ? s.finale.shedGuestTurned : s.finale.shedGuest }) : null,
+          ]),
           // How to play it is chosen here, before the engine drowns everything out.
           el('div', { class: 'jam-modes' }, [
             el('span', { class: 'pick', text: s.finale.pick }),

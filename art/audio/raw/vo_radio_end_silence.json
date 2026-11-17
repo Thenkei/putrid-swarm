@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_end_silence",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[very quietly, much too late] Je suis là. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.5,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:07:12.411Z",
+  "bytes": 33061,
+  "sha256": "ad67863f292dffbe54b6652045bf53fdbe7f64e06c946c70a6646486f1254090"
+}

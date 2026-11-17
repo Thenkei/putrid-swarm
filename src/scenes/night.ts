@@ -6,6 +6,7 @@ import { concludeNight } from '../core/game';
 import { ENTRIES, HOUSE, sectorOf } from '../core/map';
 import { NightSim, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
 import { deskFor, outageFor } from '../core/orchard';
+import { allyFor } from '../core/radio';
 import type { DeviceTypeId, GameState, NeighborId, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/app';
@@ -136,7 +137,7 @@ export class NightScene implements Scene {
 
   constructor(private readonly app: App) {
     const state = this.state;
-    this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state), deskFor(state));
+    this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state), deskFor(state), allyFor(state));
     try {
       // The evening as it stood, so a lost night can be replayed with the same yard.
       sessionStorage.setItem('putrid-swarm.evening', JSON.stringify(state));
@@ -224,10 +225,19 @@ export class NightScene implements Scene {
       this.coachNote(fmt(s.night.hand.coachIntro, { s: hours(deskFor(this.state)?.crossSeconds ?? 0) }), 10);
       say('vo_one_hand', { subtitle: false });
     }
+    // Someone from the radio came to hold a door.
+    const ally = allyFor(this.state);
+    if (ally && this.state.radio.call) this.coachNote(fmt(s.night.ally, { name: this.allyName(), sector: s.sector[ally.sector] }), 9);
   }
 
   exit(): void {
     hush();
+  }
+
+  /** Who came from the radio, as the night names him. */
+  private allyName(): string {
+    const call = this.state.radio.call;
+    return call ? (S().radio.caller[call.caller].split(',')[0] ?? '') : '';
   }
 
   // ───────────────────────────── First-night coaching ─────────────────────────────
@@ -738,6 +748,10 @@ export class NightScene implements Scene {
           this.hoverDevice = null;
           this.lostAt = this.time;
           this.syncHud(true);
+          break;
+        case 'ally_turned':
+          audio.play('breach');
+          this.banner(fmt(s.night.allyTurned, { name: this.allyName(), sector: s.sector[event.sector] }), 'bad');
           break;
         case 'outcome':
           this.ending = { survived: event.survived, t: 0 };

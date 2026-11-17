@@ -9,6 +9,8 @@ import { NO_STOCK, rollAmbush, rollDispute, walkAway, type Resolution } from './
 import { ORCHARD, awaitsOrchard, isFate, type Ending } from './orchard';
 import { chapterWaiting, dawnOf, openChapters, type ChapterId } from './chapters';
 import { SHED, awaitsShed, isShedFate, type ShedResult } from './shed';
+import { QUIET_RADIO, aftermathOf, awaitsRadio, rivalOf, stockAfter, type RadioResult } from './radio';
+import { acquaintance } from './encounters';
 import { createRng } from './rng';
 import type { Cost, DeviceInstance, GameState, Inventory, LocationId, LocationProgress, NeighborId, NightReport, OutingMark, ResourceId, Result } from './types';
 import { LOCATION_IDS, RESOURCE_IDS, err, ok } from './types';
@@ -76,6 +78,7 @@ export function newGame(seed: number): GameState {
     orchard: 'quiet',
     shed: 'quiet',
     intel: [],
+    radio: QUIET_RADIO,
     fate: null,
     totals: { kills: 0, triggers: 0, searches: 0 },
   };
@@ -376,6 +379,25 @@ export function settleShed(state: GameState, result: ShedResult): Result<GameSta
   // The day that follows is the one the shed was played on: what it does to later mornings starts tomorrow.
   const day = startNextDay({ ...state, shed: result.ending, intel: learned, inventory: stocked });
   return ok({ ...day, hoursLeft: Math.max(0, day.hoursLeft - result.hours) });
+}
+
+// ───────────────────────────── The radio ─────────────────────────────
+
+/**
+ * How the morning on the radio ended, written into the campaign: the last day starts with what the call
+ * led to — a load in the stock or a visit taken out of it, daylight spent or given, the caller's opinion of
+ * the player — and the call itself kept, for the night's door and the end. Nothing here ends a run.
+ */
+export function settleRadio(state: GameState, result: RadioResult): Result<GameState, OrchardError> {
+  const call = state.radio.call;
+  if (!awaitsRadio(state) || !call) return err({ code: 'not_awaited' });
+  const after = aftermathOf(call, result.answer, state.inventory);
+  const { stock, took } = stockAfter(state.inventory, after);
+  const rival = rivalOf(call.caller);
+  const people = rival && after.standing ? { ...state.people, [rival]: { ...acquaintance(state, rival), standing: after.standing } } : state.people;
+  const radio = { stage: 'done', call, ending: result.ending, answer: result.answer, sighted: [...result.sighted], paid: after.pay, took } as const;
+  const day = startNextDay({ ...state, inventory: stock, people, radio });
+  return ok({ ...day, hoursLeft: Math.min(DAY_HOURS, Math.max(0, day.hoursLeft - result.hours - after.hours)) });
 }
 
 export const clockLabel = (hoursLeft: number): string => {

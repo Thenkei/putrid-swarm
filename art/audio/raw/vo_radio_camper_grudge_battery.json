@@ -1,0 +1,19 @@
+{
+  "id": "vo_radio_camper_grudge_battery",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[sighs] D’accord. Une batterie au portail, à midi. À vous.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T18:00:32.405Z",
+  "bytes": 71514,
+  "sha256": "42a513609bf93ba1f7ce10e8e499baaa6e8d58938932d5ba3aba8677527a316c"
+}

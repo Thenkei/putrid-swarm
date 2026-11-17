@@ -29,6 +29,8 @@ export const LINES = {
   shedCut: ['vo_shed_cut_1', 'vo_shed_cut_2', 'vo_shed_cut_3'],
   bakerDrift: ['vo_baker_drift_1', 'vo_baker_drift_2', 'vo_baker_drift_3', 'vo_baker_drift_4'],
   bakerLucid: ['vo_baker_lucid_1', 'vo_baker_lucid_2', 'vo_baker_lucid_3', 'vo_baker_lucid_4'],
+  // The radio: the voice slipping off the dial, every time it does.
+  radioLost: ['vo_radio_lost_1', 'vo_radio_lost_2', 'vo_radio_lost_3'],
 } as const satisfies Record<string, readonly VoiceId[]>;
 
 /**
