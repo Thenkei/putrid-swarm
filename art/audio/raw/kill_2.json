@@ -1,0 +1,15 @@
+{
+  "id": "kill_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A zombie gives one wet gurgling rattle and drops to its knees, then flat into grass. Dry, close.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.3,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:25.570Z",
+  "bytes": 21358,
+  "sha256": "75a783878368b2ad33a81d39fe17a7948363251e701ba2a12b4cd268c8160fc6"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "loot_battery_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Battery clamps unclipped with two metallic snaps, then a heavy block dragged across concrete. Short, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:39.750Z",
+  "bytes": 15089,
+  "sha256": "d51f94f2eb3a600f18f39cf3054f9ef79da0842247dce708f01a7e3201c43683"
+}

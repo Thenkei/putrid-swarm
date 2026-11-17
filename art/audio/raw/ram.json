@@ -1,0 +1,15 @@
+{
+  "id": "ram",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A heavy chain hoist being winched tight: ratcheting steel chain, groaning metal, tension building. Dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:56.661Z",
+  "bytes": 26792,
+  "sha256": "c0d78731cec0b172eafff0234ae2f04de5859289bb55da5cedc8e2e71bcb9a3c"
+}

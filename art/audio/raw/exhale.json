@@ -1,0 +1,15 @@
+{
+  "id": "exhale",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A man takes one long slow drag on a hand-rolled cigarette, paper crackling, then exhales slowly. Very close microphone.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 3.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:42:01.349Z",
+  "bytes": 52287,
+  "sha256": "0b8c16a2da53f1a4d1063b1ea3831e232cf73ea445fa3159312f130bd2da5551"
+}

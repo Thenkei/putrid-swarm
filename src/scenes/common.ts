@@ -1,0 +1,129 @@
+// Pieces shared by several scenes: plates, resource chips, key labels.
+
+import type { Cost, Inventory, ResourceId } from '../core/types';
+import { RESOURCE_IDS } from '../core/types';
+import { STAGE_H, STAGE_W } from '../engine/app';
+import { assetUrl, sprite } from '../engine/assets';
+import { audio, type Sfx } from '../engine/audio';
+import { sayAny } from '../engine/voice';
+import { el } from '../engine/dom';
+import { S, getLang } from '../engine/i18n';
+
+/** Draws a plate so it covers the stage, with an optional slow push-in. `focusY` picks the vertical crop (0 top … 1 bottom). */
+export function drawPlate(ctx: CanvasRenderingContext2D, key: string, options: { zoom?: number; focusX?: number; focusY?: number; alpha?: number } = {}): void {
+  const art = sprite(key);
+  if (!art) {
+    ctx.fillStyle = '#1b1610';
+    ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+    return;
+  }
+  const zoom = options.zoom ?? 1;
+  const scale = Math.max(STAGE_W / art.w, STAGE_H / art.h) * zoom;
+  const w = art.w * scale;
+  const h = art.h * scale;
+  const x = (STAGE_W - w) * (options.focusX ?? 0.5);
+  const y = (STAGE_H - h) * (options.focusY ?? 0.5);
+  ctx.globalAlpha = options.alpha ?? 1;
+  ctx.drawImage(art.img, x, y, w, h);
+  ctx.globalAlpha = 1;
+}
+
+/** Where a point of a plate (as a 0..1 fraction of the image) lands on the stage, for the same cover framing. */
+export function platePoint(key: string, fx: number, fy: number, focusY = 0.5): { x: number; y: number } {
+  const art = sprite(key);
+  if (!art) return { x: fx * STAGE_W, y: fy * STAGE_H };
+  const scale = Math.max(STAGE_W / art.w, STAGE_H / art.h);
+  const w = art.w * scale;
+  const h = art.h * scale;
+  return { x: (STAGE_W - w) / 2 + fx * w, y: (STAGE_H - h) * focusY + fy * h };
+}
+
+/** Rarest first: when a find mixes resources, the most precious one is the one that is heard. */
+const LOOT_SOUND_ORDER: readonly ResourceId[] = ['battery', 'springs', 'wire', 'scrap', 'wood'];
+
+/** The pick-up sound for what was found: the resource there is most of, the rarest winning a tie. */
+export function lootSfx(loot: Cost): Sfx | null {
+  let best: ResourceId | null = null;
+  for (const id of LOOT_SOUND_ORDER) {
+    const amount = loot[id] ?? 0;
+    if (amount > 0 && (best === null || amount > (loot[best] ?? 0))) best = id;
+  }
+  return best === null ? null : `loot_${best}`;
+}
+
+const tripsSpoken = new Set<string>();
+/** How often the protagonist comments on a trip after the first one of the day. */
+const LATER_TRIP_CHANCE = 0.6;
+
+/** Getting into the break (`car`) or back from it (`home`): always remarked on once a day, then now and then. */
+export function tripLine(moment: 'car' | 'home', day: number): void {
+  const key = `${moment}:${day}`;
+  if (tripsSpoken.has(key) && Math.random() > LATER_TRIP_CHANCE) return;
+  if (sayAny(moment) > 0) tripsSpoken.add(key);
+}
+
+/** Door, then starter: leaving somewhere in the break. */
+export function carDeparture(): void {
+  audio.play('car_door');
+  window.setTimeout(() => audio.play('engine'), 350);
+}
+
+export function resourceChip(id: ResourceId, amount: number | string, extraClass = ''): HTMLElement {
+  const url = assetUrl(`icons_${id}`);
+  const icon = url ? el('img', {}) : el('span', { text: '▪' });
+  if (url) (icon as HTMLImageElement).src = url;
+  return el('span', { class: `res ${extraClass}`.trim(), title: S().res[id] }, [icon, String(amount)]);
+}
+
+/** A cost line; resources the inventory cannot cover are marked. */
+export function costLine(cost: Cost, inventory?: Inventory, prefix = ''): HTMLElement {
+  const chips = RESOURCE_IDS.filter((id) => (cost[id] ?? 0) > 0).map((id) =>
+    resourceChip(id, `${prefix}${cost[id]}`, inventory && inventory[id] < (cost[id] ?? 0) ? 'short' : ''),
+  );
+  return el('span', { class: 'cost' }, chips.length > 0 ? chips : [el('span', { class: 'muted', text: S().day.nothing })]);
+}
+
+export function inventoryBar(inventory: Inventory): HTMLElement {
+  return el(
+    'span',
+    { class: 'cost' },
+    RESOURCE_IDS.map((id) => resourceChip(id, inventory[id])),
+  );
+}
+
+export function describeCost(cost: Cost): string {
+  return RESOURCE_IDS.filter((id) => (cost[id] ?? 0) > 0)
+    .map((id) => `${cost[id]} ${S().res[id].toLowerCase()}`)
+    .join(', ');
+}
+
+// ───────────────────────────── Keys ─────────────────────────────
+
+/** Trap hotkeys are the physical top-left letter row, so they sit under the left hand on any layout. */
+export const TRAP_KEY_CODES = ['KeyQ', 'KeyW', 'KeyE', 'KeyR', 'KeyT', 'KeyY'] as const;
+
+const AZERTY = ['A', 'Z', 'E', 'R', 'T', 'Y'];
+const QWERTY = ['Q', 'W', 'E', 'R', 'T', 'Y'];
+let resolvedLabels: string[] | null = null;
+
+interface KeyboardLayoutApi {
+  getLayoutMap(): Promise<{ get(code: string): string | undefined }>;
+}
+
+/** Ask the browser what those physical keys are labelled; fall back on the language. */
+export async function resolveKeyLabels(): Promise<void> {
+  const keyboard = (navigator as Navigator & { keyboard?: KeyboardLayoutApi }).keyboard;
+  if (!keyboard?.getLayoutMap) return;
+  try {
+    const map = await keyboard.getLayoutMap();
+    const labels = TRAP_KEY_CODES.map((code) => map.get(code)?.toUpperCase());
+    if (labels.every((label): label is string => typeof label === 'string' && label.length === 1)) resolvedLabels = labels;
+  } catch {
+    // Not available (permissions, browser): the language guess stands.
+  }
+}
+
+export const trapKeyLabels = (): readonly string[] => resolvedLabels ?? (getLang() === 'fr' ? AZERTY : QWERTY);
+
+export const DIGIT_CODES = ['Digit1', 'Digit2', 'Digit3', 'Digit4'] as const;
+export const NUMPAD_CODES = ['Numpad1', 'Numpad2', 'Numpad3', 'Numpad4'] as const;

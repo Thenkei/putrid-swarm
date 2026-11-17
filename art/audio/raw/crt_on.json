@@ -1,0 +1,15 @@
+{
+  "id": "crt_on",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old CRT computer monitor being switched on: a power button clunk, a degaussing thump and buzz, a rising high-pitched whine, static settling.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:34:22.155Z",
+  "bytes": 29300,
+  "sha256": "f408d4bbbbd6399727f28f46abd057e0f7e237fde1af5eceae64fea3559c79e4"
+}

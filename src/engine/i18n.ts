@@ -1,0 +1,48 @@
+import { en } from '../i18n/en';
+import { fr, type Strings } from '../i18n/fr';
+
+export type Lang = 'fr' | 'en';
+const TABLES: Readonly<Record<Lang, Strings>> = { fr, en };
+const STORAGE_KEY = 'putrid-swarm.lang';
+
+let current: Lang = 'fr';
+
+export function initLang(): Lang {
+  let stored: string | null = null;
+  try {
+    stored = localStorage.getItem(STORAGE_KEY);
+  } catch {
+    // Storage can be unavailable (private mode); the default still applies.
+  }
+  if (stored === 'fr' || stored === 'en') current = stored;
+  else current = navigator.language.toLowerCase().startsWith('fr') ? 'fr' : 'en';
+  document.documentElement.lang = current;
+  return current;
+}
+
+export function setLang(lang: Lang): void {
+  current = lang;
+  document.documentElement.lang = lang;
+  try {
+    localStorage.setItem(STORAGE_KEY, lang);
+  } catch {
+    // Non-fatal: the choice simply will not survive a reload.
+  }
+}
+
+export const getLang = (): Lang => current;
+
+/** Typed access to the whole table, for structured lookups (`S().device[type].name`). */
+export const S = (): Strings => TABLES[current];
+
+/** Fills `{name}` placeholders. */
+export function fmt(template: string, params: Readonly<Record<string, string | number>> = {}): string {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) => (key in params ? String(params[key]) : match));
+}
+
+/** Hours as the game shows them: `0.5` → "0,5" in French, "0.5" in English. */
+export function hours(value: number): string {
+  const rounded = Math.round(value * 100) / 100;
+  const text = Number.isInteger(rounded) ? String(rounded) : String(rounded);
+  return current === 'fr' ? text.replace('.', ',') : text;
+}

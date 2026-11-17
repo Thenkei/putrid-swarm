@@ -1,0 +1,19 @@
+{
+  "id": "vo_broadcast",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/m5U7XCsc8v988k2RJAqN",
+  "request": {
+    "text": "Bonsoir. Nous interrompons nos programmes. Des agressions d’une violence inhabituelle sont signalées ce soir dans plusieurs communes de la vallée. Les autorités évoquent un premier cas, un « patient zéro », sans confirmer l’origine de la contamination. Il est demandé à chacun de rester chez soi, portes et volets fermés. Et de n’ouvrir à personne. Même à un voisin.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.6,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Manon",
+  "generatedAt": "2026-11-17T09:42:29.474Z",
+  "bytes": 342769,
+  "sha256": "afe49ab45254750d817587248a25cb5f7b338f0fcd178db5393656328f93690f"
+}

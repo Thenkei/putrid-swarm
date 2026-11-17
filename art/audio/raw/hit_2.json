@@ -1,0 +1,15 @@
+{
+  "id": "hit_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A heavy wooden plank smacking into a body: one sharp dull whack and a wet thud. Close, dry, punchy.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:24.774Z",
+  "bytes": 13835,
+  "sha256": "0dbce80b7786dad7a0f87bb474ff0bc86bebd1f0ae866a1419679f98166c5eb4"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "build_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Two hammer blows on a nail, then a plank knocked into place with the side of the hammer. Outdoors, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:29.406Z",
+  "bytes": 17179,
+  "sha256": "99e88d2106cded61819443cf7e2a90f379a67b5c7bd5a1eb0d65d9894c43e6fb"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "bulb",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old incandescent light bulb flickering: two tiny electrical ticks and a faint buzz. Very quiet, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:49:44.216Z",
+  "bytes": 10492,
+  "sha256": "568c684b0f03eb58a1f6fbf21534a3128c1c3ffbdf242f4cc233841c2467659c"
+}

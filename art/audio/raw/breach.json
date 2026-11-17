@@ -1,0 +1,15 @@
+{
+  "id": "breach",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A boarded-up wooden door is smashed in: planks splintering, nails tearing, a heavy crash. Close.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:54.268Z",
+  "bytes": 30972,
+  "sha256": "e80e92fcef4ba7e1c60ed877da788c34e6a0ebad6f15d00e6857c490fb63269b"
+}

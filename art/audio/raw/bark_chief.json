@@ -1,0 +1,19 @@
+{
+  "id": "bark_chief",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/5l4ttmr4SKNgi0HnOelT",
+  "request": {
+    "text": "[growling, hoarse] Circulez ! Y a rien… à voir !",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Paul K",
+  "generatedAt": "2026-11-17T09:42:39.808Z",
+  "bytes": 53541,
+  "sha256": "82b7e207e71a4d34dcf6c1224c84f128c79d6d81b69f05504bc55ac2fdfc8bf0"
+}

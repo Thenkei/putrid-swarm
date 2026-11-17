@@ -1,0 +1,19 @@
+{
+  "id": "vo_dawn_4",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[tired] Une de plus. Café.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:19:01.564Z",
+  "bytes": 43510,
+  "sha256": "8a7bcfcffeb4c6f306d513b8244a43651741a9f9244171af35cb8e370ebaf1eb"
+}

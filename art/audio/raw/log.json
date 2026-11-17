@@ -1,0 +1,15 @@
+{
+  "id": "log",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A heavy tree trunk hung on ropes swings down: rope creak, a deep whoosh, then one massive dull thud. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:47.760Z",
+  "bytes": 29300,
+  "sha256": "9b443918cd47519976b0ff1e40478ad802bdf845382ed5c65e8392c5b201c124"
+}

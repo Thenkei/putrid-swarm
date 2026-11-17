@@ -1,0 +1,263 @@
+{
+  "project": "Putrid Swarm",
+  "prepared_on": "2026-11-17",
+  "asset_count": 17,
+  "provenance": "Images générées pendant cette conversation. Originaux copiés sans modification. Les documents du dépôt historique n’ont pas été consultés : accès 404 lors des tentatives.",
+  "assets": [
+    {
+      "path": "art/concepts/01-day-night-homestead.png",
+      "title": "Refuge : préparation et assaut",
+      "category": "ambiance initiale",
+      "notes": "Exploration initiale à aspect 3D. Conserver le contraste jour/nuit, pas une exigence de rendu.",
+      "library_file_id": "libfile_c14ad53ee30c8191bac67ff10506e1a7",
+      "original_filename": "exec-333eba74-0737-4bd5-bc53-03a4d2f02432.png",
+      "bytes": 2885960,
+      "dimensions": [
+        1774,
+        887
+      ],
+      "sha256": "0a9e762c77e60e762a1b74a45db55b00721898f0a4810f850d46ff6f69703c08",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/02-night-defense-overview.png",
+      "title": "Défense nocturne du refuge",
+      "category": "ambiance initiale",
+      "notes": "Vue globale des approches et défenses. Le personnage à la fenêtre et le rendu 3D ne définissent pas le contrôle nocturne retenu.",
+      "library_file_id": "libfile_dbe04355adc0819187b00c934af9735a",
+      "original_filename": "exec-21d26299-4410-4b33-ad17-69fe77577946.png",
+      "bytes": 3318214,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "e8368710a832f71521a475bd91ffe3b9bbb06cf5f64840a1814700d33de33839",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/03-2d-projection-comparison.png",
+      "title": "Deux directions pour la 2D",
+      "category": "comparaison de projection",
+      "notes": "Isométrique et vue de dessus. Le panneau de droite reste incliné : ce n’est pas une référence de projection verticale stricte.",
+      "library_file_id": "libfile_f1c00e36d7608191b67c03c0e213e985",
+      "original_filename": "exec-cebafdd0-775f-4cdc-b42f-b32e32eebee0.png",
+      "bytes": 3402409,
+      "dimensions": [
+        1774,
+        887
+      ],
+      "sha256": "7f6d9c3eff1b9f12dfe4238e34fdb2ef2af41be34ac7a4dc9d7bd7c239d24163",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/04-night-camera-controls.png",
+      "title": "Caméras et déclenchements nocturnes",
+      "category": "interface exploratoire",
+      "notes": "Grande vue active, vignettes secondaires et actions rapides. Touches, valeurs, numéros de nuits et énergie sont illustratifs.",
+      "library_file_id": "libfile_4b8ee5d5915c8191b23220fe81ba65f5",
+      "original_filename": "exec-86c147f7-5457-4da6-803e-f80ca1f07c7e.png",
+      "bytes": 2939364,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "930810252c35bba0dea761d160ffc2225bc0a641c4e285b6d185ce6fca358a0c",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/05-neighborhood-scavenging.png",
+      "title": "Virée dans le quartier",
+      "category": "exploration",
+      "notes": "Break ancien, garage et commerces : l’exploration nourrit les défenses. Architecture et pays restent des propositions.",
+      "library_file_id": "libfile_27167a8b182c81918fa04b30b3250b5b",
+      "original_filename": "exec-86d1d8d8-aaf2-4900-bfe1-2e7de97b51a4.png",
+      "bytes": 3956813,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "b8ab4704adc82e7bee93a2fa087919ff57f54a2d7d3336eb01796a96ab020c4b",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/06-neighbors-before-after.png",
+      "title": "Voisins avant et après",
+      "category": "personnages proposés",
+      "notes": "Tondeur, garagiste et factrice. Identité, accessoires et anciennes habitudes restent reconnaissables après infection.",
+      "library_file_id": "libfile_21d365c6ed208191ae5d22d80211806d",
+      "original_filename": "exec-d6b9ad3f-ad94-4324-9647-bd5efb02f04c.png",
+      "bytes": 3769907,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "148da1d03526f4b2ab4df2cf10dde0ff65aab62862bf86830dfd5d0713c08002",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/07-authorities-before-after.png",
+      "title": "Police et maire avant et après",
+      "category": "boss proposés",
+      "notes": "Chef de la police et maire : progression vers le contrôle de la horde. Shérif possible si implantation américaine.",
+      "library_file_id": "libfile_5ef690e9e3788191a9301914f825baab",
+      "original_filename": "exec-5834f83e-1fb2-403e-ae37-15188ce449cd.png",
+      "bytes": 3410259,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "883106488a7b1bf29bae85576ecc8c4fc218f696f2ab8f3f26d9b1e1aa802883",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/08-town-supply-run.png",
+      "title": "Le break jaune en ville",
+      "category": "exploration",
+      "notes": "Arrêt près de la quincaillerie, du garage et de l’épicerie. Les objets doivent annoncer leur utilité au refuge.",
+      "library_file_id": "libfile_02b224e304e48191a72a3deb2017dab3",
+      "original_filename": "exec-954a35d3-6b3a-45a2-87ce-2e66c8e0cb34.png",
+      "bytes": 4156885,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "93978a51fdfd7d76a72206111f898b4d63c9aa2c51359935c8e666cbbcf976a8",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/09-car-trunk-resources.png",
+      "title": "Le coffre et les ressources",
+      "category": "ressources et véhicule",
+      "notes": "Batterie, câbles, ressorts, bidon, grillage et caméra. Le coffre limité est une mécanique proposée, pas encore validée.",
+      "library_file_id": "libfile_7de3cc4300288191850e5203cdc283ab",
+      "original_filename": "exec-b06049a2-c77c-4081-8e46-a44fa167343c.png",
+      "bytes": 3912857,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "35a56762673d6bd11aa01fad584a266a39e44676a266caac41a7528deaaab95a",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/10-return-before-night.png",
+      "title": "Retour avant la nuit",
+      "category": "boucle jour/nuit",
+      "notes": "Déchargement au refuge, défenses inachevées et premières silhouettes. La pression horaire reste à équilibrer.",
+      "library_file_id": "libfile_323efd89fc9081918cde5502c2cbf5ba",
+      "original_filename": "exec-8fd307d1-2a66-4281-8a97-818af5ceeefa.png",
+      "bytes": 4070774,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "e3979970fa2f379e59db0d4702cbdd12e484186b52ed7aef9b544db462e2243c",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/11-opening-storyboard.png",
+      "title": "De l’écran à l’aventure",
+      "category": "introduction",
+      "notes": "Menu sur l’ordinateur, flash patient zéro, joint dans le cendrier à droite, fumée puis ellipse temporelle.",
+      "library_file_id": "libfile_8d4a378cb4388191b8f6f45224230bc8",
+      "original_filename": "exec-6465c740-674c-4f85-b991-2bbca762b2ef.png",
+      "bytes": 3545154,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "918db8ac4e511ebd1cce9512d511161b6fab0b3dab67c5bd6df47df3aa9e0a01",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/12-surveillance-room.png",
+      "title": "Le poste de surveillance",
+      "category": "intérieur du refuge",
+      "notes": "Bureau de l’introduction devenu centre de contrôle bricolé. Batteries, CRT et boutons sont des références visuelles.",
+      "library_file_id": "libfile_caf90488c58481918bf25801f0aa501c",
+      "original_filename": "exec-83160ec1-1cd6-403f-b2e6-463ee07e1d50.png",
+      "bytes": 3444735,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "9d6d9f1348388285b5b8c6831b95883cf7d4131a45c57532910ae35f3151e21e",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/13-defense-device-states.png",
+      "title": "États des dispositifs",
+      "category": "planche de props",
+      "notes": "Filet, barrière et klaxon : au repos, prêt, actif, cassé. Concept visuel, pas plan de fabrication ni spécification mécanique finale.",
+      "library_file_id": "libfile_965ce980cab881918b850866b6e4f96a",
+      "original_filename": "exec-84e4c1c3-d045-4fe1-b60d-713fc22a711e.png",
+      "bytes": 3500975,
+      "dimensions": [
+        1448,
+        1086
+      ],
+      "sha256": "bfa67f7febd62ba943c08926f835149aed58000e0da5129be23d2cf7bd7c0a7d",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/14-infected-animal-bestiary.png",
+      "title": "Trois bêtes, trois tactiques",
+      "category": "bestiaire proposé",
+      "notes": "Chien : contournement. Sanglier : brèche. Cerf : franchissement. Silhouettes et animations restent à produire.",
+      "library_file_id": "libfile_8982f637e4ec8191918c18ed91c241cf",
+      "original_filename": "exec-057bb38f-e093-4795-97fc-5793dfc7def0.png",
+      "bytes": 3802835,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "0d99e86221ca1d0a920613682677e2bcb8603e2f7a920ebe447a5c86f2bee80e",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/15-neighbor-garage-interior.png",
+      "title": "Le garage du voisin",
+      "category": "intérieur à fouiller",
+      "notes": "Pièces utiles, réserve sombre, sortie vers le break. L’ombre inquiétante d’une combinaison apporte une fausse alerte cocasse.",
+      "library_file_id": "libfile_7c4b91d7bebc81918db2439e94c47a1a",
+      "original_filename": "exec-45bd8190-3529-4601-928e-af4b67b730c3.png",
+      "bytes": 3627602,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "9cc16a352c9cb4b7bd257bd38958582cc15a837fedda5297ceb73b28c9654f9c",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/16-mayor-wave-camera.png",
+      "title": "Le maire pendant une vague",
+      "category": "boss et interface",
+      "notes": "Mégaphone et cortège dans la vue d’une caméra, pendant que d’autres secteurs demandent de l’attention.",
+      "library_file_id": "libfile_fd6bbeabce7c819186af5b28b420feb6",
+      "original_filename": "exec-ba3df498-7c35-475f-a3c0-08702f51d608.png",
+      "bytes": 3089864,
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "ee482659068ee6fb64e2561076c327c05ce38050c6bf2d67632403bef0de7707",
+      "status": "concept-reference-not-production-asset"
+    },
+    {
+      "path": "art/concepts/17-morning-after.png",
+      "title": "Le lendemain de l’attaque",
+      "category": "conséquences et ton",
+      "notes": "Maison debout, jardin abîmé, réparations à prévoir ; une bande de pelouse reste absurdement impeccable.",
+      "library_file_id": "libfile_56be7d5a9ae48191a6a06dc5fdad0e0e",
+      "original_filename": "exec-bffa1cc5-7e61-484c-a475-3fd93b053eb6.png",
+      "bytes": 4004078,
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "sha256": "58ca7dd4779b3730c2a43d22e26b87ab0fe64065f287dabd2f54e8d51b862228",
+      "status": "concept-reference-not-production-asset"
+    }
+  ]
+}

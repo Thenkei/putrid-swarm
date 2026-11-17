@@ -1,0 +1,19 @@
+{
+  "id": "vo_coffee_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[flat, calm] Tout va bien.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:57:03.416Z",
+  "bytes": 17597,
+  "sha256": "bebeaed6ad2f1cb0146ebd894ffefb6c668d0e5cfa3180e268204f83e24cb70b"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "loot_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One useful find dropped into a bag already half full: a single muffled clunk and a short jingle. Short, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.7,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:33.482Z",
+  "bytes": 12163,
+  "sha256": "9406b5c70d4fcefcd9eeeac0de46d470e3d7b293dd580e1c38ca0e1e1c0d67e6"
+}

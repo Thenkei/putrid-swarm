@@ -1,0 +1,19 @@
+{
+  "id": "vo_good_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[short laugh] Joli.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:33.382Z",
+  "bytes": 28046,
+  "sha256": "b37111e367a991cd85bac45881e068922d3f7c1a3544ddd95eeb77f8c14baf46"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "amb_car",
+  "kind": "loop",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Interior of an old diesel station wagon driving on a rough country road: steady engine drone, dashboard rattles, tyres on gravel. No music.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 14,
+    "prompt_influence": 0.4,
+    "loop": true
+  },
+  "generatedAt": "2026-11-17T09:42:07.224Z",
+  "bytes": 224905,
+  "sha256": "68b53dc30d0facd02ccc46b9264bd208f973b7c4c5732949d4ff1455a79df4cd"
+}

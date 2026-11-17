@@ -1,0 +1,19 @@
+{
+  "id": "vo_boss_mower",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[incredulous] C’est… le voisin ? Il tond. À cette heure-ci.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:35.487Z",
+  "bytes": 61065,
+  "sha256": "99bc4210d368a5919c0b0e9abfdb0a4594746bc1d6742f3f4cfff1cd96415708"
+}

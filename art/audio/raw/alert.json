@@ -1,0 +1,15 @@
+{
+  "id": "alert",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A security console warning: two short urgent electronic beeps, old hardware. Dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.7,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:58.620Z",
+  "bytes": 12163,
+  "sha256": "0df4593b218aaa4fef5042009f6e043b0b5bfe650e0263788a6ad779cd7f01a9"
+}

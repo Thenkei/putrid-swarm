@@ -1,0 +1,15 @@
+{
+  "id": "car_door_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old car door creaking open on a dry hinge and slamming shut with a tinny bang. Dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:45.188Z",
+  "bytes": 15089,
+  "sha256": "a317d49389597e3c56876c8b2372497c0470c4dfdacf0f6a5f55883fdcdd7fec"
+}

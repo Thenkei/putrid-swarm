@@ -1,0 +1,15 @@
+{
+  "id": "inside",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Inside a house: a window shatters, furniture is knocked over, a muffled snarl. Short and alarming.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:55.983Z",
+  "bytes": 26792,
+  "sha256": "5ee1b80198dd095054385ff9aff555076da481bd6b72e3f2ccc04aca212b5915"
+}

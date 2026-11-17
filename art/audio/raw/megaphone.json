@@ -1,0 +1,15 @@
+{
+  "id": "megaphone",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A cheap megaphone is switched on: a click, a burst of feedback squeal, crackle. No voice.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:57.114Z",
+  "bytes": 17179,
+  "sha256": "74cd3949ed6feb1cb416ed5351dc20678243efe4dca64c918fe820f914ccd25f"
+}

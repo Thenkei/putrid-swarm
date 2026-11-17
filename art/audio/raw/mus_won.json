@@ -1,0 +1,15 @@
+{
+  "id": "mus_won",
+  "kind": "music",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/music",
+  "request": {
+    "prompt": "A quiet bittersweet ending at sunrise. Upright piano and accordion play a gentle major-key resolution of a melancholy theme, soft strings entering, ending on a held chord. Instrumental.",
+    "model_id": "music_v2_5",
+    "music_length_ms": 28000,
+    "force_instrumental": true
+  },
+  "generatedAt": "2026-11-17T09:42:26.669Z",
+  "bytes": 448514,
+  "sha256": "95b2c3051508ff82ddd8106050383ce9fd120229dcfcf040a0d42da1a915264d"
+}

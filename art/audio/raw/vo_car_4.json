@@ -1,0 +1,19 @@
+{
+  "id": "vo_car_4",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "On fait vite. La nuit n’attend pas.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:18:47.965Z",
+  "bytes": 34315,
+  "sha256": "3443d0d4ba7e4c465fefd53a07fcb5ecdf3fc65079a5efe92c9a525c848b075b"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "amb_room",
+  "kind": "loop",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Room tone of a small quiet study at night: the electric hum of an old CRT monitor, a faint computer fan. Steady, no music, no voices.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 18,
+    "prompt_influence": 0.4,
+    "loop": true
+  },
+  "generatedAt": "2026-11-17T09:42:04.763Z",
+  "bytes": 289270,
+  "sha256": "e346c43e39999b3bd69e6f0c69f2199c9dee75b7d6fe37b032481ce3c9dcb604"
+}

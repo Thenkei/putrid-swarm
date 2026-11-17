@@ -1,0 +1,15 @@
+{
+  "id": "groan_4",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A single low zombie growl that rises into a hungry wheeze, male, heard from a distance outdoors at night.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:26.832Z",
+  "bytes": 36405,
+  "sha256": "b82227dbfe725e167d475d921b9530282bdc163aad8cfe4749aa1e2b92da6ec3"
+}

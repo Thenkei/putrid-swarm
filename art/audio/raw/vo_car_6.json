@@ -1,0 +1,19 @@
+{
+  "id": "vo_car_6",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] Personne dans la rue. Tant mieux.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:18:49.146Z",
+  "bytes": 35569,
+  "sha256": "f7fb012d174b5f3df4335dac1d529814a743fa033e2e79eb00fa0a2218203a98"
+}

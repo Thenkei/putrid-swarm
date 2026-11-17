@@ -1,0 +1,15 @@
+{
+  "id": "mus_morning",
+  "kind": "music",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/music",
+  "request": {
+    "prompt": "The morning after a hard night. Solo accordion and nylon guitar play a slow, tired, relieved phrase that resolves gently. Warm, small, 70 bpm. Instrumental.",
+    "model_id": "music_v2_5",
+    "music_length_ms": 22000,
+    "force_instrumental": true
+  },
+  "generatedAt": "2026-11-17T09:43:12.371Z",
+  "bytes": 352801,
+  "sha256": "14b4862f322966cb83d26e4c6b532444e1d24995a0f54145eb60fffc5781fab8"
+}

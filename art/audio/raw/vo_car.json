@@ -1,0 +1,19 @@
+{
+  "id": "vo_car",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Allez, ma vieille. Encore un tour.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:30.142Z",
+  "bytes": 33061,
+  "sha256": "b2037d71d4c1904c8b37f9fdbf35d8d8c4632a7db5a8704632757dcd6d90f259"
+}

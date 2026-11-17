@@ -1,0 +1,15 @@
+{
+  "id": "groan_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A single raspy zombie groan, female, breathy and rattling, heard from a distance outdoors at night.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:52.957Z",
+  "bytes": 33061,
+  "sha256": "c045b8c364418a16f97bde915d6de46766588a95c84a3133ba4d11c3a8fdaa23"
+}

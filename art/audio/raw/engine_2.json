@@ -1,0 +1,15 @@
+{
+  "id": "engine_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old diesel car starting on the first turn of the key: one short starter whirr, the engine catches at once, a brief rev, then a steady rattling idle.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 3.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:40.711Z",
+  "bytes": 52287,
+  "sha256": "78a8299950c246bd532a44d8137f93ec4d48dc8a0476c7d351705ae3332ff609"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "broken",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A wooden contraption breaking apart: planks snapping, a spring pinging loose, debris dropping in grass. Dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:50.826Z",
+  "bytes": 20105,
+  "sha256": "ed73824840975b0b80bd8e863e6db92b734d3b236cfad29ca4f0e3d51d659868"
+}

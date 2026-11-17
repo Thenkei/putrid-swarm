@@ -1,0 +1,15 @@
+{
+  "id": "build_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Four fast light hammer taps finishing a nail into soft wood. Outdoors, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:31.001Z",
+  "bytes": 20105,
+  "sha256": "247f15bb3941fa487f24c80af83d7da0541755abdb174bc870d913b167df8863"
+}

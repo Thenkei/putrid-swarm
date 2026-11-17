@@ -1,0 +1,19 @@
+{
+  "id": "vo_boss_mechanic",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Le dépanneur. Avec son palan. Et sa facture.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:35.692Z",
+  "bytes": 57303,
+  "sha256": "8c499883181823d4e495269fbf831c31feb6d3f237903a47b65516cc2c2a5f58"
+}

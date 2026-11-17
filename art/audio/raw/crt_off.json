@@ -1,0 +1,15 @@
+{
+  "id": "crt_off",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old CRT computer monitor being switched off: a plastic power button clunk, a high electronic whine dropping away, a faint static crackle.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:34:21.870Z",
+  "bytes": 20105,
+  "sha256": "a8fdeac116f9c07f6c917f27e890616944d16b5119f925a5ab0b37aee7649dd4"
+}

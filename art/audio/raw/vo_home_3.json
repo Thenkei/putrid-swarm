@@ -1,0 +1,19 @@
+{
+  "id": "vo_home_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[exhales] Entier. Le break aussi.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:18:53.195Z",
+  "bytes": 51034,
+  "sha256": "8cb7fe7d8a0329a0c5061bec989a2c2838b61566c03eedb879bbbb4a7c3179b8"
+}

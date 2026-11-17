@@ -1,0 +1,19 @@
+{
+  "id": "vo_switch",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[tense] Ça bouge sur une autre caméra.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:32.421Z",
+  "bytes": 40585,
+  "sha256": "587bc3e12f31d815b2e7d2ad581956cdb7a378de859fe80d53878af9351b8053"
+}

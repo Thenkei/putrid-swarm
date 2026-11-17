@@ -1,0 +1,15 @@
+{
+  "id": "kill_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A zombie cut short mid-snarl: a choked grunt, then a limp body falling over into dead leaves. Dry, close.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:25.831Z",
+  "bytes": 20105,
+  "sha256": "053080d8898266c0678b39280fb4750a1b29c752ebf2784cd87cedc508d2a71c"
+}

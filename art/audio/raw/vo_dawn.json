@@ -1,0 +1,19 @@
+{
+  "id": "vo_dawn",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[exhales] Le jour. On a tenu.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:36.911Z",
+  "bytes": 49780,
+  "sha256": "15b9efe82c470542e143d1fd744bc263314b219904d5053ecba1e14801e4293f"
+}

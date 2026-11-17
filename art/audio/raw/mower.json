@@ -1,0 +1,15 @@
+{
+  "id": "mower",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A petrol lawn mower engine being revved up hard, sputtering and climbing in pitch, blades rattling. Outdoors, close.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 3.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:55.962Z",
+  "bytes": 52287,
+  "sha256": "00e7fca196eb65140059b94c4487093254285ebd9a131f6366996e07bbc959fb"
+}

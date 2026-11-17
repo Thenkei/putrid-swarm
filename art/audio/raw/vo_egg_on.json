@@ -1,0 +1,19 @@
+{
+  "id": "vo_egg_on",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[sighs] Bon. On y retourne.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:34:24.267Z",
+  "bytes": 46018,
+  "sha256": "2b8928ab2fa0c9f23d5c46e688c8afd0a60f661247bcf5188a18cf7f77e4e3ee"
+}

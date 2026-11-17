@@ -1,0 +1,15 @@
+{
+  "id": "door_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Three flat-handed slaps and one heavy shoulder barge against a barricaded wooden door, hinges rattling. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:28.394Z",
+  "bytes": 13835,
+  "sha256": "72297ce34b765cab355865b574172b7718cbd34e7c26cdd03e8e495835f24794"
+}

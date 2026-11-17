@@ -1,0 +1,15 @@
+{
+  "id": "mus_boss",
+  "kind": "music",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/music",
+  "request": {
+    "prompt": "A sinister musette waltz for a monstrous neighbour. Accordion playing a minor-key French waltz that is slightly too fast and distorted, pounding low piano, stomping drums, tense tremolo strings. Darkly comic and threatening, 132 bpm in three-four time. Instrumental, loops cleanly.",
+    "model_id": "music_v2_5",
+    "music_length_ms": 65000,
+    "force_instrumental": true
+  },
+  "generatedAt": "2026-11-17T09:42:20.460Z",
+  "bytes": 1040762,
+  "sha256": "4e24a6d75cd8386c4280d0a6b7358203d30c6a1b8cc020c6a27c893c40eac0cd"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "loot_scrap_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A sheet of scrap metal and a few steel offcuts picked up: scraping, a rattling clank. Short, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:35.215Z",
+  "bytes": 15089,
+  "sha256": "5137c5eb8181ec014914695a4dcf857cfd7c95bb2369840f482011a894cec2c6"
+}

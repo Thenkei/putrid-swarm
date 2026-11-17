@@ -1,0 +1,15 @@
+{
+  "id": "engine",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old diesel station wagon struggling to start: the starter cranks three laboured times, then the engine catches and settles into a rough idle.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 3.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:42:00.160Z",
+  "bytes": 58139,
+  "sha256": "b018eec72c959a833952b13619789d14ec12e9dd87f8da1fd4f33429a78e195b"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_home_9",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[weary] Chez soi. Enfin, ce qu’il en reste.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:18:56.974Z",
+  "bytes": 54795,
+  "sha256": "44a3a72453d482eca5ea45ab64f279422a24164d584d5d65479fb59e3d3ae03f"
+}

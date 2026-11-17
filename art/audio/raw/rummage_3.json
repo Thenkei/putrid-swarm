@@ -1,0 +1,15 @@
+{
+  "id": "rummage_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Rummaging through cardboard boxes on a shelf: flaps opened, paper and packaging pushed aside, a tin knocked over. Dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:31.867Z",
+  "bytes": 26792,
+  "sha256": "3781a280079780ae56f4ce95ce8c1e0cf4aa439f3aa0bc62a0f516bb84f33d62"
+}

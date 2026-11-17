@@ -1,0 +1,15 @@
+{
+  "id": "lost",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A dark defeat sting: a deep impact, then a low drone sinking in pitch into silence. Horror, no melody.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 3.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:42:02.589Z",
+  "bytes": 52287,
+  "sha256": "7a26214af6c466b023971b3e418190c95379aae9de739132f66d366a67db6768"
+}

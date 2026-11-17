@@ -1,0 +1,15 @@
+{
+  "id": "barrier",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A striped metal road barrier swings upright and locks: squeaking hinge, then a loud steel clank and ratchet click. Dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:49.500Z",
+  "bytes": 18433,
+  "sha256": "f0f1babd37150e5910fa0c7073340a2efe64f958942dffbab610761628a8f0e7"
+}

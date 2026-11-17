@@ -1,0 +1,15 @@
+{
+  "id": "rummage",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Rummaging through a metal toolbox and wooden drawers: clatter, sliding, small parts shifting. Dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:58.577Z",
+  "bytes": 26792,
+  "sha256": "08c65745f8a9c5b625f31e01ad934f4bf168c2fc2cbc7a5a718fd1ec2228b79a"
+}

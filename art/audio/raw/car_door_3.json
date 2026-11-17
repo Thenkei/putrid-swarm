@@ -1,0 +1,15 @@
+{
+  "id": "car_door_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "The tailgate of an old station wagon slammed shut twice because the latch did not catch the first time. Dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:46.271Z",
+  "bytes": 17179,
+  "sha256": "0b811bcc99f5c9c70197b721c095046726a9afccb1798de6b58639dd69b600cd"
+}

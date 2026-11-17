@@ -1,0 +1,19 @@
+{
+  "id": "vo_later",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[sighs] Bon. La maison tient. Le break démarre encore. C’est déjà ça.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:29.135Z",
+  "bytes": 84470,
+  "sha256": "6b93bdeb08a18701c26cba2be47c6d4f7ba91c2c210baa1f1514b7d5ef0d5420"
+}

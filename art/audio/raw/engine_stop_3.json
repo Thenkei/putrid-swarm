@@ -1,0 +1,15 @@
+{
+  "id": "engine_stop_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old diesel engine idling roughly, then turned off: it runs on for one cough, dies, and the keys jingle out of the ignition.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:45.377Z",
+  "bytes": 41838,
+  "sha256": "8daace0ddf0394882ddb6af4ec209fc9261391cbdb608dfd7e26f3bbeaa50bc7"
+}

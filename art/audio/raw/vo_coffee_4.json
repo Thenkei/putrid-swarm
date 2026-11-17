@@ -1,0 +1,19 @@
+{
+  "id": "vo_coffee_4",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[satisfied sigh] Garder son calme. Boire son café.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:57:05.144Z",
+  "bytes": 62318,
+  "sha256": "c47d5b6169c982d05071be6ecd29a9cedbef2c5bdfe8ecd33fef2ff7d372f744"
+}

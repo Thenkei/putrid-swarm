@@ -1,0 +1,15 @@
+{
+  "id": "loot",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Picking up a handful of metal parts and dropping them in a canvas bag: bright satisfying clinks. Short.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:59.663Z",
+  "bytes": 13835,
+  "sha256": "2e30a6d352bf4c143a09518872379d03138825b9274d063b5e48afc3ba258a0e"
+}

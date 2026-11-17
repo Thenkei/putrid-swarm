@@ -1,0 +1,15 @@
+{
+  "id": "engine_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old diesel car reluctant to start: the starter cranks and fails, a pause, it cranks again for longer, the engine coughs into life with a rattle and holds a rough idle.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 4.4,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:41.104Z",
+  "bytes": 71514,
+  "sha256": "b1d0ee2291eeaf9f3a58ecdc0318576e85f97228abee990b52a46ec1a0288b56"
+}

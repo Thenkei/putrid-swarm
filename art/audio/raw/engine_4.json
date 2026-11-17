@@ -1,0 +1,15 @@
+{
+  "id": "engine_4",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old diesel station wagon: the starter cranks twice, the engine fires, the driver revs it twice impatiently, then it drops back to a clattering idle.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 3.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:42.367Z",
+  "bytes": 61065,
+  "sha256": "6e164b1eaf1eaced1e32237bcd1cc8d7d977c5ed2d172a0f756718aabf3c49a8"
+}

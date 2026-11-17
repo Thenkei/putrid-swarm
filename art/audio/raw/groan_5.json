@@ -1,0 +1,15 @@
+{
+  "id": "groan_5",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A dragging zombie: one long tired exhale with a wet click in the throat, shuffling steps in gravel, distant, night.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:27.091Z",
+  "bytes": 33061,
+  "sha256": "ba0f8cccecd37e9fa48f6c4843d1d4cd80fb56a9985cbd0f1c03ee3e92664a53"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "hit_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A blunt impact on flesh and bone: one deep meaty thump with a faint crack. Close, dry, punchy.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:24.185Z",
+  "bytes": 13835,
+  "sha256": "7ff3c21c43260ad889b7c7f92f120a03dc3fe20648a731fb8ddfbc83e8be2505"
+}

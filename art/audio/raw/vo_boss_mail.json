@@ -1,0 +1,19 @@
+{
+  "id": "vo_boss_mail",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "La factrice. Elle finit sa tournée.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:35.470Z",
+  "bytes": 44764,
+  "sha256": "1c218bcbd6f78a746842b067732ec00d7014138cf528a707d9cadac90fc1dffe"
+}

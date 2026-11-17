@@ -1,0 +1,15 @@
+{
+  "id": "net",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A weighted rope net is released and drops onto a group: fast rope whoosh, then a soft heavy flop. Dry, close.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.4,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:47.867Z",
+  "bytes": 23030,
+  "sha256": "bbdaa23f5bc58bcc0a41e64b59ffdd84e7d33d67927cf3235d53a68f663ab8ec"
+}

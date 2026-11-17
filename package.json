@@ -1,0 +1,29 @@
+{
+  "name": "putrid-swarm",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.14.4",
+  "type": "module",
+  "description": "Putrid Swarm — scavenge by day, operate improvised traps through cameras by night.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "tsc --noEmit && vitest run && vite build",
+    "art:gen": "node tools/gen-art.mjs",
+    "art:process": "node tools/process-art.mjs",
+    "balance": "tsx tools/balance.ts",
+    "audio:gen": "node tools/gen-audio.mjs",
+    "audio:process": "node tools/process-audio.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.65.1",
+    "sharp": "^0.33.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.4"
+  }
+}

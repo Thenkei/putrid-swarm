@@ -1,0 +1,19 @@
+{
+  "id": "bark_mayor_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/QMNPncWXVcTVhJ9rDEQO",
+  "request": {
+    "text": "[hoarse, rasping, through a megaphone] Mes chers… concitoyens ! Votez… pour… la stabilité !",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Stephyra",
+  "generatedAt": "2026-11-17T09:42:39.032Z",
+  "bytes": 81545,
+  "sha256": "09b7e26d72577a2466aac39a73389cd6b14750062aed706146d021df4ed194ef"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "ready",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A small mechanical latch resetting: a spring being cocked and a crisp click. Very short, dry, quiet.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:50.664Z",
+  "bytes": 10492,
+  "sha256": "a6f83edaa9c1fed9a7e7f88c0505ee6587f72bddae85fb4426cfc7aa68f9ce52"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_night1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Les pieux et le filet partent tout seuls. Le reste, c’est moi qui appuie.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:32.105Z",
+  "bytes": 66498,
+  "sha256": "cf8e1ef87b07ae8c403b9172ab5a485d9ec9d4c11938b3339910e8c24b057375"
+}

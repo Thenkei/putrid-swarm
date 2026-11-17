@@ -1,0 +1,15 @@
+{
+  "id": "car_door",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old car door closing with a hollow metallic thunk, then keys jingling. Dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:42:00.137Z",
+  "bytes": 15089,
+  "sha256": "fc5cde2a912471500b6fcf1c92581f699cfa8946864bacedd525f2ab5592cd26"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "camera",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Switching channel on an old CCTV monitor: a very short burst of static and a relay click.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.5,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:43:09.033Z",
+  "bytes": 8820,
+  "sha256": "bdfe6d86f45af5af109373736c0a1d5f4069e9290ea5e8e7c290e33913289382"
+}

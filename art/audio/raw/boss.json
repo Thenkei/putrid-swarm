@@ -1,0 +1,15 @@
+{
+  "id": "boss",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A low ominous horror sting: a deep sub boom followed by dissonant low brass swelling and stopping. Cinematic, no melody.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:55.370Z",
+  "bytes": 45182,
+  "sha256": "d1ea8522509e724ab5ddbaf44750a24d1ee2e64ea1496214b8f3baa20af087ea"
+}

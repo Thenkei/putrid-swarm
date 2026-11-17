@@ -1,0 +1,15 @@
+{
+  "id": "loot_springs_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One big metal spring pulled free and released: a short comic boing and a rattle. Dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:37.215Z",
+  "bytes": 13835,
+  "sha256": "6de2e450de2d4379ac72acc47015b4e10acc9a8f9049b368143a866e5088522d"
+}

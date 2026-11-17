@@ -1,0 +1,19 @@
+{
+  "id": "vo_egg_off",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Voilà. Plus de mauvaises nouvelles.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:34:23.233Z",
+  "bytes": 34315,
+  "sha256": "2b5f3665db879c1fc9e6acb73437429246287d9c52b553aa4924062b1b73e0fe"
+}

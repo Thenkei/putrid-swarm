@@ -1,0 +1,19 @@
+{
+  "id": "vo_day1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Douze heures de jour. Fouiller, clouer, et rentrer avant la nuit.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:30.632Z",
+  "bytes": 70260,
+  "sha256": "5e8c0ea29c70179e0707ac6ad18e43377145884385f1f22aed94173a3bf24071"
+}

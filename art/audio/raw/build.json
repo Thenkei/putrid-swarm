@@ -1,0 +1,15 @@
+{
+  "id": "build",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Three quick hammer blows driving a nail into a wooden plank. Outdoors, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:58.460Z",
+  "bytes": 18433,
+  "sha256": "c9291c736a97e042e67beb831a931defcc179b03dc424fd1696610cd586d96fb"
+}

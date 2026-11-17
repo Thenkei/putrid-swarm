@@ -1,0 +1,15 @@
+{
+  "id": "loot_scrap_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Heavy bits of scrap iron tossed into a metal bucket: two solid clangs. Short, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:36.159Z",
+  "bytes": 13835,
+  "sha256": "a6f724240ac5527153498591c46896db15bb7f7c6010237f568cf9c8b1488e1a"
+}

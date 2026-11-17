@@ -1,0 +1,19 @@
+{
+  "id": "vo_good_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Ça, c’est fait.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:33.005Z",
+  "bytes": 23030,
+  "sha256": "887b822866d0b7f3463edee18d411d71a33c45eaa2f8613a53a495be60ebaefa"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_battery",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[frustrated] Plus de batterie.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:34.337Z",
+  "bytes": 23030,
+  "sha256": "6d099c9a34fbc1f894823637d3b9bff85eada37b2091b9dd121e3d704116318e"
+}

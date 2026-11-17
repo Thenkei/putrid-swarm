@@ -1,0 +1,15 @@
+{
+  "id": "hit",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A wooden club hitting a sack of wet meat: one loud dull thump with a short grunt. Close, dry, punchy.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:44:41.411Z",
+  "bytes": 13835,
+  "sha256": "6ce4f2a7ee4a6c4bf0cb74f801a0b89adf0eeae6801f1202235ecc8ca64002e7"
+}

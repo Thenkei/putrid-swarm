@@ -1,0 +1,19 @@
+{
+  "id": "vo_car_10",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Un aller, un retour. Pas de détour.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:18:51.922Z",
+  "bytes": 46018,
+  "sha256": "aa5c0234754dd6be0ab4304d82359b769fca5fb5a6cbf7ffbd0d621200fda82a"
+}

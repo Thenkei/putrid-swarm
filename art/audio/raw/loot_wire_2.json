@@ -1,0 +1,15 @@
+{
+  "id": "loot_wire_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Unspooling a length of wire from a reel and snipping it with cutters: whirr, then a sharp snip. Short, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:38.429Z",
+  "bytes": 15089,
+  "sha256": "dd891f33c392cfbc0ee6d4c960959c7aa99ac4cc71ba3a5a0c217bd8471b1ffe"
+}

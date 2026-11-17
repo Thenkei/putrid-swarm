@@ -1,0 +1,19 @@
+{
+  "id": "vo_lost",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] C’est fini. La maison est à eux.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:37.998Z",
+  "bytes": 39331,
+  "sha256": "abbf6c64a11051e60cfd092e60fbee7d386d370c7fb077b476989f873365dacf"
+}

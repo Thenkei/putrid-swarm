@@ -1,0 +1,15 @@
+{
+  "id": "mus_title",
+  "kind": "music",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/music",
+  "request": {
+    "prompt": "Title theme for a darkly comic survival game set in a French village. A worn-tape, lo-fi mood: slightly detuned upright piano playing a slow melancholy motif, a soft accordion drone underneath, faint vinyl crackle. Sparse, uneasy but warm, 68 bpm, minor key. Instrumental, loops cleanly.",
+    "model_id": "music_v2_5",
+    "music_length_ms": 50000,
+    "force_instrumental": true
+  },
+  "generatedAt": "2026-11-17T09:42:12.404Z",
+  "bytes": 800853,
+  "sha256": "113969c0d946efbd2d50e559c1bd54ccbaf0d73abf5ef5ef93566aa2176ecaf6"
+}

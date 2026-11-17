@@ -1,0 +1,19 @@
+{
+  "id": "vo_boss_mayor",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[weary] Madame le maire. Toujours en campagne.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:36.853Z",
+  "bytes": 52287,
+  "sha256": "1b7acbd2e3d8799cb1f10650533460005f912ec68afbcbbfed924fdd0774d8f5"
+}

@@ -1,0 +1,886 @@
+// Art manifest: every runtime image, where it comes from and how it is cut.
+//
+// kind:
+//   plate    – full-frame illustration, kept opaque, resized to `w` wide (webp)
+//   sprite   – single object on magenta, keyed + trimmed, resized to `w` wide or `h` tall
+//   split    – `cols`x`rows` objects on magenta, cut at the gaps, each keyed + trimmed
+//              (`cut: 'gaps'` when the objects are too uneven for a grid: cuts at the widest gaps)
+//   texture  – `cols`x`rows` opaque swatches cut at exact fractions (inner crop)
+//   poses    – 2x2 animation poses of one character (`sheet` is its existing turnaround, attached as a reference);
+//              every pose is keyed, scaled by the same factor and anchored on its feet, as `<base>_<name>`
+//
+// source:
+//   (default)          – generated with codex image generation, using `refs` (files in art/concepts) as style references
+//   { concept, crop? } – the creator's concept image is used directly (copied, never modified in place)
+//
+// Generated images are production derivatives of the creator's concept art in art/concepts;
+// the concept originals stay untouched.
+
+const STYLE =
+  'Art style: match the attached reference image(s) precisely — detailed hand-inked 2D illustration with fine hatching, crisp dark outlines and warm painterly colouring, ' +
+  'a rural French village in autumn: ochre stone and half-timbered walls, terracotta roof tiles, weathered wood, rust, mustard yellow, muted teal shadows, sickly pale-green infected skin. ' +
+  'Tone: domestic zombie horror played straight with dry absurd ("cocasse") humour. ' +
+  'Absolutely no text, no letters, no numbers, no labels, no captions, no logos, no watermark, no UI elements, no frame, no border, no parchment background.';
+
+const KEY =
+  'Background: one perfectly flat, uniform pure magenta (#FF00FF) fill covering the whole canvas — no gradient, no ground patch, no grass tuft, ' +
+  'no cast shadow, no vignette, no texture. Do not use magenta or pink anywhere on the subject. ' +
+  'Keep generous magenta margins around every subject; nothing may touch the image edges.';
+
+const ISO =
+  'Projection: classic isometric game view (2:1 dimetric, camera looking down at roughly 30 degrees), ' +
+  'chunky readable silhouette that still reads when shrunk to 80 pixels.';
+
+const charPair = (desc) =>
+  `Character turnaround sheet with exactly TWO full-body views of the same character, side by side with a wide empty gap between them. ` +
+  `LEFT view: seen from the front in three-quarter view, body and face turned toward the lower-left, mid-stride. ` +
+  `RIGHT view: the same character seen from behind in three-quarter view, moving away toward the upper-right, mid-stride. ` +
+  `Both views the same size, feet on the same baseline. Character: ${desc} ${ISO} ${KEY} ${STYLE}`;
+
+const POSE_VIEW = {
+  front: 'seen from the front in three-quarter view, body and face turned toward the lower-left — the same angle as the LEFT figure of the character sheet',
+  back: 'seen from behind in three-quarter view, moving away toward the upper-right — the same angle as the RIGHT figure of the character sheet',
+};
+
+const poseSheet = (view, desc, poses) =>
+  `Animation sprite sheet: a 2x2 grid showing the SAME character four times, one pose per quadrant, each figure centred in its own quadrant with wide empty margins; no figure may cross into a neighbouring quadrant. ` +
+  `The first attached image is the existing character sheet of this character: reproduce exactly that character — same face, hair, clothes, colours, props and proportions — in all four poses. ` +
+  `All four figures are ${POSE_VIEW[view]}, drawn at the same scale with the feet on the same baseline inside their quadrant. Character: ${desc} ` +
+  `Top-left: ${poses[0]} Top-right: ${poses[1]} Bottom-left: ${poses[2]} Bottom-right: ${poses[3]} ${ISO} ${KEY} ${STYLE}`;
+
+const portraitPair = (alive, infected) =>
+  `Two head-and-shoulders bust portraits of the same person, side by side with a wide empty gap between them, same size and framing. ` +
+  `LEFT portrait (alive, before the outbreak): ${alive} ` +
+  `RIGHT portrait (infected, weeks later): ${infected} Same clothes and same signature prop in both so the person is instantly recognisable. ` +
+  `${KEY} ${STYLE}`;
+
+const stateSheet = (subject, states) =>
+  `Game asset sheet: a 2x2 grid showing the SAME ${subject} in four states, one per quadrant, each centred in its quadrant with wide empty margins. ` +
+  `Top-left: ${states[0]}. Top-right: ${states[1]}. Bottom-left: ${states[2]}. Bottom-right: ${states[3]}. ` +
+  `Same size, same angle and same position in every quadrant. ${ISO} ${KEY} ${STYLE}`;
+
+const plate = (desc) => `Wide landscape illustration (3:2), full bleed. ${desc} ${STYLE}`;
+
+const interior = (desc) =>
+  plate(
+    `Isometric cutaway interior of ${desc} Seen from above at a 30 degree isometric angle like the reference, two back walls visible and the floor filling most of the frame, ` +
+      `warm dusty daylight through a window, abandoned in a hurry, no people at all. Five or six clearly distinct, well separated searchable containers or furniture pieces spread across the room. ` +
+      `Foliage and a strip of yard outside the cut walls.`,
+  );
+
+const C = (n) => `art/concepts/${n}`;
+const REF_VILLAGE = C('05-neighborhood-scavenging.png');
+const REF_NEIGHBORS = C('06-neighbors-before-after.png');
+const REF_AUTHORITIES = C('07-authorities-before-after.png');
+const REF_TOWN = C('08-town-supply-run.png');
+const REF_TRUNK = C('09-car-trunk-resources.png');
+const REF_STORYBOARD = C('11-opening-storyboard.png');
+const REF_DEVICES = C('13-defense-device-states.png');
+const REF_ANIMALS = C('14-infected-animal-bestiary.png');
+const REF_GARAGE = C('15-neighbor-garage-interior.png');
+const REF_MAYOR_WAVE = C('16-mayor-wave-camera.png');
+const REF_MORNING = C('17-morning-after.png');
+const REF_PROJECTION = C('03-2d-projection-comparison.png');
+
+export const ART = [
+  // ───────────────────────────── Plates taken directly from the concept art ─────────────────────────────
+  { id: 'plate_control_room', kind: 'plate', w: 1280, source: { concept: C('12-surveillance-room.png') } },
+  { id: 'plate_morning', kind: 'plate', w: 1280, source: { concept: C('17-morning-after.png') } },
+  { id: 'plate_loc_garage', kind: 'plate', w: 1280, source: { concept: C('15-neighbor-garage-interior.png') } },
+  { id: 'plate_town', kind: 'plate', w: 1280, source: { concept: C('08-town-supply-run.png') } },
+  { id: 'plate_trunk', kind: 'plate', w: 1280, source: { concept: C('09-car-trunk-resources.png') } },
+  { id: 'plate_return', kind: 'plate', w: 1280, source: { concept: C('10-return-before-night.png') } },
+  { id: 'plate_village', kind: 'plate', w: 1280, source: { concept: C('05-neighborhood-scavenging.png') } },
+
+  // ───────────────────────────── Generated plates ─────────────────────────────
+  {
+    // First pass of the title desk. Not shipped: plate_title_desk below is a retouch of it.
+    id: 'plate_title_desk_base',
+    kind: 'plate',
+    rawOnly: true,
+    w: 1280,
+    refs: [REF_STORYBOARD],
+    prompt: plate(
+      'The desk from panel 01 of the reference storyboard, as one single full-frame picture (not a storyboard, no panels): first-person view of a cluttered wooden desk at night in a rural house. ' +
+        'Dead centre: the same big old beige CRT computer monitor seen straight on; its screen is switched on but completely EMPTY — a plain, even, very dark teal glow with nothing on it — and it occupies about 46% of the image width and 52% of its height. ' +
+        'On the right of the desk: the stone ashtray with a lit hand-rolled joint, a thin ribbon of smoke rising; the forest mug; the car key with its yellow keyring. ' +
+        'Beige keyboard and mouse in front, small speaker and a trailing pothos plant on the left, warm brass desk lamp on the right, paper map sheets, dark window with forest behind.',
+    ),
+  },
+  {
+    // Second pass: the painted smoke taken out (the game animates its own, see scenes/title.ts) and the
+    // sticky note moved off the glass and signed. Not shipped either: the mug and the joint are still in it.
+    id: 'plate_title_desk_set',
+    kind: 'plate',
+    rawOnly: true,
+    w: 1280,
+    edit: 'art/raw/plate_title_desk_base.png',
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, every object in the same position and at the same size, same line work, same colours, same canvas size — with only these changes: ' +
+      '(1) Remove every wisp of smoke and steam: nothing rises from the joint in the ashtray and nothing rises from the mug. Paint in cleanly what was behind them: the wooden wall planks, the shelf with its books, the lamp. ' +
+      '(2) The yellow sticky note at the top-left corner of the monitor is moved up and to the left and made about one and a half times bigger: it is now stuck on the outer top-left corner of the beige plastic monitor casing, overhanging outward over the wall and the plant, ' +
+      'and no part of it covers the dark glass any more. Where it used to be, restore the rounded corner of the dark screen and the beige bezel. ' +
+      '(3) On that sticky note, handwritten in dark blue ballpoint pen, exactly two lines: a large first line reading A²&M (capital A, a small superscript 2, an ampersand, capital M) and, under it, a smaller second line reading 2013 · Le Puy-en-Velay. Spell both exactly. No other writing anywhere. ' +
+      'The monitor screen stays completely empty: a plain dark teal glow.',
+  },
+  {
+    // The desk as shipped: the mug and the joint are gone from the picture because the game draws them
+    // itself (`desk` sheet below), so a hand can pick them up. Each retouch keeps every other object
+    // where it was to the pixel, which the title scene's hot spots and CRT overlay rely on.
+    id: 'plate_title_desk',
+    kind: 'plate',
+    w: 1280,
+    edit: 'art/raw/plate_title_desk_set.png',
+    prompt:
+      'Edit the attached illustration. Reproduce it EXACTLY — same composition and framing, every object in the same position and at the same size, same line work, same colours, same canvas size, the sticky note and its handwriting untouched — with only these two changes: ' +
+      '(1) Remove the hand-rolled joint from the ashtray. The stone ashtray stays exactly where it is, with its ash and its leaf emblem; its rim is simply empty. ' +
+      '(2) Remove the enamel mug completely. Where it stood, paint the wooden desk top and, behind it, the wooden wall planks and the base of the shelf, lit by the lamp like the rest. No ring, no stain, no shadow left behind. ' +
+      'Nothing else changes. The monitor screen stays completely empty: a plain dark teal glow.',
+  },
+  {
+    // What the hand on the title screen can pick up, and the hand itself, seen by its owner.
+    id: 'desk',
+    kind: 'split',
+    cols: 5,
+    rows: 1,
+    names: ['mug', 'joint', 'hand_open', 'hand_joint', 'hand_mug'],
+    // Two small objects and three tall arms: cut at the gaps between them, not on an even grid.
+    cut: 'gaps',
+    h: 640,
+    refs: [REF_STORYBOARD],
+    sheet: 'art/raw/plate_title_desk_set.png',
+    prompt:
+      'Game asset sheet: FIVE separate objects standing in a single row, evenly spaced with wide empty gaps between them, each centred in its own fifth of the canvas. ' +
+      'The first attached image is a desk scene: objects 1 and 2 are taken from it and must look exactly like they do there. From left to right: ' +
+      '(1) The enamel camping mug from the desk scene: cream enamel, dark rim, the black print of pine trees and a mountain, handle on the left, full of black coffee, seen from the same slightly raised angle. Alone, upright. ' +
+      '(2) The lit hand-rolled joint from the desk scene, alone, lying at the same slant: twisted paper tip at the lower left, glowing orange ember and a little ash at the upper right. ' +
+      '(3) A man’s right hand and forearm seen from his own eyes (first-person view): the back of the hand at the top, fingers relaxed and half open, reaching away from the viewer toward the top of the image; the wrist and a long forearm in the worn mustard-yellow sleeve of a work jacket run straight down below it. ' +
+      'The sleeve is long — about twice the length of the hand — and ends at the bottom in a clean straight horizontal cut. ' +
+      '(4) The same first-person right hand and long mustard sleeve, same angle and size, now holding the lit joint pinched between thumb and index finger, the glowing ember end pointing up and away from the viewer. ' +
+      '(5) The same first-person right hand and long mustard sleeve, same angle and size, now holding the enamel mug by its handle, the mug upright with its forest print visible. ' +
+      `All five lit by a warm lamp from the upper right, like the desk scene. The three arms are tall figures that nearly fill the height of the canvas; the mug and the joint are small. ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'plate_news',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_STORYBOARD],
+    prompt: plate(
+      'Full-frame television news broadcast picture as in panel 02 of the reference storyboard, without the monitor around it: the same worried news anchor (wavy brown hair, dark blazer, hoop earrings) at the left, ' +
+        'and on the right an inset picture of a small provincial hospital at dusk with a police van, barriers, hazard tape and officers. ' +
+        'The lower quarter of the frame is an empty plain dark red band and there is a small empty red tag in the top-right corner (both left blank). Subtle CRT scanlines.',
+    ),
+  },
+  {
+    id: 'plate_smoke',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_STORYBOARD],
+    prompt: plate(
+      'Panel 03 of the reference storyboard as one single full-frame picture: the same scruffy bearded man in a mustard work jacket leaning back in a worn armchair at his desk at night, eyes half closed, ' +
+        'holding a hand-rolled joint, exhaling a huge slow cloud of smoke that billows toward the right half of the frame and starts to swallow the glowing CRT monitor behind him. Warm lamp light, teal night shadows.',
+    ),
+  },
+  {
+    id: 'plate_map',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_VILLAGE, REF_TOWN],
+    prompt: plate(
+      'Illustrated isometric overview map of a small French village and its surroundings ringed by dark autumn forest, in clear late-afternoon daylight, seen from high above. ' +
+        'Eight well separated landmarks connected by winding cracked lanes, each with clear empty space around it: ' +
+        '(1) bottom-left, isolated at the forest edge: a fortified stone cottage with a wooden palisade, a vegetable garden and a yellow station wagon; ' +
+        '(2) close to it, a tidy neighbour cottage with a garden shed and one immaculate striped lawn; ' +
+        '(3) centre-left: a mechanic garage with a roller door, stacked tyres and an engine hoist; ' +
+        '(4) centre: a hardware shop with a striped awning, planks and rolls of wire mesh outside; ' +
+        '(5) centre-right: a small grocery with a striped awning and crates; ' +
+        '(6) a small post office with a yellow mail van; ' +
+        '(7) a small police station with a blue patrol car and traffic cones; ' +
+        '(8) top-right: a town hall with a clock tower, bunting and a little square. Abandoned cars, overturned bins, no people.',
+    ),
+  },
+  {
+    id: 'plate_loc_shed',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_GARAGE],
+    prompt: interior(
+      "a fussy neighbour's immaculate garden shed: an obsessively tidy tool wall with a painted outline for every tool, a workbench with a vice, a neat stack of planks, rolls of wire mesh, a cabinet of seed drawers, a jerrycan, a shelf of lawn-care trophies, and a clean rectangle on the floor where a push reel lawn mower is normally parked.",
+    ),
+  },
+  {
+    id: 'plate_loc_hardware',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_GARAGE, REF_TOWN],
+    prompt: interior(
+      'a small village hardware shop: tall shelves of paint tins and boxes of screws, a rack of planks and timber, big rolls of wire mesh and coils of rope, a wall of hand tools, a counter with an old till, a bin of springs and hinges, a wheelbarrow of sandbags.',
+    ),
+  },
+  {
+    id: 'plate_loc_grocery',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_GARAGE, REF_TOWN],
+    prompt: interior(
+      'a small looted village grocery: half-empty wooden shelves with a few tins, a toppled rack, a checkout counter with a till and a battery display stand, a fridge with its door hanging open, stacked wooden fruit crates and pallets, shopping baskets, a shopping trolley on its side.',
+    ),
+  },
+  {
+    id: 'plate_loc_post',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_GARAGE],
+    prompt: interior(
+      'a small village post office sorting room: wooden pigeonhole sorting shelves, canvas mail sacks, a parcel trolley stacked with boxes, a counter with brass scales, rolls of string and wire, a locked parcel cage, a delivery bicycle with panniers, scattered blank envelopes on the floor.',
+    ),
+  },
+  {
+    id: 'plate_loc_police',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_GARAGE],
+    prompt: interior(
+      'a tiny village police station: a front desk, a holding cell with the door open, a steel evidence locker, a rack of traffic cones and folded crowd-control barriers, riot shields leaning on the wall, a radio charging station with batteries, a tidy desk with a single mug and a whistle on a cord.',
+    ),
+  },
+  {
+    id: 'plate_loc_townhall',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_GARAGE],
+    prompt: interior(
+      "a small village town hall function room being used as a campaign office: stacks of wooden election boards with blank faces, a lectern, a spare megaphone on a table, folding chairs, a PA amplifier with a battery pack, bunting, boxes of blank leaflets, a ribbon and giant scissors on a velvet cushion, a mayor's portrait frame hanging crooked (showing only a featureless silhouette).",
+    ),
+  },
+  {
+    id: 'plate_gameover',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_MAYOR_WAVE, REF_MORNING],
+    prompt: plate(
+      'Isometric night view of the same fortified stone cottage being overrun: the porch door barricade smashed inward, a crowd of infected villagers pressing into the doorway, ' +
+        'one upstairs window lit by a flickering teal monitor glow, the yellow station wagon abandoned with a door open, broken palisade, dark forest all around. Bleak and quiet rather than gory, deep teal night palette with one warm lantern.',
+    ),
+  },
+  {
+    id: 'plate_victory',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_MORNING],
+    prompt: plate(
+      'Isometric view at sunrise of the same battered but still standing fortified stone cottage, the yellow station wagon parked beside it, the lane finally empty and quiet: ' +
+        'a megaphone and a toppled wooden lectern with a rosette lying in the grass, scattered blank leaflets, a push reel lawn mower on its side at the end of one impeccably mown strip, a mail satchel, a police cap, a riot shield. ' +
+        'Golden light breaking over the forest, a thin ribbon of chimney smoke, a crow on the palisade. No people.',
+    ),
+  },
+
+  // ───────────────────────────── World objects ─────────────────────────────
+  {
+    id: 'obj_house_front',
+    kind: 'sprite',
+    w: 760,
+    refs: [REF_PROJECTION, REF_MORNING],
+    prompt:
+      'Single isometric game building sprite of the fortified French cottage from the references (ochre stone and half-timbered walls, steep terracotta tile roof, stone chimney, boarded shutters with warm light behind). ' +
+      'Compact, almost square footprint. The camera sees the two lower walls: ' +
+      'the wall facing LOWER-LEFT has the front door in its centre under a small tiled porch with two steps, and one boarded window; ' +
+      'the wall facing LOWER-RIGHT has, in its centre, a lean-to wooden barn extension with a wide closed double barn door and a lantern. ' +
+      'A small improvised CCTV camera under the eaves on each visible wall, a few cables stapled along the walls, ivy. ' +
+      `Only the building: no garden, no fence, no ground plane, no base. ${ISO} ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'obj_house_back',
+    kind: 'sprite',
+    w: 760,
+    refs: [REF_PROJECTION, REF_MORNING],
+    prompt:
+      'Single isometric game building sprite: the REAR view of the fortified French cottage from the references (ochre stone and half-timbered walls, steep terracotta tile roof, stone chimney, boarded shutters with warm light behind). ' +
+      'Compact, almost square footprint. The camera sees the two lower walls: ' +
+      'the wall facing LOWER-LEFT has a plain back kitchen door in its centre with one stone step and a rain barrel beside it; ' +
+      'the wall facing LOWER-RIGHT has, in its centre, a tall French window (glazed double door) with half-closed wooden shutters, and climbing red vine. ' +
+      'A small improvised CCTV camera under the eaves on each visible wall, a few cables stapled along the walls. ' +
+      `Only the building: no garden, no fence, no ground plane, no base. ${ISO} ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'obj_car',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['front', 'back'],
+    w: 320,
+    refs: [REF_TRUNK, REF_TOWN],
+    prompt:
+      'Vehicle turnaround sheet with exactly TWO views of the same car side by side with a wide empty gap between them. The car is the one from the references: a rusty mustard-yellow 1980s station wagon with one mismatched red door, ' +
+      'a black roof rack carrying strapped planks, mud on the sills, all doors and tailgate closed. ' +
+      'LEFT view: isometric three-quarter FRONT view, bonnet pointing to the lower-left. RIGHT view: isometric three-quarter REAR view, tailgate pointing to the lower-left. Same size in both. ' +
+      `${ISO} ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'obj_trees',
+    kind: 'split',
+    cols: 3,
+    rows: 1,
+    names: ['pine', 'oak', 'apple'],
+    h: 430,
+    refs: [REF_PROJECTION],
+    prompt:
+      'Three separate isometric game tree sprites side by side with wide empty gaps between them. LEFT: a tall dark, slightly menacing fir tree. ' +
+      'CENTRE: a gnarled autumn oak with rust-red leaves. RIGHT: a small orchard apple tree with a few red apples. ' +
+      `Each tree complete from the base of the trunk to the top, with no ground. ${ISO} ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'obj_props',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['well', 'woodpile', 'veg', 'campole'],
+    h: 230,
+    refs: [REF_PROJECTION, REF_MORNING],
+    prompt:
+      'Game prop sheet: a 2x2 grid of four separate isometric props, one per quadrant, each centred with wide empty margins. ' +
+      'Top-left: an old round stone well with a small tiled roof and a bucket. Top-right: a neat stack of split firewood under a small lean-to roof. ' +
+      'Bottom-left: a raised wooden vegetable bed with cabbages and staked tomatoes. Bottom-right: an improvised CCTV camera with a red light, taped to the top of a wooden pole with a dangling cable. ' +
+      `${ISO} ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'obj_props2',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['bush', 'rock', 'barrel', 'mailbox'],
+    h: 170,
+    refs: [REF_PROJECTION, REF_VILLAGE],
+    prompt:
+      'Game prop sheet: a 2x2 grid of four separate isometric props, one per quadrant, each centred with wide empty margins. ' +
+      'Top-left: a round autumn bush with red leaves. Top-right: a mossy grey boulder. ' +
+      'Bottom-left: a weathered oak rain barrel. Bottom-right: a small red French letter box on a wooden post. ' +
+      `${ISO} ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'logo',
+    kind: 'sprite',
+    w: 900,
+    refs: [REF_STORYBOARD],
+    prompt:
+      'Game title logo lettering exactly like the one on the computer screen in panel 01 of the reference: it reads exactly "PUTRID SWARM" in two stacked lines (PUTRID above SWARM), spelled exactly, all capitals. ' +
+      'PUTRID in rough bone-white brush lettering, SWARM in dripping blood-red brush lettering, a thin dark ink outline around every letter, a few small flies around the letters. Only the lettering, nothing else. ' +
+      `${KEY} No other text, no watermark.`,
+  },
+
+  // ───────────────────────────── Enemies (front | back) ─────────────────────────────
+  {
+    id: 'en_shambler',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['front', 'back'],
+    h: 200,
+    refs: [REF_MAYOR_WAVE, REF_NEIGHBORS],
+    prompt: charPair('a shambling infected French villager in a torn waistcoat, rolled shirt sleeves, braces and a flat cap, pale greenish skin, vacant white eyes, arms half raised.'),
+  },
+  {
+    id: 'en_runner',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['front', 'back'],
+    h: 200,
+    refs: [REF_NEIGHBORS],
+    prompt: charPair(
+      'a lean, fast infected amateur racing cyclist on foot: garish lycra jersey and shorts, cycling cap, clip shoes, a bent bicycle wheel still hooked over one shoulder, pale greenish skin, sprinting with pumping arms.',
+    ),
+  },
+  {
+    id: 'en_brute',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['front', 'back'],
+    h: 245,
+    refs: [REF_NEIGHBORS],
+    prompt: charPair(
+      'a huge, heavy infected village butcher with rolled sleeves and a stained striped apron, a string of sausages over one shoulder, pale greenish skin, small pale eyes, lumbering forward with fists clenched.',
+    ),
+  },
+  {
+    id: 'en_dog',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['front', 'back'],
+    h: 120,
+    refs: [REF_ANIMALS],
+    prompt: charPair('the infected farm dog from the reference ("the prowler"): a lean brown mutt with patchy fur, a leather collar, pale glowing eyes, low fast prowling run on four legs.'),
+  },
+  {
+    id: 'en_boar',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['front', 'back'],
+    h: 155,
+    refs: [REF_ANIMALS],
+    prompt: charPair('the infected wild boar from the reference ("the battering ram"): massive shoulders, bristling dark brown fur with bald patches, pale eyes, tusks, head lowered charging on four legs.'),
+  },
+  {
+    id: 'en_deer',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['front', 'back'],
+    h: 215,
+    refs: [REF_ANIMALS],
+    prompt: charPair('the infected stag from the reference ("the jumper"): thin and tall, big antlers with an oak leaf caught on one tine, mossy greenish patches on its flank, pale eyes, mid-bound on four legs.'),
+  },
+  {
+    id: 'boss_mower',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['front', 'back'],
+    h: 250,
+    refs: [REF_NEIGHBORS],
+    prompt: charPair(
+      'the INFECTED lawn-mowing neighbour from the reference ("Le Tondeur", bottom-left figure): dark wavy hair and thick moustache, torn green polo shirt with pencils in the pocket, khaki shorts, white socks with green stripes, work gloves, pale greenish skin and white eyes, ' +
+        'hunched forward furiously pushing his rusty red push reel lawn mower, grass clippings flying. Man and mower are one unit.',
+    ),
+  },
+  {
+    id: 'boss_mechanic',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['front', 'back'],
+    h: 265,
+    refs: [REF_NEIGHBORS],
+    prompt: charPair(
+      'the INFECTED breakdown mechanic from the reference ("Le Dépanneur", bottom-centre figure): grey beard, dark blue oil-stained dungarees, red rag in the pocket, pale greenish skin and white eyes, ' +
+        'leaning his whole weight into a rusty red wheeled engine hoist with a car engine block hanging from its chain like a battering ram, a clipboard with an invoice still clipped to the hoist. Man and hoist are one unit.',
+    ),
+  },
+  {
+    id: 'boss_mail',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['front', 'back'],
+    h: 240,
+    refs: [REF_NEIGHBORS],
+    prompt: charPair(
+      'the INFECTED mail carrier from the reference ("La Dernière Tournée", bottom-right figure): a wiry woman with short brown hair, blue postal jacket and cap with an envelope badge, leather satchel spilling letters, a stack of letters under one arm, ' +
+        'pale greenish skin and white eyes, sprinting while holding a parcel out in front of her.',
+    ),
+  },
+  {
+    id: 'boss_chief',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['front', 'back'],
+    h: 260,
+    refs: [REF_AUTHORITIES],
+    prompt: charPair(
+      'the INFECTED police chief from the reference (bottom-left figure): stocky, grey moustache, dark blue uniform and peaked cap with a gold badge, whistle clenched in his teeth, radio on the belt, pale greenish skin and white eyes, ' +
+        'advancing behind a big scratched steel riot shield held in one arm, the other arm raised in a commanding traffic-stop gesture.',
+    ),
+  },
+  {
+    id: 'boss_mayor',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['front', 'back'],
+    h: 275,
+    refs: [REF_AUTHORITIES, REF_MAYOR_WAVE],
+    prompt: charPair(
+      'the INFECTED mayor from the reference (bottom-right figure): an elegant older woman with swept-back grey hair and earrings, torn burgundy blazer, ceremonial sash across the chest, a fixed campaign smile, pale greenish skin and white eyes, ' +
+        'standing on a small rusty four-wheeled cart behind a wooden lectern tied with a red ribbon and powered by a car battery, shouting into a megaphone held in one hand and waving to the crowd with the other. Mayor and cart are one unit.',
+    ),
+  },
+
+  // ───────────────────────────── Portraits (alive | infected) ─────────────────────────────
+  {
+    id: 'por_mower',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['alive', 'infected'],
+    h: 360,
+    refs: [REF_NEIGHBORS],
+    prompt: portraitPair(
+      'the lawn-mowing neighbour from the reference ("Le Tondeur"): dark wavy hair, thick moustache, green polo shirt with pencils in the pocket, chin raised, inspecting a blade of grass with fussy disapproval.',
+      'the same man with pale greenish skin and white eyes, torn polo, grass clippings in his hair and moustache, the same fussy disapproving frown.',
+    ),
+  },
+  {
+    id: 'por_mechanic',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['alive', 'infected'],
+    h: 360,
+    refs: [REF_NEIGHBORS],
+    prompt: portraitPair(
+      'the breakdown mechanic from the reference ("Le Dépanneur"): weathered face, grey beard, dark blue oil-stained dungarees over a beige shirt, a spanner over his shoulder, a clipboard with an invoice under his arm, gruff but friendly.',
+      'the same mechanic with pale greenish skin and white eyes, an oil smear across the cheek, the spanner still on his shoulder and the invoice clipboard still under his arm.',
+    ),
+  },
+  {
+    id: 'por_mail',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['alive', 'infected'],
+    h: 360,
+    refs: [REF_NEIGHBORS],
+    prompt: portraitPair(
+      'the mail carrier from the reference ("La Dernière Tournée"): a cheerful wiry woman with short brown hair, blue postal jacket and cap with an envelope badge, satchel strap across her chest, proudly holding up a parcel.',
+      'the same mail carrier with pale greenish skin and white eyes, cap askew, satchel strap still on, the same parcel now crushed and stained, still holding it up.',
+    ),
+  },
+  {
+    id: 'por_chief',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['alive', 'infected'],
+    h: 360,
+    refs: [REF_AUTHORITIES],
+    prompt: portraitPair(
+      'the police chief from the reference: stocky, grey moustache, dark blue uniform and peaked cap with a gold badge, blowing a whistle with one palm raised to stop traffic.',
+      'the same police chief with pale greenish skin and white eyes, uniform torn, the whistle clenched between his teeth, palm still raised.',
+    ),
+  },
+  {
+    id: 'por_mayor',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['alive', 'infected'],
+    h: 360,
+    refs: [REF_AUTHORITIES],
+    prompt: portraitPair(
+      'the mayor from the reference: an elegant older woman with swept-back grey hair and earrings, burgundy blazer, ceremonial sash across the chest, a confident vote-winning smile and an open welcoming arm.',
+      'the same mayor with pale greenish skin and white eyes, blazer torn, sash still on, exactly the same campaign smile, a megaphone raised to her mouth.',
+    ),
+  },
+
+  // ───────────────────────────── Devices (2x2 state sheets) ─────────────────────────────
+  {
+    id: 'dev_net',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['resting', 'armed', 'triggered', 'broken'],
+    h: 190,
+    refs: [REF_DEVICES],
+    prompt: stateSheet('improvised net trap from the top row of the reference ("le filet"): a rope net slung from a wooden frame of two posts and a crossbeam with red-painted feet', [
+      'resting — the net coiled and tied to one post',
+      'armed — the net hung open and taut between the posts, ready to drop',
+      'triggered — the net dropped and spread wide over the ground in front of the frame, with motion lines',
+      'broken — crossbeam snapped, net torn and tangled on the ground',
+    ]),
+  },
+  {
+    id: 'dev_barrier',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['resting', 'armed', 'triggered', 'broken'],
+    h: 170,
+    refs: [REF_DEVICES],
+    prompt: stateSheet('improvised pop-up barrier from the middle row of the reference ("la barrière"): heavy red-and-white striped planks hinged on a low timber base with an orange beacon lamp', [
+      'resting — planks folded flat on the base, beacon off',
+      'armed — planks half folded and cocked, beacon glowing orange',
+      'triggered — planks snapped fully upright into a solid striped wall, beacon flashing, little dust puffs at the base',
+      'broken — planks splintered and hanging off the base, beacon cracked',
+    ]),
+  },
+  {
+    id: 'dev_horn',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['resting', 'armed', 'triggered', 'broken'],
+    h: 180,
+    refs: [REF_DEVICES],
+    prompt: stateSheet('improvised lure from the bottom row of the reference ("le klaxon"): a big brass horn mounted on a rusty shopping trolley, wired to a blue car battery standing beside it', [
+      'resting — silent, cable unplugged on the ground',
+      'armed — cable connected, a small orange beacon glowing on the trolley handle',
+      'triggered — horn blaring and shaking, bold yellow sound-wave marks radiating from it, beacon flashing',
+      'broken — trolley tipped over and crushed, horn dented on the ground, cable torn',
+    ]),
+  },
+  {
+    id: 'dev_log',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['resting', 'armed', 'triggered', 'broken'],
+    h: 230,
+    refs: [C('04-night-camera-controls.png'), REF_DEVICES],
+    prompt: stateSheet('swinging log trap ("le rondin") like the one in the reference camera view: a heavy tree-trunk log hanging on ropes from a sturdy timber A-frame gallows with a hand winch on one leg', [
+      'resting — log hanging straight down and still, ropes slack on the winch',
+      'armed — log winched far back and held high by a taut rope, ready to swing',
+      'triggered — log swinging forward through the bottom of its arc at full speed with bold motion lines and splinters',
+      'broken — frame cracked and leaning, one rope snapped, the log lying on the ground',
+    ]),
+  },
+  {
+    id: 'dev_spikes',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['resting', 'armed', 'triggered', 'broken'],
+    h: 130,
+    refs: [C('10-return-before-night.png'), REF_DEVICES],
+    prompt: stateSheet('pop-up picket contraption ("les pieux") like the hinged wooden frame lying on the ground in the reference: a shallow square timber frame covering one ground tile, with a hinged plank lid, big coil springs and a row of pointed wooden fence pickets folded inside', [
+      'resting — lid closed flat, nothing showing',
+      'armed — lid closed, a small red flag raised on one corner, coil springs visibly compressed in a gap',
+      'triggered — the wooden pickets popped straight up out of the frame at full height like a little fence, lid flung open, motion lines',
+      'broken — frame split, pickets snapped and leaning in all directions, a coil spring popped out beside it',
+    ]),
+  },
+  {
+    id: 'dev_floodlight',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['resting', 'armed', 'triggered', 'broken'],
+    h: 230,
+    refs: [C('02-night-defense-overview.png'), REF_DEVICES],
+    prompt: stateSheet('improvised floodlight ("le projecteur"): an old metal-shade yard lamp strapped to the top of a tall wooden pole with rope, a cable running down to a blue car battery at its foot', [
+      'resting — lamp off and dark',
+      'armed — lamp off, a small orange standby light glowing on the battery',
+      'triggered — lamp switched on: the bulb and the inside of the shade painted solid bright yellow-white, with a few short solid yellow ray strokes around the shade (no translucent glow, no light cone, no haze)',
+      'broken — pole snapped in half, lamp shade smashed on the ground, a wisp of smoke',
+    ]),
+  },
+  {
+    // Palisades laid corner to corner: the two diagonals of the grid are the screen's horizontal and its depth.
+    id: 'fence_diag',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['flat', 'flat_hurt', 'deep', 'deep_hurt'],
+    h: 150,
+    refs: [REF_PROJECTION, REF_DEVICES],
+    prompt:
+      'Game asset sheet: a 2x2 grid showing one short segment of rough wooden palisade fence like the ones in the reference ' +
+      '(four or five upright mismatched planks lashed with rope between two stout posts), one view per quadrant, each centred in its quadrant with wide empty margins. ' +
+      'Top-left: the segment seen face-on, running exactly horizontally from left to right, intact and solid. ' +
+      'Top-right: the same face-on horizontal segment, damaged — planks cracked and leaning, a gap opening. ' +
+      'Bottom-left: the same segment turned a quarter, seen end-on: it runs straight away from the viewer, from the bottom of the quadrant toward the top, strongly foreshortened, the near post in front and the planks receding behind it, intact. ' +
+      'Bottom-right: the same end-on receding segment, damaged — planks cracked and leaning. ' +
+      `Seen from above at the same 30 degree camera height in all four. ${ISO} ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'dev_fence',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['resting', 'armed', 'triggered', 'broken'],
+    h: 150,
+    refs: [REF_PROJECTION, REF_DEVICES],
+    prompt: stateSheet(
+      'short straight segment of rough wooden palisade fence like the ones in the reference (four or five upright mismatched planks lashed with rope between two stout posts), the segment running diagonally from the upper-left to the lower-right',
+      [
+        'intact and solid',
+        'intact, with a sheet of rusty corrugated metal nailed across it',
+        'damaged — planks cracked and leaning, a gap opening',
+        'destroyed — posts snapped, planks scattered flat on the ground',
+      ],
+    ),
+  },
+  {
+    id: 'dev_barricade',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['resting', 'armed', 'triggered', 'broken'],
+    h: 200,
+    refs: [REF_MORNING, REF_DEVICES],
+    prompt: stateSheet(
+      'door barricade standing upright as a flat panel that faces the lower-left: mismatched planks, a kitchen table top and an old shutter nailed and braced across a doorway, with no wall around it',
+      [
+        'solid and freshly nailed',
+        'solid, reinforced with a sheet of corrugated metal and two steel bars',
+        'badly damaged — planks cracked, gaps, claw marks',
+        'destroyed — only splintered stumps and debris on the ground',
+      ],
+    ),
+  },
+
+  // ───────────────────────────── Textures, icons, fx ─────────────────────────────
+  {
+    id: 'tex_ground',
+    kind: 'texture',
+    cols: 2,
+    rows: 2,
+    names: ['grass', 'path', 'gravel', 'forest'],
+    w: 256,
+    refs: [REF_MORNING],
+    prompt:
+      'Texture swatch sheet: the square canvas is divided into exactly four equal square quadrants, each completely filled edge to edge with a different flat TOP-DOWN ground texture, no perspective, no objects, no shadows, even lighting, ' +
+      'in the same inked and painted style as the ground in the reference. ' +
+      'Top-left: scruffy autumn meadow grass with a few fallen leaves. Top-right: packed brown earth of a garden path with small pebbles. Bottom-left: pale grey-beige driveway gravel. Bottom-right: dark forest-floor soil with pine needles and leaf litter. ' +
+      STYLE,
+  },
+  {
+    id: 'icons',
+    kind: 'split',
+    cols: 3,
+    rows: 2,
+    names: ['wood', 'scrap', 'springs', 'wire', 'battery', 'crate'],
+    h: 96,
+    refs: [REF_TRUNK],
+    prompt:
+      'Game inventory icon sheet in the style of the salvaged objects in the reference: a 3x2 grid of six separate chunky icons, one per cell, each centred with wide empty margins, simple and readable at 32 pixels. ' +
+      'Top row, left to right: a strapped bundle of wooden planks; a pile of rusty scrap metal with a gear and a bent pipe; two big coil springs. ' +
+      'Bottom row, left to right: a roll of wire mesh with a coil of orange cable; a blue car battery with two terminals; an open wooden crate. ' +
+      `${KEY} ${STYLE}`,
+  },
+  {
+    id: 'fx',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['splat', 'dust', 'burst', 'smoke'],
+    h: 160,
+    prompt:
+      'Game effects sheet: a 2x2 grid of four separate effect sprites, one per quadrant, each centred with wide empty margins. ' +
+      'Top-left: a dark green-brown splat stain seen from above. Top-right: a beige dust cloud puff. ' +
+      'Bottom-left: a comic impact starburst in pale yellow with wood splinters. Bottom-right: a soft pale grey smoke puff. ' +
+      `${KEY} Art style: hand-inked 2D game art with crisp dark outlines and flat painterly colouring. No text, no watermark.`,
+  },
+];
+
+// ───────────────────────────── Animation poses ─────────────────────────────
+// Three poses of a walk cycle (played a → p → b → p) and one action pose (x) per character and per view.
+// The runtime falls back to the single turnaround sprite wherever a pose is missing.
+
+export const POSE_NAMES = ['a', 'p', 'b', 'x'];
+
+const WALK = [
+  'walk cycle, contact pose: one leg stepping far forward with the heel down, the other leg trailing behind on its toes, arms as on the character sheet.',
+  'walk cycle, passing pose: standing tall on one straight leg while the other knee is lifted and swings past under the body, feet close together, arms hanging nearer the body.',
+  'walk cycle, opposite contact pose: the legs swapped compared with the top-left pose — the other leg is now forward and the first one trails — and the arms swapped too.',
+];
+const RUN = [
+  'sprint cycle, full stride: front knee driven high, back leg kicked up behind, arms pumping hard.',
+  'sprint cycle, airborne: both feet off the ground and gathered under the body, arms close to the chest.',
+  'sprint cycle, opposite full stride: the legs and the arms swapped compared with the top-left pose.',
+];
+const GALLOP = [
+  'gallop cycle, fully stretched: forelegs reaching far forward, hind legs stretched out behind, body long and low.',
+  'gallop cycle, gathered: all four legs tucked together under the body, back arched.',
+  'gallop cycle, landing: forelegs planted on the ground, hindquarters raised and hind legs swinging forward.',
+];
+const PUSH = [
+  'pushing forward, contact pose: one leg stepping far forward, the other trailing behind, whole weight on the machine.',
+  'pushing forward, passing pose: upright on one straight leg, the other knee swinging past under the body, feet close together.',
+  'pushing forward, opposite contact pose: the legs swapped compared with the top-left pose.',
+];
+
+const ANIMATED = [
+  {
+    base: 'en_shambler',
+    h: 200,
+    refs: [REF_NEIGHBORS],
+    desc: 'the shambling infected villager from the character sheet: torn waistcoat, braces, rolled shirt sleeves, flat cap, pale greenish skin, white eyes. He limps and drags one foot.',
+    poses: [...WALK, 'attacking pose: leaning forward with both arms raised high above the head, hands clawed, about to slam down on a door, mouth wide open.'],
+  },
+  {
+    base: 'en_runner',
+    h: 200,
+    refs: [REF_NEIGHBORS],
+    desc: 'the infected racing cyclist on foot from the character sheet: garish lycra, cycling cap, clip shoes, the bent bicycle wheel hooked over one shoulder, pale greenish skin.',
+    poses: [...RUN, 'attacking pose: lunging forward off one foot with both arms thrust straight out to grab, mouth wide open.'],
+  },
+  {
+    base: 'en_brute',
+    h: 245,
+    refs: [REF_NEIGHBORS],
+    desc: 'the huge infected village butcher from the character sheet: stained striped apron, rolled sleeves, string of sausages over one shoulder, pale greenish skin. Each step is a heavy stomp.',
+    poses: [...WALK, 'attacking pose: both enormous fists raised overhead, about to hammer down, shoulders bunched, roaring.'],
+  },
+  {
+    base: 'en_dog',
+    h: 120,
+    refs: [REF_ANIMALS],
+    desc: 'the infected farm dog from the character sheet: lean brown mutt, patchy fur, leather collar, pale glowing eyes.',
+    poses: [...GALLOP, 'attacking pose: leaping bite, forelegs off the ground, jaws wide open, ears flat.'],
+  },
+  {
+    base: 'en_boar',
+    h: 155,
+    refs: [REF_ANIMALS],
+    desc: 'the infected wild boar from the character sheet: massive shoulders, bristling dark fur with bald patches, tusks, pale eyes.',
+    poses: [...GALLOP, 'attacking pose: ramming, head lowered almost to the ground and tusks hooking upward, hind legs driving, dirt flying from the hooves.'],
+  },
+  {
+    base: 'en_deer',
+    h: 215,
+    refs: [REF_ANIMALS],
+    desc: 'the infected stag from the character sheet: thin and tall, big antlers with an oak leaf caught on one tine, mossy patches on the flank, pale eyes.',
+    poses: [...GALLOP, 'attacking pose: reared up on the hind legs, forelegs striking out, antlers thrown forward.'],
+  },
+  {
+    base: 'boss_mower',
+    h: 250,
+    refs: [REF_NEIGHBORS],
+    desc: 'the infected lawn-mowing neighbour from the character sheet with his rusty red push reel mower: moustache, torn green polo, khaki shorts, striped socks. Man and mower are one unit in every pose, the mower identical each time.',
+    poses: [...PUSH, 'revving pose: feet planted wide, leaning back and shaking the mower handle furiously so the reel spins, grass clippings spraying up, head thrown back.'],
+  },
+  {
+    base: 'boss_mechanic',
+    h: 265,
+    refs: [REF_NEIGHBORS],
+    desc: 'the infected breakdown mechanic from the character sheet with his rusty red wheeled engine hoist, an engine block hanging from its chain: grey beard, oil-stained dungarees. Man and hoist are one unit in every pose, the hoist identical each time.',
+    poses: [...PUSH, 'wind-up pose: feet planted, hauling the chain back with both hands so the engine block swings far back, ready to ram.'],
+  },
+  {
+    base: 'boss_mail',
+    h: 240,
+    refs: [REF_NEIGHBORS],
+    desc: 'the infected mail carrier from the character sheet: wiry woman, blue postal jacket and cap, leather satchel spilling letters, a parcel in her hands.',
+    poses: [...RUN, 'delivery pose: skidding to a halt and thrusting the parcel forward at arm’s length with both hands, letters flying out of the satchel.'],
+  },
+  {
+    base: 'boss_chief',
+    h: 260,
+    refs: [REF_AUTHORITIES],
+    desc: 'the infected police chief from the character sheet: stocky, grey moustache, dark blue uniform and peaked cap, whistle in his teeth, advancing behind a big scratched steel riot shield.',
+    poses: [...WALK, 'whistle pose: shield planted on the ground, cheeks puffed blowing the whistle, free arm thrust straight up in a traffic-stop gesture.'],
+  },
+  {
+    base: 'boss_mayor',
+    h: 275,
+    refs: [REF_AUTHORITIES],
+    desc: 'the infected mayor from the character sheet, standing on her small rusty four-wheeled cart behind the wooden lectern with the red ribbon and the car battery: grey swept-back hair, torn burgundy blazer, ceremonial sash, megaphone. Mayor and cart are one unit in every pose, the cart identical each time.',
+    poses: [
+      'campaigning pose: megaphone lowered at her side, free hand raised high in a stiff wave, fixed smile.',
+      'campaigning pose: megaphone lowered, free hand waving low to the other side, body swaying with the cart.',
+      'campaigning pose: megaphone lowered, leaning over the lectern and pointing at a voter.',
+      'speech pose: megaphone at her mouth, shouting, the other fist raised above her head.',
+    ],
+  },
+];
+
+for (const character of ANIMATED) {
+  for (const view of ['front', 'back']) {
+    ART.push({
+      id: `anim_${character.base}_${view}`,
+      kind: 'poses',
+      base: `${character.base}_${view}`,
+      sheet: `art/raw/${character.base}.png`,
+      cols: 2,
+      rows: 2,
+      names: POSE_NAMES,
+      h: character.h,
+      refs: character.refs,
+      prompt: poseSheet(view, character.desc, character.poses),
+    });
+  }
+}

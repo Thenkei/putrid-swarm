@@ -1,0 +1,16 @@
+{
+  "id": "amb_night",
+  "kind": "loop",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Night ambience at the edge of a forest: crickets, slow wind in the trees, an occasional distant owl. Uneasy. No music, no voices.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 22,
+    "prompt_influence": 0.4,
+    "loop": true
+  },
+  "generatedAt": "2026-11-17T09:42:05.611Z",
+  "bytes": 353218,
+  "sha256": "c6dca814f9dfc7906abe4e3d2c4a7056d5c0d91c6c17723a931377d0e1ec55ee"
+}

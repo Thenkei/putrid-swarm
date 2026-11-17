@@ -1,0 +1,15 @@
+{
+  "id": "loot_wood_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An armful of wooden boards dropped onto a pile: a tumbling woody clatter. Short, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:34.915Z",
+  "bytes": 15089,
+  "sha256": "e7acf11b7d291230e635069bfeec3d00a27f64ae708416ed6a7b787122edfb55"
+}

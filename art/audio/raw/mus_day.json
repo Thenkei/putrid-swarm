@@ -1,0 +1,15 @@
+{
+  "id": "mus_day",
+  "kind": "music",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/music",
+  "request": {
+    "prompt": "Daytime scavenging in an abandoned French village. Fingerpicked nylon guitar, soft upright bass, brushed snare, a hint of musette accordion. Wary but hopeful, unhurried, 84 bpm, minor key with warm turns. Leaves space, no big climax. Instrumental, loops cleanly.",
+    "model_id": "music_v2_5",
+    "music_length_ms": 75000,
+    "force_instrumental": true
+  },
+  "generatedAt": "2026-11-17T09:42:14.279Z",
+  "bytes": 1200840,
+  "sha256": "59bbb7cbe98f534640aa185cbf8870abee709e4c8a5b35a97f1b30871ce95795"
+}

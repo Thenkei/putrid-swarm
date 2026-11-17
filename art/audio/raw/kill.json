@@ -1,0 +1,15 @@
+{
+  "id": "kill",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A zombie lets out a short hoarse dying groan and collapses into grass with a soft thud. Dry, close.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.3,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:51.801Z",
+  "bytes": 21358,
+  "sha256": "31cab6da6fe168ba978a2ce7081e6201ccc7534a738de70ecf824ee20972ca61"
+}

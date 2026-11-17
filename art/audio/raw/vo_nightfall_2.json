@@ -1,0 +1,19 @@
+{
+  "id": "vo_nightfall_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] Les volets sont fermés. Les écrans sont allumés.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:18:58.171Z",
+  "bytes": 48526,
+  "sha256": "ec8c879a414fca9dd439a801cc4ac63b575dd7274d2d69ad0162879d309daf28"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "horn",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One long honk from the horn of a small old French car from the 1970s, nasal and slightly out of tune. Outdoors, no other sound.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:49.320Z",
+  "bytes": 30972,
+  "sha256": "5da3617facd8f4686c6a6565a02edd4e3d2eb5afbb1df17cd1172becd25494af"
+}

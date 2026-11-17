@@ -1,0 +1,15 @@
+{
+  "id": "whistle",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A traffic police whistle: two sharp authoritative blasts. Outdoors, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:57.061Z",
+  "bytes": 20105,
+  "sha256": "728907bfa35a47944fe0cc7f192c85ce9eef0e8d9845480b305374e320a39a50"
+}

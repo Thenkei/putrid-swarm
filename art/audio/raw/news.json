@@ -1,0 +1,15 @@
+{
+  "id": "news",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A regional TV news channel breaking-news jingle: short urgent synth brass and timpani sting, 1990s broadcast sound.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:42:01.311Z",
+  "bytes": 41838,
+  "sha256": "31b0d558d0c53cc4d724658a2b07b1a39963f4124cbbfc4c8712f35c6f1a310f"
+}

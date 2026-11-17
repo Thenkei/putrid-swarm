@@ -1,0 +1,19 @@
+{
+  "id": "vo_dawn_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[exhales] Le coq. Je n’ai jamais autant aimé ce coq.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:19:00.433Z",
+  "bytes": 70260,
+  "sha256": "14f6a9e765f9a719958558dbed9d36fccfc7a5c213a2801c5ed74aaacfbb0d5c"
+}

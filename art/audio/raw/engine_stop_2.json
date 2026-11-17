@@ -1,0 +1,15 @@
+{
+  "id": "engine_stop_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old diesel car pulling up: brakes squeak, the engine idles for a moment, then is switched off with a clatter and a last tick of cooling metal.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:43.789Z",
+  "bytes": 45182,
+  "sha256": "a5a67f2c5038d41db90d3ecb1102dec32779cc3b1534d3671cba300bf62030d6"
+}

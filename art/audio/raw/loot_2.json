@@ -1,0 +1,15 @@
+{
+  "id": "loot_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A few small objects scooped off a table into a canvas bag: soft clatter and a rustle of cloth. Short, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:32.980Z",
+  "bytes": 13835,
+  "sha256": "04eb15e25121cea3aa043d16f568d0637b38b3501204210e334879a6cf0a1700"
+}

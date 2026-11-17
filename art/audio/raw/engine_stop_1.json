@@ -1,0 +1,15 @@
+{
+  "id": "engine_stop_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old diesel car rolling to a stop on gravel: tyres crunching, the handbrake ratchets, the engine is switched off and shudders to silence.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 3,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:43.435Z",
+  "bytes": 48944,
+  "sha256": "7a2222a9818c600a45e94cae6493fbc681e2719cccad7efcdbc40adb53671dd6"
+}

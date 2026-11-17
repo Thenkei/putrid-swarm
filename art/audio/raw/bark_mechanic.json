@@ -1,0 +1,19 @@
+{
+  "id": "bark_mechanic",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/RVSvUPdGobWOTgnlXLRP",
+  "request": {
+    "text": "[growling, slow] Je vous mets ça… sur la facture.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Rudy",
+  "generatedAt": "2026-11-17T09:42:40.978Z",
+  "bytes": 53541,
+  "sha256": "77e89b700289dbc8333767f2b920bf8d0a97d247b93804e0e66b82468a569c8e"
+}

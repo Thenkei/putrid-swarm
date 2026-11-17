@@ -1,0 +1,15 @@
+{
+  "id": "knob",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One click of a small plastic volume knob on an old computer speaker. Very short, dry, quiet.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.5,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:34:23.460Z",
+  "bytes": 8820,
+  "sha256": "a386b0d74c2be2b29b79873b312ac35a1530dd9342faf320ea7c2bccef8dbbd0"
+}

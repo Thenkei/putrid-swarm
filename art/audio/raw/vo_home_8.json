@@ -1,0 +1,19 @@
+{
+  "id": "vo_home_8",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Le soleil descend. Pas le temps de traîner.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:18:56.663Z",
+  "bytes": 36823,
+  "sha256": "ee20e45acc339cd018c1acd09a404755f880ea03a11f03840025a5bf47d94240"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "sip",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A man takes one careful slurping sip from a hot enamel mug of coffee, then a small satisfied sigh. Very close microphone.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:49:44.113Z",
+  "bytes": 26792,
+  "sha256": "767c8406a95b422e772749aced0f7abec402bc40f675171cfdf46f087ef1ee26"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_car_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Un plein, quatre pneus, zéro voisin. Ça ira.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:18:47.812Z",
+  "bytes": 57303,
+  "sha256": "24df1f065c361bdb1d5682d428d861e31a39173a026289f6ad9618f9b1c588d3"
+}

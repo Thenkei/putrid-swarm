@@ -1,0 +1,19 @@
+{
+  "id": "vo_good_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[satisfied] En plein dedans.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:32.467Z",
+  "bytes": 25538,
+  "sha256": "8a040db083dd86d3974ebdeea24f353e2a9fe4f4e10a80d3206c6d15731b77c4"
+}

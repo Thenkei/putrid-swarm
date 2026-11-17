@@ -1,0 +1,15 @@
+{
+  "id": "engine_5",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An old diesel car on a cold start: slow groaning starter, the engine stumbles, nearly stalls, then picks up into an uneven idle with a rattling exhaust.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 3.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:42.271Z",
+  "bytes": 58139,
+  "sha256": "d9627e258476e69cbfb5e9a9209e55de1bdbec35b54e18a516faef698abf9336"
+}

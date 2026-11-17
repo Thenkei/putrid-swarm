@@ -1,0 +1,19 @@
+{
+  "id": "vo_egg_smoke_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[slow] Il est fort, celui du voisin.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:34:25.426Z",
+  "bytes": 41838,
+  "sha256": "b3f22209b7c782e352cb5932c01f2b6b3ae4934c685fe3a1b0d604506d53ae89"
+}

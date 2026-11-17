@@ -1,0 +1,19 @@
+{
+  "id": "vo_boss_chief",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Le chef. Il fait encore la circulation.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:36.692Z",
+  "bytes": 46018,
+  "sha256": "b5dcea2b8f1699fcdb323ac8aa70bb2ba64b39202b24edc1cf5a8c74073e86d1"
+}

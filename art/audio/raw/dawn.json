@@ -1,0 +1,15 @@
+{
+  "id": "dawn",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Dawn in a French village: a rooster crows once, a distant church bell rings twice, first birds waking. Calm, relieved.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 4.5,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:42:01.911Z",
+  "bytes": 72767,
+  "sha256": "f3a015e3eae55a1e02fdd43de34ade124f60b3c6e7acb0f0143982622d67a554"
+}

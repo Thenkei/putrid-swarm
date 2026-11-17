@@ -1,0 +1,19 @@
+{
+  "id": "vo_breach",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[alarmed] La porte a lâché !",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:33.397Z",
+  "bytes": 23030,
+  "sha256": "da8b63188c73e9fe28541abc70b3829384809e4db7a9cce503521c303b91425b"
+}

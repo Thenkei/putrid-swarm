@@ -1,0 +1,15 @@
+{
+  "id": "loot_wood_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Two short wooden planks picked up and stacked against each other: dry woody clacks. Short, close.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:34.204Z",
+  "bytes": 15089,
+  "sha256": "0de1862dc5d9c1d7383ea571fca722b8670ea570d35311980d5704f08564c2f1"
+}

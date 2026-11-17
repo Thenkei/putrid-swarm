@@ -1,0 +1,15 @@
+{
+  "id": "interrupt",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A sudden wooden crack and a short startled animal grunt, cut off abruptly. Dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.7,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:50.673Z",
+  "bytes": 12163,
+  "sha256": "4a54aa6cf2d1229fb74b7c6d2351d2169033e77b6d61a772a4ca57dcd3c95c89"
+}

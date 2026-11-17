@@ -1,0 +1,15 @@
+{
+  "id": "door_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One slow heavy body thudding against a boarded wooden door, then fingernails scraping down the planks. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:28.126Z",
+  "bytes": 15089,
+  "sha256": "6328f3c1e455a3c365e914eed419fe94240f03850a4967df783258b39db2ebf4"
+}

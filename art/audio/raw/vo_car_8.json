@@ -1,0 +1,19 @@
+{
+  "id": "vo_car_8",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Des planches, de la ferraille. Je ne demande pas la lune.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:18:50.823Z",
+  "bytes": 57303,
+  "sha256": "a706464c59e1e85aed86e246cb742d185adb94bbd7044a66d4c359c8d1b8fe5c"
+}

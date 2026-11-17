@@ -1,0 +1,19 @@
+{
+  "id": "vo_egg_smoke_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[coughs] C’est médicinal.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:34:24.393Z",
+  "bytes": 38077,
+  "sha256": "ef481c7c229b8f3cd8880e17de487d7ef47403375e438e3f8de681b38581a919"
+}

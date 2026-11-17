@@ -1,0 +1,19 @@
+{
+  "id": "vo_won",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Sept nuits. Plus personne ne frappe à la porte.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T09:42:38.243Z",
+  "bytes": 53541,
+  "sha256": "21dd101e99855b82ed7268788df9357eb7d03673146cf1d83edaa47365daf5d4"
+}

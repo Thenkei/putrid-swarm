@@ -1,0 +1,15 @@
+{
+  "id": "mus_night",
+  "kind": "music",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/music",
+  "request": {
+    "prompt": "Night siege watched through security cameras. Minimal 1980s horror synth: a low pulsing analog bass ostinato, a ticking clock-like percussion, cold sustained strings far away, occasional detuned bell. Steady dread, 96 bpm, no melody on top, no drums fill. Instrumental, loops cleanly.",
+    "model_id": "music_v2_5",
+    "music_length_ms": 85000,
+    "force_instrumental": true
+  },
+  "generatedAt": "2026-11-17T09:42:22.262Z",
+  "bytes": 1360501,
+  "sha256": "b859d820f97cc1a1e0d16cb34e1dbd1fcb1d096ae1b9af9984e1241c6fd81bb7"
+}

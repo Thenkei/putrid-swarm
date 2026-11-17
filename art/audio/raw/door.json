@@ -1,0 +1,15 @@
+{
+  "id": "door",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Two heavy fists pounding on a barricaded wooden door, boards rattling. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:54.196Z",
+  "bytes": 13835,
+  "sha256": "4e36842b4eddcdf727dea90971259ef4493a364d9d50091779816a52adff3ec2"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "loot_battery_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A heavy car battery lifted by its handle and set down on a wooden bench: a strained creak and a dense thud. Short, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T11:18:39.345Z",
+  "bytes": 15089,
+  "sha256": "508bab07c102047af368283117238c991e1b1caf5aee52615b918acb22af67bf"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "groan_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Several zombies moaning together in a low uneven chorus, shuffling feet in grass, distant, night.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2.4,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T09:41:54.223Z",
+  "bytes": 39331,
+  "sha256": "3c4fbcf433aa15258cc9688bc23684aed0ce4432e123ba987ef38e0cdf30930a"
+}

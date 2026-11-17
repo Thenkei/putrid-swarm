@@ -1,0 +1,10 @@
+node_modules/
+dist/
+art/raw/_test_*
+art/logs/
+.DS_Store
+*.log
+
+# Local secrets (never commit)
+.env
+.env.*

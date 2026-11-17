@@ -1,0 +1,1052 @@
+{
+  "plate_control_room": {
+    "file": "plates/plate_control_room.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_morning": {
+    "file": "plates/plate_morning.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_loc_garage": {
+    "file": "plates/plate_loc_garage.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_town": {
+    "file": "plates/plate_town.webp",
+    "w": 1280,
+    "h": 720
+  },
+  "plate_trunk": {
+    "file": "plates/plate_trunk.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_return": {
+    "file": "plates/plate_return.webp",
+    "w": 1280,
+    "h": 720
+  },
+  "plate_village": {
+    "file": "plates/plate_village.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_title_desk": {
+    "file": "plates/plate_title_desk.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_news": {
+    "file": "plates/plate_news.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_smoke": {
+    "file": "plates/plate_smoke.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_map": {
+    "file": "plates/plate_map.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_loc_shed": {
+    "file": "plates/plate_loc_shed.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_loc_hardware": {
+    "file": "plates/plate_loc_hardware.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_loc_grocery": {
+    "file": "plates/plate_loc_grocery.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_loc_post": {
+    "file": "plates/plate_loc_post.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_loc_police": {
+    "file": "plates/plate_loc_police.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_loc_townhall": {
+    "file": "plates/plate_loc_townhall.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_gameover": {
+    "file": "plates/plate_gameover.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "plate_victory": {
+    "file": "plates/plate_victory.webp",
+    "w": 1280,
+    "h": 853
+  },
+  "obj_house_front": {
+    "file": "sprites/obj_house_front.webp",
+    "w": 760,
+    "h": 741
+  },
+  "obj_house_back": {
+    "file": "sprites/obj_house_back.webp",
+    "w": 760,
+    "h": 742
+  },
+  "obj_car_front": {
+    "file": "sprites/obj_car_front.webp",
+    "w": 320,
+    "h": 242
+  },
+  "obj_car_back": {
+    "file": "sprites/obj_car_back.webp",
+    "w": 320,
+    "h": 225
+  },
+  "obj_trees_pine": {
+    "file": "sprites/obj_trees_pine.webp",
+    "w": 218,
+    "h": 430
+  },
+  "obj_trees_oak": {
+    "file": "sprites/obj_trees_oak.webp",
+    "w": 429,
+    "h": 430
+  },
+  "obj_trees_apple": {
+    "file": "sprites/obj_trees_apple.webp",
+    "w": 383,
+    "h": 430
+  },
+  "obj_props_well": {
+    "file": "sprites/obj_props_well.webp",
+    "w": 174,
+    "h": 230
+  },
+  "obj_props_woodpile": {
+    "file": "sprites/obj_props_woodpile.webp",
+    "w": 231,
+    "h": 230
+  },
+  "obj_props_veg": {
+    "file": "sprites/obj_props_veg.webp",
+    "w": 253,
+    "h": 230
+  },
+  "obj_props_campole": {
+    "file": "sprites/obj_props_campole.webp",
+    "w": 88,
+    "h": 230
+  },
+  "obj_props2_bush": {
+    "file": "sprites/obj_props2_bush.webp",
+    "w": 192,
+    "h": 170
+  },
+  "obj_props2_rock": {
+    "file": "sprites/obj_props2_rock.webp",
+    "w": 223,
+    "h": 170
+  },
+  "obj_props2_barrel": {
+    "file": "sprites/obj_props2_barrel.webp",
+    "w": 120,
+    "h": 170
+  },
+  "obj_props2_mailbox": {
+    "file": "sprites/obj_props2_mailbox.webp",
+    "w": 73,
+    "h": 170
+  },
+  "logo": {
+    "file": "sprites/logo.webp",
+    "w": 900,
+    "h": 642
+  },
+  "en_shambler_front": {
+    "file": "sprites/en_shambler_front.webp",
+    "w": 129,
+    "h": 200
+  },
+  "en_shambler_back": {
+    "file": "sprites/en_shambler_back.webp",
+    "w": 133,
+    "h": 200
+  },
+  "en_runner_front": {
+    "file": "sprites/en_runner_front.webp",
+    "w": 121,
+    "h": 200
+  },
+  "en_runner_back": {
+    "file": "sprites/en_runner_back.webp",
+    "w": 115,
+    "h": 200
+  },
+  "en_brute_front": {
+    "file": "sprites/en_brute_front.webp",
+    "w": 181,
+    "h": 245
+  },
+  "en_brute_back": {
+    "file": "sprites/en_brute_back.webp",
+    "w": 173,
+    "h": 245
+  },
+  "en_dog_front": {
+    "file": "sprites/en_dog_front.webp",
+    "w": 172,
+    "h": 120
+  },
+  "en_dog_back": {
+    "file": "sprites/en_dog_back.webp",
+    "w": 129,
+    "h": 120
+  },
+  "en_boar_front": {
+    "file": "sprites/en_boar_front.webp",
+    "w": 153,
+    "h": 155
+  },
+  "en_boar_back": {
+    "file": "sprites/en_boar_back.webp",
+    "w": 133,
+    "h": 155
+  },
+  "en_deer_front": {
+    "file": "sprites/en_deer_front.webp",
+    "w": 211,
+    "h": 215
+  },
+  "en_deer_back": {
+    "file": "sprites/en_deer_back.webp",
+    "w": 178,
+    "h": 215
+  },
+  "boss_mower_front": {
+    "file": "sprites/boss_mower_front.webp",
+    "w": 198,
+    "h": 250
+  },
+  "boss_mower_back": {
+    "file": "sprites/boss_mower_back.webp",
+    "w": 221,
+    "h": 250
+  },
+  "boss_mechanic_front": {
+    "file": "sprites/boss_mechanic_front.webp",
+    "w": 277,
+    "h": 265
+  },
+  "boss_mechanic_back": {
+    "file": "sprites/boss_mechanic_back.webp",
+    "w": 262,
+    "h": 265
+  },
+  "boss_mail_front": {
+    "file": "sprites/boss_mail_front.webp",
+    "w": 215,
+    "h": 240
+  },
+  "boss_mail_back": {
+    "file": "sprites/boss_mail_back.webp",
+    "w": 197,
+    "h": 240
+  },
+  "boss_chief_front": {
+    "file": "sprites/boss_chief_front.webp",
+    "w": 228,
+    "h": 260
+  },
+  "boss_chief_back": {
+    "file": "sprites/boss_chief_back.webp",
+    "w": 214,
+    "h": 260
+  },
+  "boss_mayor_front": {
+    "file": "sprites/boss_mayor_front.webp",
+    "w": 219,
+    "h": 275
+  },
+  "boss_mayor_back": {
+    "file": "sprites/boss_mayor_back.webp",
+    "w": 212,
+    "h": 275
+  },
+  "por_mower_alive": {
+    "file": "sprites/por_mower_alive.webp",
+    "w": 362,
+    "h": 360
+  },
+  "por_mower_infected": {
+    "file": "sprites/por_mower_infected.webp",
+    "w": 358,
+    "h": 360
+  },
+  "por_mechanic_alive": {
+    "file": "sprites/por_mechanic_alive.webp",
+    "w": 326,
+    "h": 360
+  },
+  "por_mechanic_infected": {
+    "file": "sprites/por_mechanic_infected.webp",
+    "w": 327,
+    "h": 360
+  },
+  "por_mail_alive": {
+    "file": "sprites/por_mail_alive.webp",
+    "w": 302,
+    "h": 360
+  },
+  "por_mail_infected": {
+    "file": "sprites/por_mail_infected.webp",
+    "w": 316,
+    "h": 360
+  },
+  "por_chief_alive": {
+    "file": "sprites/por_chief_alive.webp",
+    "w": 418,
+    "h": 360
+  },
+  "por_chief_infected": {
+    "file": "sprites/por_chief_infected.webp",
+    "w": 416,
+    "h": 360
+  },
+  "por_mayor_alive": {
+    "file": "sprites/por_mayor_alive.webp",
+    "w": 364,
+    "h": 360
+  },
+  "por_mayor_infected": {
+    "file": "sprites/por_mayor_infected.webp",
+    "w": 328,
+    "h": 360
+  },
+  "dev_net_resting": {
+    "file": "sprites/dev_net_resting.webp",
+    "w": 185,
+    "h": 190
+  },
+  "dev_net_armed": {
+    "file": "sprites/dev_net_armed.webp",
+    "w": 185,
+    "h": 190
+  },
+  "dev_net_triggered": {
+    "file": "sprites/dev_net_triggered.webp",
+    "w": 185,
+    "h": 190
+  },
+  "dev_net_broken": {
+    "file": "sprites/dev_net_broken.webp",
+    "w": 185,
+    "h": 190
+  },
+  "dev_barrier_resting": {
+    "file": "sprites/dev_barrier_resting.webp",
+    "w": 186,
+    "h": 170
+  },
+  "dev_barrier_armed": {
+    "file": "sprites/dev_barrier_armed.webp",
+    "w": 186,
+    "h": 170
+  },
+  "dev_barrier_triggered": {
+    "file": "sprites/dev_barrier_triggered.webp",
+    "w": 186,
+    "h": 170
+  },
+  "dev_barrier_broken": {
+    "file": "sprites/dev_barrier_broken.webp",
+    "w": 186,
+    "h": 170
+  },
+  "dev_horn_resting": {
+    "file": "sprites/dev_horn_resting.webp",
+    "w": 192,
+    "h": 180
+  },
+  "dev_horn_armed": {
+    "file": "sprites/dev_horn_armed.webp",
+    "w": 192,
+    "h": 180
+  },
+  "dev_horn_triggered": {
+    "file": "sprites/dev_horn_triggered.webp",
+    "w": 192,
+    "h": 180
+  },
+  "dev_horn_broken": {
+    "file": "sprites/dev_horn_broken.webp",
+    "w": 192,
+    "h": 180
+  },
+  "dev_log_resting": {
+    "file": "sprites/dev_log_resting.webp",
+    "w": 232,
+    "h": 230
+  },
+  "dev_log_armed": {
+    "file": "sprites/dev_log_armed.webp",
+    "w": 232,
+    "h": 230
+  },
+  "dev_log_triggered": {
+    "file": "sprites/dev_log_triggered.webp",
+    "w": 232,
+    "h": 230
+  },
+  "dev_log_broken": {
+    "file": "sprites/dev_log_broken.webp",
+    "w": 232,
+    "h": 230
+  },
+  "dev_spikes_resting": {
+    "file": "sprites/dev_spikes_resting.webp",
+    "w": 120,
+    "h": 130
+  },
+  "dev_spikes_armed": {
+    "file": "sprites/dev_spikes_armed.webp",
+    "w": 120,
+    "h": 130
+  },
+  "dev_spikes_triggered": {
+    "file": "sprites/dev_spikes_triggered.webp",
+    "w": 120,
+    "h": 130
+  },
+  "dev_spikes_broken": {
+    "file": "sprites/dev_spikes_broken.webp",
+    "w": 120,
+    "h": 130
+  },
+  "dev_floodlight_resting": {
+    "file": "sprites/dev_floodlight_resting.webp",
+    "w": 191,
+    "h": 230
+  },
+  "dev_floodlight_armed": {
+    "file": "sprites/dev_floodlight_armed.webp",
+    "w": 191,
+    "h": 230
+  },
+  "dev_floodlight_triggered": {
+    "file": "sprites/dev_floodlight_triggered.webp",
+    "w": 191,
+    "h": 230
+  },
+  "dev_floodlight_broken": {
+    "file": "sprites/dev_floodlight_broken.webp",
+    "w": 191,
+    "h": 230
+  },
+  "dev_fence_resting": {
+    "file": "sprites/dev_fence_resting.webp",
+    "w": 169,
+    "h": 150
+  },
+  "dev_fence_armed": {
+    "file": "sprites/dev_fence_armed.webp",
+    "w": 169,
+    "h": 150
+  },
+  "dev_fence_triggered": {
+    "file": "sprites/dev_fence_triggered.webp",
+    "w": 169,
+    "h": 150
+  },
+  "dev_fence_broken": {
+    "file": "sprites/dev_fence_broken.webp",
+    "w": 169,
+    "h": 150
+  },
+  "dev_barricade_resting": {
+    "file": "sprites/dev_barricade_resting.webp",
+    "w": 166,
+    "h": 200
+  },
+  "dev_barricade_armed": {
+    "file": "sprites/dev_barricade_armed.webp",
+    "w": 166,
+    "h": 200
+  },
+  "dev_barricade_triggered": {
+    "file": "sprites/dev_barricade_triggered.webp",
+    "w": 166,
+    "h": 200
+  },
+  "dev_barricade_broken": {
+    "file": "sprites/dev_barricade_broken.webp",
+    "w": 166,
+    "h": 200
+  },
+  "tex_ground_grass": {
+    "file": "textures/tex_ground_grass.webp",
+    "w": 256,
+    "h": 256
+  },
+  "tex_ground_path": {
+    "file": "textures/tex_ground_path.webp",
+    "w": 256,
+    "h": 256
+  },
+  "tex_ground_gravel": {
+    "file": "textures/tex_ground_gravel.webp",
+    "w": 256,
+    "h": 256
+  },
+  "tex_ground_forest": {
+    "file": "textures/tex_ground_forest.webp",
+    "w": 256,
+    "h": 256
+  },
+  "icons_wood": {
+    "file": "sprites/icons_wood.webp",
+    "w": 130,
+    "h": 96
+  },
+  "icons_scrap": {
+    "file": "sprites/icons_scrap.webp",
+    "w": 112,
+    "h": 96
+  },
+  "icons_springs": {
+    "file": "sprites/icons_springs.webp",
+    "w": 98,
+    "h": 96
+  },
+  "icons_wire": {
+    "file": "sprites/icons_wire.webp",
+    "w": 120,
+    "h": 96
+  },
+  "icons_battery": {
+    "file": "sprites/icons_battery.webp",
+    "w": 94,
+    "h": 96
+  },
+  "icons_crate": {
+    "file": "sprites/icons_crate.webp",
+    "w": 107,
+    "h": 96
+  },
+  "fx_splat": {
+    "file": "sprites/fx_splat.webp",
+    "w": 194,
+    "h": 160
+  },
+  "fx_dust": {
+    "file": "sprites/fx_dust.webp",
+    "w": 184,
+    "h": 160
+  },
+  "fx_burst": {
+    "file": "sprites/fx_burst.webp",
+    "w": 175,
+    "h": 160
+  },
+  "fx_smoke": {
+    "file": "sprites/fx_smoke.webp",
+    "w": 160,
+    "h": 160
+  },
+  "en_shambler_front_a": {
+    "file": "sprites/en_shambler_front_a.webp",
+    "w": 147,
+    "h": 201
+  },
+  "en_shambler_front_p": {
+    "file": "sprites/en_shambler_front_p.webp",
+    "w": 90,
+    "h": 202
+  },
+  "en_shambler_front_b": {
+    "file": "sprites/en_shambler_front_b.webp",
+    "w": 147,
+    "h": 203
+  },
+  "en_shambler_front_x": {
+    "file": "sprites/en_shambler_front_x.webp",
+    "w": 148,
+    "h": 207
+  },
+  "en_shambler_back_a": {
+    "file": "sprites/en_shambler_back_a.webp",
+    "w": 156,
+    "h": 201
+  },
+  "en_shambler_back_p": {
+    "file": "sprites/en_shambler_back_p.webp",
+    "w": 109,
+    "h": 199
+  },
+  "en_shambler_back_b": {
+    "file": "sprites/en_shambler_back_b.webp",
+    "w": 141,
+    "h": 204
+  },
+  "en_shambler_back_x": {
+    "file": "sprites/en_shambler_back_x.webp",
+    "w": 181,
+    "h": 216
+  },
+  "en_dog_front_a": {
+    "file": "sprites/en_dog_front_a.webp",
+    "w": 201,
+    "h": 121
+  },
+  "en_dog_front_p": {
+    "file": "sprites/en_dog_front_p.webp",
+    "w": 170,
+    "h": 99
+  },
+  "en_dog_front_b": {
+    "file": "sprites/en_dog_front_b.webp",
+    "w": 186,
+    "h": 123
+  },
+  "en_dog_front_x": {
+    "file": "sprites/en_dog_front_x.webp",
+    "w": 191,
+    "h": 95
+  },
+  "boss_mower_front_a": {
+    "file": "sprites/boss_mower_front_a.webp",
+    "w": 280,
+    "h": 251
+  },
+  "boss_mower_front_p": {
+    "file": "sprites/boss_mower_front_p.webp",
+    "w": 253,
+    "h": 259
+  },
+  "boss_mower_front_b": {
+    "file": "sprites/boss_mower_front_b.webp",
+    "w": 282,
+    "h": 251
+  },
+  "boss_mower_front_x": {
+    "file": "sprites/boss_mower_front_x.webp",
+    "w": 293,
+    "h": 271
+  },
+  "en_runner_front_a": {
+    "file": "sprites/en_runner_front_a.webp",
+    "w": 142,
+    "h": 201
+  },
+  "en_runner_front_p": {
+    "file": "sprites/en_runner_front_p.webp",
+    "w": 134,
+    "h": 160
+  },
+  "en_runner_front_b": {
+    "file": "sprites/en_runner_front_b.webp",
+    "w": 150,
+    "h": 201
+  },
+  "en_runner_front_x": {
+    "file": "sprites/en_runner_front_x.webp",
+    "w": 232,
+    "h": 197
+  },
+  "en_runner_back_a": {
+    "file": "sprites/en_runner_back_a.webp",
+    "w": 168,
+    "h": 201
+  },
+  "en_runner_back_p": {
+    "file": "sprites/en_runner_back_p.webp",
+    "w": 101,
+    "h": 176
+  },
+  "en_runner_back_b": {
+    "file": "sprites/en_runner_back_b.webp",
+    "w": 161,
+    "h": 204
+  },
+  "en_runner_back_x": {
+    "file": "sprites/en_runner_back_x.webp",
+    "w": 279,
+    "h": 213
+  },
+  "en_brute_front_a": {
+    "file": "sprites/en_brute_front_a.webp",
+    "w": 182,
+    "h": 246
+  },
+  "en_brute_front_p": {
+    "file": "sprites/en_brute_front_p.webp",
+    "w": 160,
+    "h": 256
+  },
+  "en_brute_front_b": {
+    "file": "sprites/en_brute_front_b.webp",
+    "w": 189,
+    "h": 252
+  },
+  "en_brute_front_x": {
+    "file": "sprites/en_brute_front_x.webp",
+    "w": 204,
+    "h": 272
+  },
+  "en_brute_back_a": {
+    "file": "sprites/en_brute_back_a.webp",
+    "w": 199,
+    "h": 246
+  },
+  "en_brute_back_p": {
+    "file": "sprites/en_brute_back_p.webp",
+    "w": 127,
+    "h": 251
+  },
+  "en_brute_back_b": {
+    "file": "sprites/en_brute_back_b.webp",
+    "w": 194,
+    "h": 251
+  },
+  "en_brute_back_x": {
+    "file": "sprites/en_brute_back_x.webp",
+    "w": 186,
+    "h": 260
+  },
+  "en_dog_back_a": {
+    "file": "sprites/en_dog_back_a.webp",
+    "w": 156,
+    "h": 121
+  },
+  "en_dog_back_p": {
+    "file": "sprites/en_dog_back_p.webp",
+    "w": 129,
+    "h": 97
+  },
+  "en_dog_back_b": {
+    "file": "sprites/en_dog_back_b.webp",
+    "w": 144,
+    "h": 104
+  },
+  "en_dog_back_x": {
+    "file": "sprites/en_dog_back_x.webp",
+    "w": 150,
+    "h": 134
+  },
+  "en_boar_front_a": {
+    "file": "sprites/en_boar_front_a.webp",
+    "w": 231,
+    "h": 156
+  },
+  "en_boar_front_p": {
+    "file": "sprites/en_boar_front_p.webp",
+    "w": 166,
+    "h": 153
+  },
+  "en_boar_front_b": {
+    "file": "sprites/en_boar_front_b.webp",
+    "w": 186,
+    "h": 167
+  },
+  "en_boar_front_x": {
+    "file": "sprites/en_boar_front_x.webp",
+    "w": 209,
+    "h": 162
+  },
+  "en_boar_back_a": {
+    "file": "sprites/en_boar_back_a.webp",
+    "w": 182,
+    "h": 156
+  },
+  "en_boar_back_p": {
+    "file": "sprites/en_boar_back_p.webp",
+    "w": 129,
+    "h": 129
+  },
+  "en_boar_back_b": {
+    "file": "sprites/en_boar_back_b.webp",
+    "w": 143,
+    "h": 138
+  },
+  "en_boar_back_x": {
+    "file": "sprites/en_boar_back_x.webp",
+    "w": 211,
+    "h": 136
+  },
+  "en_deer_front_a": {
+    "file": "sprites/en_deer_front_a.webp",
+    "w": 259,
+    "h": 216
+  },
+  "en_deer_front_p": {
+    "file": "sprites/en_deer_front_p.webp",
+    "w": 209,
+    "h": 187
+  },
+  "en_deer_front_b": {
+    "file": "sprites/en_deer_front_b.webp",
+    "w": 213,
+    "h": 212
+  },
+  "en_deer_front_x": {
+    "file": "sprites/en_deer_front_x.webp",
+    "w": 178,
+    "h": 244
+  },
+  "en_deer_back_a": {
+    "file": "sprites/en_deer_back_a.webp",
+    "w": 279,
+    "h": 216
+  },
+  "en_deer_back_p": {
+    "file": "sprites/en_deer_back_p.webp",
+    "w": 177,
+    "h": 181
+  },
+  "en_deer_back_b": {
+    "file": "sprites/en_deer_back_b.webp",
+    "w": 202,
+    "h": 211
+  },
+  "en_deer_back_x": {
+    "file": "sprites/en_deer_back_x.webp",
+    "w": 204,
+    "h": 241
+  },
+  "boss_mower_back_a": {
+    "file": "sprites/boss_mower_back_a.webp",
+    "w": 225,
+    "h": 251
+  },
+  "boss_mower_back_p": {
+    "file": "sprites/boss_mower_back_p.webp",
+    "w": 214,
+    "h": 250
+  },
+  "boss_mower_back_b": {
+    "file": "sprites/boss_mower_back_b.webp",
+    "w": 219,
+    "h": 252
+  },
+  "boss_mower_back_x": {
+    "file": "sprites/boss_mower_back_x.webp",
+    "w": 265,
+    "h": 236
+  },
+  "boss_mechanic_front_a": {
+    "file": "sprites/boss_mechanic_front_a.webp",
+    "w": 310,
+    "h": 266
+  },
+  "boss_mechanic_front_p": {
+    "file": "sprites/boss_mechanic_front_p.webp",
+    "w": 274,
+    "h": 268
+  },
+  "boss_mechanic_front_b": {
+    "file": "sprites/boss_mechanic_front_b.webp",
+    "w": 329,
+    "h": 266
+  },
+  "boss_mechanic_front_x": {
+    "file": "sprites/boss_mechanic_front_x.webp",
+    "w": 331,
+    "h": 269
+  },
+  "boss_mechanic_back_a": {
+    "file": "sprites/boss_mechanic_back_a.webp",
+    "w": 312,
+    "h": 266
+  },
+  "boss_mechanic_back_p": {
+    "file": "sprites/boss_mechanic_back_p.webp",
+    "w": 238,
+    "h": 244
+  },
+  "boss_mechanic_back_b": {
+    "file": "sprites/boss_mechanic_back_b.webp",
+    "w": 322,
+    "h": 264
+  },
+  "boss_mechanic_back_x": {
+    "file": "sprites/boss_mechanic_back_x.webp",
+    "w": 302,
+    "h": 268
+  },
+  "boss_mail_front_a": {
+    "file": "sprites/boss_mail_front_a.webp",
+    "w": 262,
+    "h": 241
+  },
+  "boss_mail_front_p": {
+    "file": "sprites/boss_mail_front_p.webp",
+    "w": 161,
+    "h": 213
+  },
+  "boss_mail_front_b": {
+    "file": "sprites/boss_mail_front_b.webp",
+    "w": 250,
+    "h": 230
+  },
+  "boss_mail_front_x": {
+    "file": "sprites/boss_mail_front_x.webp",
+    "w": 277,
+    "h": 229
+  },
+  "boss_mail_back_a": {
+    "file": "sprites/boss_mail_back_a.webp",
+    "w": 208,
+    "h": 241
+  },
+  "boss_mail_back_p": {
+    "file": "sprites/boss_mail_back_p.webp",
+    "w": 143,
+    "h": 202
+  },
+  "boss_mail_back_b": {
+    "file": "sprites/boss_mail_back_b.webp",
+    "w": 203,
+    "h": 248
+  },
+  "boss_mail_back_x": {
+    "file": "sprites/boss_mail_back_x.webp",
+    "w": 243,
+    "h": 210
+  },
+  "boss_chief_front_a": {
+    "file": "sprites/boss_chief_front_a.webp",
+    "w": 261,
+    "h": 261
+  },
+  "boss_chief_front_p": {
+    "file": "sprites/boss_chief_front_p.webp",
+    "w": 183,
+    "h": 265
+  },
+  "boss_chief_front_b": {
+    "file": "sprites/boss_chief_front_b.webp",
+    "w": 281,
+    "h": 258
+  },
+  "boss_chief_front_x": {
+    "file": "sprites/boss_chief_front_x.webp",
+    "w": 234,
+    "h": 257
+  },
+  "boss_chief_back_a": {
+    "file": "sprites/boss_chief_back_a.webp",
+    "w": 249,
+    "h": 261
+  },
+  "boss_chief_back_p": {
+    "file": "sprites/boss_chief_back_p.webp",
+    "w": 163,
+    "h": 260
+  },
+  "boss_chief_back_b": {
+    "file": "sprites/boss_chief_back_b.webp",
+    "w": 261,
+    "h": 262
+  },
+  "boss_chief_back_x": {
+    "file": "sprites/boss_chief_back_x.webp",
+    "w": 219,
+    "h": 266
+  },
+  "boss_mayor_front_a": {
+    "file": "sprites/boss_mayor_front_a.webp",
+    "w": 206,
+    "h": 276
+  },
+  "boss_mayor_front_p": {
+    "file": "sprites/boss_mayor_front_p.webp",
+    "w": 213,
+    "h": 273
+  },
+  "boss_mayor_front_b": {
+    "file": "sprites/boss_mayor_front_b.webp",
+    "w": 247,
+    "h": 254
+  },
+  "boss_mayor_front_x": {
+    "file": "sprites/boss_mayor_front_x.webp",
+    "w": 217,
+    "h": 278
+  },
+  "boss_mayor_back_a": {
+    "file": "sprites/boss_mayor_back_a.webp",
+    "w": 201,
+    "h": 276
+  },
+  "boss_mayor_back_p": {
+    "file": "sprites/boss_mayor_back_p.webp",
+    "w": 201,
+    "h": 259
+  },
+  "boss_mayor_back_b": {
+    "file": "sprites/boss_mayor_back_b.webp",
+    "w": 215,
+    "h": 258
+  },
+  "boss_mayor_back_x": {
+    "file": "sprites/boss_mayor_back_x.webp",
+    "w": 207,
+    "h": 276
+  },
+  "fence_diag_flat": {
+    "file": "sprites/fence_diag_flat.webp",
+    "w": 219,
+    "h": 150
+  },
+  "fence_diag_flat_hurt": {
+    "file": "sprites/fence_diag_flat_hurt.webp",
+    "w": 229,
+    "h": 150
+  },
+  "fence_diag_deep": {
+    "file": "sprites/fence_diag_deep.webp",
+    "w": 39,
+    "h": 150
+  },
+  "fence_diag_deep_hurt": {
+    "file": "sprites/fence_diag_deep_hurt.webp",
+    "w": 40,
+    "h": 150
+  },
+  "desk_mug": {
+    "file": "sprites/desk_mug.webp",
+    "w": 184,
+    "h": 183
+  },
+  "desk_joint": {
+    "file": "sprites/desk_joint.webp",
+    "w": 148,
+    "h": 150
+  },
+  "desk_hand_open": {
+    "file": "sprites/desk_hand_open.webp",
+    "w": 174,
+    "h": 640
+  },
+  "desk_hand_joint": {
+    "file": "sprites/desk_hand_joint.webp",
+    "w": 161,
+    "h": 640
+  },
+  "desk_hand_mug": {
+    "file": "sprites/desk_hand_mug.webp",
+    "w": 297,
+    "h": 640
+  }
+}

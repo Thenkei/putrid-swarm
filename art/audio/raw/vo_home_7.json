@@ -1,0 +1,19 @@
+{
+  "id": "vo_home_7",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Bon. Qu’est-ce qu’on peut clouer avec tout ça ?",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T11:18:55.530Z",
+  "bytes": 41838,
+  "sha256": "a859637a9a12236582f3187baab179719ed71454e7b6dd807b0c4a8b0b145898"
+}
