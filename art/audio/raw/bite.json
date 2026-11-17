@@ -1,0 +1,15 @@
+{
+  "id": "bite",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Sharp teeth sinking into a forearm through a thick jacket sleeve: a wet crunch, cloth tearing, a muffled snarl. Very close, dry, short.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:44.292Z",
+  "bytes": 15089,
+  "sha256": "15ba9278479257490f109e285f506d56da1df0afa1394a52098b4baf237a0e87"
+}

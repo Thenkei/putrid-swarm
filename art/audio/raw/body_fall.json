@@ -1,0 +1,15 @@
+{
+  "id": "body_fall",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A man collapsing into tall wet grass: knees first, then the whole body, a long last exhale. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:59.650Z",
+  "bytes": 26792,
+  "sha256": "80378ed0c71d184cfe8cff20a703843638dc85a1f6e64ab5a5552deddb3c7add"
+}

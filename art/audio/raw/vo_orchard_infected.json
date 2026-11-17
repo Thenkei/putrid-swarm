@@ -1,0 +1,19 @@
+{
+  "id": "vo_orchard_infected",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[panicked, breathless] Ça monte. Ça monte dans le bras. Faut couper. Vite !",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T14:16:13.812Z",
+  "bytes": 58557,
+  "sha256": "7ae1e84a1cc939023c7fbfb46727a0568ac1b1ac2872e2752bf188a93365174a"
+}

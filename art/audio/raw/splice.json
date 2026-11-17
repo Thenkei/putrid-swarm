@@ -1,0 +1,15 @@
+{
+  "id": "splice",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Repairing a cable by hand: copper strands twisted together, electrical tape pulled off a roll and wrapped round, then a small relay click and one soft electronic beep. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:58.876Z",
+  "bytes": 41838,
+  "sha256": "17e81c6b78394dbd63ad0bc19c846279556a423a026dd0e451ca3ef5bf620c91"
+}

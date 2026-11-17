@@ -1,0 +1,15 @@
+{
+  "id": "chew_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A small rabbit gnawing on a plastic cable: quick tiny crunching nibbles, teeth clicking on copper. Very close, quiet, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:40.239Z",
+  "bytes": 17179,
+  "sha256": "56a80e7688236370d6dfcfd61a81a2f2b3ac45a419fcb1c5b1341e03108343aa"
+}

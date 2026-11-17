@@ -1,0 +1,15 @@
+{
+  "id": "horde",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A very large crowd of zombies closing in from every side at night: dozens of hoarse moans and snarls swelling into a roar, feet trampling. No music.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 4.2,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:42:21.845Z",
+  "bytes": 67752,
+  "sha256": "1a4a202a963b705a108dd7ff4e348ce7b848e7e62fdfbc120d289e28166826b8"
+}

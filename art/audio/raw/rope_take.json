@@ -1,0 +1,15 @@
+{
+  "id": "rope_take",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A coil of rough old hemp rope pulled off a nail on a wooden post: a fibrous creak and a soft slap of rope against a hand. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:51.812Z",
+  "bytes": 15089,
+  "sha256": "b79037dc5b9a2947d07b7a7c66903d82b70dae8768b674a96163a5004f9a1420"
+}

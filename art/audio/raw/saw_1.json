@@ -1,0 +1,15 @@
+{
+  "id": "saw_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single push stroke of a rusty hand saw through a thick green branch: a coarse wet rasp. Very short, close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.7,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:54.420Z",
+  "bytes": 12163,
+  "sha256": "827c6b7fa70ac1cfb8ca5d9c90b00e113bd73f556302ab2171a0eec9139e2cfb"
+}

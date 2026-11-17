@@ -1,0 +1,15 @@
+{
+  "id": "rabbit_sting",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A horror jump-scare sting: a sudden sharp dissonant violin screech over a deep sub boom, decaying into a low uneasy rumble. Cinematic, no melody.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 2.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:42.899Z",
+  "bytes": 41838,
+  "sha256": "e741cd7ce03df844cd5e3f40c209238ce1963e78fff17ac12fb0b2cf6b33b7ad"
+}

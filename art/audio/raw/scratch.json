@@ -1,0 +1,15 @@
+{
+  "id": "scratch",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single muted percussive strum across deadened electric guitar strings through a distorted amplifier: a dry \"chk\". Very short. Solo guitar only.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.5,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:44:58.580Z",
+  "bytes": 8820,
+  "sha256": "981be1a0c793c06ac450cdfb0143e07b2107374c63d625ecef881d37fcfb0632"
+}

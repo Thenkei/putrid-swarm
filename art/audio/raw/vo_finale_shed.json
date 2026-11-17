@@ -1,0 +1,19 @@
+{
+  "id": "vo_finale_shed",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[fond, grinning] Bonsoir, ma belle. Ce soir, on tond.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T14:42:27.527Z",
+  "bytes": 57303,
+  "sha256": "2645c2f82a49efe6091ea853293f7f5293cdd9aac5d3e9d1560bc732ec5311d2"
+}

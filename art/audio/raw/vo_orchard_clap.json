@@ -1,0 +1,19 @@
+{
+  "id": "vo_orchard_clap",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[loud, firm] Allez ! Ouste ! File !",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-17T14:16:10.997Z",
+  "bytes": 34315,
+  "sha256": "a0348423ebb31bc29b2bb1ee391d04e5b22d96b5805e5df753fd57ddb3d3f12b"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "amp_die",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "An overdriven guitar amplifier dying: a long howl of feedback sliding down in pitch, a loud electrical pop, a last crackle, silence.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 3,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:42:22.717Z",
+  "bytes": 48944,
+  "sha256": "de1ed1878a118fbed8ee1ff9cc54990dda3d13bf4316a408c0b7b48c60ae83be"
+}

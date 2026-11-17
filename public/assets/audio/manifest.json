@@ -443,6 +443,270 @@
     "seconds": 1.097,
     "gain": 0.8
   },
+  "signal_lost": {
+    "file": "signal_lost.mp3",
+    "kind": "sfx",
+    "seconds": 1.62,
+    "gain": 0.75
+  },
+  "step_grass_1": {
+    "file": "step_grass_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.601,
+    "gain": 0.6
+  },
+  "step_grass_2": {
+    "file": "step_grass_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.601,
+    "gain": 0.6
+  },
+  "step_grass_3": {
+    "file": "step_grass_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.549,
+    "gain": 0.6
+  },
+  "step_grass_4": {
+    "file": "step_grass_4.mp3",
+    "kind": "sfx",
+    "seconds": 0.601,
+    "gain": 0.6
+  },
+  "chew_1": {
+    "file": "chew_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.888,
+    "gain": 0.7
+  },
+  "chew_2": {
+    "file": "chew_2.mp3",
+    "kind": "sfx",
+    "seconds": 1.097,
+    "gain": 0.7
+  },
+  "chew_3": {
+    "file": "chew_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.81,
+    "gain": 0.7
+  },
+  "clap": {
+    "file": "clap.mp3",
+    "kind": "sfx",
+    "seconds": 0.81,
+    "gain": 0.9
+  },
+  "rabbit_bolt": {
+    "file": "rabbit_bolt.mp3",
+    "kind": "sfx",
+    "seconds": 1.019,
+    "gain": 0.8
+  },
+  "rabbit_sting": {
+    "file": "rabbit_sting.mp3",
+    "kind": "sfx",
+    "seconds": 2.534,
+    "gain": 0.9
+  },
+  "rabbit_screech": {
+    "file": "rabbit_screech.mp3",
+    "kind": "sfx",
+    "seconds": 1.097,
+    "gain": 0.85
+  },
+  "bite": {
+    "file": "bite.mp3",
+    "kind": "sfx",
+    "seconds": 0.888,
+    "gain": 0.9
+  },
+  "scream_1": {
+    "file": "scream_1.mp3",
+    "kind": "sfx",
+    "seconds": 1.489,
+    "gain": 0.85
+  },
+  "scream_2": {
+    "file": "scream_2.mp3",
+    "kind": "sfx",
+    "seconds": 1.541,
+    "gain": 0.85
+  },
+  "pain_1": {
+    "file": "pain_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.862,
+    "gain": 0.8
+  },
+  "pain_2": {
+    "file": "pain_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.888,
+    "gain": 0.8
+  },
+  "pain_3": {
+    "file": "pain_3.mp3",
+    "kind": "sfx",
+    "seconds": 1.019,
+    "gain": 0.8
+  },
+  "pain_4": {
+    "file": "pain_4.mp3",
+    "kind": "sfx",
+    "seconds": 0.888,
+    "gain": 0.8
+  },
+  "yank_1": {
+    "file": "yank_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.418,
+    "gain": 0.8
+  },
+  "yank_2": {
+    "file": "yank_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.522,
+    "gain": 0.8
+  },
+  "yank_3": {
+    "file": "yank_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.549,
+    "gain": 0.8
+  },
+  "fling": {
+    "file": "fling.mp3",
+    "kind": "sfx",
+    "seconds": 0.914,
+    "gain": 0.85
+  },
+  "rope_take": {
+    "file": "rope_take.mp3",
+    "kind": "sfx",
+    "seconds": 0.888,
+    "gain": 0.8
+  },
+  "tie": {
+    "file": "tie.mp3",
+    "kind": "sfx",
+    "seconds": 1.881,
+    "gain": 0.85
+  },
+  "saw_take": {
+    "file": "saw_take.mp3",
+    "kind": "sfx",
+    "seconds": 1.019,
+    "gain": 0.8
+  },
+  "saw_1": {
+    "file": "saw_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.705,
+    "gain": 0.85
+  },
+  "saw_2": {
+    "file": "saw_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.627,
+    "gain": 0.85
+  },
+  "saw_3": {
+    "file": "saw_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.705,
+    "gain": 0.85
+  },
+  "saw_4": {
+    "file": "saw_4.mp3",
+    "kind": "sfx",
+    "seconds": 0.705,
+    "gain": 0.85
+  },
+  "heartbeat_1": {
+    "file": "heartbeat_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.81,
+    "gain": 0.8
+  },
+  "heartbeat_2": {
+    "file": "heartbeat_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.758,
+    "gain": 0.8
+  },
+  "splice": {
+    "file": "splice.mp3",
+    "kind": "sfx",
+    "seconds": 0.261,
+    "gain": 0.8
+  },
+  "body_fall": {
+    "file": "body_fall.mp3",
+    "kind": "sfx",
+    "seconds": 1.62,
+    "gain": 0.85
+  },
+  "devour": {
+    "file": "devour.mp3",
+    "kind": "sfx",
+    "seconds": 3.422,
+    "gain": 0.9
+  },
+  "shed_door": {
+    "file": "shed_door.mp3",
+    "kind": "sfx",
+    "seconds": 1.489,
+    "gain": 0.9
+  },
+  "amp_on": {
+    "file": "amp_on.mp3",
+    "kind": "sfx",
+    "seconds": 2.194,
+    "gain": 0.85
+  },
+  "mower_start": {
+    "file": "mower_start.mp3",
+    "kind": "sfx",
+    "seconds": 2.638,
+    "gain": 0.85
+  },
+  "chord": {
+    "file": "chord.mp3",
+    "kind": "sfx",
+    "seconds": 2.586,
+    "gain": 0.8
+  },
+  "chug": {
+    "file": "chug.mp3",
+    "kind": "sfx",
+    "seconds": 0.496,
+    "gain": 0.8
+  },
+  "scratch": {
+    "file": "scratch.mp3",
+    "kind": "sfx",
+    "seconds": 0.496,
+    "gain": 0.7
+  },
+  "blast": {
+    "file": "blast.mp3",
+    "kind": "sfx",
+    "seconds": 1.202,
+    "gain": 0.8
+  },
+  "horde": {
+    "file": "horde.mp3",
+    "kind": "sfx",
+    "seconds": 4.18,
+    "gain": 0.9
+  },
+  "amp_die": {
+    "file": "amp_die.mp3",
+    "kind": "sfx",
+    "seconds": 3.004,
+    "gain": 0.85
+  },
   "crt_off": {
     "file": "crt_off.mp3",
     "kind": "sfx",
@@ -556,6 +820,24 @@
     "kind": "music",
     "seconds": 28.032,
     "gain": 0.55
+  },
+  "mus_orchard": {
+    "file": "mus_orchard.mp3",
+    "kind": "music",
+    "seconds": 60.03,
+    "gain": 0.5
+  },
+  "mus_panic": {
+    "file": "mus_panic.mp3",
+    "kind": "music",
+    "seconds": 50.052,
+    "gain": 0.5
+  },
+  "mus_finale": {
+    "file": "mus_finale.mp3",
+    "kind": "music",
+    "seconds": 80.04,
+    "gain": 0.62
   },
   "vo_broadcast": {
     "file": "vo_broadcast.mp3",
@@ -897,6 +1179,138 @@
     "file": "vo_won.mp3",
     "kind": "voice",
     "seconds": 3.03,
+    "gain": 1
+  },
+  "vo_cam_lost": {
+    "file": "vo_cam_lost.mp3",
+    "kind": "voice",
+    "seconds": 2.847,
+    "gain": 1
+  },
+  "vo_orchard_arrive": {
+    "file": "vo_orchard_arrive.mp3",
+    "kind": "voice",
+    "seconds": 3.422,
+    "gain": 1
+  },
+  "vo_orchard_see": {
+    "file": "vo_orchard_see.mp3",
+    "kind": "voice",
+    "seconds": 2.299,
+    "gain": 1
+  },
+  "vo_orchard_saw": {
+    "file": "vo_orchard_saw.mp3",
+    "kind": "voice",
+    "seconds": 2.926,
+    "gain": 1
+  },
+  "vo_orchard_rope": {
+    "file": "vo_orchard_rope.mp3",
+    "kind": "voice",
+    "seconds": 2.743,
+    "gain": 1
+  },
+  "vo_orchard_clap": {
+    "file": "vo_orchard_clap.mp3",
+    "kind": "voice",
+    "seconds": 1.724,
+    "gain": 1
+  },
+  "vo_orchard_clapped": {
+    "file": "vo_orchard_clapped.mp3",
+    "kind": "voice",
+    "seconds": 3.213,
+    "gain": 1
+  },
+  "vo_orchard_approach": {
+    "file": "vo_orchard_approach.mp3",
+    "kind": "voice",
+    "seconds": 2.168,
+    "gain": 1
+  },
+  "vo_orchard_reveal": {
+    "file": "vo_orchard_reveal.mp3",
+    "kind": "voice",
+    "seconds": 2.011,
+    "gain": 1
+  },
+  "vo_orchard_infected": {
+    "file": "vo_orchard_infected.mp3",
+    "kind": "voice",
+    "seconds": 3.265,
+    "gain": 1
+  },
+  "vo_orchard_no_tie": {
+    "file": "vo_orchard_no_tie.mp3",
+    "kind": "voice",
+    "seconds": 3.082,
+    "gain": 1
+  },
+  "vo_orchard_tied": {
+    "file": "vo_orchard_tied.mp3",
+    "kind": "voice",
+    "seconds": 3.997,
+    "gain": 1
+  },
+  "vo_orchard_kneel": {
+    "file": "vo_orchard_kneel.mp3",
+    "kind": "voice",
+    "seconds": 2.273,
+    "gain": 1
+  },
+  "vo_orchard_cut": {
+    "file": "vo_orchard_cut.mp3",
+    "kind": "voice",
+    "seconds": 2.534,
+    "gain": 1
+  },
+  "vo_orchard_mended": {
+    "file": "vo_orchard_mended.mp3",
+    "kind": "voice",
+    "seconds": 2.612,
+    "gain": 1
+  },
+  "vo_orchard_one_arm": {
+    "file": "vo_orchard_one_arm.mp3",
+    "kind": "voice",
+    "seconds": 4.389,
+    "gain": 1
+  },
+  "vo_finale_desk": {
+    "file": "vo_finale_desk.mp3",
+    "kind": "voice",
+    "seconds": 2.116,
+    "gain": 1
+  },
+  "vo_finale_no": {
+    "file": "vo_finale_no.mp3",
+    "kind": "voice",
+    "seconds": 3.474,
+    "gain": 1
+  },
+  "vo_finale_shed": {
+    "file": "vo_finale_shed.mp3",
+    "kind": "voice",
+    "seconds": 3.5,
+    "gain": 1
+  },
+  "vo_finale_one_arm": {
+    "file": "vo_finale_one_arm.mp3",
+    "kind": "voice",
+    "seconds": 3.631,
+    "gain": 1
+  },
+  "vo_finale_go": {
+    "file": "vo_finale_go.mp3",
+    "kind": "voice",
+    "seconds": 1.489,
+    "gain": 1
+  },
+  "vo_finale_end": {
+    "file": "vo_finale_end.mp3",
+    "kind": "voice",
+    "seconds": 2.299,
     "gain": 1
   },
   "bark_mayor_1": {

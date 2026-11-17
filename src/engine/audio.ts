@@ -53,10 +53,39 @@ export type Sfx =
   | 'washer'
   | 'tin'
   | 'scuffle'
-  | 'crate';
+  | 'crate'
+  | 'signal_lost'
+  | 'step_grass'
+  | 'chew'
+  | 'clap'
+  | 'rabbit_bolt'
+  | 'rabbit_sting'
+  | 'rabbit_screech'
+  | 'bite'
+  | 'scream'
+  | 'pain'
+  | 'yank'
+  | 'fling'
+  | 'rope_take'
+  | 'tie'
+  | 'saw_take'
+  | 'saw'
+  | 'heartbeat'
+  | 'splice'
+  | 'body_fall'
+  | 'devour'
+  | 'shed_door'
+  | 'amp_on'
+  | 'mower_start'
+  | 'chord'
+  | 'chug'
+  | 'scratch'
+  | 'blast'
+  | 'horde'
+  | 'amp_die';
 
 export type Ambience = 'none' | 'room' | 'day' | 'night' | 'car';
-export type Music = 'none' | 'title' | 'day' | 'night' | 'boss' | 'morning' | 'won';
+export type Music = 'none' | 'title' | 'day' | 'night' | 'boss' | 'morning' | 'won' | 'orchard' | 'panic' | 'finale';
 
 const STORAGE_KEY = 'putrid-swarm.sound';
 const MUSIC_KEY = 'putrid-swarm.music';
@@ -107,12 +136,19 @@ const VARIANTS: Partial<Record<Sfx, readonly string[]>> = {
   tin: numbered('tin', 3, false),
   scuffle: numbered('scuffle', 3, false),
   crate: numbered('crate', 2, false),
+  step_grass: numbered('step_grass', 4, false),
+  chew: numbered('chew', 3, false),
+  scream: numbered('scream', 2, false),
+  pain: numbered('pain', 4, false),
+  yank: numbered('yank', 3, false),
+  saw: numbered('saw', 4, false),
+  heartbeat: numbered('heartbeat', 2, false),
 };
 /** Effects heard many times in a row: a little pitch drift keeps them from sounding stamped. */
-const PITCH_DRIFT: Partial<Record<Sfx, number>> = { hit: 0.1, kill: 0.08, door: 0.06, spikes: 0.05, groan: 0.1, build: 0.05, rummage: 0.05, loot: 0.06, car_door: 0.04, engine: 0.03, washer: 0.08, tin: 0.06, scuffle: 0.05 };
+const PITCH_DRIFT: Partial<Record<Sfx, number>> = { hit: 0.1, kill: 0.08, door: 0.06, spikes: 0.05, groan: 0.1, build: 0.05, rummage: 0.05, loot: 0.06, car_door: 0.04, engine: 0.03, washer: 0.08, tin: 0.06, scuffle: 0.05, step_grass: 0.08, chew: 0.06, pain: 0.05, yank: 0.06, saw: 0.06, heartbeat: 0.03 };
 /** Minimum seconds between two plays of the same effect. */
 const MIN_GAP: Partial<Record<Sfx, number>> = { hit: 0.09, kill: 0.14, door: 0.35, spikes: 0.08, groan: 1.5 };
-const LOOPING_MUSIC: ReadonlySet<Music> = new Set<Music>(['title', 'day', 'night', 'boss']);
+const LOOPING_MUSIC: ReadonlySet<Music> = new Set<Music>(['title', 'day', 'night', 'boss', 'orchard', 'panic']);
 const LOOP_CROSSFADE = 1.4;
 const DUCK = 0.4;
 /** Nothing stops dead: beds, voices and music are always faded out over these durations (seconds). */
@@ -339,8 +375,11 @@ class AudioEngine {
 
   // ───────────────────────────── Effects ─────────────────────────────
 
-  /** Plays an effect: the recording when it is loaded, the synthesised version otherwise. `volume` scales it (1 = normal). */
-  play(name: Sfx, volume = 1): void {
+  /**
+   * Plays an effect: the recording when it is loaded, the synthesised version otherwise.
+   * `volume` scales it (1 = normal); `rate` replays it faster and higher, for one recording played as several notes.
+   */
+  play(name: Sfx, volume = 1, rate = 1): void {
     if (!this.ctx || !this.enabled) return;
     // Collapse bursts of the same sound (twenty hits in one frame should not clip).
     const now = this.ctx.currentTime;
@@ -351,11 +390,23 @@ class AudioEngine {
     const sample = this.deal(name, VARIANTS[name] ?? [name]);
     if (sample?.buffer && this.sfxBus) {
       const drift = PITCH_DRIFT[name] ?? 0;
-      const playing = this.playBuffer(sample.buffer, this.sfxBus, sample.entry.gain * volume, 1 + (Math.random() * 2 - 1) * drift);
+      const playing = this.playBuffer(sample.buffer, this.sfxBus, sample.entry.gain * volume, rate * (1 + (Math.random() * 2 - 1) * drift));
       if (playing) this.track(name, playing);
       return;
     }
-    this.synth(name);
+    this.synth(name, rate);
+  }
+
+  /** Seconds into the music track that is playing, or null when there is none to go by (sound off, not started). */
+  musicTime(): number | null {
+    const element = this.musicEl;
+    if (!element || element.paused || !this.enabled || !this.musicEnabled) return null;
+    return element.currentTime;
+  }
+
+  /** Whether the current music track has played to its end. */
+  get musicEnded(): boolean {
+    return this.musicEl?.ended ?? false;
   }
 
   /** Fades out every recording of an effect that is still sounding (a long sound outliving its scene). */
@@ -529,7 +580,7 @@ class AudioEngine {
 
   // ───────────────────────────── Synthesised fallback ─────────────────────────────
 
-  private synth(name: Sfx): void {
+  private synth(name: Sfx, rate = 1): void {
     switch (name) {
       case 'click':
         this.tone('square', 660, 440, 0.05, 0.08);
@@ -719,6 +770,110 @@ class AudioEngine {
         break;
       case 'groan':
         this.tone('sawtooth', 95 + Math.random() * 30, 70, 0.9, 0.06);
+        break;
+      case 'signal_lost':
+        this.noise('highpass', 3000, 1200, 0.9, 0.3);
+        this.tone('sawtooth', 1400, 180, 0.5, 0.08);
+        break;
+      case 'step_grass':
+        this.noise('bandpass', 1400 + Math.random() * 500, 600, 0.16, 0.14, 0, 0.9);
+        break;
+      case 'chew':
+        for (let i = 0; i < 5; i++) this.noise('highpass', 3600, 3000, 0.03, 0.09, i * 0.09);
+        break;
+      case 'clap':
+        this.noise('bandpass', 1900, 1500, 0.07, 0.6, 0, 1.2);
+        this.noise('bandpass', 1900, 1500, 0.07, 0.6, 0.2, 1.2);
+        break;
+      case 'rabbit_bolt':
+        for (let i = 0; i < 4; i++) this.noise('bandpass', 1500, 700, 0.09, 0.2 - i * 0.04, i * 0.12, 1);
+        break;
+      case 'rabbit_sting':
+        this.tone('sawtooth', 1480, 1560, 1.1, 0.12);
+        this.tone('sawtooth', 1568, 1500, 1.1, 0.1);
+        this.tone('sine', 70, 34, 1.8, 0.4);
+        break;
+      case 'rabbit_screech':
+        this.tone('sawtooth', 2100, 1300, 0.5, 0.14);
+        this.noise('bandpass', 3200, 1800, 0.5, 0.2, 0, 3);
+        break;
+      case 'bite':
+        this.noise('bandpass', 700, 250, 0.2, 0.5, 0, 1.4);
+        this.tone('square', 150, 60, 0.14, 0.2);
+        break;
+      case 'scream':
+      case 'pain':
+        this.tone('sawtooth', 300, 190, name === 'scream' ? 0.7 : 0.4, 0.1);
+        break;
+      case 'yank':
+        this.noise('bandpass', 900, 400, 0.14, 0.3, 0, 1.2);
+        break;
+      case 'fling':
+        this.noise('bandpass', 1300, 300, 0.4, 0.35, 0, 1);
+        this.tone('sine', 110, 50, 0.16, 0.3, 0.38);
+        break;
+      case 'rope_take':
+        this.noise('bandpass', 800, 500, 0.3, 0.2, 0, 1.4);
+        break;
+      case 'tie':
+        for (let i = 0; i < 6; i++) this.noise('bandpass', 500 + i * 60, 420 + i * 60, 0.22, 0.14, i * 0.33, 4);
+        break;
+      case 'saw_take':
+        this.tone('triangle', 1700, 1500, 0.4, 0.08);
+        this.noise('highpass', 2600, 2600, 0.15, 0.14);
+        break;
+      case 'saw':
+        this.noise('bandpass', 1100, 700, 0.3, 0.4, 0, 2.5);
+        break;
+      case 'heartbeat':
+        this.tone('sine', 62, 40, 0.14, 0.5);
+        this.tone('sine', 56, 36, 0.16, 0.36, 0.2);
+        break;
+      case 'splice':
+        for (let i = 0; i < 4; i++) this.noise('highpass', 3200, 2800, 0.05, 0.1, i * 0.4);
+        this.tone('square', 880, 880, 0.1, 0.07, 2);
+        break;
+      case 'body_fall':
+        this.tone('sine', 90, 38, 0.3, 0.45);
+        this.noise('lowpass', 500, 160, 0.5, 0.3, 0.1);
+        break;
+      case 'devour':
+        for (let i = 0; i < 5; i++) this.noise('bandpass', 500 + Math.random() * 500, 240, 0.3, 0.3, i * 0.4, 1.4);
+        break;
+      case 'shed_door':
+        this.tone('sine', 110, 46, 0.2, 0.5);
+        this.noise('lowpass', 900, 260, 0.3, 0.4, 0.05);
+        break;
+      case 'amp_on':
+        this.tone('sawtooth', 50, 100, 1.2, 0.08);
+        this.tone('sine', 1800, 2600, 0.5, 0.05, 1.1);
+        break;
+      case 'mower_start':
+        for (let i = 0; i < 3; i++) this.tone('sawtooth', 70, 150, 0.5, 0.14, 0.4 + i * 0.6);
+        break;
+      case 'chord':
+      case 'chug': {
+        // A fifth, square and loud: a power chord in spirit.
+        const root = 82.4 * rate;
+        const length = name === 'chord' ? 0.9 : 0.16;
+        this.tone('sawtooth', root, root, length, 0.16);
+        this.tone('sawtooth', root * 1.5, root * 1.5, length, 0.12);
+        this.tone('square', root * 2, root * 2, length, 0.06);
+        break;
+      }
+      case 'scratch':
+        this.noise('bandpass', 2400, 1800, 0.06, 0.3, 0, 1.6);
+        break;
+      case 'blast':
+        this.tone('sine', 90, 30, 0.6, 0.5);
+        this.noise('lowpass', 1400, 200, 0.5, 0.4);
+        break;
+      case 'horde':
+        for (let i = 0; i < 7; i++) this.tone('sawtooth', 80 + Math.random() * 50, 60, 1.6, 0.05, i * 0.4);
+        break;
+      case 'amp_die':
+        this.tone('sine', 2400, 180, 1.8, 0.1);
+        this.noise('highpass', 3000, 3000, 0.08, 0.3, 1.9);
         break;
     }
   }

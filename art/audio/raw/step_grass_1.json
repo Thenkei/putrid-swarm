@@ -1,0 +1,15 @@
+{
+  "id": "step_grass_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "One single slow footstep in tall wet grass: a soft swish and a damp squelch. Very close, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.6,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:35.228Z",
+  "bytes": 10492,
+  "sha256": "561fc81527970290a3090d7affb6a942c3ee2c2d1f294af246712041479c0537"
+}

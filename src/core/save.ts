@@ -1,7 +1,7 @@
 // Save-game (de)serialisation. Parsing is defensive: a corrupt or foreign blob yields null,
 // never a half-valid GameState.
 
-import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, Fight, GameState, Inventory, Outing, Phase, RivalId, Stance, Standing } from './types';
+import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, Fate, Fight, GameState, Inventory, OrchardChapter, Outing, Phase, RivalId, SectorId, Stance, Standing } from './types';
 import { facingsOf } from './data/devices';
 import { ENCOUNTER } from './data/rivals';
 import { LOCATIONS } from './data/locations';
@@ -132,6 +132,20 @@ function parseTrip(data: Record<string, unknown>, where: GameState['where']): Pi
   return { where, outing: trip, encounter, people };
 }
 
+// ───────────────────────────── The orchard ─────────────────────────────
+// Saved before the orchard existed, a game has no chapter and no fate: the orchard is quiet and the
+// run, if it is over, was lost to the house.
+
+const CHAPTERS: readonly OrchardChapter[] = ['quiet', 'cut', 'spared', 'maimed'];
+const FATES: readonly Fate[] = ['throat', 'turned', 'bled'];
+
+function parseOrchard(data: Record<string, unknown>, phase: Phase): Pick<GameState, 'orchard' | 'fate'> {
+  const orchard = CHAPTERS.includes(data['orchard'] as OrchardChapter) ? (data['orchard'] as OrchardChapter) : 'quiet';
+  const fate = FATES.includes(data['fate'] as Fate) ? (data['fate'] as Fate) : null;
+  // A fate only means something on a run the orchard ended, on the morning it was waiting.
+  return { orchard, fate: phase === 'lost' && orchard === 'cut' ? fate : null };
+}
+
 export function deserialize(raw: string): GameState | null {
   let data: unknown;
   try {
@@ -162,7 +176,13 @@ export function deserialize(raw: string): GameState | null {
   // A night in progress is not resumable: restart that night from the evening.
   const parsed = data as unknown as GameState;
   // Reports saved before automatic traps existed have no count for them.
-  const reported: GameState = parsed.lastNight && !isNumber(parsed.lastNight.autoTriggers) ? { ...parsed, lastNight: { ...parsed.lastNight, autoTriggers: 0 } } : parsed;
+  const lastNight = parsed.lastNight && {
+    ...parsed.lastNight,
+    autoTriggers: isNumber(parsed.lastNight.autoTriggers) ? parsed.lastNight.autoTriggers : 0,
+    // Reports saved before a camera could go dark have none.
+    cameraLost: SECTOR_IDS.includes(parsed.lastNight.cameraLost as SectorId) ? parsed.lastNight.cameraLost : null,
+  };
+  const reported: GameState = { ...parsed, lastNight, ...parseOrchard(data, parsed.phase) };
   // Outside the day nobody is out: the trip, if a save still carries one, is over.
   const trip = parseTrip(data, parsed.phase === 'day' ? parsed.where : 'home');
   const state: GameState = { ...reported, ...trip, yard: { ...reported.yard, devices: withFacing(reported.yard.devices) } };

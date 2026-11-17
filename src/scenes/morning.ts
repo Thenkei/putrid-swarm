@@ -2,6 +2,7 @@
 
 import { BARRICADE, HOUSE_MAX_HP } from '../core/data/devices';
 import { bossOfNight, startNextDay } from '../core/game';
+import { awaitsOrchard } from '../core/orchard';
 import type { GameState } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import type { App, Scene } from '../engine/app';
@@ -9,7 +10,7 @@ import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt } from '../engine/i18n';
 import { drawPlate } from './common';
-import { goDay } from './flow';
+import { goDay, goOrchard } from './flow';
 
 export class MorningScene implements Scene {
   private time = 0;
@@ -49,20 +50,30 @@ export class MorningScene implements Scene {
       }),
     ];
 
-    const next = (): void => {
-      this.app.state = startNextDay(this.state);
-      this.app.save();
-      goDay(this.app);
-    };
+    // A camera that went dark in the night comes before anything else.
+    const dark = awaitsOrchard(state) ? report?.cameraLost ?? null : null;
+    if (dark) rows.push(row(fmt(s.night.cam, { i: String(SECTOR_IDS.indexOf(dark) + 1).padStart(2, '0'), name: s.sector[dark] }), s.morning.signal, 'bad'));
     this.app.ui.append(
-      el('div', { class: 'card report' }, [
+      el('div', { class: `card report${dark ? ' tight' : ''}` }, [
         el('h2', { text: s.morning.title }),
         el('p', { text: fmt(s.morning.survived, { n: night }) }),
         el('table', {}, rows),
         el('p', { class: 'note', text: bossLine }),
-        el('div', { class: 'actions' }, [el('button', { class: 'btn btn-primary', text: fmt(s.morning.next, { n: state.day + 1 }), onClick: next })]),
+        dark ? el('p', { class: 'note alarm', text: s.morning.orchard }) : null,
+        el('div', { class: 'actions' }, [el('button', { class: 'btn btn-primary', text: dark ? s.morning.toOrchard : fmt(s.morning.next, { n: state.day + 1 }), onClick: () => this.next() })]),
       ]),
     );
+  }
+
+  /** On to the day — or to the orchard first, when a camera has to be seen to. */
+  private next(): void {
+    if (awaitsOrchard(this.state)) {
+      goOrchard(this.app);
+      return;
+    }
+    this.app.state = startNextDay(this.state);
+    this.app.save();
+    goDay(this.app);
   }
 
   update(dt: number): void {
@@ -74,10 +85,6 @@ export class MorningScene implements Scene {
   }
 
   onKeyDown(code: string): void {
-    if (code === 'Enter') {
-      this.app.state = startNextDay(this.state);
-      this.app.save();
-      goDay(this.app);
-    }
+    if (code === 'Enter') this.next();
   }
 }

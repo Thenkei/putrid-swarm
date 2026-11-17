@@ -1,0 +1,15 @@
+{
+  "id": "rabbit_screech",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A small rabid animal shrieking as it attacks: a high-pitched rasping, gurgling squeal, vicious and wet. Very close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 1.1,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:43.382Z",
+  "bytes": 18433,
+  "sha256": "98df5587639046ccc489a5b8f9cd72bb297f9942de5b02558f80b598d4dd33d1"
+}

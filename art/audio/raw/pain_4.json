@@ -1,0 +1,15 @@
+{
+  "id": "pain_4",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A man forcing himself through pain: a muffled cry behind closed lips, then a shaky exhale. Very close, dry. No words.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:48.493Z",
+  "bytes": 15089,
+  "sha256": "b0df6a8204308507e452ef0bd0c25e4d54f4a8a34a13a595f20466fff03a44c2"
+}

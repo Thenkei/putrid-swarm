@@ -11,11 +11,13 @@ import { S, fmt } from '../engine/i18n';
 import { tripLine } from './common';
 import { DayScene } from './day';
 import { EndScene } from './end';
+import { FinaleScene } from './finale';
 import { AmbushScene } from './encounter';
 import { LocationScene } from './location';
 import { MapScene } from './map';
 import { MorningScene } from './morning';
 import { NightScene, NightfallScene } from './night';
+import { OrchardScene } from './orchard';
 import { TitleScene } from './title';
 import { TravelScene, type TravelOptions } from './travel';
 
@@ -29,6 +31,9 @@ export const goNightfall = (app: App): void => app.go(() => new NightfallScene(a
 export const goNight = (app: App): void => app.go(() => new NightScene(app));
 export const goMorning = (app: App): void => app.go(() => new MorningScene(app));
 export const goEnd = (app: App): void => app.go(() => new EndScene(app));
+export const goOrchard = (app: App): void => app.go(() => new OrchardScene(app));
+/** How a lost house plays out, before the end screen. */
+export const goFinale = (app: App): void => app.go(() => new FinaleScene(app));
 
 /** Pulls into the yard: the load joins the refuge's stock, and the day goes on from there. */
 function unload(app: App): void {

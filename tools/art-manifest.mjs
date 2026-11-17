@@ -80,6 +80,7 @@ const REF_ANIMALS = C('14-infected-animal-bestiary.png');
 const REF_GARAGE = C('15-neighbor-garage-interior.png');
 const REF_MAYOR_WAVE = C('16-mayor-wave-camera.png');
 const REF_MORNING = C('17-morning-after.png');
+const REF_HOMESTEAD = C('01-day-night-homestead.png');
 const REF_PROJECTION = C('03-2d-projection-comparison.png');
 
 export const ART = [
@@ -634,6 +635,254 @@ export const ART = [
       'Toward the right end of the plank sits one open round biscuit tin seen from directly above, empty, its inside dark and scratched, dented rim, about two thirds of the plank\'s height in diameter. ' +
       'A rough white chalk ring is drawn on the plank around the tin, a little wider than the tin. Near the left end of the plank, one short white chalk line across it marks the throwing line. Nothing else on the plank: no washers, no tools, no hands. ' +
       `${KEY} ${STYLE}`,
+  },
+
+  // ───────────────────────────── The orchard, the morning after night 2 ─────────────────────────────
+  // A played cut-scene seen through the protagonist's eyes: one wide shot to walk in on, three places to
+  // stand at, and what is picked up there drawn separately so it can leave the picture.
+  {
+    id: 'plate_orchard',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_MORNING, REF_HOMESTEAD],
+    prompt: plate(
+      'First-person view, seen from the standing eye level of someone who has just stepped out of the back door (no person and no hands in the frame), of a small old apple orchard behind a stone cottage at cold dawn after a bad night: ' +
+        'low mist between the trunks, tall wet grass, long pale light, a few dark stains and trampled patches left by the night. Composition, left to right: ' +
+        'on the LEFT, one big gnarled old apple tree with a few last red apples and a pile of pruned branches at its foot; ' +
+        'in the CENTRE, further away, a rough wooden pole about three metres tall with a salvaged security camera strapped to its top with tape and wire, an orange cable running down the pole and then through the grass toward the viewer; ' +
+        'a tiny fluffy white rabbit sits at the foot of the pole, seen from behind; ' +
+        'on the RIGHT, a sagging wire fence with crooked wooden posts, an old wheelbarrow and apple crates against it, dark forest beyond. Quiet, eerie, beautiful.',
+    ),
+  },
+  {
+    id: 'plate_orchard_pole',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_orchard.png', REF_MORNING],
+    prompt: plate(
+      'The first attached picture shows an orchard at dawn with a wooden camera pole in its centre: this new picture is a much closer first-person view of the foot of that same pole, same light, same mist, same wet grass (no person, no hands, no animal in the frame). ' +
+        'Seen from standing eye level, looking slightly down: the base of the rough wooden pole stands in the upper centre, the orange cable comes down it and lies across the grass toward the bottom of the frame. ' +
+        'Halfway along, the cable has been gnawed clean through: two frayed ends with bare copper strands, a hand apart, in the lower right. ' +
+        'In the lower centre, right beside the gnawed cable, a round patch of flattened grass is completely EMPTY — nothing sits or lies on it. ' +
+        'Misty apple trunks in the background, dew, two fallen red apples.',
+    ),
+  },
+  {
+    id: 'plate_orchard_tree',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_orchard.png', REF_MORNING],
+    prompt: plate(
+      'The first attached picture shows an orchard at dawn with a big gnarled apple tree on its left: this new picture is a much closer first-person view of the foot of that same tree, same light, same mist, same wet grass (no person, no hands, no animal, no tool in the frame). ' +
+        'Seen from standing eye level, looking slightly down: the thick twisted trunk fills the left half, with exposed roots, a pile of pruned branches behind it and fallen red apples in the grass. ' +
+        'Between two roots in the lower centre-right, a patch of bare dark earth against the trunk is completely EMPTY — nothing leans or lies there. ' +
+        'An old wooden step-ladder leans against a branch in the background, mist beyond.',
+    ),
+  },
+  {
+    id: 'plate_orchard_fence',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_orchard.png', REF_MORNING],
+    prompt: plate(
+      'The first attached picture shows an orchard at dawn with a sagging wire fence on its right: this new picture is a much closer first-person view of that same fence, same light, same mist, same wet grass (no person, no hands, no animal in the frame). ' +
+        'Seen from standing eye level: one thick crooked wooden fence post stands in the centre, rusty wire sagging away from it on both sides, a big bent rusty nail near its top. The upper half of the post is completely BARE — nothing hangs on the nail. ' +
+        'On the right, an old wooden wheelbarrow full of windfall apples and two stacked apple crates; on the left, tall grass and nettles. Beyond the fence, the dark forest in the mist.',
+    ),
+  },
+  {
+    // What the protagonist looks at while he saws: anything but his arm.
+    id: 'plate_orchard_canopy',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_MORNING],
+    prompt: plate(
+      'Looking straight up from the ground through the bare twisted branches of an old apple tree at a pale, washed-out dawn sky: a few last red apples, some yellow leaves, drifting mist, one leaf falling. ' +
+        'The view is slightly tilted, as if dizzy. No people, no hands, no birds.',
+    ),
+  },
+  {
+    // Every way the morning can end badly, seen from the grass.
+    id: 'plate_orchard_end',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_orchard.png', REF_ANIMALS],
+    prompt: plate(
+      'View from the ground in the same orchard as the first attached picture, same dawn light and mist: the viewer lies on their side in the wet grass, so the horizon is tilted about 30 degrees; big blurred grass blades and one fallen red apple are very close in the foreground. ' +
+        'A few steps away, sharp and in the centre, a small fluffy white rabbit sits upright and looks straight at the viewer, perfectly calm: its muzzle and chest fur are stained dark brownish red, one eye is milky white. ' +
+        'Behind it, the wooden camera pole and misty apple trees. Eerie, quiet, faintly absurd. No people, no hands.',
+    ),
+  },
+  {
+    id: 'orchard_rabbit',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['back', 'bolt', 'infected', 'lunge'],
+    h: 460,
+    refs: [REF_ANIMALS],
+    prompt:
+      'Game asset sheet: a 2x2 grid showing the SAME small fluffy white rabbit four times, one per quadrant, each centred in its quadrant with wide empty margins, all at the same scale, seen from the eye level of a person standing over it. ' +
+      'Top-left: the rabbit seen from BEHIND, sitting upright: round fluffy back and tail toward the viewer, long ears up, head bent down, busy nibbling something held low in front of it. Adorable, perfectly clean white fur. ' +
+      'Top-right: the same clean rabbit seen from behind, startled and bolting: body stretched low, ears pinned back, hind legs kicking off as it leaps away from the viewer. ' +
+      'Bottom-left: the same rabbit now turned to FACE the viewer, sitting upright, and clearly infected: one side of its face has lost its fur and shows grey-green rotting skin, one eye milky white and bulging, the other dark red, ' +
+      'long yellow incisors bared and dripping dark brownish-red blood, chest fur matted and stained, a short strand of orange cable hanging from its mouth. Horrifying — with the dry humour that it is still a small fluffy rabbit. ' +
+      'Bottom-right: the same infected rabbit leaping straight AT the viewer, strongly foreshortened: wide open bloody mouth and incisors first, front paws spread, ears streaming back. ' +
+      `The insides of the ears are pale grey-beige, never pink. ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'orchard_items',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['saw', 'rope'],
+    h: 520,
+    refs: [REF_DEVICES, REF_GARAGE],
+    prompt:
+      'Game asset sheet: TWO separate objects side by side with a wide empty gap between them, each centred in its half, seen straight on at eye level. ' +
+      'LEFT: an old rusty bow saw for pruning trees — a curved tubular steel frame with a thin toothed blade stretched across it, rust-brown all over, flaking red paint on the grip — standing upright on the tip of its frame and leaning slightly to the right, as if propped against a tree trunk. ' +
+      'RIGHT: a coil of old frayed hemp rope hanging as if from a nail: several loops gathered and bound in the middle, one loose end dangling. ' +
+      `${KEY} ${STYLE}`,
+  },
+  {
+    // The left arm, seen by its owner: raised against the rabbit, bitten, then tied off.
+    id: 'orchard_arm',
+    kind: 'split',
+    cols: 3,
+    rows: 1,
+    names: ['guard', 'bitten', 'tied'],
+    cut: 'gaps',
+    h: 640,
+    refs: [REF_STORYBOARD, REF_ANIMALS],
+    sheet: 'art/raw/desk.png',
+    prompt:
+      'Game asset sheet: THREE separate first-person views of a man’s LEFT arm seen from his own eyes, standing in a single row, evenly spaced with wide empty gaps between them. ' +
+      'The first attached image shows this man’s right hand in the worn mustard-yellow sleeve of his work jacket: the left arm wears the same sleeve and has the same skin and the same drawing style. From left to right: ' +
+      '(1) The left forearm raised across the view as a shield, running diagonally from the lower left to the upper right, fist clenched: a small fluffy white infected rabbit (milky eye, patchy grey-green face) is clamped onto the middle of the forearm, biting through the sleeve, hind legs kicking in the air, seen from very close; a dark brownish-red stain spreads in the sleeve around its teeth. ' +
+      '(2) The left forearm and hand reaching straight up from the bottom of the image, elbow at the bottom, the back of the trembling half-open hand at the top: the sleeve is torn open around a deep ragged bite in the middle of the forearm, dark brownish-red blood running toward the elbow. The arm ends at the bottom in a clean straight horizontal cut. ' +
+      '(3) Exactly the same arm as (2), same angle and same size, now with a tourniquet: old hemp rope wound three times, very tight, around the arm just below the bite (between the bite and the elbow), knotted, with a short stick twisted into the knot. ' +
+      `Cold dawn daylight. The three figures are tall and nearly fill the height of the canvas. ${KEY} ${STYLE}`,
+  },
+
+  {
+    // More of the rabbit, so that it moves instead of being swapped: it stops chewing, it looks round, it gathers itself.
+    id: 'orchard_rabbit_more',
+    kind: 'split',
+    cols: 2,
+    rows: 2,
+    names: ['ears', 'side', 'snarl', 'leap'],
+    h: 460,
+    refs: [REF_ANIMALS],
+    sheet: 'art/raw/orchard_rabbit.png',
+    prompt:
+      'Game asset sheet: a 2x2 grid showing the SAME small fluffy white rabbit four times, one per quadrant, each centred in its quadrant with wide empty margins, all at the same scale. ' +
+      'The first attached image is the existing sheet of this rabbit: it must be exactly the same animal — same fur, same proportions, same drawing style, same size in its quadrant. ' +
+      'Top-left: seen from BEHIND, sitting upright exactly like the top-left figure of the attached sheet, but it has stopped nibbling: head raised, both ears standing straight up and swivelled back toward the viewer, body tense and still. Perfectly clean white fur. ' +
+      'Top-right: still seen from behind, the body in the same sitting position, but the head is turning round over its shoulder: the head is in profile and shows only the clean, healthy side of its face — one dark shiny eye, nose, whiskers. Still adorable. Clean white fur. ' +
+      'Bottom-left: the infected rabbit of the bottom-left figure of the attached sheet (one side of the face rotten grey-green, one milky eye, bloody chest, strand of orange cable in the mouth), facing the viewer, now crouched low on its haunches ready to spring: shoulders down, hindquarters bunched, ears flat back, lips pulled up over long yellow incisors. ' +
+      'Bottom-right: the same infected rabbit just leaving the ground, jumping toward the viewer and upward: body stretched, front paws reaching forward, mouth half open — earlier in the leap, and smaller in its quadrant, than the bottom-right figure of the attached sheet. ' +
+      `The insides of the ears are pale grey-beige, never pink. ${KEY} ${STYLE}`,
+  },
+  {
+    // What is between the eye and the picture: it slides faster than the plate behind it, which is what gives the orchard depth.
+    id: 'orchard_fg',
+    kind: 'split',
+    cols: 3,
+    rows: 1,
+    names: ['grass_a', 'grass_b', 'branch'],
+    cut: 'gaps',
+    h: 560,
+    refs: ['art/raw/plate_orchard_pole.png'],
+    prompt:
+      'Game asset sheet: THREE separate foreground elements standing in a row with wide empty gaps between them, drawn like the wet grass and the apple trees of the attached picture but darker and simpler, as things seen very close and slightly out of focus, with a thin rim of cold dawn light. From left to right: ' +
+      '(1) a tall clump of wild grass and nettles beaded with dew, growing straight up from a flat bottom edge, the blades leaning to the right; ' +
+      '(2) a different tall clump of grass with seed heads and one dandelion clock, growing up from a flat bottom edge, the blades leaning to the left; ' +
+      '(3) the end of an apple-tree branch hanging down from a flat top edge: twisted dark twigs, yellow and orange autumn leaves, one small red apple. ' +
+      `No flowers, nothing pink or purple. Each element is tall and nearly fills the height of the canvas. ${KEY} ${STYLE}`,
+  },
+
+  // ───────────────────────────── The end ─────────────────────────────
+  // The house always falls in the end. Early on, that is the desk and a door giving way; from the
+  // fifth night it is the ride-on mower from the shed, two amplifier stacks and a guitar.
+  {
+    id: 'plate_finale_desk',
+    kind: 'plate',
+    w: 1280,
+    refs: [C('12-surveillance-room.png'), REF_NEIGHBORS, REF_MAYOR_WAVE],
+    prompt: plate(
+      'First-person view from the swivel chair of the improvised surveillance room in the reference (no part of the viewer in the frame), turned away from the desk toward the door of the room, at night: ' +
+        'the wooden door has just been smashed off its hinges and a crowd of infected villagers (pale grey-green skin, white eyes, torn everyday clothes, some in slippers and aprons) is pouring in through the doorway and over the fallen door, ' +
+        'the nearest ones already very close, arms stretched toward the viewer, mouths open. On the left edge, part of the desk with its glowing salvaged monitors and tangled cables, one screen showing only static; a knocked-over mug. ' +
+        'Cold blue monitor light on the infected, warm hallway light behind them, dust and splinters in the air. Frightening, crowded, with the dry humour of very ordinary neighbours.',
+    ),
+  },
+  {
+    id: 'plate_finale_shed',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_orchard.png', REF_DEVICES, REF_HOMESTEAD],
+    prompt: plate(
+      'Night, at the bottom of a country garden: the double doors of an old wooden garden shed have just been thrown wide open, seen from outside from a low heroic angle. Inside, lit by one bare hanging bulb and its own two headlights, stands a home-modified ride-on lawn mower (a small red garden tractor): ' +
+        'a huge sharpened steel blade, like a snowplough made from mower blades and sheet metal, is bolted across its front; two enormous black guitar amplifier stacks are strapped upright behind the seat with ratchet straps, wired to a row of car batteries with thick orange cables; ' +
+        'a battered electric guitar hangs by its strap from the steering wheel. Tools, jerrycans and coils of cable on the shed walls, moths in the headlight beams, mist on the grass outside. Nobody in the picture. Ridiculous and magnificent.',
+    ),
+  },
+  {
+    // Scrolled sideways behind the mower, tiled with its own mirror image: both side edges must be plain.
+    id: 'plate_finale_run',
+    kind: 'plate',
+    w: 1280,
+    refs: [REF_VILLAGE, REF_MAYOR_WAVE],
+    prompt: plate(
+      'A side-on view (like a theatre backdrop, the horizon perfectly level, no perspective lines leading into the picture) of a country lane at night along the edge of a French village: ' +
+        'in the bottom third a flat band of trampled grass and a dirt track running straight from the left edge to the right edge; behind it a low stone wall, garden fences, apple trees, two half-timbered cottages with dark windows, a leaning street lamp, a burning barricade throwing orange light and sparks; ' +
+        'dark forest and a big pale moon behind thin clouds at the top. No people, no infected, no vehicles. The left and right edges of the picture show only plain night sky, hedge and grass, so the picture can be repeated side by side.',
+    ),
+  },
+  {
+    id: 'plate_finale_swarmed',
+    kind: 'plate',
+    w: 1280,
+    refs: ['art/raw/plate_finale_shed.png', REF_NEIGHBORS, REF_MAYOR_WAVE],
+    prompt: plate(
+      'Night, in a village lane, seen from a little above: the modified red ride-on lawn mower from the first attached picture (huge blade at the front, two giant black amplifier stacks strapped behind the seat) has stopped, out of petrol, in the middle of an enormous crowd of infected villagers (pale grey-green skin, white eyes, everyday clothes) ' +
+        'that closes over it from every side like a wave — dozens and dozens of them, climbing the amplifiers, filling the whole picture to its edges. In the very centre, above the heads, one arm in a mustard-yellow work jacket sleeve still holds an electric guitar up by the neck, triumphant, lit by the mower headlights and a shower of sparks from a toppling amplifier. ' +
+        'A trail of flattened infected behind the mower shows the way it came. Orange firelight, big moon. Defeat, but a glorious one.',
+    ),
+  },
+  {
+    id: 'finale_mower',
+    kind: 'split',
+    cols: 2,
+    rows: 1,
+    names: ['rider', 'rider_one_arm'],
+    h: 520,
+    refs: ['art/raw/plate_finale_shed.png', 'art/raw/plate_smoke.png'],
+    prompt:
+      'Game asset sheet: the SAME vehicle and rider drawn TWICE, side by side with a wide empty gap between them, same size, same pose, both seen exactly from the side and facing RIGHT. ' +
+      'The vehicle is the modified red ride-on lawn mower of the first attached picture: a huge sharpened steel blade bolted across its front (on the right), two enormous black guitar amplifier stacks strapped upright at the back (on the left), car batteries and orange cables, headlights on. ' +
+      'The rider is the scruffy bearded man in the mustard-yellow work jacket of the second attached picture: he stands on the footplates, legs apart, head thrown back, mouth open in a yell, playing a battered electric guitar slung on a strap. ' +
+      'LEFT drawing: he has both arms — left hand on the neck of the guitar, right hand strumming. ' +
+      'RIGHT drawing: identical in every respect except that his left arm is missing below the shoulder — the empty left jacket sleeve is knotted — and he plays with his right hand alone, hammering the strings on the neck. ' +
+      `${KEY} ${STYLE}`,
+  },
+
+  {
+    // What comes into the picture at the desk, from its edges.
+    id: 'finale_hands',
+    kind: 'split',
+    cols: 3,
+    rows: 1,
+    names: ['a', 'b', 'c'],
+    cut: 'gaps',
+    h: 600,
+    refs: ['art/raw/plate_finale_desk.png', REF_NEIGHBORS],
+    prompt:
+      'Game asset sheet: THREE separate infected arms reaching toward the viewer, standing in a row with wide empty gaps between them, each seen from the eyes of the person they are reaching for, drawn like the infected villagers of the first attached picture: grey-green skin, dark veins, broken dirty nails. From left to right: ' +
+      '(1) a man’s forearm and hand in a torn checked shirt sleeve, reaching straight up from a flat bottom edge, fingers spread wide to grab; ' +
+      '(2) an old woman’s forearm and hand in a frayed burgundy knitted cardigan sleeve, reaching straight up from a flat bottom edge, the hand hooked like a claw; ' +
+      '(3) a forearm and hand in a navy-blue postal uniform sleeve with a brass button, reaching straight up from a flat bottom edge, fingers curling closed as if about to catch hold. ' +
+      `Each arm is tall and nearly fills the height of the canvas, and ends at the bottom in a clean straight horizontal cut. ${KEY} ${STYLE}`,
   },
 
   // ───────────────────────────── Devices (2x2 state sheets) ─────────────────────────────

@@ -1,0 +1,15 @@
+{
+  "id": "clap",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Two loud sharp hand claps in quick succession, outdoors in a quiet orchard. Close, dry.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-17T14:15:41.461Z",
+  "bytes": 13835,
+  "sha256": "265833bc6d68d85ad4abc0e4e91175e0d6012fce51f73da5dc9b56b4367955f6"
+}

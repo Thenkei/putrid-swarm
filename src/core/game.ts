@@ -6,6 +6,7 @@ import { BOSS_NIGHT, DAY_HOURS, LOCATIONS, SEARCH_HOURS, type LocationDef } from
 import { LAST_NIGHT } from './data/waves';
 import type { NightSim } from './night';
 import { NO_STOCK, rollAmbush, rollDispute, walkAway, type Resolution } from './encounters';
+import { ORCHARD, awaitsOrchard, daylight, isFate, type Ending } from './orchard';
 import { createRng } from './rng';
 import type { Cost, DeviceInstance, GameState, Inventory, LocationId, LocationProgress, NeighborId, NightReport, OutingMark, ResourceId, Result } from './types';
 import { LOCATION_IDS, RESOURCE_IDS, err, ok } from './types';
@@ -70,6 +71,8 @@ export function newGame(seed: number): GameState {
     locations,
     flags: {},
     lastNight: null,
+    orchard: 'quiet',
+    fate: null,
     totals: { kills: 0, triggers: 0, searches: 0 },
   };
 }
@@ -299,6 +302,8 @@ export function concludeNight(state: GameState, sim: NightSim): GameState {
     ...state,
     yard: sim.toYard(state.yard),
     lastNight: report,
+    // A camera that died in the night is still dark at dawn: someone has to go and look.
+    orchard: report.survived && report.cameraLost !== null && state.orchard === 'quiet' ? 'cut' : state.orchard,
     totals: { ...state.totals, kills: state.totals.kills + kills, triggers: state.totals.triggers + report.triggers },
   };
   if (!report.survived) return { ...base, phase: 'lost' };
@@ -306,10 +311,33 @@ export function concludeNight(state: GameState, sim: NightSim): GameState {
   return { ...base, phase: 'morning' };
 }
 
-/** Morning → next day. */
+/** Morning → next day. Not before the orchard has been seen to, when a camera is dark. */
 export function startNextDay(state: GameState): GameState {
-  if (state.phase !== 'morning') return state;
-  return { ...state, phase: 'day', day: state.day + 1, hoursLeft: DAY_HOURS, where: 'home', outing: null, encounter: null };
+  if (state.phase !== 'morning' || awaitsOrchard(state)) return state;
+  return { ...state, phase: 'day', day: state.day + 1, hoursLeft: daylight(state), where: 'home', outing: null, encounter: null };
+}
+
+// ───────────────────────────── The orchard ─────────────────────────────
+
+export type OrchardError = { readonly code: 'not_awaited' } | { readonly code: 'no_fate' };
+
+/**
+ * How the morning in the orchard ended, written into the campaign: the day starts with both arms,
+ * or late and with one, or the run stops there.
+ */
+export function settleOrchard(state: GameState, ending: Ending): Result<GameState, OrchardError> {
+  if (!awaitsOrchard(state)) return err({ code: 'not_awaited' });
+  if (isFate(ending)) return ok({ ...state, phase: 'lost', fate: ending });
+  const settled: GameState = { ...state, orchard: ending };
+  const day = startNextDay(settled);
+  // The day it happens, part of the morning is spent face down in the grass.
+  return ok(ending === 'maimed' ? { ...day, hoursLeft: Math.max(0, day.hoursLeft - ORCHARD.faintHours) } : day);
+}
+
+/** A run the orchard ended goes back to that morning, the night before still won. */
+export function retryOrchard(state: GameState): Result<GameState, OrchardError> {
+  if (state.phase !== 'lost' || state.fate === null) return err({ code: 'no_fate' });
+  return ok({ ...state, phase: 'morning', fate: null });
 }
 
 export const clockLabel = (hoursLeft: number): string => {
