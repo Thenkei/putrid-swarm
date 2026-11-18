@@ -57,6 +57,18 @@ body {
   display: block;
 }
 
+#game[data-yard-cursor='repair'] {
+  cursor: url('./cursors/repair.svg') 3 8, crosshair;
+}
+
+#game[data-yard-cursor='dismantle'] {
+  cursor: url('./cursors/dismantle.svg') 2 2, crosshair;
+}
+
+#game[data-yard-cursor='pan'] {
+  cursor: grabbing;
+}
+
 #ui {
   position: absolute;
   inset: 0;
@@ -1044,6 +1056,26 @@ button:disabled {
     inset 0 0 0 3px rgba(0, 0, 0, 0.65),
     inset 0 0 42px rgba(8, 5, 3, 0.5);
   pointer-events: none;
+  overflow: hidden;
+}
+
+.yard-refund {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid #e78264;
+  border-radius: 4px;
+  background: #211812;
+  color: var(--cream);
+  font-size: 16px;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px #0009;
+}
+
+.yard-refund[hidden] {
+  display: none;
 }
 
 .view-tools {
@@ -1106,6 +1138,29 @@ button:disabled {
 .door-chips .meter {
   width: auto;
   height: 10px;
+}
+
+.door-location {
+  font: inherit;
+  text-transform: inherit;
+  color: var(--cream);
+  text-decoration: underline dotted var(--edge);
+  text-underline-offset: 3px;
+}
+
+.door-location:hover, .door-location:focus-visible {
+  color: var(--amber);
+}
+
+.repair-gain {
+  display: none;
+  position: absolute;
+  inset-block: 0;
+  background: repeating-linear-gradient(110deg, #d5ef96 0 2px, transparent 2px 4px);
+}
+
+.row:is(:hover, :focus-within) .repair-gain {
+  display: block;
 }
 
 /* A door's button never makes its row taller than the others. */

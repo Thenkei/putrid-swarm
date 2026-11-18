@@ -76,6 +76,9 @@ export const isFresh = (device: DeviceInstance, day: number): boolean => device.
 export const refundOf = (device: DeviceInstance, day?: number): Cost =>
   device.broken ? {} : day !== undefined && isFresh(device, day) ? DEVICES[device.type].cost : scaleCost(DEVICES[device.type].cost, DISMANTLE_REFUND_FRACTION, Math.ceil);
 
+export const daylightRefund = (device: DeviceInstance, state: GameState): number =>
+  isFresh(device, state.day) ? Math.max(0, Math.min(DAY_HOURS - state.hoursLeft, DEVICES[device.type].buildHours)) : 0;
+
 /** How many of a device the stock and the daylight left would pay for. */
 export function affordableCount(inventory: Inventory, type: DeviceTypeId, hoursLeft: number): number {
   const def = DEVICES[type];
@@ -156,12 +159,11 @@ export function dismantle(state: GameState, deviceId: number): Result<GameState,
   const device = state.yard.devices.find((d) => d.id === deviceId);
   if (!device) return err({ code: 'unknown_device' });
   // A piece laid today comes back whole, and so does the time it took.
-  const hoursBack = isFresh(device, state.day) ? DEVICES[device.type].buildHours : 0;
   return ok({
     ...state,
     inventory: gain(state.inventory, refundOf(device, state.day)),
     // Never more daylight than a day holds, and never less than there was.
-    hoursLeft: Math.max(state.hoursLeft, Math.min(DAY_HOURS, state.hoursLeft + hoursBack)),
+    hoursLeft: state.hoursLeft + daylightRefund(device, state),
     yard: { ...state.yard, devices: state.yard.devices.filter((d) => d.id !== deviceId) },
   });
 }
