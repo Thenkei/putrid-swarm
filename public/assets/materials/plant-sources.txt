@@ -1,0 +1,31 @@
+Woodland plant photographs and derived foliage atlases
+License for all listed source photographs: Creative Commons CC0 1.0 Universal
+https://creativecommons.org/publicdomain/zero/1.0/
+
+"paramecij's vegetation base texture pack" by para (paramecij)
+https://opengameart.org/content/paramecijs-vegetation-base-texture-pack
+Used fern_08, tree_branch_17, tree_branch_30, leaf_dandelion_03, leaf_dry_01,
+clover_02 and daisie_05. Files in the source pack have a vegetation_ prefix.
+
+"Pine Tree 01" by Rico Cilliers and Rob Tuytel, Poly Haven
+https://polyhaven.com/a/pine_tree_01
+Used the one-kilopixel twig diffuse and alpha maps.
+
+"Grass Medium 02" by Rico Cilliers, Poly Haven
+https://polyhaven.com/a/grass_medium_02
+Used the one-kilopixel diffuse and alpha maps.
+
+"Leaf Set 016" by ambientCG (Lennart Demes)
+https://ambientcg.com/a/LeafSet016
+Used the one-kilopixel oak leaf color and opacity maps.
+
+"Grass 004" by ambientCG (Lennart Demes)
+https://ambientcg.com/a/Grass004
+Used the colour, OpenGL normal, height and roughness scans of the growing turf.
+
+"Grass Path 2" by Rob Tuytel, Poly Haven
+https://polyhaven.com/a/grass_path_2
+Used the albedo, OpenGL normal, height and roughness scans of the stony lane bed.
+
+The game uses cutouts, seasonal colour adjustments, and arrangements of these
+photographs on three-dimensional branch and undergrowth meshes.

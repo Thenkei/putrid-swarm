@@ -48,7 +48,7 @@ function lightPoint(view: View, light: Light): { x: number; y: number } {
 const lightCanvas = document.createElement('canvas');
 
 /** Multiplies a light map over a view that has just been drawn: blue night, warm pools of light, then the lamps themselves. */
-export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: readonly Light[], time = 0): void {
+export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: readonly Light[], time = 0, meshLit = false): void {
   const scale = 0.5;
   const w = Math.ceil(view.w * scale);
   const h = Math.ceil(view.h * scale);
@@ -61,8 +61,8 @@ export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: re
   lctx.globalAlpha = 1;
   // What little light the sky gives comes from one side.
   const sky = lctx.createLinearGradient(0, 0, w, h);
-  sky.addColorStop(0, '#7b93c2');
-  sky.addColorStop(1, '#5b7098');
+  sky.addColorStop(0, meshLit ? '#a2b1cb' : '#7b93c2');
+  sky.addColorStop(1, meshLit ? '#8392ac' : '#5b7098');
   lctx.fillStyle = sky;
   lctx.fillRect(0, 0, w, h);
   lctx.globalCompositeOperation = 'lighter';
@@ -128,7 +128,7 @@ const mix = (a: number, b: number, t: number): number => a + (b - a) * t;
  * the picture warms through the afternoon, goes gold, then blue, and the lamps of the house
  * come on before it is dark.
  */
-export function applyDaylight(ctx: CanvasRenderingContext2D, view: View, dusk: number, lamps: readonly Light[], time = 0): void {
+export function applyDaylight(ctx: CanvasRenderingContext2D, view: View, dusk: number, lamps: readonly Light[], time = 0, meshLit = false): void {
   ctx.save();
   ctx.beginPath();
   ctx.rect(view.x, view.y, view.w, view.h);
@@ -141,11 +141,13 @@ export function applyDaylight(ctx: CanvasRenderingContext2D, view: View, dusk: n
   const g = mix(mix(251, 204, gold), 152, blue);
   const b = mix(mix(243, 150, gold), 190, blue);
   ctx.globalCompositeOperation = 'multiply';
+  ctx.globalAlpha = meshLit ? 0.22 : 1;
   ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
   ctx.fillRect(view.x, view.y, view.w, view.h);
+  ctx.globalAlpha = 1;
 
   // A low sun rakes in from the upper left.
-  const sun = gold * (1 - blue);
+  const sun = gold * (1 - blue) * (meshLit ? 0.3 : 1);
   if (sun > 0.01) {
     ctx.globalCompositeOperation = 'lighter';
     const rake = ctx.createLinearGradient(view.x, view.y, view.x + view.w * 0.75, view.y + view.h);

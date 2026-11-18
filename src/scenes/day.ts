@@ -46,6 +46,7 @@ import { S, fmt, hours } from '../engine/i18n';
 import { sayAny, sayOnce } from '../engine/voice';
 import { applyDaylight, cameraView, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, VISIBLE_DOORS, WELL_CLINK_AT, type DeviceVisual, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
 import { costLine, describeCost, inventoryBar } from './common';
+import { yardModels, yardRendererButton } from './yard-renderer';
 import { goMap, goNightfall, goTitle } from './flow';
 
 type Mode = { readonly kind: 'idle' } | { readonly kind: 'build'; readonly type: DeviceTypeId } | { readonly kind: 'repair' } | { readonly kind: 'dismantle' };
@@ -158,7 +159,7 @@ export class DayScene implements Scene {
     audio.setAmbience('day');
     audio.setMusic('day');
     // Painted while the screen is still dark from the scene change, not during the first frame.
-    prepareWorld();
+    if (!yardModels()) prepareWorld();
     this.root = el('div');
     this.app.ui.append(this.root);
     this.refresh();
@@ -333,6 +334,12 @@ export class DayScene implements Scene {
     ]);
 
     const viewTools = el('div', { class: 'view-tools' }, [
+      el('button', { class: 'btn icon-btn', text: s.guide.title, onClick: async (event) => {
+        const button = event.currentTarget as HTMLButtonElement;
+        const { FieldGuideScene } = await import('./field-guide');
+        if (button.isConnected) this.app.go(() => new FieldGuideScene(this.app, () => this, this.mode.kind === 'build' ? this.mode.type : ''));
+      } }),
+      yardRendererButton(() => this.updateHover(this.app.pointer), () => this.app.toast(S().day.no3d, 'error')),
       el('button', { class: 'btn icon-btn', text: s.day.flip, onClick: () => this.flip() }),
       el('button', { class: `btn icon-btn ${this.showRoutes ? 'sel' : ''}`, text: s.day.routes, onClick: () => this.toggleRoutes() }),
     ]);
@@ -784,9 +791,12 @@ export class DayScene implements Scene {
     // Out of build mode, the trap under the pointer shows how far it reaches.
     const reaching = !def && this.hoverDevice && isTrap(this.hoverDevice.type) && !this.hoverDevice.broken ? this.hoverDevice : null;
     const reachDef = reaching ? DEVICES[reaching.type] : def;
+    const dusk = 1 - state.hoursLeft / DAY_HOURS;
     const frame: WorldFrame = {
       time: this.time,
+      models: yardModels(),
       night: false,
+      dusk,
       carPresent: true,
       sceneryAction: this.sceneryAction,
       devices,
@@ -814,7 +824,7 @@ export class DayScene implements Scene {
     ctx.clip();
     drawWorld(ctx, this.view, frame);
     // The hour it is: the light warms as the daylight runs out, and the lamps come on before dark.
-    applyDaylight(ctx, this.view, 1 - state.hoursLeft / DAY_HOURS, houseLights(this.rot), this.time);
+    applyDaylight(ctx, this.view, dusk, houseLights(this.rot, frame.models), this.time, !!frame.models);
     ctx.restore();
 
     if (this.reveal > 0) {
@@ -860,8 +870,8 @@ export class DayScene implements Scene {
         this.hoverDevice = null;
         this.hoverDoor = null;
       } else {
-        const visuals: DeviceVisual[] = this.state.yard.devices.map((d) => ({ id: d.id, type: d.type, x: d.x, y: d.y, state: 'idle', hpRatio: 1 }));
-        const picked = pickDevice(view, visuals, pointer.x, pointer.y);
+        const visuals: DeviceVisual[] = this.state.yard.devices.map((d) => ({ id: d.id, type: d.type, x: d.x, y: d.y, facing: d.facing, state: d.broken ? 'broken' : 'idle', hpRatio: d.hp / DEVICES[d.type].maxHp }));
+        const picked = pickDevice(view, visuals, pointer.x, pointer.y, yardModels());
         this.hoverDevice = picked ? (this.state.yard.devices.find((d) => d.id === picked.id) ?? null) : null;
         this.hoverDoor = this.hoverDevice ? null : pickDoor(view, pointer.x, pointer.y);
       }

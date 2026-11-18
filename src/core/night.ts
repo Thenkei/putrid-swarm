@@ -2,7 +2,7 @@
 // Mutable on purpose (it steps 60 times a second); everything it reports back is a snapshot.
 
 import { BARRICADE, COMBAT, DEVICES, isManual, isTrap } from './data/devices';
-import { BOSS, ENEMIES, type EnemyDef } from './data/enemies';
+import { MOB_CUE_SECONDS, BOSS, ENEMIES, type EnemyDef } from './data/enemies';
 import { NIGHT_LEAD_IN, planForNight } from './data/waves';
 import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlocked, sectorOf } from './map';
 import type { CameraOutage } from './orchard';
@@ -61,6 +61,8 @@ export interface Enemy {
   windup: number;
   cooldown: number;
   hitFlash: number;
+  /** A brief physical action can land between two camera frames. */
+  motionCue: { kind: 'bound' | 'strike'; remaining: number } | null;
   readonly offsetX: number;
   readonly offsetY: number;
   readonly trampled: Set<number>;
@@ -612,6 +614,7 @@ export class NightSim {
       windup: 0,
       cooldown: 0,
       hitFlash: 0,
+      motionCue: null,
       offsetX: (this.rng.next() - 0.5) * 0.5,
       offsetY: (this.rng.next() - 0.5) * 0.5,
       trampled: new Set(),
@@ -731,6 +734,10 @@ export class NightSim {
 
   private updateEnemy(e: Enemy, dt: number): void {
     e.hitFlash = Math.max(0, e.hitFlash - dt);
+    if (e.motionCue) {
+      e.motionCue.remaining -= dt;
+      if (e.motionCue.remaining <= 0) e.motionCue = null;
+    }
     e.hasteFor = Math.max(0, e.hasteFor - dt);
     e.lureFor = Math.max(0, e.lureFor - dt);
     e.cooldown = Math.max(0, e.cooldown - dt);
@@ -795,6 +802,7 @@ export class NightSim {
       if (e.def.jumps) {
         if (!e.trampled.has(-obstacle.id)) {
           e.trampled.add(-obstacle.id);
+          e.motionCue = { kind: 'bound', remaining: MOB_CUE_SECONDS.bound };
           this.events.push({ type: 'jump', x: step.x + 0.5, y: step.y + 0.5 });
         }
       } else {
@@ -855,6 +863,7 @@ export class NightSim {
     if (e.windup > 0) return false;
     e.windup = 0;
     e.cooldown = interval;
+    e.motionCue = { kind: 'strike', remaining: MOB_CUE_SECONDS.strike };
     e.action = 'attack';
     return true;
   }

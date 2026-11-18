@@ -12,6 +12,7 @@ import { SECTOR_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/app';
 import { assetUrl } from '../engine/assets';
 import { audio, type Sfx } from '../engine/audio';
+import { yardModels, yardRendererButton } from './yard-renderer';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
@@ -160,7 +161,7 @@ export class NightScene implements Scene {
     audio.setAmbience('night');
     audio.setMusic('night');
     // Both sides of the house are on the monitors at once: painted now, while the screen is dark.
-    prepareWorld();
+    if (!yardModels()) prepareWorld();
     const s = S();
     this.waveEl = el('span', { class: 'label-strong' });
     this.energyEl = el('span');
@@ -177,6 +178,7 @@ export class NightScene implements Scene {
       el('span', { class: 'cell' }, [this.clockEl]),
       el('span', { class: 'sep' }),
       el('span', { class: 'cell' }, ['⌂', this.pipsEl]),
+      yardRendererButton(() => { for (const sector of SECTOR_IDS) this.renderMini(sector); }, () => this.app.toast(S().day.no3d, 'error')),
       el('button', { class: 'btn icon-btn', text: 'II', title: s.night.paused, onClick: () => this.togglePause() }),
     ]);
 
@@ -621,6 +623,7 @@ export class NightScene implements Scene {
         x: d.x,
         y: d.y,
         facing: d.facing,
+        activeAge: d.state === 'active' ? def.activeSeconds - d.timer : 0,
         state: d.state,
         hpRatio: Math.max(0, d.hp / def.maxHp),
         rearm: d.state === 'rearming' ? 1 - d.timer / def.rearmSeconds : 0,
@@ -634,7 +637,7 @@ export class NightScene implements Scene {
   onPointerMove(pointer: Pointer): void {
     if (this.paused || this.ending || this.isDark(this.cam)) return;
     const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
-    const picked = pickDevice(view, this.deviceVisuals(null).filter((d) => isManual(d.type)), pointer.x, pointer.y);
+    const picked = pickDevice(view, this.deviceVisuals(this.cam).filter((d) => isManual(d.type)), pointer.x, pointer.y, yardModels());
     this.hoverDevice = picked?.id ?? null;
   }
 
@@ -642,7 +645,7 @@ export class NightScene implements Scene {
     if (this.paused || this.ending) return;
     const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
     // Nothing can be picked out of snow: on a dark camera the traps are fired from the keys.
-    const picked = this.isDark(this.cam) ? undefined : pickDevice(view, this.deviceVisuals(null).filter((d) => isManual(d.type)), pointer.x, pointer.y);
+    const picked = this.isDark(this.cam) ? undefined : pickDevice(view, this.deviceVisuals(this.cam).filter((d) => isManual(d.type)), pointer.x, pointer.y, yardModels());
     if (picked) {
       this.fire(picked.id);
       return;
@@ -800,7 +803,8 @@ export class NightScene implements Scene {
     this.time += dt;
     this.flash = Math.max(0, this.flash - dt);
     for (const fallen of this.fallen) fallen.age += dt;
-    for (let i = this.fallen.length - 1; i >= 0; i--) if ((this.fallen[i] as Fallen).age >= FALL_SECONDS) this.fallen.splice(i, 1);
+    const fallLifetime = yardModels() ? 2.15 : FALL_SECONDS;
+    for (let i = this.fallen.length - 1; i >= 0; i--) if ((this.fallen[i] as Fallen).age >= fallLifetime) this.fallen.splice(i, 1);
     for (const particle of this.particles) particle.age += dt;
     for (let i = this.particles.length - 1; i >= 0; i--) if ((this.particles[i] as Particle).age >= (this.particles[i] as Particle).life) this.particles.splice(i, 1);
 
@@ -866,6 +870,7 @@ export class NightScene implements Scene {
     const hovered = main && this.hoverDevice !== null ? this.sim.device(this.hoverDevice) : undefined;
     return {
       time: this.time,
+      models: yardModels(),
       night: true,
       carPresent: true,
       devices: this.deviceVisuals(main ? sector : null),
@@ -886,7 +891,7 @@ export class NightScene implements Scene {
     const lights: Light[] = [
       // What spills out of the house on every side, then its windows and its lantern.
       { gx: (HOUSE.x0 + HOUSE.x1 + 1) / 2, gy: (HOUSE.y0 + HOUSE.y1 + 1) / 2, radius: 4.4, color: 'rgba(255,214,150,0.5)', lift: 40 },
-      ...houseLights(rot),
+      ...houseLights(rot, yardModels()),
     ];
     // A lamp over each door: the doorsteps are where the night is decided.
     for (const sector of SECTOR_IDS) lights.push({ gx: ENTRIES[sector].x + 0.5, gy: ENTRIES[sector].y + 0.5, radius: 2.6, color: 'rgba(255,196,120,0.72)', lift: 10, flicker: 0.35 });
@@ -901,8 +906,12 @@ export class NightScene implements Scene {
       else if (device.state === 'armed') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 0.9, color: 'rgba(255,170,70,0.35)', lift: 20 });
     }
     // The cameras' infrared picks up anything that moves: a faint halo keeps silhouettes readable.
+    const mesh = !!yardModels();
     for (const enemy of this.sim.enemies) {
-      if (enemy.alive) lights.push({ gx: enemy.x, gy: enemy.y, radius: enemy.def.boss ? 1.7 : 1.25, color: enemy.def.boss ? 'rgba(255,220,196,0.72)' : 'rgba(214,236,220,0.62)', lift: 18 });
+      if (!enemy.alive) continue;
+      const low = enemy.type === 'boar' || enemy.type === 'dog';
+      const lift = mesh ? (low ? 15 : 39) * enemy.def.size : 18;
+      lights.push({ gx: enemy.x, gy: enemy.y, radius: enemy.def.boss ? 1.7 : 1.25, color: enemy.def.boss ? 'rgba(255,220,196,0.72)' : 'rgba(214,236,220,0.62)', lift, round: mesh });
     }
     return lights;
   }
@@ -910,6 +919,12 @@ export class NightScene implements Scene {
   private renderMini(sector: SectorId): void {
     const canvas = this.minis.get(sector);
     if (!canvas) return;
+    const width = Math.round(MINI.w * this.app.pixelRatio);
+    const height = Math.round(MINI.h * this.app.pixelRatio);
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
     const mctx = canvas.getContext('2d');
     if (!mctx) return;
     const ratio = canvas.width / MINI.w;
@@ -921,8 +936,8 @@ export class NightScene implements Scene {
     }
     const view = this.viewFor(sector, rect, (MAIN_ZOOM * MINI.w) / MAIN.w);
     drawWorld(mctx, view, this.frame(sector, false));
-    applyNight(mctx, view, this.lights(view.rot), this.time);
-    applyCctv(mctx, view, this.time + SECTOR_IDS.indexOf(sector) * 1.7, 1);
+    applyNight(mctx, view, this.lights(view.rot), this.time, !!yardModels());
+    applyCctv(mctx, view, this.time + SECTOR_IDS.indexOf(sector) * 1.7, yardModels() ? 0.52 : 1);
   }
 
   render(ctx: CanvasRenderingContext2D): void {
@@ -935,8 +950,8 @@ export class NightScene implements Scene {
     } else {
       const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
       drawWorld(ctx, view, this.frame(this.cam, true));
-      applyNight(ctx, view, this.lights(view.rot), this.time);
-      applyCctv(ctx, view, this.time, 0.85);
+      applyNight(ctx, view, this.lights(view.rot), this.time, !!yardModels());
+      applyCctv(ctx, view, this.time, yardModels() ? 0.37 : 0.85);
     }
 
     if (this.flash > 0) {

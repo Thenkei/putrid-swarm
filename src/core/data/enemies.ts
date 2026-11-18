@@ -98,6 +98,8 @@ export const ENEMIES: Readonly<Record<EnemyTypeId, EnemyDef>> = {
   },
 };
 
+export const MOB_CUE_SECONDS = { bound: 0.62, strike: 0.43 } as const;
+
 export const BOSS = {
   mower: { chargeSpeed: 5.2, jamSeconds: 2.6, relocateSpeed: 2.4, laneDamage: 0.55 },
   mail: { knocksPerDoor: 2, knockInterval: 0.55 },

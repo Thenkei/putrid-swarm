@@ -130,12 +130,17 @@ export class CreditsScene implements Scene {
     const lines = s.lines.map((text) => el('p', { class: 'credits-line', text }));
     const names = el('div', { class: 'credits-names' }, [el('small', { text: s.sofa.title }), el('div', {}, s.sofa.names.map((name) => el('b', { text: name })))]);
     const later = el('div', { class: 'credits-later' }, [el('h1', { text: s.later })]);
+    const scanCredit = el('a', { text: 'Lee Perry-Smith · Infinite-Realities (CC BY 3.0)' });
+    scanCredit.href = import.meta.env.BASE_URL + 'assets/licenses/infected-head.txt';
+    scanCredit.target = '_blank';
+    scanCredit.rel = 'noopener';
     this.roll = el(
       'div',
       { class: 'credits-roll' },
       [
         el('h2', { text: 'Putrid Swarm' }),
         ...s.roll.map((entry) => el('section', {}, [el('small', { text: entry.role }), ...entry.names.map((name) => el('b', { text: name }))])),
+        el('section', {}, [el('small', { text: s.scannedHead }), scanCredit]),
         el('p', { text: s.disclaimer }),
       ],
     );
