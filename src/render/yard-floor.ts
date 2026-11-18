@@ -4,6 +4,7 @@ import { GRID_H, GRID_W, PROPS } from '../core/map';
 import { sprite } from '../engine/assets';
 import { fbm, seeded } from './noise';
 import { groundMatrix, project, type View } from './projection';
+import { spriteRect } from './registration';
 import { weightAt, type TerrainField } from './terrainfield';
 import { vegetationView } from './vegetation';
 
@@ -38,17 +39,25 @@ function paving(ctx: CanvasRenderingContext2D, view: View): void {
 }
 
 type Scatter = 'fern' | 'straw' | 'dock' | 'leaves' | 'yarrow' | 'stones';
+// A rear crop can be wider or tighter around identical debris. Height relative to the
+// planting's nominal width is a world property, independent of the selected painting.
+const heightAboveGround: Record<Scatter, number> = {
+  fern: 0.46, straw: 0.46, dock: 0.42, leaves: 0.42, yarrow: 0.46, stones: 0.36,
+};
 
 function scatter(ctx: CanvasRenderingContext2D, view: View, gx: number, gy: number, kind: Scatter, width: number, flip: boolean): void {
   const face = vegetationView('yard_scatter', kind, flip, view.rot);
   if (!face) return;
   const { art } = face;
   const p = project(view, gx, gy);
-  const h = width * art.h / art.w;
+  const top = width * heightAboveGround[kind];
+  const h = top / face.foot[1];
+  const w = h * art.w / art.h;
   ctx.save();
-  ctx.translate(p.x + (0.5 - face.foot) * width, p.y);
+  const rect = spriteRect(p, w, h, face.foot, face.mirror);
+  ctx.translate(rect.x + w / 2, rect.y);
   if (face.mirror) ctx.scale(-1, 1);
-  ctx.drawImage(art.img, -width / 2, -h * 0.9, width, h);
+  ctx.drawImage(art.img, -w / 2, 0, w, h);
   ctx.restore();
 }
 

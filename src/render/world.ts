@@ -2,7 +2,7 @@
 // One renderer serves the daytime yard and all four night cameras, so the views cannot disagree.
 
 import { BARRICADE, DEVICES } from '../core/data/devices';
-import { ENTRIES, GRID_W, HOUSE, HOUSE_CENTER, PROPS, propAt, sectorOf, type PropKind } from '../core/map';
+import { ENTRIES, GRID_H, GRID_W, HOUSE_CENTER, PROPS, propAt, sectorOf, type PropKind } from '../core/map';
 import type { DeviceRuntimeState, Enemy } from '../core/night';
 import type { Cell, Decal, DeviceTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
@@ -11,11 +11,12 @@ import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, type Defe
 import { drawDecals } from './aftermath';
 import { drawEnemy, drawFallen, type Fallen } from './infected';
 import { drawGround, prepareGround, setGroundDresser } from './ground';
-import { DOOR_OPENINGS, VISIBLE_DOORS, houseDamageStage, paintHouse } from './house';
+import { DOOR_OPENINGS, VISIBLE_DOORS, doorStance, houseDamageStage, paintHouse } from './house';
 import { drawHouseDebris, type HouseBreak } from './house-debris';
 import { calmMotion, drawCloudShadows, drawMist, type Light } from './lighting';
 import { hash2, smoothstep } from './noise';
 import { TH, TW, depthOf, groundMatrix, inView, project, unproject, viewX, viewY, type Rot, type View } from './projection';
+import { BOTTOM_CENTRE, HOUSE_PAINT_SCALE, PROP_FEET, houseOffset, propRoot, spriteRect, type Foot } from './registration';
 import { WIND_TREES } from './scenery';
 import { drawStand, prepareForest, projectStand } from './forest';
 import { windAt } from './wind';
@@ -104,17 +105,17 @@ export interface WorldFrame {
 
 // ───────────────────────────── Sprite tables ─────────────────────────────
 
-const PROP_ART: Readonly<Record<PropKind, { key: string; h: number; lift: number }>> = {
-  car: { key: 'obj_car', h: 112, lift: 4 },
-  well: { key: 'obj_props_well', h: 86, lift: 14 },
-  woodpile: { key: 'obj_props_woodpile', h: 74, lift: 14 },
-  veg: { key: 'obj_props_veg', h: 84, lift: 4 },
-  apple: { key: 'obj_trees_apple', h: 150, lift: 8 },
-  oak: { key: 'obj_trees_oak', h: 176, lift: 8 },
-  rock: { key: 'obj_props2_rock', h: 46, lift: 14 },
-  barrel: { key: 'obj_props2_barrel', h: 48, lift: 12 },
-  mailbox: { key: 'obj_props2_mailbox', h: 52, lift: 8 },
-  bush: { key: 'obj_props2_bush', h: 54, lift: 14 },
+const PROP_ART: Readonly<Record<PropKind, { key: string; h: number }>> = {
+  car: { key: 'obj_car', h: 112 },
+  well: { key: 'obj_props_well', h: 86 },
+  woodpile: { key: 'obj_props_woodpile', h: 74 },
+  veg: { key: 'obj_props_veg', h: 84 },
+  apple: { key: 'obj_trees_apple', h: 150 },
+  oak: { key: 'obj_trees_oak', h: 176 },
+  rock: { key: 'obj_props2_rock', h: 46 },
+  barrel: { key: 'obj_props2_barrel', h: 48 },
+  mailbox: { key: 'obj_props2_mailbox', h: 52 },
+  bush: { key: 'obj_props2_bush', h: 54 },
 };
 
 /** The barn and gate share a side of the lot, as do the orchard and rear cameras. */
@@ -123,11 +124,6 @@ export function propSpriteKey(kind: PropKind, rot: Rot): string {
   return rot === 0 ? PROP_ART[kind].key : `yard_rear_${kind}`;
 }
 
-const HOUSE_DRAW_WIDTH = 300;
-const HOUSE_LIFT = 10;
-/** Width of the house paintings, in their own pixels: lamp and chimney positions below are given in them. */
-const HOUSE_ART_WIDTH = 760;
-const HOUSE_ART_HEIGHT: Record<Rot, number> = { 0: 749, 1: 739 };
 
 interface HouseLamp {
   /** Where it is on the painting. */
@@ -165,27 +161,17 @@ const HOUSE_ART: Readonly<Record<Rot, { readonly key: string; readonly chimney: 
   },
 };
 
-/** The grid corner the house painting is hung from, for a side. */
-const houseCorner = (rot: Rot): Cell => ({ x: rot === 0 ? HOUSE.x1 + 1 : HOUSE.x0, y: rot === 0 ? HOUSE.y1 + 1 : HOUSE.y0 });
-
-/** A point of the house painting as an offset from that corner, in stage units at zoom 1 (x to the right, y up). */
-function housePoint(rot: Rot, x: number, y: number): { dx: number; lift: number } {
-  const k = HOUSE_DRAW_WIDTH / HOUSE_ART_WIDTH;
-  return { dx: (x - HOUSE_ART_WIDTH / 2) * k, lift: (HOUSE_ART_HEIGHT[rot] - y) * k - HOUSE_LIFT };
-}
-
 /** The lit windows and the lantern of the house, for the side a view looks from. */
 export function houseLights(rot: Rot, barricades: WorldFrame['barricades'], houseHpRatio = 1): readonly Light[] {
-  const corner = houseCorner(rot);
   const stage = houseDamageStage(houseHpRatio);
   const lights: Light[] = [];
   for (const lamp of HOUSE_ART[rot].lamps) {
     if ((lamp.glazedDoor && barricades[lamp.glazedDoor].hp <= 0) || (lamp.atticWindow && stage === 5)) continue;
     const halfPane = lamp.atticWindow && stage === 4;
     lights.push({
-      gx: corner.x,
-      gy: corner.y,
-      ...housePoint(rot, lamp.x, lamp.y + (halfPane ? 16 : 0)),
+      gx: HOUSE_CENTER.x,
+      gy: HOUSE_CENTER.y,
+      ...houseOffset(rot, lamp.x, lamp.y + (halfPane ? 16 : 0)),
       radius: lamp.radius * (halfPane ? 0.8 : 1),
       color: `rgba(255, 198, 118, ${lamp.strength * (halfPane ? 0.6 : 1)})`,
       glow: lamp.glow * (halfPane ? 0.55 : 1),
@@ -233,7 +219,7 @@ interface Picture {
 }
 
 /** `lean` shears the picture about its foot (the wind in a tree): its top moves by `lean` times its height. */
-function drawPicture(ctx: CanvasRenderingContext2D, art: Picture, x: number, y: number, height: number, flip = false, alpha = 1, lean = 0): { w: number; h: number } {
+function drawPicture(ctx: CanvasRenderingContext2D, art: Picture, x: number, y: number, height: number, flip: boolean, alpha: number, lean: number, foot: Foot) {
   const h = height;
   const w = (art.w / art.h) * h;
   ctx.save();
@@ -241,14 +227,14 @@ function drawPicture(ctx: CanvasRenderingContext2D, art: Picture, x: number, y: 
   if (lean !== 0) ctx.transform(1, 0, -lean, 1, x, y);
   else ctx.translate(x, y);
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(art.img, -w / 2, -h, w, h);
+  ctx.drawImage(art.img, -w * foot[0], -h * foot[1], w, h);
   ctx.restore();
-  return { w, h };
+  return spriteRect({ x, y }, w, h, foot, flip);
 }
 
-function drawSprite(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, height: number, flip = false, alpha = 1, lean = 0): { w: number; h: number } | null {
+function drawSprite(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, height: number, flip = false, alpha = 1, lean = 0, foot: Foot = BOTTOM_CENTRE) {
   const art = sprite(key);
-  return art ? drawPicture(ctx, art, x, y, height, flip, alpha, lean) : null;
+  return art ? drawPicture(ctx, art, x, y, height, flip, alpha, lean, foot) : null;
 }
 
 /** Coordinates are relative to the top left of the painted prop, before camera zoom. */
@@ -383,8 +369,8 @@ function dressGround(ctx: CanvasRenderingContext2D, view: View): void {
     const ground = PROP_SHADOW[prop.kind];
     if (ground.cast <= 0) continue;
     const art = PROP_ART[prop.kind];
-    const p = project(view, view.rot === 0 ? prop.x + prop.w : prop.x, view.rot === 0 ? prop.y + prop.h : prop.y);
-    castShadow(ctx, propSpriteKey(prop.kind, view.rot), p.x, p.y + (art.lift - 6) * z, art.h * z, false, ground.cast);
+    const p = propRoot(view, prop);
+    castShadow(ctx, propSpriteKey(prop.kind, view.rot), p.x, p.y, art.h * z, false, ground.cast, 1, PROP_FEET[prop.kind][view.rot]);
   }
 }
 
@@ -421,13 +407,13 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   // Thin foreground foliage where it would conceal a fighting figure or one of this side's
   // doorways. The overlap is measured in the current projection, including painter's depth.
   const sightlines: { x: number; y: number; depth: number }[] = [];
+  const actors = frame.enemies.filter(e => e.alive).map(doorStance);
   if (frame.night) {
     for (const sector of VISIBLE_DOORS[view.rot]) {
       const sill = doorSill(view, sector);
       sightlines.push({ x: sill.x, y: sill.y - 25 * z, depth: depthOf(view.rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.3 });
     }
-    for (const enemy of frame.enemies) {
-      if (!enemy.alive) continue;
+    for (const enemy of actors) {
       const p = project(view, enemy.x, enemy.y);
       sightlines.push({ x: p.x, y: p.y - 27 * z * enemy.def.size, depth: depthOf(view.rot, enemy.x, enemy.y) });
     }
@@ -453,23 +439,23 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   // House.
   {
     const side = HOUSE_ART[view.rot];
-    const corner = project(view, houseCorner(view.rot).x, houseCorner(view.rot).y);
+    const root = project(view, HOUSE_CENTER.x, HOUSE_CENTER.y);
     const art = sprite(side.key);
     const depth = depthOf(view.rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.2;
     drawables.push({
       depth,
       draw: () => {
         if (art) {
-          const w = HOUSE_DRAW_WIDTH * z;
-          const h = (art.h / art.w) * w;
-          const left = corner.x - w / 2;
-          const top = corner.y + HOUSE_LIFT * z - h;
+          const w = art.w * HOUSE_PAINT_SCALE * z;
+          const origin = houseOffset(view.rot, 0, 0);
+          const left = root.x + origin.dx * z;
+          const top = root.y - origin.lift * z;
           paintHouse(ctx, view.rot, side.key, art, left, top, w, frame.houseHpRatio, frame.barricades);
           if (frame.houseBreaks?.length) drawHouseDebris(ctx, frame.houseBreaks, view.rot, side.key, art, left, top, w);
-          const chimney = housePoint(view.rot, side.chimney.x, side.chimney.y);
-          drawChimneySmoke(ctx, corner.x + chimney.dx * z, corner.y - chimney.lift * z, z, frame.time);
+          const chimney = houseOffset(view.rot, side.chimney.x, side.chimney.y);
+          drawChimneySmoke(ctx, root.x + chimney.dx * z, root.y - chimney.lift * z, view, frame.time);
         } else {
-          placeholder(ctx, corner.x, corner.y, 240 * z, 200 * z, '#8a6a47', 'house');
+          placeholder(ctx, root.x, root.y, 240 * z, 200 * z, '#8a6a47', 'house');
         }
       },
     });
@@ -480,16 +466,15 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   for (const prop of PROPS) {
     if (prop.kind === 'car' && !frame.carPresent) continue;
     const art = PROP_ART[prop.kind];
-    const nearX = view.rot === 0 ? prop.x + prop.w : prop.x;
-    const nearY = view.rot === 0 ? prop.y + prop.h : prop.y;
-    const p = project(view, nearX, nearY);
+    const p = propRoot(view, prop);
+    const foot = PROP_FEET[prop.kind][view.rot];
     const key = propSpriteKey(prop.kind, view.rot);
     const centreDepth = depthOf(view.rot, prop.x + prop.w / 2, prop.y + prop.h / 2) + 0.4;
     const lean = SWAYS.has(prop.kind) ? windAt(frame.time, prop.x, prop.y, hash2(prop.x, prop.y, 3), view.rot) * (prop.kind === 'bush' ? 0.092 : 0.035) : 0;
     let opacity = 1;
     if (SWAYS.has(prop.kind) && sightlines.length) {
       const height = art.h * z;
-      const canopyY = p.y + art.lift * z - height * 0.62;
+      const canopyY = p.y + height * (0.38 - foot[1]);
       for (const target of sightlines) {
         if (centreDepth < target.depth) continue;
         const distance = Math.hypot((target.x - p.x) / (height * 0.53), (target.y - canopyY) / (height * 0.45));
@@ -499,12 +484,12 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     drawables.push({
       depth: centreDepth,
       draw: () => {
-        const drawn = drawSprite(ctx, key, p.x, p.y + art.lift * z, art.h * z, false, opacity, lean);
+        const drawn = drawSprite(ctx, key, p.x, p.y, art.h * z, false, opacity, lean, foot);
         if (!drawn) placeholder(ctx, p.x, p.y, 40 * z, 40 * z, '#5a6a4a', prop.kind);
         const action = frame.sceneryAction;
         if (drawn && action?.kind === prop.kind) {
           ctx.save();
-          ctx.translate(p.x - drawn.w / 2, p.y + art.lift * z - drawn.h);
+          ctx.translate(drawn.x, drawn.y);
           ctx.scale(z, z);
           drawSceneryAction(ctx, action.kind, drawn.w / z, art.h, frame.time - action.startedAt, view.rot);
           ctx.restore();
@@ -546,15 +531,16 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       depth: depthOf(view.rot, ghost.x + 0.5, ghost.y + 0.5) + 0.31,
       draw: () => {
         const art = deviceArt(ghost.type, ghost.facing, 'resting', view.rot);
-        drawSprite(ctx, art.key, p.x, p.y + art.lift * z, art.h * z, art.flip, ghost.ok ? 0.75 : 0.4);
+        drawSprite(ctx, art.key, p.x, p.y, art.h * z, art.flip, ghost.ok ? 0.75 : 0.4, 0, art.foot);
       },
     });
   }
 
   // Infected.
-  for (const enemy of frame.enemies) {
-    if (!enemy.alive) continue;
+  const outsideWall = depthOf(view.rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.32;
+  for (const enemy of actors) {
     let depth = depthOf(view.rot, enemy.x, enemy.y);
+    if (enemy.threshold && VISIBLE_DOORS[view.rot].includes(enemy.threshold)) depth = Math.max(depth, outsideWall);
     const log = enemy.crawlLog;
     if (log && enemy.crawlDepth > 0.6 && Math.floor(enemy.x) === log.x && Math.floor(enemy.y) === log.y) {
       depth = Math.min(depth, depthOf(view.rot, log.x + 0.5, log.y + 0.5));
@@ -563,7 +549,9 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   }
 
   for (const fallen of frame.fallen ?? []) {
-    drawables.push({ depth: depthOf(view.rot, fallen.x, fallen.y) - 0.05, draw: () => drawFallen(ctx, view, frame, fallen) });
+    let depth = depthOf(view.rot, fallen.x, fallen.y) - 0.05;
+    if (fallen.threshold && VISIBLE_DOORS[view.rot].includes(fallen.threshold)) depth = Math.max(depth, outsideWall);
+    drawables.push({ depth, draw: () => drawFallen(ctx, view, frame, fallen) });
   }
 
   // Particles that stand up from the ground.
@@ -620,13 +608,15 @@ const SMOKE_PUFFS = 7;
  * Someone lives here: a thin smoke from the chimney, leaning with the wind. Each puff is a
  * function of the time alone, so every camera sees the same smoke and a paused night holds it still.
  */
-function drawChimneySmoke(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, time: number): void {
+function drawChimneySmoke(ctx: CanvasRenderingContext2D, x: number, y: number, view: View, time: number): void {
   const blob = softPuff();
+  const z = view.zoom;
+  const side = view.rot === 0 ? 1 : -1;
   const t = calmMotion() ? 0 : time;
   for (let i = 0; i < SMOKE_PUFFS; i++) {
     const age = (t * 0.075 + i / SMOKE_PUFFS) % 1;
     const size = (9 + age * 34) * z;
-    const px = x + (age * age * 58 + Math.sin(age * 5.2 + i * 1.9) * 4) * z;
+    const px = x + side * (age * age * 58 + Math.sin(age * 5.2 + i * 1.9) * 4) * z;
     const py = y - (4 + age * 92) * z;
     ctx.globalAlpha = Math.min(1, age / 0.1) * Math.pow(1 - age, 1.4) * 0.5;
     ctx.drawImage(blob, px - size, py - size, size * 2, size * 2);
@@ -644,23 +634,24 @@ const LEAVES = 18;
 function drawLeaves(ctx: CanvasRenderingContext2D, view: View, time: number): void {
   if (calmMotion()) return;
   const z = view.zoom;
+  const side = view.rot === 0 ? 1 : -1;
   for (let i = 0; i < LEAVES; i++) {
     const period = 7 + hash2(i, 1, 9) * 6;
     const t = time / period + hash2(i, 2, 9) * 10;
     const fallIndex = Math.floor(t);
     const fall = t - fallIndex;
     const gx = -3 + hash2(i, fallIndex, 11) * (GRID_W + 6);
-    const gy = -3 + hash2(i, fallIndex, 12) * (GRID_W + 6);
+    const gy = -3 + hash2(i, fallIndex, 12) * (GRID_H + 6);
     const landing = project(view, gx, gy);
     const up = 1 - fall;
-    const x = landing.x - up * 54 * z + Math.sin(fall * 9 + i) * 9 * z * up;
+    const x = landing.x + side * up * (Math.sin(fall * 9 + i) * 9 - 54) * z;
     const y = landing.y - up * 190 * z;
     if (x < view.x - 10 || x > view.x + view.w + 10 || y < view.y - 10 || y > view.y + view.h + 10) continue;
     const size = (2.2 + hash2(i, 3, 9) * 1.8) * z;
     ctx.save();
     ctx.globalAlpha = Math.min(1, fall / 0.08) * Math.min(1, up / 0.1) * 0.9;
     ctx.translate(x, y);
-    ctx.rotate(fall * (5 + hash2(i, 4, 9) * 9) + i);
+    ctx.rotate(side * (fall * (5 + hash2(i, 4, 9) * 9) + i));
     // Seen edge-on half the time, as a tumbling leaf is.
     ctx.scale(1, 0.35 + Math.abs(Math.sin(fall * 13 + i)) * 0.65);
     ctx.fillStyle = LEAF_COLORS[i % LEAF_COLORS.length] as string;
@@ -781,10 +772,9 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
 }
 
 function doorSill(view: View, sector: SectorId): { x: number; y: number } {
-  const corner = houseCorner(view.rot);
-  const p = project(view, corner.x, corner.y);
+  const p = project(view, HOUSE_CENTER.x, HOUSE_CENTER.y);
   const door = DOOR_OPENINGS[sector];
-  const offset = housePoint(view.rot, door.x + door.w / 2, door.y + door.h + door.rise / 2);
+  const offset = houseOffset(view.rot, door.x + door.w / 2, door.y + door.h + door.rise / 2);
   return { x: p.x + offset.dx * view.zoom, y: p.y - offset.lift * view.zoom };
 }
 
@@ -799,7 +789,7 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
   const p = doorSill(view, sector);
   // The attached board occupies 121 × 162 px around its centre in the 200px-high painting.
   // Fit those actual corners to the same jamb that exposes the interior on a breach.
-  const k = HOUSE_DRAW_WIDTH / HOUSE_ART_WIDTH;
+  const k = HOUSE_PAINT_SCALE;
   const h = (door.h + 5) * k * 200 / 162;
   const boardWidth = h * 121 / 200;
   const width = (door.w + 10) * k;
@@ -810,7 +800,7 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
     {
       depth,
       draw: () => {
-        const previous = (pose: ReturnType<typeof doorPose>) => ({ key: `dev_barricade_${pose}`, h, lift: h * 0.095, flip: onLeftFace });
+        const previous = (pose: ReturnType<typeof doorPose>) => ({ key: `dev_barricade_${pose}`, h, lift: h * 0.095, foot: [0.5, 0.905] as const, flip: onLeftFace });
         ctx.save();
         ctx.transform(scaleX, slope, 0, 1, p.x, p.y);
         const art = previous(state);
@@ -1079,8 +1069,8 @@ export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: num
     const h = art.h * view.zoom;
     const image = sprite(art.key);
     const w = image ? h * image.w / image.h : h * 0.95;
-    const bottom = p.y + art.lift * view.zoom;
-    if (sx < p.x - w / 2 || sx > p.x + w / 2 || sy < bottom - h - 14 * view.zoom || sy > bottom + 4) continue;
+    const rect = spriteRect(p, w, h, art.foot, art.flip);
+    if (sx < rect.x || sx > rect.x + w || sy < rect.y - 14 * view.zoom || sy > rect.y + h + 4) continue;
     const depth = depthOf(view.rot, device.x, device.y);
     if (depth > bestDepth) {
       bestDepth = depth;
@@ -1101,10 +1091,11 @@ export function pickProp(view: View, kinds: readonly PropKind[], sx: number, sy:
 
 /** Which door, if any, is under the pointer (for daytime repairs). */
 export function pickDoor(view: View, sx: number, sy: number): SectorId | null {
+  if (!inView(view, sx, sy)) return null;
   const g = unproject(view, sx, sy);
   for (const sector of VISIBLE_DOORS[view.rot]) {
     const p = doorSill(view, sector);
-    const door = DOOR_OPENINGS[sector], scale = HOUSE_DRAW_WIDTH / HOUSE_ART_WIDTH * view.zoom;
+    const door = DOOR_OPENINGS[sector], scale = HOUSE_PAINT_SCALE * view.zoom;
     const dx = sx - p.x, localY = sy - p.y - dx * door.rise / door.w;
     if (Math.abs(dx) < (door.w / 2 + 6) * scale && localY > -(door.h + 5) * scale && localY < 10 * scale) return sector;
     const entry = ENTRIES[sector];

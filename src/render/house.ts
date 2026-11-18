@@ -1,6 +1,10 @@
 import type { SectorId } from '../core/types';
+import { ENTRIES, HOUSE_CENTER } from '../core/map';
+import { DOOR_REACH, type EnemyImpact } from '../core/night';
 import { sprite, type Sprite } from '../engine/assets';
-import type { Rot } from './projection';
+import { project, unproject, type Rot, type View } from './projection';
+import { houseOffset, HOUSE_PAINT_SCALE } from './registration';
+import { smoothstep } from './noise';
 
 const worn = new Map<Rot, HTMLCanvasElement>();
 const exposedInteriors = new Map<Rot, HTMLCanvasElement>();
@@ -169,3 +173,37 @@ export function paintHouse(ctx: CanvasRenderingContext2D, rot: Rot, key: string,
 export const VISIBLE_DOORS: Readonly<Record<Rot, readonly SectorId[]>> = {
   0: ['portail', 'grange'], 1: ['arriere', 'verger'],
 };
+
+/** The two images show disjoint exterior walls. Read the actual threshold on its painted face
+ * once, then give every camera the same world-space contact, including one looking over the roof. */
+function doorway(sector: SectorId) {
+  const rot: Rot = VISIBLE_DOORS[0].includes(sector) ? 0 : 1;
+  const view: View = { rot, cx: HOUSE_CENTER.x, cy: HOUSE_CENTER.y, zoom: 1, x: 0, y: 0, w: 0, h: 0 };
+  const d = DOOR_OPENINGS[sector];
+  const sill = houseOffset(rot, d.x + d.w / 2, d.y + d.h + d.rise / 2);
+  const point = unproject(view, sill.dx, -sill.lift);
+  return { view, sx: sill.dx, sy: -sill.lift, gx: point.gx, gy: point.gy, width: d.w * HOUSE_PAINT_SCALE, slope: d.rise / d.w };
+}
+export const THRESHOLDS = { portail: doorway('portail'), grange: doorway('grange'), arriere: doorway('arriere'), verger: doorway('verger') };
+const outward = { portail: [0, 1], grange: [1, 0], arriere: [0, -1], verger: [-1, 0] } as const;
+
+/** The simulation resolves a bite within a radius around the entry cell. Carry the last step
+ * to the painted boards, leaving pathfinding, collision and trap targeting in simulation space. */
+export function doorStance<T extends EnemyImpact & { boss?: { sector: SectorId } | null }>(e: T): T & { threshold?: SectorId } {
+  const mower = e.type === 'mower', sector = mower && e.boss ? e.boss.sector : e.target;
+  const entry = ENTRIES[sector];
+  const distance = Math.hypot(e.x - entry.x - 0.5, e.y - entry.y - 0.5);
+  const contactDistance = mower ? 0.12 : DOOR_REACH, approach = 0.92;
+  if (distance >= contactDistance + approach || e.lureDevice !== null || e.crawlDepth > 0 ||
+    (distance > contactDistance && e.action !== 'walk' && e.action !== 'charge')) return e;
+  const door = THRESHOLDS[sector], [nx, ny] = outward[sector];
+  const p = project(door.view, e.x, e.y);
+  // Preserve lateral ordering on a wide barn door, and spread a crowd across a narrow jamb.
+  const side = Math.max(-0.32, Math.min(0.32, (p.x - door.sx) / door.width)) + (e.offsetX - e.offsetY) * 0.22;
+  const along = side * door.width;
+  const at = unproject(door.view, door.sx + along, door.sy + along * door.slope);
+  const reach = Math.min(0.66, 0.32 * e.def.size + 0.07);
+  const t = 1 - smoothstep(contactDistance, contactDistance + approach, distance);
+  return { ...e, x: e.x + (at.gx + nx * reach - e.x) * t, y: e.y + (at.gy + ny * reach - e.y) * t,
+    fx: e.fx + (-nx - e.fx) * t, fy: e.fy + (-ny - e.fy) * t, threshold: sector };
+}

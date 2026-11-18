@@ -1512,38 +1512,44 @@
   "yard_scatter_straw": {
     "file": "sprites/yard_scatter_straw.webp",
     "w": 128,
-    "h": 64,
-    "footX": 0.4319
+    "h": 68,
+    "footX": 0.4457,
+    "footY": 0.8692
   },
   "yard_scatter_fern": {
     "file": "sprites/yard_scatter_fern.webp",
     "w": 128,
-    "h": 57,
-    "footX": 0.4893
+    "h": 65,
+    "footX": 0.476,
+    "footY": 0.8798
   },
   "yard_scatter_stones": {
     "file": "sprites/yard_scatter_stones.webp",
     "w": 128,
-    "h": 48,
-    "footX": 0.5857
+    "h": 57,
+    "footX": 0.5721,
+    "footY": 0.8691
   },
   "yard_scatter_leaves": {
     "file": "sprites/yard_scatter_leaves.webp",
     "w": 128,
-    "h": 55,
-    "footX": 0.5391
+    "h": 61,
+    "footX": 0.5433,
+    "footY": 0.8774
   },
   "yard_scatter_yarrow": {
     "file": "sprites/yard_scatter_yarrow.webp",
     "w": 128,
-    "h": 56,
-    "footX": 0.4853
+    "h": 66,
+    "footX": 0.494,
+    "footY": 0.8766
   },
   "yard_scatter_dock": {
     "file": "sprites/yard_scatter_dock.webp",
     "w": 128,
-    "h": 53,
-    "footX": 0.4155
+    "h": 59,
+    "footX": 0.5045,
+    "footY": 0.8731
   },
   "yard_masonry_barn": {
     "file": "sprites/yard_masonry_barn.webp",
@@ -1568,56 +1574,65 @@
   "yard_flora_foxtail": {
     "file": "sprites/yard_flora_foxtail.webp",
     "w": 168,
-    "h": 143,
-    "footX": 0.4634
+    "h": 145,
+    "footX": 0.4437,
+    "footY": 0.8862
   },
   "yard_flora_knapweed": {
     "file": "sprites/yard_flora_knapweed.webp",
     "w": 168,
-    "h": 160,
-    "footX": 0.5271
+    "h": 154,
+    "footX": 0.5068,
+    "footY": 0.8853
   },
   "yard_flora_clover": {
     "file": "sprites/yard_flora_clover.webp",
     "w": 168,
-    "h": 115,
-    "footX": 0.4874
+    "h": 118,
+    "footX": 0.4669,
+    "footY": 0.8761
   },
   "yard_flora_bramble": {
     "file": "sprites/yard_flora_bramble.webp",
     "w": 168,
-    "h": 128,
-    "footX": 0.4086
+    "h": 138,
+    "footX": 0.3909,
+    "footY": 0.8727
   },
   "yard_flora_hazel": {
     "file": "sprites/yard_flora_hazel.webp",
     "w": 168,
-    "h": 131,
-    "footX": 0.3823
+    "h": 136,
+    "footX": 0.3862,
+    "footY": 0.8731
   },
   "yard_flora_nettle": {
     "file": "sprites/yard_flora_nettle.webp",
     "w": 168,
-    "h": 156,
-    "footX": 0.476
+    "h": 164,
+    "footX": 0.4684,
+    "footY": 0.882
   },
   "yard_flora_cabbage": {
     "file": "sprites/yard_flora_cabbage.webp",
     "w": 168,
-    "h": 109,
-    "footX": 0.4416
+    "h": 120,
+    "footX": 0.4571,
+    "footY": 0.8861
   },
   "yard_flora_leeks": {
     "file": "sprites/yard_flora_leeks.webp",
     "w": 168,
-    "h": 150,
-    "footX": 0.5357
+    "h": 159,
+    "footX": 0.5071,
+    "footY": 0.8861
   },
   "yard_flora_chicory": {
     "file": "sprites/yard_flora_chicory.webp",
     "w": 168,
-    "h": 146,
-    "footX": 0.4935
+    "h": 155,
+    "footX": 0.5019,
+    "footY": 0.875
   },
   "defense_crawl": {
     "file": "sprites/defense_crawl.webp",
@@ -1656,39 +1671,45 @@
   },
   "forest_stands_fir": {
     "file": "sprites/forest_stands_fir.webp",
-    "w": 320,
+    "w": 276,
     "h": 430,
-    "footX": 0.511
+    "footX": 0.544,
+    "footY": 0.9551
   },
   "forest_stands_firpair": {
     "file": "sprites/forest_stands_firpair.webp",
-    "w": 271,
+    "w": 302,
     "h": 430,
-    "footX": 0.4963
+    "footX": 0.4849,
+    "footY": 0.9574
   },
   "forest_stands_beech": {
     "file": "sprites/forest_stands_beech.webp",
-    "w": 456,
+    "w": 368,
     "h": 430,
-    "footX": 0.4168
+    "footX": 0.4796,
+    "footY": 0.9549
   },
   "forest_stands_birch": {
     "file": "sprites/forest_stands_birch.webp",
-    "w": 345,
+    "w": 400,
     "h": 430,
-    "footX": 0.4826
+    "footX": 0.5016,
+    "footY": 0.9539
   },
   "forest_stands_oak": {
     "file": "sprites/forest_stands_oak.webp",
-    "w": 525,
+    "w": 477,
     "h": 430,
-    "footX": 0.5106
+    "footX": 0.4702,
+    "footY": 0.9482
   },
   "forest_stands_coppice": {
     "file": "sprites/forest_stands_coppice.webp",
-    "w": 487,
-    "h": 430,
-    "footX": 0.431
+    "w": 452,
+    "h": 387,
+    "footX": 0.4702,
+    "footY": 0.9519
   },
   "yard_rear_mailbox": {
     "file": "sprites/yard_rear_mailbox.webp",
@@ -1737,129 +1758,150 @@
   },
   "forest_stands_back_fir": {
     "file": "sprites/forest_stands_back_fir.webp",
-    "w": 304,
-    "h": 420,
-    "footX": 0.4875
+    "w": 277,
+    "h": 430,
+    "footX": 0.4968,
+    "footY": 0.9566
   },
   "forest_stands_back_firpair": {
     "file": "sprites/forest_stands_back_firpair.webp",
-    "w": 282,
-    "h": 420,
-    "footX": 0.4504
+    "w": 304,
+    "h": 430,
+    "footX": 0.4994,
+    "footY": 0.9563
   },
   "forest_stands_back_beech": {
     "file": "sprites/forest_stands_back_beech.webp",
-    "w": 460,
-    "h": 417,
-    "footX": 0.5295
+    "w": 369,
+    "h": 430,
+    "footX": 0.5223,
+    "footY": 0.9561
   },
   "forest_stands_back_birch": {
     "file": "sprites/forest_stands_back_birch.webp",
-    "w": 332,
+    "w": 399,
     "h": 430,
-    "footX": 0.5312
+    "footX": 0.504,
+    "footY": 0.9552
   },
   "forest_stands_back_oak": {
     "file": "sprites/forest_stands_back_oak.webp",
-    "w": 513,
-    "h": 424,
-    "footX": 0.4791
+    "w": 476,
+    "h": 430,
+    "footX": 0.5195,
+    "footY": 0.9515
   },
   "forest_stands_back_coppice": {
     "file": "sprites/forest_stands_back_coppice.webp",
-    "w": 405,
-    "h": 407,
-    "footX": 0.4783
+    "w": 453,
+    "h": 389,
+    "footX": 0.5368,
+    "footY": 0.9525
   },
   "yard_flora_back_foxtail": {
     "file": "sprites/yard_flora_back_foxtail.webp",
     "w": 168,
-    "h": 140,
-    "footX": 0.5445
+    "h": 148,
+    "footX": 0.5586,
+    "footY": 0.8898
   },
   "yard_flora_back_knapweed": {
     "file": "sprites/yard_flora_back_knapweed.webp",
     "w": 168,
     "h": 159,
-    "footX": 0.4973
+    "footX": 0.4889,
+    "footY": 0.8907
   },
   "yard_flora_back_clover": {
     "file": "sprites/yard_flora_back_clover.webp",
     "w": 168,
     "h": 120,
-    "footX": 0.5272
+    "footX": 0.5347,
+    "footY": 0.885
   },
   "yard_flora_back_bramble": {
     "file": "sprites/yard_flora_back_bramble.webp",
     "w": 168,
-    "h": 132,
-    "footX": 0.626
+    "h": 136,
+    "footX": 0.575,
+    "footY": 0.8716
   },
   "yard_flora_back_hazel": {
     "file": "sprites/yard_flora_back_hazel.webp",
     "w": 168,
-    "h": 134,
-    "footX": 0.6392
+    "h": 137,
+    "footX": 0.5712,
+    "footY": 0.8742
   },
   "yard_flora_back_nettle": {
     "file": "sprites/yard_flora_back_nettle.webp",
     "w": 168,
-    "h": 152,
-    "footX": 0.5026
+    "h": 155,
+    "footX": 0.5088,
+    "footY": 0.8883
   },
   "yard_flora_back_cabbage": {
     "file": "sprites/yard_flora_back_cabbage.webp",
     "w": 168,
-    "h": 119,
-    "footX": 0.3664
+    "h": 126,
+    "footX": 0.4047,
+    "footY": 0.8757
   },
   "yard_flora_back_leeks": {
     "file": "sprites/yard_flora_back_leeks.webp",
     "w": 168,
-    "h": 161,
-    "footX": 0.4539
+    "h": 169,
+    "footX": 0.5027,
+    "footY": 0.884
   },
   "yard_flora_back_chicory": {
     "file": "sprites/yard_flora_back_chicory.webp",
     "w": 168,
-    "h": 141,
-    "footX": 0.5034
+    "h": 156,
+    "footX": 0.5149,
+    "footY": 0.875
   },
   "yard_scatter_back_straw": {
     "file": "sprites/yard_scatter_back_straw.webp",
     "w": 128,
-    "h": 67,
-    "footX": 0.5227
+    "h": 68,
+    "footX": 0.5447,
+    "footY": 0.8847
   },
   "yard_scatter_back_fern": {
     "file": "sprites/yard_scatter_back_fern.webp",
     "w": 128,
-    "h": 65,
-    "footX": 0.4981
+    "h": 69,
+    "footX": 0.5071,
+    "footY": 0.8825
   },
   "yard_scatter_back_stones": {
     "file": "sprites/yard_scatter_back_stones.webp",
     "w": 128,
-    "h": 47,
-    "footX": 0.6478
+    "h": 51,
+    "footX": 0.5631,
+    "footY": 0.8685
   },
   "yard_scatter_back_leaves": {
     "file": "sprites/yard_scatter_back_leaves.webp",
     "w": 128,
-    "h": 54,
-    "footX": 0.3834
+    "h": 64,
+    "footX": 0.3663,
+    "footY": 0.8721
   },
   "yard_scatter_back_yarrow": {
     "file": "sprites/yard_scatter_back_yarrow.webp",
     "w": 128,
-    "h": 63,
-    "footX": 0.5131
+    "h": 69,
+    "footX": 0.5263,
+    "footY": 0.8803
   },
   "yard_scatter_back_dock": {
     "file": "sprites/yard_scatter_back_dock.webp",
     "w": 128,
-    "h": 60,
-    "footX": 0.5273
+    "h": 64,
+    "footX": 0.4902,
+    "footY": 0.8773
   },
   "dev_back_fence_resting": {
     "file": "sprites/dev_back_fence_resting.webp",

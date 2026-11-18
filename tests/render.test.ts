@@ -2,14 +2,19 @@
 // made of, how the terrains share the ground, and where the trees stand. None of it needs a canvas.
 
 import { describe, expect, it } from 'vitest';
-import { GRID_H, GRID_W, HOUSE, PROPS, SPAWN_CELLS } from '../src/core/map';
+import sharp from 'sharp';
+import { newGame } from '../src/core/game';
+import { NightSim } from '../src/core/night';
+import { GRID_H, GRID_W, HOUSE, HOUSE_CENTER, PROPS, SPAWN_CELLS } from '../src/core/map';
 import { DEVICE_TYPE_IDS, SECTOR_IDS } from '../src/core/types';
-import { deviceArt } from '../src/render/defenses';
+import { deviceArt, floodlightEmitter } from '../src/render/defenses';
 import { fbm, hash2, periodicFbm, seeded, smoothstep, valueNoise } from '../src/render/noise';
 import { cameraView, depthOf, groundMatrix, project, unproject, viewBounds, type Rot, type View } from '../src/render/projection';
 import { TREES, TREE_ROWS, treesIn } from '../src/render/scenery';
 import { FIELD_MARGIN, GROUND_TERRAINS, buildTerrainField, groundTerrainAt, layerAlpha, onTrack, weightAt } from '../src/render/terrainfield';
-import { propSpriteKey } from '../src/render/world';
+import { pickDoor, propSpriteKey } from '../src/render/world';
+import { DOOR_OPENINGS, VISIBLE_DOORS, THRESHOLDS, doorStance } from '../src/render/house';
+import { HOUSE_PAINT_SCALE, PROP_FEET, houseOffset, propRoot, spriteRect } from '../src/render/registration';
 
 const view = (rot: Rot, zoom = 1, cx = 11, cy = 11): View => ({ rot, zoom, cx, cy, x: 292, y: 56, w: 976, h: 652 });
 
@@ -161,6 +166,94 @@ describe('projection', () => {
         }
       }
     }
+  });
+});
+
+describe('sprite registration through a camera change', () => {
+  it('keeps the footprint centre under a cropped sprite when rotating a multi-cell prop', () => {
+    const car = PROPS.find(p => p.kind === 'car')!;
+    const planter = PROPS.find(p => p.kind === 'veg')!;
+    for (const prop of [car, planter]) for (const rot of [0, 1] as const) {
+      const v = view(rot, 1.47, 13.8, 9.3);
+      const p = propRoot(v, prop);
+      const root = unproject(v, p.x, p.y);
+      expect(root.gx).toBeCloseTo(prop.x + prop.w / 2);
+      expect(root.gy).toBeCloseTo(prop.y + prop.h / 2);
+    }
+  });
+
+  it('puts the painted mailbox post and floodlight pole on their cell for both cameras and installation axes', async () => {
+    for (const kind of ['mailbox', 'floodlight'] as const) for (const rot of [0, 1] as const) {
+      const key = kind === 'mailbox' ? propSpriteKey(kind, rot) : deviceArt(kind, 0, 'armed', rot).key;
+      const { data, info } = await sharp(`public/assets/sprites/${key}.webp`).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const v = view(rot, 1.25);
+      const p = project(v, 12.5, 19.5);
+      for (const facing of [0, 1] as const) {
+        const art = deviceArt('floodlight', facing, 'armed', rot);
+        const foot = kind === 'mailbox' ? PROP_FEET.mailbox[rot] : art.foot;
+        const flip = kind === 'floodlight' && art.flip;
+        const h = (kind === 'mailbox' ? 52 : art.h) * v.zoom;
+        const r = spriteRect(p, h * info.width / info.height, h, foot, flip);
+        // Find the real wood at the base, rather than checking coordinates against themselves.
+        const row = Math.floor(foot[1] * info.height), x = Math.floor(foot[0] * info.width);
+        const alpha = (col: number) => data[(row * info.width + col) * 4 + 3]!;
+        expect(alpha(x)).toBeGreaterThan(190);
+        let left = x, right = x;
+        while (left && alpha(left - 1) > 90) left--;
+        while (right + 1 < info.width && alpha(right + 1) > 90) right++;
+        const centre = (left + right + 1) / (2 * info.width);
+        expect(Math.abs(r.x + r.w * (flip ? 1 - centre : centre) - p.x)).toBeLessThan(1.5);
+        const light = floodlightEmitter(facing, rot);
+        expect(Math.sign(light.dx)).toBe((rot ? 1 : -1) * (facing ? -1 : 1));
+      }
+    }
+  });
+
+  it('mounts repair targets on the four painted jambs after panning and zooming', () => {
+    for (const rot of [0, 1] as const) for (const zoom of [0.62, 1.5]) {
+      const v = view(rot, zoom, 10.3, 11.2), root = project(v, HOUSE_CENTER.x, HOUSE_CENTER.y);
+      for (const sector of VISIBLE_DOORS[rot]) {
+        const d = DOOR_OPENINGS[sector];
+        const origin = houseOffset(rot, d.x + d.w / 2, d.y + d.rise / 2);
+        // Two points on the upper door leaf are well away from the ground-cell fallback.
+        for (const across of [-0.38, 0.38]) {
+          const x = root.x + (origin.dx + d.w * across * HOUSE_PAINT_SCALE) * zoom;
+          const y = root.y + (-origin.lift + (0.23 * d.h + d.rise * across) * HOUSE_PAINT_SCALE) * zoom;
+          expect(pickDoor(v, x, y)).toBe(sector);
+        }
+      }
+    }
+  });
+
+  it('carries the last stride of a real attack to each painted sill from either camera', () => {
+    const sim = new NightSim(5, { ...newGame(42).yard, devices: [] }, 42);
+    const checked = new Set<string>();
+    for (let step = 0; step < 6000 && sim.outcome === 'ongoing' && checked.size < 4; step++) {
+      sim.step(1 / 60);
+      for (const e of sim.enemies) {
+        if (e.action !== 'attack' || checked.has(e.target)) continue;
+        const posed = doorStance(e);
+        if (!posed.threshold) continue;
+        const sill = THRESHOLDS[posed.threshold], opening = DOOR_OPENINGS[posed.threshold];
+        // Follow the actual planted feet inward to the board. The contact falls inside the jamb,
+        // at the bottom of its sloping leaf, independently of the attacker's original route cell.
+        const reach = Math.min(0.66, 0.32 * e.def.size + 0.07);
+        const x = posed.x + posed.fx * reach, y = posed.y + posed.fy * reach;
+        const p = project(sill.view, x, y);
+        const across = p.x - sill.sx;
+        expect(Math.abs(across)).toBeLessThan(opening.w * HOUSE_PAINT_SCALE / 2);
+        expect(p.y - sill.sy).toBeCloseTo(across * opening.rise / opening.w, 6);
+        for (const rot of [0, 1] as const) {
+          const v = view(rot, 1.47, 13.8, 9.3), pixel = project(v, x, y), root = unproject(v, pixel.x, pixel.y);
+          expect(root.gx).toBeCloseTo(x, 7);
+          expect(root.gy).toBeCloseTo(y, 7);
+        }
+        const lured = { ...e, lureDevice: 3 };
+        expect(doorStance(lured)).toBe(lured);
+        checked.add(posed.threshold);
+      }
+    }
+    expect([...checked].sort()).toEqual([...SECTOR_IDS].sort());
   });
 });
 

@@ -3,7 +3,7 @@
 
 import { BARRICADE, COMBAT, DEVICES, HOUSE_MAX_HP, isAuto, isManual } from '../core/data/devices';
 import { concludeNight } from '../core/game';
-import { ENTRIES, HOUSE, sectorOf } from '../core/map';
+import { HOUSE, sectorOf } from '../core/map';
 import { NightSim, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
 import { deskFor, outageFor } from '../core/orchard';
 import { allyFor } from '../core/radio';
@@ -15,8 +15,8 @@ import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
-import { DefenseMotion, deviceArt } from '../render/defenses';
-import { houseDamageStage } from '../render/house';
+import { DefenseMotion, deviceArt, floodlightEmitter } from '../render/defenses';
+import { THRESHOLDS, doorStance, houseDamageStage } from '../render/house';
 import { HOUSE_BREAK_SECONDS, type HouseBreak } from '../render/house-debris';
 import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
 import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
@@ -717,17 +717,24 @@ export class NightScene implements Scene {
           if (event.device !== 'fence') this.remark('vo_trap_broken', 30);
           this.particles.push({ kind: 'dust', x: event.x + 0.5, y: event.y + 0.5, age: 0, life: 0.7, radius: 1.4 });
           break;
-        case 'enemy_hit':
-          if (event.amount >= 30) this.particles.push({ kind: 'text', x: event.x, y: event.y, age: 0, life: 0.7, text: `-${event.amount}` });
+        case 'enemy_hit': {
+          if (event.amount >= 30) {
+            const p = doorStance(event.pose);
+            this.particles.push({ kind: 'text', x: p.x, y: p.y, age: 0, life: 0.7, text: `-${event.amount}` });
+          }
           audio.play('hit');
           break;
-        case 'enemy_dead':
+        }
+        case 'enemy_dead': {
           audio.play('kill');
-          this.fallen.push({ id: event.id, type: event.enemy, x: event.x, y: event.y, fx: event.fx, fy: event.fy, age: 0 });
+          const pose = doorStance(event.pose);
+          this.fallen.push({ id: event.id, type: event.enemy, x: pose.x, y: pose.y, fx: pose.fx, fy: pose.fy, age: 0,
+            ...(pose.threshold && { threshold: pose.threshold }) });
           break;
+        }
         case 'barricade_hit':
           audio.play('door');
-          this.particles.push({ kind: 'dust', x: ENTRIES[event.sector].x + 0.5, y: ENTRIES[event.sector].y + 0.5, age: 0, life: 0.4, radius: 0.8 });
+          this.particles.push({ kind: 'dust', x: THRESHOLDS[event.sector].gx, y: THRESHOLDS[event.sector].gy, age: 0, life: 0.4, radius: 0.8 });
           break;
         case 'breach':
           audio.play('breach');
@@ -915,13 +922,14 @@ export class NightScene implements Scene {
       ...houseLights(rot, this.sim.barricades, this.sim.houseHp / HOUSE_MAX_HP),
     ];
     // A lamp over each door: the doorsteps are where the night is decided.
-    for (const sector of SECTOR_IDS) lights.push({ gx: ENTRIES[sector].x + 0.5, gy: ENTRIES[sector].y + 0.5, radius: 2.6, color: 'rgba(255,196,120,0.72)', lift: 10, flicker: 0.35 });
+    for (const sector of SECTOR_IDS) lights.push({ gx: THRESHOLDS[sector].gx, gy: THRESHOLDS[sector].gy, radius: 2.6, color: 'rgba(255,196,120,0.72)', lift: 10, flicker: 0.35 });
     for (const device of this.sim.devices) {
       if (device.state === 'broken') continue;
       if (device.type === 'floodlight' && device.state === 'active') {
         // The pool it throws on the ground, and the lamp itself at the top of its pole.
         lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: DEVICES.floodlight.radius, color: 'rgba(255,244,214,1)' });
-        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.2, color: 'rgba(255,244,214,0.6)', lift: 62, glow: 1, round: true });
+        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.2, color: 'rgba(255,244,214,0.6)',
+          ...floodlightEmitter(device.facing, rot), glow: 1, round: true });
       }
       else if (device.state === 'active') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.6, color: 'rgba(255,180,90,0.6)' });
       else if (device.state === 'armed') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 0.9, color: 'rgba(255,170,70,0.35)', lift: 20 });

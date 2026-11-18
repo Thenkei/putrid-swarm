@@ -62,10 +62,10 @@ interface Swatch {
 }
 
 const SWATCHES: Readonly<Record<GroundTerrain, Swatch>> = {
-  forest: { key: 'tex_ground_forest', fallback: '#4a3a28', texels: 126, lip: 0 },
-  path: { key: 'tex_ground_path', fallback: '#8a6a47', texels: 110, lip: 0 },
-  gravel: { key: 'tex_ground_gravel', fallback: '#9c917c', texels: 122, lip: 0.2 },
-  grass: { key: 'tex_ground_grass', fallback: '#6f7a3a', texels: 104, lip: 0.3 },
+  forest: { key: 'tex_ground_forest', fallback: '#4a3a28', texels: 98, lip: 0 },
+  path: { key: 'tex_ground_path', fallback: '#996f46', texels: 77, lip: 0 },
+  gravel: { key: 'tex_ground_gravel', fallback: '#8c7e6b', texels: 92, lip: 0.19 },
+  grass: { key: 'tex_ground_grass', fallback: '#787637', texels: 64, lip: 0.25 },
 };
 
 // ───────────────────────────── Swatches ─────────────────────────────

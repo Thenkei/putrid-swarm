@@ -1,6 +1,6 @@
-import { GRID_H, GRID_W } from '../core/map';
 import { sprite } from '../engine/assets';
 import { depthOf, project, unproject, viewX, viewY, world, type Rot, type View } from './projection';
+import { BOTTOM_CENTRE, spriteRect, type Foot } from './registration';
 import { treesIn, type Tree } from './scenery';
 import { castShadow, contactShadow } from './shadows';
 import { windAt } from './wind';
@@ -17,6 +17,7 @@ const tinted = new Map<string, HTMLCanvasElement>();
 
 export interface Stand {
   key: string; image: CanvasImageSource; x: number; y: number; w: number; h: number; mirror: boolean;
+  rootX: number; rootY: number; foot: Foot;
 }
 interface Stamp { tree: Tree; s: Stand }
 interface Crown extends Stamp { x: number; y: number; w: number; h: number; cover: HTMLCanvasElement | null }
@@ -24,19 +25,14 @@ interface ForestTile { picture: HTMLCanvasElement; crowns: Crown[]; pixels: numb
 const movingCrown = (t: Tree): boolean => t.row > 0 && t.trait > 0.835;
 const hinge = (s: Stand): number => s.y - s.h * 0.59;
 
-/** On the close bank the understorey gives way gradually to full-height canopy farther out.
- * Even a wide crown then overlaps at most a narrow fringe of playable ground. */
+/** Register each painted face at the same planting point, with the same physical crown height. */
 export function projectStand(view: View, tree: Tree): Stand | undefined {
-  const vx = viewX(view.rot, tree.gx);
-  const vy = viewY(view.rot, tree.gy);
-  const near = Math.max(vx - GRID_W, vy - GRID_H);
-  const foreground = vx >= 0 && vy >= 0 && near > 0;
   const painted = vegetationView('forest_stands', tree.key.slice('forest_stands_'.length), tree.flip, view.rot);
   const key = painted?.key ?? (tree.key.includes('fir') ? 'obj_trees_pine' : 'obj_trees_oak');
   const art = painted?.art ?? sprite(key);
   if (!art) return;
-  const cap = (31 + 12 * near + 3.35 * near * near) * (0.75 + tree.trait * 0.28);
-  const h = (foreground ? Math.min(tree.h, cap) : tree.h) * view.zoom;
+  const foot = painted?.foot ?? BOTTOM_CENTRE;
+  const h = tree.h * view.zoom / foot[1];
   const p = project(view, tree.gx, tree.gy);
   const layer = shade[tree.row] ?? 0;
   let image: CanvasImageSource = art.img;
@@ -58,12 +54,17 @@ export function projectStand(view: View, tree: Tree): Stand | undefined {
     if (tinted.has(id)) image = canvas;
   }
   const w = h * art.w / art.h;
-  return { key, image, x: p.x + (0.5 - (painted?.foot ?? 0.5)) * w, y: p.y + 3 * view.zoom, w, h, mirror: painted?.mirror ?? (tree.flip !== (view.rot === 1)) };
+  const mirror = painted?.mirror ?? (tree.flip !== (view.rot === 1));
+  const rect = spriteRect(p, w, h, foot, mirror);
+  return {
+    key, image, x: rect.x + w / 2, y: rect.y + h,
+    w, h, rootX: p.x, rootY: p.y, mirror, foot,
+  };
 }
 
 export function drawStand(ctx: CanvasRenderingContext2D, stand: Stand, lean = 0, alpha = 1): void {
   ctx.save(); ctx.globalAlpha *= alpha;
-  ctx.transform(stand.mirror ? -1 : 1, 0, -lean, 1, stand.x, stand.y);
+  ctx.transform(stand.mirror ? -1 : 1, 0, -lean, 1, stand.x - lean * (stand.y - stand.rootY), stand.y);
   ctx.drawImage(stand.image, -stand.w / 2, -stand.h, stand.w, stand.h);
   ctx.restore();
 }
@@ -93,8 +94,8 @@ function bakeTile(rot: Rot, tx: number, ty: number): ForestTile | null {
   if (!c) return null;
   c.translate(PAD, PAD);
   for (const {tree, s} of visible) {
-    contactShadow(c, s.x, s.y, s.w * 0.36, s.w * 0.14, 0.49);
-    castShadow(c, s.key, s.x, s.y, s.h, s.mirror, tree.row < 2 ? 0.27 : 0.19, 0.8);
+    contactShadow(c, s.rootX, s.rootY, s.w * 0.36, s.w * 0.14, 0.49);
+    castShadow(c, s.key, s.rootX, s.rootY, s.h, s.mirror, tree.row < 2 ? 0.27 : 0.19, 0.8, s.foot);
   }
   visible.sort((a,b) => depthOf(rot,a.tree.gx,a.tree.gy) - depthOf(rot,b.tree.gx,b.tree.gy));
   const crowns: Crown[] = [];

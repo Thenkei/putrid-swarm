@@ -3,7 +3,7 @@
 
 import { BOSS } from '../core/data/enemies';
 import { BLOW_RECOVERY_SECONDS, HIT_REACTION_SECONDS, type Enemy } from '../core/night';
-import type { EnemyTypeId } from '../core/types';
+import type { EnemyTypeId, SectorId } from '../core/types';
 import { sprite, type Sprite } from '../engine/assets';
 import { calmMotion } from './lighting';
 import { smoothstep } from './noise';
@@ -11,6 +11,7 @@ import { project, type View } from './projection';
 import { contactShadow } from './shadows';
 
 export interface Fallen {
+  readonly threshold?: SectorId;
   readonly id: number;
   readonly type: EnemyTypeId;
   readonly x: number;

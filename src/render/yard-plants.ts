@@ -2,6 +2,7 @@ import { ENTRIES, LANES, PROPS, inGrid, isStaticBlocked } from '../core/map';
 import type { Sprite } from '../engine/assets';
 import { hash2, seeded } from './noise';
 import { depthOf, groundMatrix, project, world, type View } from './projection';
+import { spriteRect } from './registration';
 import { castShadow, contactShadow, groundPatch } from './shadows';
 import { weightAt, type TerrainField } from './terrainfield';
 import { windAt } from './wind';
@@ -10,10 +11,11 @@ import { vegetationView } from './vegetation';
 type Plant = 'foxtail' | 'knapweed' | 'clover' | 'bramble' | 'hazel' | 'nettle' | 'cabbage' | 'leeks' | 'chicory';
 type Habitat = 'meadow' | 'hedge' | 'verge';
 
-// Width at native gameplay scale. The height cap keeps a foreground clump below the action.
-const size: Record<Plant, readonly [width: number, maxHeight: number]> = {
-  foxtail: [30, 26], knapweed: [29, 29], clover: [27, 14], bramble: [51, 33],
-  hazel: [46, 39], nettle: [33, 29], cabbage: [27, 21], leeks: [24, 26], chicory: [27, 24],
+// World height from the soil to the tallest leaf. Turning the camera reveals a different
+// crop around that same crown without changing its height above the planting.
+const heightAboveGround: Record<Plant, number> = {
+  foxtail: 24, knapweed: 25, clover: 14, bramble: 32, hazel: 34,
+  nettle: 26, cabbage: 18, leeks: 22, chicory: 22,
 };
 
 // Each elongated patch has a dominant species, companions, and bare space between its neighbours.
@@ -120,35 +122,37 @@ export function drawYardPlants(ctx: CanvasRenderingContext2D, view: View, field:
     const face = vegetationView('yard_flora', plant.kind, plant.flip, view.rot);
     if (!face) return [];
     const { art, key } = face;
-    const [targetWidth, maxHeight] = size[plant.kind];
-    const scale = plant.scale * view.zoom * Math.min(targetWidth / art.w, maxHeight / art.h);
+    const top = heightAboveGround[plant.kind] * plant.scale * view.zoom;
+    const h = top / face.foot[1];
+    const w = h * art.w / art.h;
     const p = project(view, plant.gx, plant.gy);
-    const w = art.w * scale;
-    const dx = (0.5 - face.foot) * w;
-    return [{ plant, key, art, x: p.x + dx, y: p.y, dx, w, h: art.h * scale, flip: face.mirror }];
+    const rect = spriteRect(p, w, h, face.foot, face.mirror);
+    return [{ plant, key, art, p, x: rect.x + w / 2, top, w, h, foot: face.foot, flip: face.mirror }];
   });
   // First project every canopy onto the ground. Plant silhouettes are drawn on a separate
   // pass so a leaf cannot cast a flat ground shadow over its neighbour's crown.
-  for (const { key, x, y, w, h, flip } of stamps) {
-    contactShadow(ctx, x, y, w * 0.48, Math.max(2.7, w * 0.16), 0.62);
-    if (h > 14 * view.zoom) castShadow(ctx, key, x, y + 0.05 * h, h, flip, 0.34, 0.9);
+  for (const { key, p, top, w, h, foot, flip } of stamps) {
+    contactShadow(ctx, p.x, p.y, w * 0.48, Math.max(2.7, w * 0.16), 0.62);
+    if (top > 14 * view.zoom) {
+      castShadow(ctx, key, p.x, p.y, h, flip, 0.34, 0.9, foot);
+    }
   }
-  for (const { plant, art, x, y, dx, w, h, flip } of stamps) {
+  for (const { plant, art, p, x, top, w, h, foot, flip } of stamps) {
     const trait = hash2(Math.floor(plant.gx * 53), Math.floor(plant.gy * 71), 87);
     const plantedRow = plant.kind === 'leeks' || plant.kind === 'cabbage';
     // A representative set of stems catches the wind. Distant hedges stay in the terrain
     // bake behind the standing trees. Shadows and the foot of every plant stay there too.
     const live = plantedRow || (trait < 0.52 && inGrid(plant.gx, plant.gy));
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(x, p.y - top);
     if (flip) ctx.scale(-1, 1);
     if (live) {
-      const root = Math.round(art.h * 0.84);
+      const root = Math.round(art.h * (foot[1] - 0.05));
       const cut = h * root / art.h;
-      ctx.drawImage(art.img, 0, root, art.w, art.h - root, -w / 2, cut - h * 0.88, w, h - cut);
+      ctx.drawImage(art.img, 0, root, art.w, art.h - root, -w / 2, cut, w, h - cut);
       const stage = world(view.rot, plant.gx, plant.gy);
-      moving.push({ art, gx: plant.gx, gy: plant.gy, wx: stage.x + dx / view.zoom, wy: stage.y, width: w / view.zoom, height: h / view.zoom, root, trait, compliance: compliance[plant.kind], flip });
-    } else ctx.drawImage(art.img, -w / 2, -h * 0.88, w, h);
+      moving.push({ art, gx: plant.gx, gy: plant.gy, wx: stage.x + (x - p.x) / view.zoom, wy: stage.y - top / view.zoom, width: w / view.zoom, height: h / view.zoom, root, trait, compliance: compliance[plant.kind], flip });
+    } else ctx.drawImage(art.img, -w / 2, 0, w, h);
     ctx.restore();
   }
 }
@@ -164,11 +168,11 @@ export function drawWindPlants(ctx: CanvasRenderingContext2D, view: View, time: 
     const y = oy + plant.wy * view.zoom;
     const w = plant.width * view.zoom;
     const h = plant.height * view.zoom;
-    if (x < view.x - w || x > view.x + view.w + w || y < view.y - h || y > view.y + view.h + h) continue;
+    if (x < view.x - w || x > view.x + view.w + w || y + h < view.y || y > view.y + view.h) continue;
     const cap = h * plant.root / plant.art.h;
     const bend = plant.compliance * windAt(time, plant.gx, plant.gy, plant.trait, view.rot);
     ctx.save();
-    ctx.transform(plant.flip ? -1 : 1, 0, -bend, 1, x, y - h * 0.88 + cap);
+    ctx.transform(plant.flip ? -1 : 1, 0, -bend, 1, x, y + cap);
     ctx.drawImage(plant.art.img, 0, 0, plant.art.w, plant.root, -w / 2, -cap, w, cap);
     ctx.restore();
   }

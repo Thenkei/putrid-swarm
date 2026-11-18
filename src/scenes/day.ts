@@ -64,6 +64,13 @@ const panLimit = (value: number, size: number): number => Math.min(size - PAN_IN
 /** How close a predicted route must pass for a device there to do anything. A barrier only holds what walks into it. */
 const coverReach = (type: DeviceTypeId): number => (type === 'barrier' ? 0.5 : DEVICES[type].reach);
 
+function dayDeviceVisual(d: DeviceInstance, highlight = false, silent = false): DeviceVisual {
+  return {
+    id: d.id, type: d.type, x: d.x, y: d.y, facing: d.facing,
+    state: d.broken ? 'broken' : 'idle', hpRatio: d.hp / DEVICES[d.type].maxHp, highlight, silent,
+  };
+}
+
 /** Where the infected are predicted to walk: sample routes to draw, and every cell stepped on per door. */
 interface Forecast {
   readonly routes: Cell[][];
@@ -476,8 +483,8 @@ export class DayScene implements Scene {
   private flip(): void {
     audio.play('camera');
     this.rot = this.rot === 0 ? 1 : 0;
-    // Keep looking at the same piece of ground.
     this.ghostCache = null;
+    this.updateHover(this.app.pointer);
     this.refresh();
   }
 
@@ -686,18 +693,7 @@ export class DayScene implements Scene {
     const ghost = placing ? { ...placing, idle: this.ghostIdle() } : null;
     const hoverId = this.mode.kind === 'repair' || this.mode.kind === 'dismantle' ? this.hoverDevice?.id : undefined;
     const marksSilent = this.showRoutes && this.mode.kind !== 'build';
-    const devices: DeviceVisual[] = state.yard.devices.map((d) => ({
-      id: d.id,
-      type: d.type,
-      x: d.x,
-      y: d.y,
-      facing: d.facing,
-      state: d.broken ? 'broken' : 'idle',
-      hpRatio: d.hp / DEVICES[d.type].maxHp,
-      highlight: d.id === hoverId,
-      // Shown with the routes: both answer "is this trap where they walk?".
-      silent: marksSilent && wasSilent(state, d),
-    }));
+    const devices = state.yard.devices.map(d => dayDeviceVisual(d, d.id === hoverId, marksSilent && wasSilent(state, d)));
     const def = this.mode.kind === 'build' ? DEVICES[this.mode.type] : null;
     // Out of build mode, the trap under the pointer shows how far it reaches.
     const reaching = !def && this.hoverDevice && isTrap(this.hoverDevice.type) && !this.hoverDevice.broken ? this.hoverDevice : null;
@@ -768,7 +764,7 @@ export class DayScene implements Scene {
         this.hoverDevice = null;
         this.hoverDoor = null;
       } else {
-        const visuals: DeviceVisual[] = this.state.yard.devices.map((d) => ({ id: d.id, type: d.type, x: d.x, y: d.y, state: 'idle', hpRatio: 1 }));
+        const visuals = this.state.yard.devices.map(d => dayDeviceVisual(d));
         const picked = pickDevice(view, visuals, pointer.x, pointer.y);
         this.hoverDevice = picked ? (this.state.yard.devices.find((d) => d.id === picked.id) ?? null) : null;
         this.hoverDoor = this.hoverDevice ? null : pickDoor(view, pointer.x, pointer.y);

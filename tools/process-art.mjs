@@ -151,34 +151,6 @@ async function writeSprite(img, box, entry, name) {
   const resize = entry.h ? { height: Math.min(entry.h, height) } : { width: Math.min(entry.w ?? width, width) };
   pipeline = pipeline.resize({ ...resize, kernel: 'lanczos3' });
   if (entry.mirrorSprites?.includes(name)) pipeline = pipeline.flop();
-  if (entry.id === 'yard_flora' || entry.id === 'yard_flora_back') {
-    // Keep the underside of leaves and canes legible when a 168px botanical plate is
-    // painted only 25px wide. The upper edge keeps its original rim light.
-    const { data, info } = await pipeline.sharpen({ sigma: 1.1, m1: 1.3, m2: 2.5 }).raw().toBuffer({ resolveWithObject: true });
-    const out = Buffer.from(data);
-    const ink = [38, 34, 23];
-    const stride = info.width * 4;
-    const lightness = p => (data[p] + data[p + 1] * 2 + data[p + 2]) * 0.25;
-    for (let y = 3; y < info.height - 2; y++) {
-      for (let x = 3; x < info.width - 2; x++) {
-        const i = (y * info.width + x) * 4;
-        const a = data[i + 3] / 255;
-        const upper = Math.max(data[i - stride * 3 + 3], data[i - stride - 12 + 3], data[i + 8 + 3] * 0.65) / 255;
-        const under = upper * (1 - a) * 0.94;
-        const combined = a + under;
-        if (!combined) continue;
-        // Accentuate the existing dark vein and overlap strokes where they meet a lighter leaf.
-        const edge = Math.max(lightness(i - 8), lightness(i + 8), lightness(i - stride * 2), lightness(i + stride * 2)) - lightness(i);
-        const vein = Math.max(0, Math.min(21, (edge - 6) * 0.55));
-        for (let c = 0; c < 3; c++) {
-          const paint = Math.max(0, Math.min(255, 1.23 * data[i + c] - 25 - vein));
-          out[i + c] = Math.round((paint * a + ink[c] * under) / combined);
-        }
-        out[i + 3] = Math.round(combined * 255);
-      }
-    }
-    pipeline = sharp(out, { raw: info });
-  }
   if (['dev_log', 'dev_spikes', 'dev_net', 'dev_barrier', 'dev_floodlight', 'dev_horn'].includes(entry.id) && name.endsWith('_triggered')) {
     // The concept sheet included detached comic rays, dust and action strokes. Keep the
     // actual apparatus: sound waves, light and impact fragments are animated in the game.
@@ -207,14 +179,17 @@ async function writeSprite(img, box, entry, name) {
     const footBand = entry.id.startsWith('forest_stands') ? 0.93 : 0.82;
     let mass = 0;
     let weightedX = 0;
+    let weightedY = 0;
     for (let y = Math.floor(rgba.height * footBand); y < rgba.height; y++) {
       for (let x = 0; x < rgba.width; x++) {
         const alpha = data[(y * rgba.width + x) * 4 + 3];
         mass += alpha;
         weightedX += (x + 0.5) * alpha;
+        weightedY += (y + 0.5) * alpha;
       }
     }
     manifest[name].footX = mass ? Number((weightedX / mass / rgba.width).toFixed(4)) : 0.5;
+    manifest[name].footY = mass ? Number((weightedY / mass / rgba.height).toFixed(4)) : 1;
   }
   if (name === 'dev_fence_broken') await fallenPalisades(join(OUT_DIR, file));
 }

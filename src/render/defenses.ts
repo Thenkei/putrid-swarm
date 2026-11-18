@@ -4,39 +4,51 @@ import { SECTOR_IDS, type DeviceTypeId, type Facing, type SectorId } from '../co
 import { sprite, type Sprite } from '../engine/assets';
 import { calmMotion } from './lighting';
 import type { Rot } from './projection';
+import type { Foot } from './registration';
 import { castShadow, castSilhouette, SHADOW_RGB } from './shadows';
 
 type Kind = DeviceTypeId | 'barricade';
 type Pose = 'resting' | 'armed' | 'triggered' | 'broken';
 
-export interface DefenseArt { key: string; h: number; lift: number; flip: boolean; rear?: boolean }
+export interface DefenseArt { key: string; h: number; lift: number; foot: Foot; flip: boolean; rear?: boolean }
 
-const dimensions: Record<DeviceTypeId, readonly [height: number, lift: number]> = {
-  fence: [42, 11], spikes: [50, 14], log: [74, 12], net: [64, 12],
-  barrier: [54, 12], horn: [54, 11], floodlight: [78, 9],
+// Fixed mounting points of both paintings: midline between fence posts, midpoint of the
+// anchored frame, centre of the trolley wheels and planted base of the floodlight pole.
+const fittings: Record<DeviceTypeId | 'flat' | 'deep', readonly [height: number, front: Foot, rear: Foot]> = {
+  fence: [42, [0.5, 0.84], [0.5, 0.84]], flat: [40, [0.5, 0.958], [0.5, 0.953]], deep: [60, [0.5, 0.74], [0.5, 0.74]],
+  spikes: [50, [0.51, 0.576], [0.53, 0.62]], log: [74, [0.484, 0.833], [0.50, 0.83]],
+  net: [64, [0.51, 0.881], [0.567, 0.855]], barrier: [54, [0.50, 0.82], [0.51, 0.82]],
+  horn: [54, [0.438, 0.83], [0.593, 0.818]], floodlight: [78, [0.584, 0.963], [0.573, 0.965]],
 };
 
 export function deviceArt(type: DeviceTypeId, facing: Facing | undefined, pose: Pose, rot: Rot): DefenseArt {
   // Turning the camera through 180° keeps the slope of a fence line. It swaps ends and
   // exposes the opposite side of the apparatus; only changing the installed axis mirrors it.
-  if (type === 'fence' && (facing === 2 || facing === 3)) {
-    const flat = facing === 2;
+  const angle = type === 'fence' && facing === 2 ? 'flat' : type === 'fence' && facing === 3 ? 'deep' : type;
+  const [h, front, back] = fittings[angle];
+  const foot = rot === 0 ? front : back;
+  let key = `dev_${rot === 1 ? 'back_' : ''}${type}_${pose}`;
+  if (angle === 'flat' || angle === 'deep') {
     const suffix = pose === 'broken' ? '_broken' : pose === 'triggered' ? '_hurt' : '';
-    const angle = flat ? 'flat' : 'deep';
-    const backPose = !flat && pose === 'armed' ? 'resting' : pose;
-    return {
-      key: rot === 1 ? `dev_back_${angle}_${backPose}` : `fence_diag_${angle}${suffix}`,
-      h: flat ? 40 : 60, lift: flat ? 6 : 17, flip: false, rear: rot === 1,
-    };
+    const backPose = angle === 'deep' && pose === 'armed' ? 'resting' : pose;
+    key = rot === 1 ? `dev_back_${angle}_${backPose}` : `fence_diag_${angle}${suffix}`;
   }
-  const [h, lift] = dimensions[type];
-  return { key: `dev_${rot === 1 ? 'back_' : ''}${type}_${pose}`, h, lift, flip: facing === 1, rear: rot === 1 };
+  return { key, h, lift: (1 - foot[1]) * h, foot, flip: facing === 1, rear: rot === 1 };
 }
 
 export function devicePose(d: { type: DeviceTypeId; state: DeviceRuntimeState | 'idle'; hpRatio: number }): Pose {
   if (d.state === 'broken') return 'broken';
   if ((d.type === 'fence' && d.hpRatio <= 0.5) || d.state === 'active') return 'triggered';
   return d.state === 'armed' ? 'armed' : 'resting';
+}
+
+/** Bulb on the exposed face, and the light escaping past the housing on the reverse face. */
+export function floodlightEmitter(facing: Facing | undefined, rot: Rot): { dx: number; lift: number } {
+  const art = deviceArt('floodlight', facing, 'triggered', rot);
+  const paint = sprite(art.key);
+  const width = art.h * (paint ? paint.w / paint.h : 0.83);
+  const [x, y] = rot === 0 ? [0.365, 0.25] as const : [0.89, 0.155] as const;
+  return { dx: (x - art.foot[0]) * width * (art.flip ? -1 : 1), lift: (art.foot[1] - y) * art.h };
 }
 
 export function doorPose(ratio: number, level: 0 | 1): Pose {
@@ -401,7 +413,7 @@ export function drawDefense(ctx: CanvasRenderingContext2D, x: number, y: number,
   const side = d.art.rear ? -1 : 1;
   const direction = ((w?.strikes ?? 0) % 2 ? 1 : -1) * side;
   const still = calmMotion();
-  ctx.save(); ctx.translate(x, y + d.art.lift * zoom);
+  ctx.save(); ctx.translate(x, y);
   if (d.art.flip) ctx.scale(-1, 1);
   const capacity = d.maxHp ?? (d.kind === 'barricade' ? BARRICADE.maxHp[0] : DEVICES[d.kind].maxHp);
   const beforeRatio = w ? w.beforeBreakHp / capacity : 1;
@@ -412,15 +424,16 @@ export function drawDefense(ctx: CanvasRenderingContext2D, x: number, y: number,
     const swing = Math.sin(hitAge * 42 + 0.26) * Math.exp(-hitAge * 10);
     ctx.transform(1, 0, direction * swing * 0.13, 1 - Math.abs(swing) * 0.045, 0, 0);
   }
-  ctx.scale(width / 200, h / 200); ctx.translate(-100, -200);
+  const [footX, footY] = d.art.foot;
+  ctx.scale(width / 200, h / 200); ctx.translate(-200 * footX, -200 * footY);
   if (!still && w && breakAge < 0.7) {
     ctx.save(); ctx.globalAlpha *= ease((breakAge - 0.06) / 0.32); ctx.drawImage(image, 0, 0, 200, 200); ctx.restore();
-    const beforeKey = d.previous(w.beforeBreak).key;
+    const beforeArt = d.previous(w.beforeBreak), beforeKey = beforeArt.key;
     const former = sprite(beforeKey);
     if (former && breakAge < 0.63) {
-      ctx.save(); ctx.translate(100, 200);
+      ctx.save(); ctx.translate(200 * footX, 200 * footY);
       if (d.kind !== 'barricade' && d.kind !== 'fence') ctx.transform(1, 0, side * sag * h / width, 1 - 0.15 * sag, 0, 0);
-      ctx.scale((former.w / former.h) / (art.w / art.h), 1); ctx.translate(-100, -200);
+      ctx.scale((former.w / former.h) / (art.w / art.h), 1); ctx.translate(-200 * beforeArt.foot[0], -200 * beforeArt.foot[1]);
       collapse(ctx, fractureFrame(d, w, former, beforeKey, beforeRatio), breakAge, direction); ctx.restore();
     }
     chips(ctx, d.kind, breakAge, true, direction);
@@ -468,12 +481,12 @@ function drawOperation(ctx: CanvasRenderingContext2D, d: DefenseDrawing, art: Sp
 const castPoses = new Map<string, HTMLCanvasElement>();
 export function drawDeviceCast(ctx: CanvasRenderingContext2D, x: number, y: number, zoom: number, type: DeviceTypeId,
   art: DefenseArt, state: DeviceRuntimeState | 'idle', activeAge: number, rearm: number, alpha: number): void {
-  const foot = y + (art.lift - 6) * zoom, h = art.h * zoom;
+  const h = art.h * zoom;
   const moving = type === 'log' || movingParts[type];
   const resetting = state === 'rearming';
   const resetAge = rearm * DEVICES[type].rearmSeconds;
   if (!moving || calmMotion() || (state !== 'active' && !resetting) || (resetting && type !== 'log' && resetAge >= 0.55)) {
-    castShadow(ctx, art.key, x, foot, h, art.flip, alpha, 0.85);
+    castShadow(ctx, art.key, x, y, h, art.flip, alpha, 0.85, art.foot);
     return;
   }
   const duration = resetting ? (type === 'log' ? DEVICES.log.rearmSeconds : 0.55) : (type === 'log' ? DEVICES.log.activeSeconds : 0.55);
@@ -495,5 +508,5 @@ export function drawDeviceCast(ctx: CanvasRenderingContext2D, x: number, y: numb
     c.globalCompositeOperation = 'source-in'; c.fillStyle = `rgb(${SHADOW_RGB})`; c.fillRect(0, 0, 200, 200);
     castPoses.set(key, shape);
   }
-  castSilhouette(ctx, shape, x, foot, h, art.flip, alpha, 0.85);
+  castSilhouette(ctx, shape, x, y, h, art.flip, alpha, 0.85, art.foot);
 }

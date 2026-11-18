@@ -83,6 +83,7 @@ const REF_MAYOR_WAVE = C('16-mayor-wave-camera.png');
 const REF_MORNING = C('17-morning-after.png');
 const REF_HOMESTEAD = C('01-day-night-homestead.png');
 const REF_PROJECTION = C('03-2d-projection-comparison.png');
+const YARD_STYLE_REFS = ['art/raw/obj_trees.png', 'art/raw/obj_house_front.png'];
 
 export const ART = [
   // ───────────────────────────── Plates taken directly from the concept art ─────────────────────────────
@@ -419,24 +420,24 @@ export const ART = [
     id: 'yard_scatter',
     kind: 'split', cols: 3, rows: 2, w: 128,
     names: ['straw', 'fern', 'stones', 'leaves', 'yarrow', 'dock'],
-    refs: [REF_MORNING],
+    refs: YARD_STYLE_REFS,
     prompt:
       'Three columns by two rows of individual low ground details, isolated with empty gutters. ' +
       'Upper row: sparse ochre autumn grass tussock, olive bracken fern, loose group of flat slate stones. ' +
       'Lower row: small drift of curled tawny oak leaves and a twig, small ivory yarrow flowerheads and sage blades, short meadow grass with dock leaves. ' +
-      `Nearly flat on the ground, three-quarter top-down angle, no dirt base. ${ISO} ${KEY} ${STYLE}`,
+      `Echo the apple tree’s dark broken contours, folded leaf shapes and ochre highlights at ground-cover scale. Nearly flat on the ground, three-quarter top-down angle, no dirt base. ${ISO} ${KEY} ${STYLE}`,
   },
   {
     id: 'yard_flora',
     kind: 'split', cols: 3, rows: 3, w: 168,
     names: ['foxtail', 'knapweed', 'clover', 'bramble', 'hazel', 'nettle', 'cabbage', 'leeks', 'chicory'],
-    refs: [REF_MORNING],
+    refs: YARD_STYLE_REFS,
     prompt:
       'Transparent three-by-three sprite sheet of nine low plants for a French farm, each clump isolated with generous clear space. ' +
       'First row: a windswept silver-green foxtail fan with tawny seed heads, muted purple knapweed, and spreading ivory-flowered clover. ' +
       'Middle row: an arching russet blackberry cane with dark berries, a golden heart-leaved hazel sapling, and a dense triangle of serrated dark-green nettles. ' +
       'Bottom row: a pair of blue-sage and plum cabbages, strap-leaved leeks with two cream allium umbels, and a low roadside chicory with faded periwinkle flowers. ' +
-      'Broad gouache shapes, warm grazing light, legible silhouettes seen from 35 degrees overhead. No text, soil base or shadow.',
+      'Use the orchard tree’s warm brown ink, overlapping leaf groups and short broken shadow strokes. Keep the interior shapes legible at 25 pixels, light from upper left, clear background.',
   },
   {
     id: 'yard_masonry',
@@ -479,12 +480,12 @@ export const ART = [
     id: 'forest_stands',
     kind: 'split', cols: 3, rows: 2, h: 430,
     names: ['fir', 'firpair', 'beech', 'birch', 'oak', 'coppice'],
-    refs: [REF_PROJECTION, REF_MORNING],
+    refs: YARD_STYLE_REFS,
     prompt:
       'Six distinct woodland cutouts from a French farm in late autumn, in a three-column, two-row sheet. ' +
       'Top row: a tall windswept silver fir, paired young spruces, a copper beech with an open crown. ' +
       'Bottom row: three silver birches with flecked white trunks, a broad gnarled russet oak, low multi-stem hazel coppice. ' +
-      'Each stands upright under upper-left light with its own irregular silhouette, generous transparent gutters and no ground or cast shadows. ' +
+      'Match the orchard tree’s broken dark contours, clustered leaves, forked branches and warm bark hatching. Keep each species recognizable by its trunk and crown. Upper-left light, transparent gutters and no ground or cast shadows. ' +
       `${ISO} ${STYLE}`,
   },
   {
@@ -1525,11 +1526,11 @@ export const ART = [
     rows: 2,
     names: ['grass', 'path', 'gravel', 'forest'],
     w: 256,
-    refs: [REF_MORNING],
+    refs: YARD_STYLE_REFS,
     prompt:
       'Texture swatch sheet: the square canvas is divided into exactly four equal square quadrants, each completely filled edge to edge with a different flat TOP-DOWN ground texture, no perspective, no objects, no shadows, even lighting, ' +
       'in the same inked and painted style as the ground in the reference. ' +
-      'Top-left: painterly swathes of earthy sage and olive late-autumn lawn with dry ochre blades. Top-right: smooth warm sienna silt with small cracks and compressed earth. Bottom-left: muted blue-grey silty gravel with tiny slate chips. Bottom-right: dark umber loam, copper beech leaves, pine needles and muted blue moss. Low-contrast, even gouache brushwork. ' +
+      'Top-left: earthy olive turf, a few groups of dry ochre blades. Top-right: warm sienna silt with broken ink marks on compressed earth. Bottom-left: muted grey gravel with small faceted slate chips. Bottom-right: dark umber loam, copper leaves and pine needles. Keep broad shapes quiet, with short pen strokes like the shadows under the apple branches. ' +
       STYLE,
   },
   {

@@ -82,6 +82,9 @@ export interface Enemy {
 
 export type TelegraphKind = 'mower' | 'ram' | 'speech' | 'whistle' | 'boar';
 
+/** Position and approach at the instant of impact, before a shove or the end-of-step sweep. */
+export type EnemyImpact = Pick<Enemy, 'x' | 'y' | 'fx' | 'fy' | 'type' | 'def' | 'target' | 'action' | 'offsetX' | 'offsetY' | 'lureDevice' | 'crawlDepth'>;
+
 const clearsLog = (e: Enemy, log: DeviceRuntime): boolean =>
   e.action === 'crawl' && e.crawlLog === log && e.crawlDepth >= 1 && e.nettedFor <= 0 && e.stunnedFor <= 0;
 
@@ -94,8 +97,8 @@ export type SimEvent =
   | { readonly type: 'trigger_denied'; readonly deviceId: number; readonly reason: TriggerError }
   | { readonly type: 'device_ready'; readonly deviceId: number; readonly device: DeviceTypeId; readonly x: number; readonly y: number }
   | { readonly type: 'device_broken'; readonly deviceId: number; readonly device: DeviceTypeId; readonly x: number; readonly y: number }
-  | { readonly type: 'enemy_hit'; readonly x: number; readonly y: number; readonly amount: number }
-  | { readonly type: 'enemy_dead'; readonly id: number; readonly enemy: EnemyTypeId; readonly x: number; readonly y: number; readonly fx: number; readonly fy: number }
+  | { readonly type: 'enemy_hit'; readonly x: number; readonly y: number; readonly amount: number; readonly pose: EnemyImpact }
+  | { readonly type: 'enemy_dead'; readonly id: number; readonly enemy: EnemyTypeId; readonly x: number; readonly y: number; readonly fx: number; readonly fy: number; readonly pose: EnemyImpact }
   | { readonly type: 'barricade_hit'; readonly sector: SectorId }
   | { readonly type: 'breach'; readonly sector: SectorId }
   | { readonly type: 'entered'; readonly sector: SectorId; readonly enemy: EnemyTypeId; readonly damage: number }
@@ -182,7 +185,7 @@ const CORNER_AFTER: Readonly<Record<SectorId, Cell>> = {
 };
 const nextSector = (sector: SectorId): SectorId => SECTOR_CYCLE[(SECTOR_CYCLE.indexOf(sector) + 1) % SECTOR_CYCLE.length] as SectorId;
 
-const DOOR_REACH = 1.3;
+export const DOOR_REACH = 1.3;
 const FENCE_BLOW_FACTOR = 2.5;
 const TRAMPLE_DAMAGE = 45;
 const LURE_GNAW_DPS = 2;
@@ -1234,14 +1237,16 @@ export class NightSim {
     if (e.type === 'mower' && e.boss?.phase === 'jam') dealt *= 1.5;
     e.hp -= dealt;
     e.hitFlash = HIT_REACTION_SECONDS;
-    this.events.push({ type: 'enemy_hit', x: e.x, y: e.y, amount: Math.round(dealt) });
+    const { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth } = e;
+    const pose = { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth, target: type === 'mower' && e.boss ? e.boss.sector : e.target };
+    this.events.push({ type: 'enemy_hit', x, y, amount: Math.round(dealt), pose });
     if (e.hp > 0) return;
     e.hp = 0;
     e.alive = false;
     this.kills[e.type] = (this.kills[e.type] ?? 0) + 1;
     this.killCount++;
     this.addDecal('splat', Math.floor(e.x), Math.floor(e.y));
-    this.events.push({ type: 'enemy_dead', id: e.id, enemy: e.type, x: e.x, y: e.y, fx: e.fx, fy: e.fy });
+    this.events.push({ type: 'enemy_dead', id: e.id, enemy: type, x, y, fx, fy, pose });
     if (e.def.boss) {
       this.bossDefeated = e.def.boss;
       this.events.push({ type: 'boss_dead', boss: e.def.boss, x: e.x, y: e.y });

@@ -39,10 +39,14 @@ export function treesIn(x0: number, y0: number, x1: number, y1: number): Tree[] 
       if (opening > 0.69 && hash2(i, j, 28) < (opening - 0.69) * 2.9) continue;
       const palette = grove < 0.38 ? conifers : grove > 0.71 ? scrub : broadleaf;
       const kind = palette[Math.floor(hash2(i, j, 27) * palette.length)]!;
-      const h = HEIGHT[kind] * (0.75 + 0.44 * hash2(i, j, 29)) * (0.9 + 0.16 * (1 - opening));
+      const trait = hash2(i, j, 31);
+      const mature = HEIGHT[kind] * (0.75 + 0.44 * hash2(i, j, 29)) * (0.9 + 0.16 * (1 - opening));
+      // First come saplings along the clearing, then grown trees. A half-turn reveals
+      // each tree's opposite face without changing its relationship to its neighbours.
+      const edgeHeight = (34 + 12 * distance + 3.35 * distance * distance) * (0.75 + trait * 0.28);
       trees.push({
-        gx, gy, key: `forest_stands_${kind}`, h, flip: hash2(i, j, 30) < 0.5,
-        row: Math.min(TREE_ROWS - 1, Math.floor(distance / 2.1)), trait: hash2(i, j, 31),
+        gx, gy, key: `forest_stands_${kind}`, h: Math.min(mature, edgeHeight), flip: hash2(i, j, 30) < 0.5,
+        row: Math.min(TREE_ROWS - 1, Math.floor(distance / 2.1)), trait,
       });
     }
   }
