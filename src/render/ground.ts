@@ -13,7 +13,8 @@ import { SHADOW_RGB } from './shadows';
 import { FIELD_MARGIN, GROUND_TERRAINS, TRACKS, layerAlpha, roadCentre, terrainField, type GroundTerrain, type TerrainField } from './terrainfield';
 import { dressYardFloor } from './yard-floor';
 import { drawForest } from './forest';
-import { drawYardPlants } from './yard-plants';
+import { drawWindPlants, drawYardPlants } from './yard-plants';
+import type { BrushPassage } from './brush';
 
 const MARGIN = FIELD_MARGIN;
 /** Cache pixels per stage unit at zoom 1: the swatches are laid at one texel per pixel or finer. */
@@ -484,7 +485,7 @@ function outerRoad(ctx: CanvasRenderingContext2D, road: keyof typeof TRACKS, fro
 }
 
 /** Draws the ground for a view. The context is expected to be clipped to the view already. */
-export function drawGround(ctx: CanvasRenderingContext2D, view: View, time = 0): void {
+export function drawGround(ctx: CanvasRenderingContext2D, view: View, time = 0, passage?: BrushPassage): void {
   const z = view.zoom;
   const bounds = viewBounds(view);
 
@@ -508,6 +509,8 @@ export function drawGround(ctx: CanvasRenderingContext2D, view: View, time = 0):
   const gx0 = view.x + view.w / 2 + (GROUND_X0 - c.x) * z;
   const gy0 = view.y + view.h / 2 + (GROUND_Y0 - c.y) * z;
   ctx.drawImage(ground(view.rot), gx0, gy0, GROUND_W * z, GROUND_H * z);
+  // Moving tops belong to the same undergrowth as their baked roots, below the woodland canopy.
+  drawWindPlants(ctx, view, time, passage);
   drawForest(ctx, view, time);
 
   // The lot reads as a clearing: the further into the wood, the less light gets down.

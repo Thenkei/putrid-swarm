@@ -15,9 +15,11 @@ import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
+import { BrushPassage } from '../render/brush';
 import { DefenseMotion, deviceArt, floodlightEmitter } from '../render/defenses';
 import { THRESHOLDS, doorStance, houseDamageStage } from '../render/house';
 import { HOUSE_BREAK_SECONDS, type HouseBreak } from '../render/house-debris';
+import { LogReactions } from '../render/log-sweep';
 import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
 import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
 import { drawPlate, oneArmed } from './common';
@@ -93,6 +95,7 @@ interface TrapButton {
 
 export class NightScene implements Scene {
   private readonly sim: NightSim;
+  private readonly brushPassage = new BrushPassage();
   private readonly defenseMotion = new DefenseMotion();
   private cam: SectorId = 'portail';
   private accumulator = 0;
@@ -105,6 +108,8 @@ export class NightScene implements Scene {
   private flash = 0;
   private readonly particles: Particle[] = [];
   private readonly fallen: Fallen[] = [];
+  private readonly logReactions = new LogReactions();
+  private readonly impactFeedback: SimEvent[] = [];
   private readonly houseBreaks: HouseBreak[] = [];
   private hoverDevice: number | null = null;
 
@@ -635,7 +640,8 @@ export class NightScene implements Scene {
         y: d.y,
         facing: d.facing,
         state: d.state,
-        activeAge: d.state === 'active' ? def.activeSeconds - d.timer : 0,
+        activeAge: d.state === 'active' ? Math.min(def.activeSeconds, def.activeSeconds - d.timer + (d.type === 'log' ? this.ending?.t ?? 0 : 0)) : 0,
+        ...(d.logTarget && (d.state === 'active' || d.state === 'broken') && { logTarget: d.logTarget }),
         hpRatio: Math.max(0, d.hp / def.maxHp),
         rearm: d.state === 'rearming' ? 1 - d.timer / def.rearmSeconds : 0,
         highlight: sector !== null && d.id === this.hoverDevice,
@@ -673,7 +679,12 @@ export class NightScene implements Scene {
 
   private consume(events: readonly SimEvent[]): void {
     const s = S();
+    const now = this.sim.time + (this.ending?.t ?? 0);
     for (const event of events) {
+      if (event.showAt !== undefined && event.showAt > now) {
+        this.impactFeedback.push(event);
+        continue;
+      }
       switch (event.type) {
         case 'wave':
           this.banner(fmt(s.night.wave, { i: event.index, n: event.total }));
@@ -695,15 +706,24 @@ export class NightScene implements Scene {
         case 'trigger': {
           const sound = TRIGGER_SOUND[event.device];
           // Automatic traps are part of the background; the ones fired by hand are louder.
-          if (sound) audio.play(sound, event.auto ? 0.6 : 1);
+          if (sound && event.device !== 'log') audio.play(sound, event.auto ? 0.6 : 1);
           if (!event.auto) this.endCoach('fire');
           if (!event.auto && event.kills >= 2) this.remark('praise', 14);
           const def = DEVICES[event.device];
           const cx = event.x + 0.5;
           const cy = event.y + 0.5;
           if (event.device === 'horn' || event.device === 'net') this.particles.push({ kind: 'ring', x: cx, y: cy, age: 0, life: event.device === 'horn' ? 1.1 : 0.45, radius: def.radius, color: event.device === 'net' ? '#e2ca96' : '#f2b960' });
-          if (event.device === 'spikes' || event.device === 'log') this.particles.push({ kind: 'burst', x: cx, y: cy, age: 0, life: 0.35, radius: event.device === 'log' ? 1.7 : 1.1 });
+          if (event.device === 'spikes') this.particles.push({ kind: 'burst', x: cx, y: cy, age: 0, life: 0.35, radius: 1.1 });
           if (event.device === 'barrier') this.particles.push({ kind: 'dust', x: cx, y: cy, age: 0, life: 0.5, radius: 1 });
+          break;
+        }
+        case 'log_release':
+          this.logReactions.release(event.contactAt, event.sweeps, now);
+          break;
+        case 'log_contact': {
+          audio.play('log');
+          const foot = event.target ? doorStance(event.target) : event;
+          this.particles.push({ kind: 'dust', x: foot.x, y: foot.y, age: now - (event.showAt ?? now), life: 0.42, radius: 1.1 });
           break;
         }
         case 'trigger_denied':
@@ -728,7 +748,8 @@ export class NightScene implements Scene {
         case 'enemy_dead': {
           audio.play('kill');
           const pose = doorStance(event.pose);
-          this.fallen.push({ id: event.id, type: event.enemy, x: pose.x, y: pose.y, fx: pose.fx, fy: pose.fy, age: 0,
+          if (event.showAt === undefined) this.logReactions.cancel(event.id);
+          this.fallen.push({ id: event.id, type: event.enemy, x: pose.x, y: pose.y, fx: pose.fx, fy: pose.fy, crawlDepth: pose.crawlDepth, age: now - (event.showAt ?? now),
             ...(pose.threshold && { threshold: pose.threshold }) });
           break;
         }
@@ -825,12 +846,22 @@ export class NightScene implements Scene {
     for (let i = this.particles.length - 1; i >= 0; i--) if ((this.particles[i] as Particle).age >= (this.particles[i] as Particle).life) this.particles.splice(i, 1);
   }
 
+  private advanceImpacts(): void {
+    const now = this.sim.time + (this.ending?.t ?? 0);
+    this.logReactions.advance(now);
+    // Releases enter the queue in simulation order, including presses queued by the one hand.
+    while (this.impactFeedback.length && this.impactFeedback[0]!.showAt! <= now) {
+      this.consume([this.impactFeedback.shift()!]);
+    }
+  }
+
   update(dt: number): void {
     if (this.paused) return;
     this.time += dt;
     if (this.ending) {
       this.advanceEffects(dt);
       this.ending.t += dt;
+      this.advanceImpacts();
       if (this.ending.t >= END_HOLD_SECONDS) this.finish();
       return;
     }
@@ -851,6 +882,7 @@ export class NightScene implements Scene {
     let steps = 0;
     while (this.accumulator >= STEP && steps < MAX_STEPS_PER_FRAME * this.speed) {
       this.sim.step(STEP);
+      this.brushPassage.update(this.sim.time, this.sim.enemies);
       this.accumulator -= STEP;
       steps++;
     }
@@ -859,6 +891,7 @@ export class NightScene implements Scene {
     const stage = houseDamageStage(this.sim.houseHp / HOUSE_MAX_HP);
     if (stage > previousStage) this.houseBreaks.push({ from: previousStage, to: stage, age: 0 });
     this.defenseMotion.update(this.sim);
+    this.advanceImpacts();
     this.consume(this.sim.drainEvents());
     this.syncHud();
     this.maybeCoach();
@@ -894,8 +927,9 @@ export class NightScene implements Scene {
 
   private frame(sector: SectorId, main: boolean): WorldFrame {
     const hovered = main && this.hoverDevice !== null ? this.sim.device(this.hoverDevice) : undefined;
+    const time = this.sim.time + (this.ending?.t ?? 0);
     return {
-      time: this.sim.time + (this.ending?.t ?? 0),
+      time,
       night: true,
       carPresent: true,
       houseHpRatio: this.sim.houseHp / HOUSE_MAX_HP,
@@ -903,9 +937,10 @@ export class NightScene implements Scene {
       devices: this.deviceVisuals(main ? sector : null),
       barricades: this.sim.barricades,
       defenseMotion: this.defenseMotion,
-      decals: this.sim.decals,
-      enemies: this.sim.enemies,
-      fallen: this.fallen,
+      decals: this.impactFeedback.length ? this.sim.decals.filter(d => !this.impactFeedback.some(e => e.type === 'enemy_dead' && e.stain === d)) : this.sim.decals,
+      enemies: this.logReactions.enemies(this.sim.enemies, time),
+      brushPassage: this.brushPassage,
+      fallen: this.logReactions.bodies(this.fallen, time),
       particles: main ? this.particles : this.particles.filter((particle) => particle.kind !== 'text'),
       lanes: this.sim.telegraphedLanes(),
       focusSector: sector,

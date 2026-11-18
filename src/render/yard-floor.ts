@@ -5,7 +5,8 @@ import { sprite } from '../engine/assets';
 import { fbm, seeded } from './noise';
 import { groundMatrix, project, type View } from './projection';
 import { spriteRect } from './registration';
-import { weightAt, type TerrainField } from './terrainfield';
+import { groundPatch } from './shadows';
+import { vergeCover, weightAt, type TerrainField } from './terrainfield';
 import { vegetationView } from './vegetation';
 
 /** The stones are painted from directly overhead, so they turn with the lot. */
@@ -84,12 +85,59 @@ function garden(ctx: CanvasRenderingContext2D, view: View, gx: number, gy: numbe
   ctx.restore();
 }
 
+// Apple leaves have a pointed blade and a lighter folded edge. Draw them flat on the same
+// ground plane as the paving so each little drift turns with its tree.
+const leafInks = ['#9b6737', '#b48139', '#89603b', '#a75833', '#b99a4b', '#77743d'];
+function appleLitter(ctx: CanvasRenderingContext2D, view: View, field: TerrainField, gx: number, gy: number): void {
+  const rand = seeded(Math.floor(gx * 881 + gy * 587));
+  ctx.save();
+  ctx.transform(...groundMatrix(view));
+  const bearing = rand() * Math.PI * 2;
+  for (let j = 0; j < 4; j++) {
+    const angle = bearing + j * 2.15 + rand() * 0.6;
+    const reach = 0.45 + rand() * 0.85;
+    const cx = gx + Math.cos(angle) * reach;
+    const cy = gy + Math.sin(angle) * reach;
+    const cover = vergeCover(cx, cy) * weightAt(field, 'grass', cx, cy);
+    groundPatch(ctx, '94,63,32', cx, cy, 1.15, 0.69, 0.52 * cover);
+    for (let i = 0; i < 48; i++) {
+      // Overlapping leaves collect in the hollow; only the loose fringe reaches the turf.
+      const loose = i < 21;
+      const x = cx + (rand() + rand() - 1) * (loose ? 1.72 : 0.66);
+      const y = cy + (rand() + rand() - 1) * (loose ? 1.11 : 0.38);
+      if (rand() >= vergeCover(x, y) * weightAt(field, 'grass', x, y)) continue;
+      const length = 0.11 + rand() * 0.15;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(bearing + (rand() - 0.5) * 4.8);
+      ctx.scale(length, length * (0.45 + rand() * 0.27));
+      ctx.fillStyle = leafInks[Math.floor(rand() * leafInks.length)]!;
+      ctx.strokeStyle = '#5a432d';
+      ctx.lineWidth = 0.09;
+      ctx.beginPath();
+      ctx.moveTo(-0.53, 0.10);
+      ctx.quadraticCurveTo(-0.14, -0.83, 0.57, -0.13);
+      ctx.quadraticCurveTo(0.04, 0.62, -0.53, 0.10);
+      ctx.fill();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-0.39, 0.08);
+      ctx.quadraticCurveTo(-0.05, -0.09, 0.24, -0.05);
+      ctx.strokeStyle = 'rgba(225,181,107,0.65)';
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
+}
+
 export function dressYardFloor(ctx: CanvasRenderingContext2D, view: View, field: TerrainField): void {
   const rand = seeded(15928);
   ctx.save();
   for (const prop of PROPS) {
     if (prop.kind === 'veg') garden(ctx, view, prop.x, prop.y, rand);
-    if (prop.kind === 'apple' || prop.kind === 'oak') {
+    if (prop.kind === 'apple') appleLitter(ctx, view, field, prop.x + prop.w / 2, prop.y + prop.h / 2);
+    if (prop.kind === 'oak') {
       for (let i = 0; i < 7; i++) {
         const gx = prop.x + 0.55 + (rand() + rand() - 1) * 1.9;
         const gy = prop.y + 0.61 + (rand() + rand() - 1) * 1.55;
@@ -110,10 +158,10 @@ export function dressYardFloor(ctx: CanvasRenderingContext2D, view: View, field:
     if (weightAt(field, 'forest', gx, gy) > 0.45) {
       if (patch > 0.44) scatter(ctx, view, gx, gy, trait > 0.67 ? 'fern' : 'leaves', 13 + rand() * 18, flip);
     } else if (weightAt(field, 'grass', gx, gy) > 0.6) {
-      if (patch < 0.61) continue;
+      if (patch < 0.61 || trait >= vergeCover(gx, gy)) continue;
       const kind = trait < 0.12 ? 'yarrow' : trait < 0.55 ? 'straw' : 'dock';
       scatter(ctx, view, gx, gy, kind, 15 + rand() * 14, flip);
-    } else if (trait > 0.58 && weightAt(field, 'path', gx, gy) < 0.95) {
+    } else if (trait > 0.58 && trait < vergeCover(gx, gy) && weightAt(field, 'path', gx, gy) < 0.95) {
       scatter(ctx, view, gx, gy, 'stones', 11 + rand() * 13, flip);
     }
   }

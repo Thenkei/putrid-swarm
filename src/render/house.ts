@@ -185,7 +185,7 @@ function doorway(sector: SectorId) {
   return { view, sx: sill.dx, sy: -sill.lift, gx: point.gx, gy: point.gy, width: d.w * HOUSE_PAINT_SCALE, slope: d.rise / d.w };
 }
 export const THRESHOLDS = { portail: doorway('portail'), grange: doorway('grange'), arriere: doorway('arriere'), verger: doorway('verger') };
-const outward = { portail: [0, 1], grange: [1, 0], arriere: [0, -1], verger: [-1, 0] } as const;
+export const DOOR_OUTWARD = { portail: [0, 1], grange: [1, 0], arriere: [0, -1], verger: [-1, 0] } as const;
 
 /** The simulation resolves a bite within a radius around the entry cell. Carry the last step
  * to the painted boards, leaving pathfinding, collision and trap targeting in simulation space. */
@@ -196,7 +196,7 @@ export function doorStance<T extends EnemyImpact & { boss?: { sector: SectorId }
   const contactDistance = mower ? 0.12 : DOOR_REACH, approach = 0.92;
   if (distance >= contactDistance + approach || e.lureDevice !== null || e.crawlDepth > 0 ||
     (distance > contactDistance && e.action !== 'walk' && e.action !== 'charge')) return e;
-  const door = THRESHOLDS[sector], [nx, ny] = outward[sector];
+  const door = THRESHOLDS[sector], [nx, ny] = DOOR_OUTWARD[sector];
   const p = project(door.view, e.x, e.y);
   // Preserve lateral ordering on a wide barn door, and spread a crowd across a narrow jamb.
   const side = Math.max(-0.32, Math.min(0.32, (p.x - door.sx) / door.width)) + (e.offsetX - e.offsetY) * 0.22;

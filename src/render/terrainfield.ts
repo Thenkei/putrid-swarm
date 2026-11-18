@@ -6,7 +6,7 @@
 // Everything is computed in grid coordinates and without a canvas: both sides of the house and all
 // four cameras paint from the same field, and it can be checked without a browser.
 
-import { GRID_H, GRID_W, inGrid, terrainAt, type Terrain } from '../core/map';
+import { GRID_H, GRID_W, LANES, inGrid, terrainAt, type Terrain } from '../core/map';
 import { clamp01, fbm, smoothstep } from './noise';
 
 export type GroundTerrain = Exclude<Terrain, 'house'>;
@@ -41,6 +41,27 @@ export const TRACKS = {
   /** The gravel track: cells y 11..12, leaving on the barn side (+x). */
   barn: { y0: 11, y1: 13 },
 } as const;
+
+// A narrow trampled strip continues through the lawn where the orchard and kitchen lanes
+// have no paved surface. Both standing plants and loose leaves thin out at its shoulders.
+const laneBounds = Object.values(LANES).map(cells => {
+  const first = cells[0]!;
+  const last = cells[cells.length - 1]!;
+  return {
+    x0: Math.min(first.x, last.x) + 0.5, x1: Math.max(first.x, last.x) + 0.5,
+    y0: Math.min(first.y, last.y) + 0.5, y1: Math.max(first.y, last.y) + 0.5,
+  };
+});
+
+export function vergeCover(gx: number, gy: number): number {
+  let nearest = Infinity;
+  for (const lane of laneBounds) {
+    const dx = Math.max(lane.x0 - gx, 0, gx - lane.x1);
+    const dy = Math.max(lane.y0 - gy, 0, gy - lane.y1);
+    nearest = Math.min(nearest, dx * dx + dy * dy);
+  }
+  return smoothstep(0.52, 1.55, Math.sqrt(nearest));
+}
 
 /** The gateways stay straight across the lot; deeper in the woods their tracks find a way between stands. */
 export function roadCentre(road: keyof typeof TRACKS, along: number): number {
