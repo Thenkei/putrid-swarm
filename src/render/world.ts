@@ -2,7 +2,7 @@
 // One renderer serves the daytime yard and all four night cameras, so the views cannot disagree.
 
 import { BARRICADE, DEVICES } from '../core/data/devices';
-import { ENTRIES, GRID_W, HOUSE, HOUSE_CENTER, PROPS, sectorOf, type PropKind } from '../core/map';
+import { ENTRIES, GRID_W, HOUSE, HOUSE_CENTER, PROPS, propAt, sectorOf, type PropKind } from '../core/map';
 import type { DeviceRuntimeState, Enemy } from '../core/night';
 import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
@@ -1343,6 +1343,13 @@ export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: num
   if (best) return best;
   const g = unproject(view, sx, sy);
   return devices.find((d) => d.x === Math.floor(g.gx) && d.y === Math.floor(g.gy)) ?? null;
+}
+
+/** The piece of scenery of one of `kinds` whose footprint is under the pointer, if any. */
+export function pickProp(view: View, kinds: readonly PropKind[], sx: number, sy: number): PropKind | null {
+  if (!inView(view, sx, sy)) return null;
+  const g = unproject(view, sx, sy);
+  return propAt(g.gx, g.gy, kinds);
 }
 
 /** Which door, if any, is under the pointer (for daytime repairs). */

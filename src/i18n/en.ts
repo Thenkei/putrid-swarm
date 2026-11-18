@@ -3,6 +3,7 @@ import type { Strings } from './fr';
 export const en: Strings = {
   lang: 'English',
   title: {
+    mire: 'End of programmes',
     start: 'Start',
     continue: 'Continue',
     options: 'Options',
@@ -939,6 +940,14 @@ export const en: Strings = {
     vo_egg_smoke_1: 'It is medicinal.',
     vo_egg_smoke_2: 'The colours are odd tonight.',
     vo_egg_smoke_3: 'The neighbour grows it strong.',
+    vo_egg_honk_1: 'Honk.',
+    vo_egg_honk_2: 'That still works, at least.',
+    vo_egg_honk_3: 'Very discreet. Well done.',
+    vo_egg_well_1: 'A washer for a wish. One quiet night.',
+    vo_egg_well_2: 'Deep.',
+    vo_egg_well_3: 'No change on me. The well gives credit.',
+    vo_egg_corner: 'Right in the corner.',
+    vo_egg_mire: 'The test card. Now that was television.',
     vo_day1: 'Twelve hours of daylight. Search, nail, and be home before dark.',
     vo_car: 'Come on, old girl. One more trip.',
     vo_car_2: 'Start. Please, start.',

@@ -1,0 +1,19 @@
+{
+  "id": "vo_egg_honk_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[wry] Très discret. Bravo.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:41:47.441Z",
+  "bytes": 36823,
+  "sha256": "591f02a7a10f415f651d7e1e264781532eb974c5cf60be1876defd49f42e26e3"
+}

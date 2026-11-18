@@ -1,0 +1,19 @@
+{
+  "id": "vo_egg_mire",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[fond] La mire. Ça, c’était de la télé.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:41:50.206Z",
+  "bytes": 46018,
+  "sha256": "edb12be837c9aeef1c56180435d44c4f282c127a50d13469db0767b739fad867"
+}

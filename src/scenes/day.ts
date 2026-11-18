@@ -42,8 +42,8 @@ import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
-import { sayOnce } from '../engine/voice';
-import { applyDaylight, drawWorld, houseLights, inView, pickDevice, pickDoor, prepareWorld, unproject, type DeviceVisual, type Ghost, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
+import { sayAny, sayOnce } from '../engine/voice';
+import { applyDaylight, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, unproject, type DeviceVisual, type Ghost, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
 import { costLine, describeCost, inventoryBar } from './common';
 import { goMap, goNightfall, goTitle } from './flow';
 
@@ -109,6 +109,8 @@ export class DayScene implements Scene {
   private hoverDevice: DeviceInstance | null = null;
   private hoverDoor: SectorId | null = null;
   private showRoutes = true;
+  /** Scene time before which the scenery does not answer another click. */
+  private pokedUntil = 0;
   private time = 0;
   private reveal: number;
   private readonly particles: Particle[] = [];
@@ -892,6 +894,22 @@ export class DayScene implements Scene {
     if (this.hoverDevice?.broken) this.apply(repairDevice(state, this.hoverDevice.id), s.day.repaired, 'build', this.hoverDevice);
     else if (this.hoverDoor && state.yard.barricades[this.hoverDoor].hp < barricadeMaxHp(state.yard.barricades[this.hoverDoor].level)) {
       this.apply(repairBarricade(state, this.hoverDoor), s.day.repaired, 'build');
+    } else if (!this.hoverDevice && !this.hoverDoor) this.poke();
+  }
+
+  /** Nothing useful: the break's horn, and a washer down the well. Neither costs or changes anything. */
+  private poke(): void {
+    const prop = pickProp(this.view, ['car', 'well'], this.app.pointer.x, this.app.pointer.y);
+    if (!prop || this.time < this.pokedUntil) return;
+    this.pokedUntil = this.time + 1.6;
+    if (prop === 'car') {
+      audio.play('horn');
+      window.setTimeout(() => sayAny('honk'), 1700);
+    } else {
+      audio.play('washer');
+      // It falls for a while before it is heard.
+      window.setTimeout(() => audio.play('tin'), 900);
+      window.setTimeout(() => sayAny('well'), 1500);
     }
   }
 

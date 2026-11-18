@@ -3,6 +3,7 @@
 export const fr = {
   lang: 'Français',
   title: {
+    mire: 'Fin des programmes',
     start: 'Commencer',
     continue: 'Continuer',
     options: 'Options',
@@ -948,6 +949,14 @@ export const fr = {
     vo_egg_smoke_1: 'C’est médicinal.',
     vo_egg_smoke_2: 'Les couleurs sont bizarres, ce soir.',
     vo_egg_smoke_3: 'Il est fort, celui du voisin.',
+    vo_egg_honk_1: 'Pouet.',
+    vo_egg_honk_2: 'Ça, au moins, ça marche encore.',
+    vo_egg_honk_3: 'Très discret. Bravo.',
+    vo_egg_well_1: 'Une rondelle pour un vœu. Une nuit calme.',
+    vo_egg_well_2: 'Profond.',
+    vo_egg_well_3: 'Pas de monnaie. Le puits fait crédit.',
+    vo_egg_corner: 'Pile dans le coin.',
+    vo_egg_mire: 'La mire. Ça, c’était de la télé.',
     vo_day1: 'Douze heures de jour. Fouiller, clouer, et rentrer avant la nuit.',
     vo_car: 'Allez, ma vieille. Encore un tour.',
     vo_car_2: 'Démarre. S’il te plaît, démarre.',
