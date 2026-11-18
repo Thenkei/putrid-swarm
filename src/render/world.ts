@@ -101,6 +101,9 @@ export interface WorldFrame {
   readonly focusSector?: SectorId;
   readonly showBuildable?: boolean;
   readonly doorHighlight?: SectorId | null;
+  /** HP after one affordable repair on the highlighted door. */
+  readonly doorRepairHp?: number | null;
+  readonly dismantleTarget?: number | null;
 }
 
 // ───────────────────────────── Sprite tables ─────────────────────────────
@@ -824,7 +827,19 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
         // door needs no bar; the panel has the figures.
         if (frame.night || ratio < 0.999 || frame.doorHighlight === sector) {
           const barW = 46 * z;
-          meter(ctx, p.x - barW / 2, p.y - (h + 3) * z, barW, 4 * z, ratio, ratio > 0.5 ? '#9fcf5a' : ratio > 0.2 ? '#f2a531' : '#e0432e');
+          const barY = p.y - (h + 3) * z;
+          meter(ctx, p.x - barW / 2, barY, barW, 4 * z, ratio, ratio > 0.5 ? '#9fcf5a' : ratio > 0.2 ? '#f2a531' : '#e0432e');
+          if (frame.doorHighlight === sector && frame.doorRepairHp != null) {
+            ctx.save();
+            ctx.setLineDash([2, 2]);
+            ctx.strokeStyle = '#e4f5ac';
+            ctx.lineWidth = 3 * z;
+            ctx.beginPath();
+            ctx.moveTo(p.x + (ratio - 0.5) * barW, barY + 2 * z);
+            ctx.lineTo(p.x + (frame.doorRepairHp / max - 0.5) * barW, barY + 2 * z);
+            ctx.stroke();
+            ctx.restore();
+          }
         }
       },
     },
@@ -835,12 +850,13 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   const z = view.zoom;
   const state = devicePose(device);
   const art = deviceArt(device.type, device.facing, state, view.rot);
+  const removing = frame.dismantleTarget === device.id;
 
   if (device.highlight) {
     diamond(ctx, view, device.x, device.y, 0.02);
-    ctx.fillStyle = 'rgba(242,165,49,0.3)';
+    ctx.fillStyle = removing ? 'rgba(226,80,59,0.45)' : 'rgba(242,165,49,0.3)';
     ctx.fill();
-    ctx.strokeStyle = '#f2a531';
+    ctx.strokeStyle = removing ? '#ff937d' : '#f2a531';
     ctx.lineWidth = 2;
     ctx.stroke();
   }
@@ -858,6 +874,15 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   }
 
   if (!frame.night) {
+    if (removing) {
+      const y = p.y + (art.lift - art.h / 2) * z;
+      ctx.fillStyle = '#221611';
+      ctx.beginPath();
+      ctx.arc(p.x, y, 9, 0, Math.PI * 2);
+      ctx.fill();
+      cross(ctx, p.x, y, 4.5);
+      return;
+    }
     // Never smaller than it reads at: the tag keeps its size when the view is pulled back.
     if (device.silent && state !== 'broken') asleep(ctx, p.x, p.y + art.lift * z - art.h * z - 8 * z, Math.max(1, z), frame.time + device.id);
     return;

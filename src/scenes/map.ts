@@ -1,7 +1,7 @@
 // The village map: pick a destination for the break, or stay home.
 
 import { DAY_HOURS, HOME_PIN, LOCATIONS, type LocationDef } from '../core/data/locations';
-import { clockLabel, isUnlocked, neighborStatus, roundTripHours, travelTo } from '../core/game';
+import { clockLabel, isUnlocked, neighborStatus, plannedSearches, roundTripHours, travelTo } from '../core/game';
 import type { GameState, LocationId } from '../core/types';
 import { LOCATION_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
@@ -93,7 +93,7 @@ export class MapScene implements Scene {
     const location = LOCATIONS[this.selected];
     const id = location.id;
     const unlocked = isUnlocked(location, state.day);
-    const enough = state.hoursLeft >= roundTripHours(location);
+    const enough = state.hoursLeft + 1e-9 >= roundTripHours(location);
     const neighbor = location.neighbor;
     const lines: (HTMLElement | string)[] = [
       el('h3', { text: s.location[id].name }),
@@ -106,6 +106,10 @@ export class MapScene implements Scene {
     if (neighbor && unlocked && neighborStatus(neighbor, state.day) === 'gone') lines.push(el('p', { class: 'muted', text: s.neighbor[neighbor].gone }));
     const reason = !unlocked ? fmt(s.map.locked, { n: location.unlockDay }) : !enough ? s.map.noTime : '';
     if (reason) lines.push(el('p', { style: { color: '#ff8a78' }, text: reason }));
+    else {
+      const count = plannedSearches(state, location);
+      lines.push(el('p', { text: count > 0 ? fmt(s.map.searchBudget, { n: count }) : s.map.noSearches }));
+    }
     lines.push(
       el('button', {
         class: 'btn btn-primary',
