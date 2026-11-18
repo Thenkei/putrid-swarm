@@ -65,16 +65,17 @@ export class MorningScene implements Scene {
     const chapter = chapterWaiting(state);
     const dark = chapter !== null ? report?.cameraLost ?? null : null;
     if (dark) rows.push(row(fmt(s.night.cam, { i: String(SECTOR_IDS.indexOf(dark) + 1).padStart(2, '0'), name: s.sector[dark] }), s.morning.signal, 'bad'));
-    this.app.ui.append(
-      el('div', { class: `card report${chapter ? ' tight' : ''}` }, [
-        el('h2', { text: s.morning.title }),
-        el('p', { text: fmt(s.morning.survived, { n: night }) }),
-        el('table', {}, rows),
-        el('p', { class: 'note', text: bossLine }),
-        chapter ? el('p', { class: 'note alarm', text: s.chapter[chapter].note }) : null,
-        el('div', { class: 'actions' }, [el('button', { class: 'btn btn-primary', text: chapter ? s.chapter[chapter].go : fmt(s.morning.next, { n: state.day + 1 }), onClick: () => this.next() })]),
-      ]),
-    );
+    const card = el('div', { class: `card report${chapter ? ' tight' : ''}` }, [
+      el('h2', { text: s.morning.title }),
+      el('p', { text: fmt(s.morning.survived, { n: night }) }),
+      el('table', {}, rows),
+      el('p', { class: 'note', text: bossLine }),
+      chapter ? el('p', { class: 'note alarm', text: s.chapter[chapter].note }) : null,
+      el('div', { class: 'actions' }, [el('button', { class: 'btn btn-primary', text: chapter ? s.chapter[chapter].go : fmt(s.morning.next, { n: state.day + 1 }), onClick: () => this.next() })]),
+    ]);
+    this.app.ui.append(card);
+    // Reinforced doors badly hit make figures long enough to fold the labels beside them: set tighter, it all fits.
+    if (card.scrollHeight > card.clientHeight) card.classList.add('tight');
     // On the scene, not in the report: a chapter morning already fills the card to its last line.
     const headline = report?.highlight ? this.headline(report.highlight) : null;
     if (headline) this.app.ui.append(headline);

@@ -296,7 +296,7 @@ export const en: Strings = {
     breaches: 'Doors broken',
     house: 'House',
     devices: 'Devices broken',
-    silent: 'Traps that never went off',
+    silent: 'Traps never set off',
     doors: 'Doors',
     next: 'Start day {n}',
     intact: 'intact',
