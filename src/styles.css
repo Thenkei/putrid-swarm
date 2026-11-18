@@ -610,6 +610,14 @@ button:disabled {
   position: relative;
 }
 
+/* Five lines of "setting · value" on a screen that holds five single lines and no more: set smaller so
+   none of them folds, and never folded, so a long value cannot push the way back off the screen. */
+.menu.options button {
+  font-size: 17px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
 .menu button:hover:not(:disabled),
 .menu button.sel {
   color: #fff;

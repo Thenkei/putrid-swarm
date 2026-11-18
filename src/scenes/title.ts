@@ -179,7 +179,7 @@ export class TitleScene implements Scene {
 
     let menu: HTMLElement;
     if (this.view === 'options') {
-      menu = el('div', { class: 'menu' }, [
+      menu = el('div', { class: 'menu options' }, [
         item(`${s.title.language} · ${s.lang}`, () => {
           setLang(getLang() === 'fr' ? 'en' : 'fr');
           this.build();
@@ -270,6 +270,13 @@ export class TitleScene implements Scene {
     if (this.typed === CODE.length) {
       this.typed = 0;
       this.showMire();
+      return;
+    }
+    // The way out of a sub-menu never depends on reaching its last line.
+    if (code === 'Escape' && this.view !== 'main' && desk.powered) {
+      audio.play('click');
+      this.view = 'main';
+      this.build();
       return;
     }
     if (code === 'Enter' && this.view === 'main' && desk.powered) {
