@@ -64,6 +64,8 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | The end | `←` `→` at the shed, `Tab` during the song | choose how it is played: easy (three keys, slower notes, the default) or furious (six keys) |
 | End screen | "Rejouer le morceau" | after the mower: the song again from the shed, for the record; the run stays where it ended |
 | Title | click the monitor's power button, the joint, the mug, the speaker (wheel for fine volume) | nothing useful |
+| Title | leave the desk alone for forty seconds; or type the code everyone knows | nothing useful either: a screensaver that does, once, land in the corner; a test card |
+| Day | click the break, or the well | the horn; a washer for a wish. Neither costs or changes anything |
 | Credits | `Esc`, or "Passer" | leave; they end on their own after 74 seconds, back at the title |
 
 ## The loop as built
@@ -219,6 +221,8 @@ docs/          concept, lore and art direction
 Tuning never requires touching combat logic: change `src/core/data/*`, then run `pnpm balance` to replay all seven nights against reference layouts. `pnpm balance --radio` plays night 7 with nobody at the back door, with someone holding it, and with someone holding it until he turns. `pnpm balance --arm` plays two arms against one, night by night, with an operator that watches one camera at a time through the same desk as the player; each run gets the yard its own daylight pays for, from a day-by-day model of searching and building (`yardBy` in `tests/operator.ts`, which says what it leaves out). Encounter numbers (odds, tolls, prices, daylight, how well each survivor throws) are in `src/core/data/rivals.ts`.
 
 `node tools/home-shots.mjs <dir> [url]` photographs the home phase on a running dev server: the yard by day from both sides, up close, at the edge of the world and at four hours of the day, then the night desk on each camera. `node tools/home-perf.mjs [url]` prints what that costs: the one-off painting of the ground, and the frame pace and scene work by day and at the night desk (`PS_GPU=1` to rasterise on the GPU).
+
+`node tools/egg-shots.mjs <dir> [url]` shows the things that are of no use: the test card, the screensaver and its corner, the horn and the well.
 
 `node tools/encounter-shots.mjs <dir> [url]` opens a running dev server on each kind of encounter, plays through the ways out and saves a screenshot of every step (`PS_LANG=en` for the English texts).
 

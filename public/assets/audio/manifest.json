@@ -1115,6 +1115,54 @@
     "seconds": 2.064,
     "gain": 1
   },
+  "vo_egg_honk_1": {
+    "file": "vo_egg_honk_1.mp3",
+    "kind": "voice",
+    "seconds": 0.914,
+    "gain": 1
+  },
+  "vo_egg_honk_2": {
+    "file": "vo_egg_honk_2.mp3",
+    "kind": "voice",
+    "seconds": 2.038,
+    "gain": 1
+  },
+  "vo_egg_honk_3": {
+    "file": "vo_egg_honk_3.mp3",
+    "kind": "voice",
+    "seconds": 2.011,
+    "gain": 1
+  },
+  "vo_egg_well_1": {
+    "file": "vo_egg_well_1.mp3",
+    "kind": "voice",
+    "seconds": 2.952,
+    "gain": 1
+  },
+  "vo_egg_well_2": {
+    "file": "vo_egg_well_2.mp3",
+    "kind": "voice",
+    "seconds": 0.679,
+    "gain": 1
+  },
+  "vo_egg_well_3": {
+    "file": "vo_egg_well_3.mp3",
+    "kind": "voice",
+    "seconds": 2.325,
+    "gain": 1
+  },
+  "vo_egg_corner": {
+    "file": "vo_egg_corner.mp3",
+    "kind": "voice",
+    "seconds": 1.019,
+    "gain": 1
+  },
+  "vo_egg_mire": {
+    "file": "vo_egg_mire.mp3",
+    "kind": "voice",
+    "seconds": 2.482,
+    "gain": 1
+  },
   "vo_coffee_1": {
     "file": "vo_coffee_1.mp3",
     "kind": "voice",

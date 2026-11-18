@@ -1,0 +1,19 @@
+{
+  "id": "vo_egg_well_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Pas de monnaie. Le puits fait crédit.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:41:49.093Z",
+  "bytes": 41838,
+  "sha256": "716279adada9df759de7f954f1a7ff608babac9553d7b0c87c5ef01af868c6bb"
+}
