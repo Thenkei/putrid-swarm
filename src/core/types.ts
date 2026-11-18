@@ -273,7 +273,8 @@ export type OrchardChapter = 'quiet' | 'cut' | 'spared' | 'maimed';
  * off, bled dry; in the shed, bitten by the man on the chain.
  */
 export type OrchardFate = 'throat' | 'turned' | 'bled';
-export type Fate = OrchardFate | 'bitten';
+export type ChapterFate = OrchardFate | 'bitten';
+export type Fate = ChapterFate | 'lift';
 
 // ───────────────────────────── The shed ─────────────────────────────
 

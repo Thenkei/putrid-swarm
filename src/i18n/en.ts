@@ -1,3 +1,4 @@
+import { scavengeEn } from './scavenge-en';
 import type { Strings } from './fr';
 
 export const en: Strings = {
@@ -224,6 +225,7 @@ export const en: Strings = {
     empty: 'Emptied',
     stayHome: 'Stay at the refuge',
   },
+  scavenge: scavengeEn,
   loc: {
     search: 'Search · {h} h',
     searched: 'Already searched',
@@ -385,6 +387,7 @@ export const en: Strings = {
       load: 'The Dealer left owing nothing.',
     },
     fate: {
+      lift: { title: 'Going down', text: 'Day {n}. The lift dropped. The little bell over the garage door was still ringing when the car hit the floor.' },
       throat: { title: 'A rabbit', text: 'Day {n}, ten past seven. It was white, it fitted in one hand, and it jumped faster than your arm. The orchard camera filmed none of it.' },
       turned: { title: 'Too late', text: 'Day {n}. It reached the shoulder before the saw did. Tonight you will be in the garden with the others, looking at the house.' },
       bled: { title: 'No tourniquet', text: 'Day {n}. The arm came off, and the infection with it. The rest followed: nothing was tied above the cut. There was a rope, on the fence.' },

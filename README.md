@@ -36,7 +36,8 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Day | "Tout réparer" | repair every broken device the stock and the daylight allow |
 | Day | point at a trap | what it did last night, and how far it reaches |
 | Day | wheel, drag | zoom, pan |
-| Outing | click a spot | search it; a spot with a face on it is claimed by someone: click it to talk |
+| Outing | click a spot | read the clue for free. The first move spends half an hour. Solve the puzzle to load the find into the boot. Click a face to talk about a claimed lot. |
+| Scavenging | click or use `Tab` and `Enter` | a failed attempt gives no loot. Retry for another half-hour if the drive home still fits. Leaving with `Esc` keeps any time already spent. A missed pull beneath the garage lift ends the run. |
 | Encounter | `1`–`6` | pick a way out (each shows what it costs before it is chosen) |
 | Encounter | `Space` or click the plank | throw a washer where the marker is |
 | Night | `1`–`4`, `Tab` | switch camera (or click a thumbnail) |
@@ -120,7 +121,7 @@ The house falls when its integrity reaches zero; infected only get in through a 
 
 **The end screen is the last picture held still.** After the mower it stays on the horde, and writes over it what the song was worth: how many were mown, the best streak, the perfect notes, which way it was played and whether to the last chord, and how that stands against the record kept for that way of playing (a song switched halfway counts as the easy one). A new record lands like a stamp. A lost house offers to replay its night; a run that held all seven does not, it only offers the song again. Its words and its picture follow the ending: the desk, the mower after a lost house, the mower at the seventh dawn, or one of the orchard's three deaths.
 
-**Endings seen.** The game keeps, in this browser, which endings have been reached: the orchard's five, the shed's five, the radio's six and the last scene's four (the desk, the mower after a lost house, the mower at the seventh dawn, and the song played to its last chord). The end screen counts them, and so does a corner of the title monitor once there is one to count.
+**Endings seen.** The game keeps, in this browser, which endings have been reached: the orchard's five, the shed's five, the radio's six, the garage lift death and the last scene's four (the desk, the mower after a lost house, the mower at the seventh dawn, and the song played to its last chord). The end screen counts them, and so does a corner of the title monitor once there is one to count.
 
 **The first night teaches itself.** The yard starts with a palisade across the drive, automatic stakes in its one gap, a log over the front step and stakes on the barn doorstep. The night holds still twice, the first time each thing matters: once until the log has been dropped, once until the camera has been switched. After that the yellow key is the only prompt.
 

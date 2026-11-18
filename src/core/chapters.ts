@@ -8,7 +8,7 @@ import { DAY_HOURS } from './data/locations';
 import { awaitsOrchard, daylight } from './orchard';
 import { awaitsRadio, opensRadio, radioDawn } from './radio';
 import { awaitsShed, opensShed, shedDawn } from './shed';
-import type { Cost, Fate, GameState, NightReport } from './types';
+import type { Cost, ChapterFate, GameState, NightReport } from './types';
 
 export const CHAPTER_IDS = ['orchard', 'shed', 'radio'] as const;
 export type ChapterId = (typeof CHAPTER_IDS)[number];
@@ -27,7 +27,7 @@ interface Chapter {
   readonly opens: (state: GameState, report: NightReport) => GameState;
   /** What it still does to the start of a day, once played. `state.day` is the day that starts. */
   readonly dawn: (state: GameState) => Dawn;
-  readonly fates: readonly Fate[];
+  readonly fates: readonly ChapterFate[];
 }
 
 const CHAPTERS: readonly Chapter[] = [
@@ -77,4 +77,4 @@ export function dawnOf(state: GameState): Dawn {
 }
 
 /** Which chapter a fate belongs to. */
-export const chapterOfFate = (fate: Fate): ChapterId => (CHAPTERS.find((chapter) => chapter.fates.includes(fate)) as Chapter).id;
+export const chapterOfFate = (fate: ChapterFate): ChapterId => (CHAPTERS.find((chapter) => chapter.fates.includes(fate)) as Chapter).id;

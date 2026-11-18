@@ -4,6 +4,7 @@
 import { mkdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { launch } from './browser.mjs';
+import { fillTimberOrder } from './timber.mjs';
 
 const OUT = resolve(process.argv[2] ?? 'shots');
 const URL = process.argv[3] ?? process.env.PS_URL ?? 'http://localhost:5173/';
@@ -81,6 +82,7 @@ await shot('10-location');
 await page.locator('.spot').first().click();
 await wait(700);
 await shot('11-search');
+await fillTimberOrder(page);
 await clickText('Reprendre le break');
 await wait(1100);
 await shot('11b-return');

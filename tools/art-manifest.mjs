@@ -172,6 +172,16 @@ export const ART = [
   })),
 
   // ───────────────────────────── Generated plates ─────────────────────────────
+  // Three consecutive frames of the same garage accident, from the original generated filmstrip.
+  ...[
+    ['raised', 'The rusty blue car is raised. The scavenger in his ochre jacket reaches for a crate beneath it.'],
+    ['fall', 'The same lift gives way. The car drops, the crate tips and dust erupts.'],
+    ['end', 'The car rests low and crooked. The dead scavenger lies pinned beneath its near edge, face and ochre jacket visible.'],
+  ].map(([frame, action]) => ({
+    id: `plate_lift_${frame}`, kind: 'plate', w: 1280, refs: [REF_GARAGE],
+    prompt: `Full-bleed 16:9 garage cutscene, fixed floor-level camera, red lift posts, amber daylight. ${action} No gore. ${STYLE}`,
+  })),
+
   {
     // First pass of the title desk. Not shipped: plate_title_desk below is a retouch of it.
     id: 'plate_title_desk_base',

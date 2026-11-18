@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEVICES } from '../src/core/data/devices';
 import { LOCATIONS } from '../src/core/data/locations';
 import { NIGHTS } from '../src/core/data/waves';
-import { arriveHome, concludeNight, leaveLocation, newGame, searchSpot, startNextDay, startNight, travelTo } from '../src/core/game';
+import { arriveHome, concludeNight, leaveLocation, newGame, prepareSearch, retryChapter, searchSpot, startNextDay, startNight, travelTo } from '../src/core/game';
 import { ENTRIES, SPAWN_CELLS, idx, isBuildable } from '../src/core/map';
 import { NightSim } from '../src/core/night';
 import { auditRoutes, computeField } from '../src/core/pathing';
@@ -798,6 +798,36 @@ describe('campaign', () => {
     expect(home.where).toBe('home');
     expect(home.inventory.wood).toBe(state.inventory.wood + (searched.loot.wood ?? 0));
     expect(home.hoursLeft).toBe(state.hoursLeft - 2 * LOCATIONS.hardware.travelHours - 0.5);
+  });
+
+  it('keeps the price of a miss across reload and charges the next attempt once', () => {
+    const start = unwrap(travelTo(newGame(5), 'garage')).state;
+    const miss = unwrap(prepareSearch(start, 0)).failure;
+    expect(miss.hoursLeft).toBe(start.hoursLeft - 0.5);
+    expect(miss.outing).toBe(start.outing);
+    expect(miss.locations).toBe(start.locations);
+    expect(miss.totals).toBe(start.totals);
+    expect(miss.rng).toBe(start.rng);
+    const retry = unwrap(prepareSearch(deserialize(serialize(miss))!, 0));
+    expect(retry.paid.hoursLeft).toBe(start.hoursLeft - 1);
+    expect(retry.success.state.hoursLeft).toBe(retry.paid.hoursLeft);
+    expect(retry.success.state.totals.searches).toBe(start.totals.searches + 1);
+    const last = unwrap(prepareSearch({ ...start, hoursLeft: LOCATIONS.garage.travelHours + 0.5 }, 0)).failure;
+    expect(prepareSearch(last, 0)).toMatchObject({ ok: false, error: { code: 'no_time' } });
+    expect(leaveLocation(last).ok).toBe(true);
+  });
+
+  it('records a lift death only on a failed wreck search, including after repeated reloads', () => {
+    const garage = unwrap(travelTo(newGame(5), 'garage')).state;
+    const wreck = LOCATIONS.garage.spots.findIndex(spot => spot.key === 'wreck');
+    const attempt = unwrap(prepareSearch(garage, wreck));
+    expect(attempt.success.state.phase).toBe('day');
+    expect(attempt.failure).toMatchObject({ phase: 'lost', fate: 'lift', hoursLeft: garage.hoursLeft - 0.5, outing: null });
+    const reloaded = deserialize(serialize(attempt.failure))!;
+    expect(deserialize(serialize(reloaded))).toEqual(reloaded);
+    expect(reloaded.fate).toBe('lift');
+    expect(retryChapter(reloaded).ok).toBe(false);
+    expect(prepareSearch(reloaded, wreck).ok).toBe(false);
   });
 
   it('never lets an outing strand the player after dark', () => {
