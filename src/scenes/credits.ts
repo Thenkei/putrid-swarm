@@ -47,6 +47,8 @@ const AT = {
   end: 73.6,
 } as const;
 
+const CAMERA_AT_DESK = AT.roll - 0.5;
+
 /** The note on the monitor casing, in stage units, and how close the camera gets to it. */
 const NOTE = { x: 282, y: 66, zoom: 3.3 } as const;
 const NOTE_YELLOW = '#f2c84b';
@@ -107,7 +109,7 @@ export class CreditsScene implements Scene {
   private nextIdea: number = AT.ideas;
   private ideaCount = 0;
   private root!: HTMLElement;
-  private crt!: HTMLElement;
+  private monitor!: HTMLElement;
   private roll!: HTMLElement;
   private rollHeight = 0;
   private readonly cues: { readonly at: number; done: boolean; readonly run: () => void }[] = [];
@@ -145,10 +147,12 @@ export class CreditsScene implements Scene {
       photo.alt = s.photoAlt;
     }
     const thanks = el('div', { class: 'credits-thanks' }, [photo, photo ? el('small', { text: s.summer }) : null, el('h2', { text: s.thanks }), el('span', { text: s.sign })]);
-    this.crt = el('div', { class: 'crt credits-crt' }, [el('div', { class: 'crt-menu' }, [this.roll, thanks])]);
+    const crt = el('div', { class: 'crt' }, [el('div', { class: 'crt-menu' }, [this.roll, thanks])]);
+    this.monitor = el('div', { class: 'credits-monitor' }, [crt]);
+    desk.mountNote(this.monitor);
     const skip = el('button', { class: 'credits-skip', text: s.skip, onClick: () => this.leave() });
     this.root = el('div', { class: 'credits' }, [date, ...lines, names, later, skip]);
-    this.app.ui.append(this.crt, this.root);
+    this.app.ui.append(this.monitor, this.root);
     this.rollHeight = this.roll.offsetHeight;
 
     const show = (node: HTMLElement, from: number, to: number): void => {
@@ -160,11 +164,11 @@ export class CreditsScene implements Scene {
     lines.forEach((line, index) => show(line, AT.lines[index] ?? AT.names, (AT.lines[index + 1] ?? AT.names) - 0.5));
     show(names, AT.names, AT.leave - 0.9);
     show(later, AT.later, AT.desk);
-    this.cue(AT.roll - 0.9, () => this.crt.classList.add('on'));
+    this.cue(CAMERA_AT_DESK, () => this.monitor.classList.add('on'));
     this.cue(AT.thanks, () => thanks.classList.add('on'));
     this.cue(AT.fade, () => {
       this.root.classList.add('out');
-      this.crt.classList.remove('on');
+      this.monitor.classList.remove('on');
     });
     this.cue(AT.end, () => this.leave());
   }
@@ -260,7 +264,7 @@ export class CreditsScene implements Scene {
   /** The desk, from the chair or from very close to the note. */
   private drawDesk(ctx: CanvasRenderingContext2D, t: number): void {
     // In before the summer, out after it: the same move, played backwards.
-    const close = t < AT.summer ? ramp(t, AT.toNote, AT.atNote) : 1 - ramp(t, AT.desk + 0.4, AT.roll - 0.5);
+    const close = t < AT.summer ? ramp(t, AT.toNote, AT.atNote) : 1 - ramp(t, AT.desk + 0.4, CAMERA_AT_DESK);
     const zoom = 1 + (NOTE.zoom - 1) * close;
     const x = CX + (NOTE.x - CX) * close;
     const y = CY + (NOTE.y - CY) * close;

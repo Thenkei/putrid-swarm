@@ -207,15 +207,13 @@ export const desk = {
   update: updateDesk,
   draw: drawDesk,
   mount: mountDesk,
+  mountNote: mountDeskNote,
 };
 
 // ───────────────────────────── DOM pieces ─────────────────────────────
 
-/**
- * Adds what has to sit above the monitor's overlay: the sticky note, whose corner overhangs the glass
- * (the overlay would otherwise cover it), and the caption a sip of coffee brings up.
- */
-function mountDesk(ui: HTMLElement): void {
+/** Mount after the CRT so the corner of the note hangs over the glass. */
+function mountDeskNote(ui: HTMLElement): void {
   const plate = sprite(PLATE);
   const url = assetUrl(PLATE);
   if (plate && url) {
@@ -239,6 +237,10 @@ function mountDesk(ui: HTMLElement): void {
     // The shadow goes on a wrapper: a clipped element cannot cast one outside its own outline.
     ui.append(el('div', { class: 'desk-note-shadow' }, [note]));
   }
+}
+
+function mountDesk(ui: HTMLElement): void {
+  mountDeskNote(ui);
   state.meme = el('div', { class: 'meme' }, [el('span', { class: 'meme-top' }), el('span', { class: 'meme-bottom' })]);
   ui.append(state.meme);
 }

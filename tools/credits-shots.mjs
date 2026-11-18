@@ -6,6 +6,7 @@
 // seen first: what rises from the sofa then includes what only a finished run has met.
 // PS_BROWSER=chrome|firefox|webkit, PS_LANG=en for English.
 import { mkdirSync } from 'node:fs';
+import assert from 'node:assert/strict';
 import { join, resolve } from 'node:path';
 import { BROWSER, launch } from './browser.mjs';
 
@@ -62,6 +63,9 @@ await page.evaluate(
 await page.reload();
 await page.waitForSelector('.crt', { timeout: 90000 });
 await page.waitForTimeout(800);
+// These pixels are on the paper and inside the glass. The CRT must never paint over them.
+const noteCorner = { x: 340, y: 70, width: 16, height: 12 };
+const titleCorner = await page.screenshot({ clip: noteCorner });
 await page.getByText(LANG === 'fr' ? 'Crédits' : 'Credits', { exact: true }).click();
 await page.waitForSelector('.credits', { state: 'attached', timeout: 10000 });
 const started = Date.now();
@@ -79,9 +83,13 @@ for (const [at, name, settle = 1000] of MARKS) {
     await page.waitForTimeout(settle);
   }
   await page.screenshot({ path: join(OUT, `${BROWSER}-${String(Math.round(at)).padStart(2, '0')}-${name}.png`) });
+  if (name === 'roll' || name === 'photo-and-thanks') {
+    assert((await page.screenshot({ clip: noteCorner })).equals(titleCorner), `The monitor covers the sticky note during ${name}`);
+  }
   console.log(`shot ${name}`);
 }
-await page.waitForSelector('.crt:not(.credits-crt)', { timeout: 15000 });
+await page.waitForSelector('.credits', { state: 'detached', timeout: 15000 });
+await page.waitForSelector('.crt');
 console.log('back at the title');
 console.log(errors.length === 0 ? 'no console issues' : `${errors.length} console issue(s):\n${errors.join('\n')}`);
 await browser.close();
