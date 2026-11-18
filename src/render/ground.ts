@@ -11,6 +11,8 @@ import { fbm, smoothstep } from './noise';
 import { TH, TW, groundMatrix, project, viewBounds, viewX, viewY, world, type Rot, type View } from './projection';
 import { SHADOW_RGB } from './shadows';
 import { FIELD_MARGIN, GROUND_TERRAINS, TRACKS, layerAlpha, terrainField, type GroundTerrain, type TerrainField } from './terrainfield';
+import { dressYardFloor } from './yard-floor';
+import { drawYardPlants } from './yard-plants';
 
 const MARGIN = FIELD_MARGIN;
 /** Cache pixels per stage unit at zoom 1: the swatches are laid at one texel per pixel or finer. */
@@ -366,6 +368,8 @@ function buildGround(rot: Rot): HTMLCanvasElement {
   }
 
   paintRuts(ctx, rot);
+  ctx.setTransform(GROUND_SCALE, 0, 0, GROUND_SCALE, 0, 0);
+  dressYardFloor(ctx, bakingView(rot), field);
 
   // The slow drift of light and colour, then the shade of the wood.
   toGrid(ctx, rot);
@@ -375,6 +379,11 @@ function buildGround(rot: Rot): HTMLCanvasElement {
   ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 1;
   ctx.drawImage(shade, ...span);
+
+  // Raised foliage shares the crisp light and ink of the standing scenery. Bake it over the
+  // ground colour wash, then let the house and mature trees throw their shadows across it.
+  ctx.setTransform(GROUND_SCALE, 0, 0, GROUND_SCALE, 0, 0);
+  drawYardPlants(ctx, bakingView(rot), field);
 
   // The house: dark where it meets the ground, and its shadow thrown behind it to the right.
   const x0 = Math.min(viewX(rot, HOUSE.x0), viewX(rot, HOUSE.x1 + 1));

@@ -705,6 +705,7 @@ export class DayScene implements Scene {
       sceneryAction: this.sceneryAction,
       devices,
       barricades: state.yard.barricades,
+      houseHpRatio: state.yard.houseHp / HOUSE_MAX_HP,
       decals: state.yard.decals,
       enemies: [],
       particles: this.particles,
@@ -726,7 +727,7 @@ export class DayScene implements Scene {
     ctx.clip();
     drawWorld(ctx, this.view, frame);
     // The hour it is: the light warms as the daylight runs out, and the lamps come on before dark.
-    applyDaylight(ctx, this.view, 1 - state.hoursLeft / DAY_HOURS, houseLights(this.rot), this.time);
+    applyDaylight(ctx, this.view, 1 - state.hoursLeft / DAY_HOURS, houseLights(this.rot, frame.barricades, frame.houseHpRatio), this.time);
     ctx.restore();
 
     if (this.reveal > 0) {

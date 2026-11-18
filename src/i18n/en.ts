@@ -43,7 +43,7 @@ export const en: Strings = {
   device: {
     fence: { name: 'Palisade', desc: 'Blocks walkers and shapes their route. Battering rams go through it, jumpers go over it.' },
     spikes: { name: 'Stakes', desc: 'Automatic: springs up as soon as it is stepped on, then re-arms by itself. Put it where they walk.' },
-    log: { name: 'Log', desc: 'Fired by hand: sweeps whatever is under it. Heavy damage, stuns and knocks back. Slow to winch.' },
+    log: { name: 'Log', desc: 'Fire by hand to stun, knock back and deal heavy damage. Runners and dogs crawl under the log. Fire as they approach or catch them in a net. Slow to winch.' },
     net: { name: 'Net', desc: 'Automatic: closes on two infected or more and holds them. Whatever it holds takes +50% damage.' },
     barrier: { name: 'Barrier', desc: 'Fired by hand: stands up for a few seconds and holds the queue. Perfect just before a log.' },
     horn: { name: 'Horn', desc: 'Fired by hand: draws nearby infected toward it. Drains the battery.' },

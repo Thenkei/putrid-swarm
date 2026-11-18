@@ -15,6 +15,8 @@ export interface EnemyDef {
   readonly breaksFences: boolean;
   /** Clears palisades and raised barriers in a bound. */
   readonly jumps: boolean;
+  /** Drops low before crossing a suspended log. */
+  readonly crawlsUnderLogs: boolean;
   /** Breaks the traps it steps on. */
   readonly tramples: boolean;
   /** Picks the weakest door on the whole lot instead of the nearest one. */
@@ -29,6 +31,7 @@ export interface EnemyDef {
 const base = {
   breaksFences: false,
   jumps: false,
+  crawlsUnderLogs: false,
   tramples: false,
   flanks: false,
   windupSeconds: 0,
@@ -38,9 +41,9 @@ const base = {
 
 export const ENEMIES: Readonly<Record<EnemyTypeId, EnemyDef>> = {
   shambler: { ...base, id: 'shambler', hp: 60, speed: 0.85, barricadeDamage: 2.5, houseDamage: 3 },
-  runner: { ...base, id: 'runner', hp: 38, speed: 1.75, barricadeDamage: 2, houseDamage: 2 },
+  runner: { ...base, id: 'runner', hp: 38, speed: 1.75, barricadeDamage: 2, houseDamage: 2, crawlsUnderLogs: true },
   brute: { ...base, id: 'brute', hp: 230, speed: 0.6, barricadeDamage: 7, houseDamage: 8, tramples: true, size: 1.25 },
-  dog: { ...base, id: 'dog', hp: 34, speed: 2.3, barricadeDamage: 2, houseDamage: 2, flanks: true, size: 0.7 },
+  dog: { ...base, id: 'dog', hp: 34, speed: 2.3, barricadeDamage: 2, houseDamage: 2, flanks: true, size: 0.7, crawlsUnderLogs: true },
   boar: {
     ...base,
     id: 'boar',

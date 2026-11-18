@@ -161,6 +161,9 @@ export const COMBAT = {
   litSpeedMultiplier: 0.55,
   logStunSeconds: 1.3,
   logKnockbackCells: 1.4,
+  logCrawlReach: 0.95,
+  logCrawlLowerSeconds: 0.23,
+  logCrawlSpeedMultiplier: 0.58,
   bossControlFactor: 0.55,
   nightEnergy: 100,
 } as const;

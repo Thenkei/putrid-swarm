@@ -151,16 +151,133 @@ async function writeSprite(img, box, entry, name) {
   const resize = entry.h ? { height: Math.min(entry.h, height) } : { width: Math.min(entry.w ?? width, width) };
   pipeline = pipeline.resize({ ...resize, kernel: 'lanczos3' });
   if (entry.mirrorSprites?.includes(name)) pipeline = pipeline.flop();
+  if (entry.id === 'yard_flora') {
+    // Keep the underside of leaves and canes legible when a 168px botanical plate is
+    // painted only 25px wide. The upper edge keeps its original rim light.
+    const { data, info } = await pipeline.sharpen({ sigma: 1.1, m1: 1.3, m2: 2.5 }).raw().toBuffer({ resolveWithObject: true });
+    const out = Buffer.from(data);
+    const ink = [38, 34, 23];
+    const stride = info.width * 4;
+    const lightness = p => (data[p] + data[p + 1] * 2 + data[p + 2]) * 0.25;
+    for (let y = 3; y < info.height - 2; y++) {
+      for (let x = 3; x < info.width - 2; x++) {
+        const i = (y * info.width + x) * 4;
+        const a = data[i + 3] / 255;
+        const upper = Math.max(data[i - stride * 3 + 3], data[i - stride - 12 + 3], data[i + 8 + 3] * 0.65) / 255;
+        const under = upper * (1 - a) * 0.94;
+        const combined = a + under;
+        if (!combined) continue;
+        // Accentuate the existing dark vein and overlap strokes where they meet a lighter leaf.
+        const edge = Math.max(lightness(i - 8), lightness(i + 8), lightness(i - stride * 2), lightness(i + stride * 2)) - lightness(i);
+        const vein = Math.max(0, Math.min(21, (edge - 6) * 0.55));
+        for (let c = 0; c < 3; c++) {
+          const paint = Math.max(0, Math.min(255, 1.23 * data[i + c] - 25 - vein));
+          out[i + c] = Math.round((paint * a + ink[c] * under) / combined);
+        }
+        out[i + 3] = Math.round(combined * 255);
+      }
+    }
+    pipeline = sharp(out, { raw: info });
+  }
+  if (['dev_log', 'dev_spikes', 'dev_net', 'dev_barrier', 'dev_floodlight', 'dev_horn'].includes(entry.id) && name.endsWith('_triggered')) {
+    // The concept sheet included detached comic rays, dust and action strokes. Keep the
+    // actual apparatus: sound waves, light and impact fragments are animated in the game.
+    const result = await pipeline.raw().toBuffer({ resolveWithObject: true });
+    keepMechanism(result.data, result.info.width, result.info.height);
+    if (entry.id === 'dev_barrier') {
+      // One dust puff touches the underside of the foot on this painting.
+      const { width, height } = result.info;
+      for (let y = Math.floor(height * 0.74); y < height; y++) {
+        for (let x = Math.floor(width * 0.635); x < width * 0.82; x++) {
+          const u = x * 200 / width;
+          const v = y * 200 / height;
+          if (v > (u < 154 ? 152 - (u - 127) * 0.2 : 160)) result.data[(y * width + x) * 4 + 3] = 0;
+        }
+      }
+    }
+    pipeline = sharp(result.data, { raw: result.info });
+  }
   const file = `sprites/${name}.webp`;
   const info = await pipeline.webp({ quality: 90, alphaQuality: 95, effort: 5 }).toFile(join(OUT_DIR, file));
   manifest[name] = { file, w: info.width, h: info.height };
+  if (name === 'dev_fence_broken') await fallenPalisades(join(OUT_DIR, file));
+}
+
+// The original diagonal sheet ends at the damaged pose. Lay the two painted stumps and
+// the loose planks into each of the same footprints for the persistent wreck.
+async function fallenPalisades(source) {
+  const paint = await sharp(source).resize(169, 150, { fit: 'fill' }).png().toBuffer();
+  const far = '7,107 4,88 7,46 11,28 25,17 43,11 43,25 40,48 46,65 43,90 39,101 28,111';
+  const near = '129,137 129,121 128,111 132,98 131,81 142,70 166,57 169,67 163,94 169,106 168,135 154,145 140,145';
+  async function cut(polygons, remove = false) {
+    const mask = Buffer.from(`<svg width="169" height="150" xmlns="http://www.w3.org/2000/svg">${polygons.map((p) => `<polygon points="${p}" fill="white"/>`).join('')}</svg>`);
+    const masked = await sharp(paint).composite([{ input: mask, blend: remove ? 'dest-out' : 'dest-in' }]).png().toBuffer();
+    return sharp(masked).trim({ background: '#00000000', threshold: 8 }).png().toBuffer();
+  }
+  const posts = [await cut([far]), await cut([near])];
+  const plankMask = await cut([far, near], true);
+  const clear = { r: 0, g: 0, b: 0, alpha: 0 };
+  const planks = await sharp(plankMask).affine([[1, 0], [-0.31, 1]], { background: clear }).png().toBuffer();
+  const loose = await cut(['40,114 43,105 92,76 103,75 108,85 102,92 56,122 44,126']);
+  const uprightPlank = await sharp(loose).rotate(101, { background: clear }).png().toBuffer();
+  for (const flat of [true, false]) {
+    const w = flat ? 219 : 76;
+    const boards = flat ? planks : await sharp(planks).rotate(77, { background: clear }).png().toBuffer();
+    const components = flat
+      ? [[posts[0], 32, 76, 4, 61], [boards, 183, 58, 20, 85], [posts[1], 33, 69, 181, 70]]
+      : [[posts[0], 20, 46, 24, 28], [uprightPlank, 23, 53, 26, 62], [boards, 61, 77, 9, 65], [posts[1], 25, 49, 24, 96]];
+    const overlays = [];
+    for (const [input, width, height, left, top] of components) {
+      const cropped = await sharp(input).trim({ background: '#00000000', threshold: 8 }).png().toBuffer();
+      overlays.push({ input: await sharp(cropped).resize(width, height, { fit: 'fill' }).png().toBuffer(), left, top });
+    }
+    const id = `fence_diag_${flat ? 'flat' : 'deep'}_broken`;
+    const file = `sprites/${id}.webp`;
+    await sharp({ create: { width: w, height: 150, channels: 4, background: clear } }).composite(overlays).webp({ quality: 90, alphaQuality: 95 }).toFile(join(OUT_DIR, file));
+    manifest[id] = { file, w, h: 150 };
+  }
+}
+
+function keepMechanism(rgba, width, height) {
+  const seen = new Uint8Array(width * height);
+  let largest = [];
+  for (let start = 0; start < seen.length; start++) {
+    if (seen[start] || rgba[start * 4 + 3] < 40) continue;
+    const part = [start];
+    seen[start] = 1;
+    for (let i = 0; i < part.length; i++) {
+      const p = part[i];
+      const x = p % width;
+      const y = Math.floor(p / width);
+      for (let ny = Math.max(0, y - 1); ny <= Math.min(height - 1, y + 1); ny++) {
+        for (let nx = Math.max(0, x - 1); nx <= Math.min(width - 1, x + 1); nx++) {
+          const next = ny * width + nx;
+          if (seen[next] || rgba[next * 4 + 3] < 40) continue;
+          seen[next] = 1;
+          part.push(next);
+        }
+      }
+    }
+    if (part.length > largest.length) largest = part;
+  }
+  // Retain the antialiased fringe around the surviving component.
+  const keep = new Uint8Array(seen.length);
+  for (const p of largest) {
+    const x = p % width;
+    const y = Math.floor(p / width);
+    for (let ny = Math.max(0, y - 2); ny <= Math.min(height - 1, y + 2); ny++) {
+      keep.fill(1, ny * width + Math.max(0, x - 2), ny * width + Math.min(width, x + 3));
+    }
+  }
+  for (let p = 0; p < keep.length; p++) if (!keep[p]) rgba[p * 4 + 3] = 0;
 }
 
 // ───────────────────────────── Per-kind processing ─────────────────────────────
 
 async function processPlate(entry, source) {
-  const file = `plates/${entry.id}.webp`;
-  const info = await sharp(source).resize({ width: entry.w, withoutEnlargement: true }).webp({ quality: 84, effort: 5 }).toFile(join(OUT_DIR, file));
+  const atlas = entry.kind === 'atlas';
+  const file = `${atlas ? 'sprites' : 'plates'}/${entry.id}.webp`;
+  const info = await sharp(source).resize({ width: entry.w, withoutEnlargement: true }).webp({ quality: atlas ? 90 : 84, effort: 5 }).toFile(join(OUT_DIR, file));
   manifest[entry.id] = { file, w: info.width, h: info.height };
 }
 
@@ -319,7 +436,7 @@ async function processTexture(entry, source) {
 
 // ───────────────────────────── Main ─────────────────────────────
 
-const processors = { plate: processPlate, sprite: processSprite, split: processSplit, texture: processTexture, poses: processPoses };
+const processors = { plate: processPlate, atlas: processPlate, sprite: processSprite, split: processSplit, texture: processTexture, poses: processPoses };
 const missing = [];
 const failed = [];
 

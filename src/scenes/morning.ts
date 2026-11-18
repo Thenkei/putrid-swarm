@@ -99,6 +99,7 @@ export class MorningScene implements Scene {
         time: 0,
         night: false,
         carPresent: true,
+        houseHpRatio: yard.houseHp / HOUSE_MAX_HP,
         barricades: yard.barricades,
         decals: yard.decals,
         enemies: [],

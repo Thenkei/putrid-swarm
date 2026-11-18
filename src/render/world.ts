@@ -4,12 +4,17 @@
 import { BARRICADE, DEVICES } from '../core/data/devices';
 import { ENTRIES, GRID_W, HOUSE, HOUSE_CENTER, PROPS, propAt, sectorOf, type PropKind } from '../core/map';
 import type { DeviceRuntimeState, Enemy } from '../core/night';
-import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, SectorId } from '../core/types';
+import type { Cell, Decal, DeviceTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
-import { sprite, type Sprite } from '../engine/assets';
+import { sprite } from '../engine/assets';
+import { deviceArt, devicePose, doorPose, drawDefense, type DefenseMotion } from './defenses';
+import { drawDecals } from './aftermath';
+import { drawEnemy, drawFallen, type Fallen } from './infected';
 import { drawGround, prepareGround, setGroundDresser } from './ground';
+import { houseDamageStage, paintHouse } from './house';
+import { drawHouseDebris, type HouseBreak } from './house-debris';
 import { calmMotion, drawCloudShadows, drawMist, type Light } from './lighting';
-import { hash2 } from './noise';
+import { hash2, smoothstep } from './noise';
 import { TH, TW, depthOf, groundMatrix, inView, project, unproject, viewX, viewY, type Rot, type View } from './projection';
 import { TREES, type Tree } from './scenery';
 import { castShadow, contactShadow, groundPatch } from './shadows';
@@ -26,6 +31,7 @@ export interface DeviceVisual {
   readonly facing?: Facing;
   readonly state: DeviceRuntimeState | 'idle';
   readonly hpRatio: number;
+  readonly activeAge?: number;
   /** 0..1 progress of the re-arm, when rearming. */
   readonly rearm?: number;
   readonly label?: string;
@@ -37,7 +43,7 @@ export interface DeviceVisual {
 }
 
 export interface Particle {
-  kind: 'burst' | 'dust' | 'smoke' | 'ring' | 'text' | 'splat';
+  kind: 'burst' | 'dust' | 'ring' | 'text';
   x: number;
   y: number;
   age: number;
@@ -47,18 +53,7 @@ export interface Particle {
   color?: string;
 }
 
-/** How long a fallen infected stays on screen, in seconds. */
-export const FALL_SECONDS = 0.95;
-
-export interface Fallen {
-  readonly id: number;
-  readonly type: EnemyTypeId;
-  readonly x: number;
-  readonly y: number;
-  readonly fx: number;
-  readonly fy: number;
-  age: number;
-}
+export { FALL_SECONDS, type Fallen } from './infected';
 
 export interface Ghost {
   readonly type: DeviceTypeId;
@@ -79,9 +74,12 @@ export interface SceneryAction {
 export interface WorldFrame {
   readonly time: number;
   readonly night: boolean;
+  readonly houseHpRatio: number;
+  readonly houseBreaks?: readonly HouseBreak[];
   readonly carPresent: boolean;
   readonly sceneryAction?: SceneryAction | null;
   readonly devices: readonly DeviceVisual[];
+  readonly defenseMotion?: DefenseMotion;
   readonly barricades: Readonly<Record<SectorId, { hp: number; level: 0 | 1 }>>;
   readonly decals: readonly Decal[];
   readonly enemies: readonly Enemy[];
@@ -103,95 +101,6 @@ export interface WorldFrame {
 
 // ───────────────────────────── Sprite tables ─────────────────────────────
 
-const ENEMY_ART: Readonly<Record<EnemyTypeId, { key: string; h: number }>> = {
-  shambler: { key: 'en_shambler', h: 64 },
-  runner: { key: 'en_runner', h: 64 },
-  brute: { key: 'en_brute', h: 84 },
-  dog: { key: 'en_dog', h: 40 },
-  boar: { key: 'en_boar', h: 54 },
-  deer: { key: 'en_deer', h: 74 },
-  mower: { key: 'boss_mower', h: 82 },
-  mechanic: { key: 'boss_mechanic', h: 92 },
-  mail: { key: 'boss_mail', h: 76 },
-  chief: { key: 'boss_chief', h: 86 },
-  mayor: { key: 'boss_mayor', h: 96 },
-};
-
-/** Animation poses: three of a walk cycle and one action pose (attack, wind-up, speech…). */
-type Pose = 'a' | 'p' | 'b' | 'x';
-/** Contact, passing, opposite contact, passing: two steps. */
-const WALK_CYCLE: readonly Pose[] = ['a', 'p', 'b', 'p'];
-
-/** How a kind of infected carries itself. Angles in radians, `bob` in pixels at zoom 1. */
-interface Gait {
-  /** Vertical bounce of each step. */
-  readonly bob: number;
-  /** Rocking of the body: side to side for walkers, nose to tail for anything that gallops. */
-  readonly rock: number;
-  /** Constant lean into the direction of travel. */
-  readonly lean: number;
-  /** 0..0.5: how uneven two successive steps are. */
-  readonly limp: number;
-  /** Four-legged: one bound per cycle instead of one bounce per step. */
-  readonly gallop?: boolean;
-  /** Heavy enough to raise dust at each footfall. */
-  readonly dust?: boolean;
-  /** Multiplier on how fast the poses follow each other (the mayor rides: her gestures are unhurried). */
-  readonly pace?: number;
-}
-
-const GAIT: Readonly<Record<EnemyTypeId, Gait>> = {
-  shambler: { bob: 2.2, rock: 0.07, lean: 0.03, limp: 0.32 },
-  runner: { bob: 4, rock: 0.035, lean: 0.13, limp: 0 },
-  brute: { bob: 2.2, rock: 0.05, lean: 0.04, limp: 0.1, dust: true },
-  dog: { bob: 3, rock: 0.1, lean: 0, limp: 0, gallop: true },
-  boar: { bob: 2.6, rock: 0.07, lean: 0, limp: 0, gallop: true, dust: true },
-  deer: { bob: 5.5, rock: 0.09, lean: 0, limp: 0, gallop: true },
-  mower: { bob: 1.6, rock: 0.025, lean: 0.04, limp: 0 },
-  mechanic: { bob: 1.6, rock: 0.03, lean: 0.03, limp: 0.12, dust: true },
-  mail: { bob: 3.6, rock: 0.03, lean: 0.11, limp: 0 },
-  chief: { bob: 2, rock: 0.05, lean: 0.02, limp: 0, dust: true },
-  mayor: { bob: 0.8, rock: 0.02, lean: 0, limp: 0, pace: 0.3 },
-};
-
-/** How much brighter than the scenery the infected are drawn at night, before the darkness is laid over everything. */
-const NIGHT_LIFT = 0.34;
-
-/** A stable 0..1 number per individual, so a crowd does not march in step or stand the same height. */
-const trait = (id: number, salt: number): number => {
-  const v = Math.sin(id * 12.9898 + salt * 78.233) * 43758.5453;
-  return v - Math.floor(v);
-};
-
-const DEVICE_ART: Readonly<Record<DeviceTypeId, { key: string; h: number; lift: number }>> = {
-  fence: { key: 'dev_fence', h: 42, lift: 11 },
-  spikes: { key: 'dev_spikes', h: 50, lift: 14 },
-  log: { key: 'dev_log', h: 74, lift: 12 },
-  net: { key: 'dev_net', h: 64, lift: 12 },
-  barrier: { key: 'dev_barrier', h: 54, lift: 12 },
-  horn: { key: 'dev_horn', h: 54, lift: 11 },
-  floodlight: { key: 'dev_floodlight', h: 78, lift: 9 },
-};
-
-/** Palisades laid along a diagonal of the grid have their own drawings: face-on, and end-on. */
-const FENCE_DIAGONAL: Readonly<Partial<Record<Facing, { key: string; h: number; lift: number }>>> = {
-  2: { key: 'fence_diag_flat', h: 40, lift: 6 },
-  3: { key: 'fence_diag_deep', h: 60, lift: 17 },
-};
-
-type DeviceSpriteState = 'resting' | 'armed' | 'triggered' | 'broken';
-
-/**
- * The drawing of a device for the way it is turned. Along the grid's axes the same sprite serves
- * both ways: mirrored, a piece running along x is the same piece running along y in this projection.
- */
-function deviceArt(type: DeviceTypeId, facing: Facing | undefined, state: DeviceSpriteState): { key: string; h: number; lift: number; flip: boolean } {
-  const diagonal = type === 'fence' && state !== 'broken' ? FENCE_DIAGONAL[facing ?? 0] : undefined;
-  if (diagonal) return { key: state === 'triggered' ? `${diagonal.key}_hurt` : diagonal.key, h: diagonal.h, lift: diagonal.lift, flip: false };
-  const art = DEVICE_ART[type];
-  return { key: `${art.key}_${state}`, h: art.h, lift: art.lift, flip: facing === 1 };
-}
-
 const PROP_ART: Readonly<Record<PropKind, { key: string; h: number; lift: number }>> = {
   car: { key: 'obj_car', h: 112, lift: 4 },
   well: { key: 'obj_props_well', h: 86, lift: 14 },
@@ -209,7 +118,7 @@ const HOUSE_DRAW_WIDTH = 300;
 const HOUSE_LIFT = 10;
 /** Width of the house paintings, in their own pixels: lamp and chimney positions below are given in them. */
 const HOUSE_ART_WIDTH = 760;
-const HOUSE_ART_HEIGHT = 741;
+const HOUSE_ART_HEIGHT: Record<Rot, number> = { 0: 749, 1: 739 };
 
 interface HouseLamp {
   /** Where it is on the painting. */
@@ -220,27 +129,29 @@ interface HouseLamp {
   readonly strength: number;
   readonly glow: number;
   readonly flicker: number;
+  readonly glazedDoor?: SectorId;
+  readonly atticWindow?: boolean;
 }
 
 /** What is painted on each side of the house that gives light or smoke. */
 const HOUSE_ART: Readonly<Record<Rot, { readonly key: string; readonly chimney: { readonly x: number; readonly y: number }; readonly lamps: readonly HouseLamp[] }>> = {
   0: {
     key: 'obj_house_front',
-    chimney: { x: 557, y: 26 },
+    chimney: { x: 567, y: 18 },
     lamps: [
-      { x: 240, y: 312, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25 },
-      { x: 523, y: 357, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25 },
+      { x: 242, y: 321, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25, atticWindow: true },
+      { x: 533, y: 364, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25 },
       // The lantern by the barn door.
-      { x: 468, y: 548, radius: 2.3, strength: 0.85, glow: 0.9, flicker: 0.55 },
+      { x: 472, y: 562, radius: 2.3, strength: 0.85, glow: 0.9, flicker: 0.55 },
     ],
   },
   1: {
     key: 'obj_house_back',
-    chimney: { x: 302, y: 28 },
+    chimney: { x: 302, y: 20 },
     lamps: [
-      { x: 224, y: 330, radius: 1.3, strength: 0.4, glow: 0.3, flicker: 0.25 },
+      { x: 224, y: 330, radius: 1.3, strength: 0.4, glow: 0.3, flicker: 0.25, atticWindow: true },
       // The glazed doors of the kitchen.
-      { x: 562, y: 520, radius: 2.2, strength: 0.6, glow: 0.6, flicker: 0.2 },
+      { x: 563, y: 550, radius: 2.2, strength: 0.6, glow: 0.6, flicker: 0.2, glazedDoor: 'verger' },
     ],
   },
 };
@@ -249,24 +160,31 @@ const HOUSE_ART: Readonly<Record<Rot, { readonly key: string; readonly chimney: 
 const houseCorner = (rot: Rot): Cell => ({ x: rot === 0 ? HOUSE.x1 + 1 : HOUSE.x0, y: rot === 0 ? HOUSE.y1 + 1 : HOUSE.y0 });
 
 /** A point of the house painting as an offset from that corner, in stage units at zoom 1 (x to the right, y up). */
-function housePoint(x: number, y: number): { dx: number; lift: number } {
+function housePoint(rot: Rot, x: number, y: number): { dx: number; lift: number } {
   const k = HOUSE_DRAW_WIDTH / HOUSE_ART_WIDTH;
-  return { dx: (x - HOUSE_ART_WIDTH / 2) * k, lift: (HOUSE_ART_HEIGHT - y) * k - HOUSE_LIFT };
+  return { dx: (x - HOUSE_ART_WIDTH / 2) * k, lift: (HOUSE_ART_HEIGHT[rot] - y) * k - HOUSE_LIFT };
 }
 
 /** The lit windows and the lantern of the house, for the side a view looks from. */
-export function houseLights(rot: Rot): readonly Light[] {
+export function houseLights(rot: Rot, barricades: WorldFrame['barricades'], houseHpRatio = 1): readonly Light[] {
   const corner = houseCorner(rot);
-  return HOUSE_ART[rot].lamps.map((lamp) => ({
-    gx: corner.x,
-    gy: corner.y,
-    ...housePoint(lamp.x, lamp.y),
-    radius: lamp.radius,
-    color: `rgba(255, 198, 118, ${lamp.strength})`,
-    glow: lamp.glow,
-    flicker: lamp.flicker,
-    round: true,
-  }));
+  const stage = houseDamageStage(houseHpRatio);
+  const lights: Light[] = [];
+  for (const lamp of HOUSE_ART[rot].lamps) {
+    if ((lamp.glazedDoor && barricades[lamp.glazedDoor].hp <= 0) || (lamp.atticWindow && stage === 5)) continue;
+    const halfPane = lamp.atticWindow && stage === 4;
+    lights.push({
+      gx: corner.x,
+      gy: corner.y,
+      ...housePoint(rot, lamp.x, lamp.y + (halfPane ? 16 : 0)),
+      radius: lamp.radius * (halfPane ? 0.8 : 1),
+      color: `rgba(255, 198, 118, ${lamp.strength * (halfPane ? 0.6 : 1)})`,
+      glow: lamp.glow * (halfPane ? 0.55 : 1),
+      flicker: lamp.flicker,
+      round: true,
+    });
+  }
+  return lights;
 }
 
 /** How each fixed thing meets the ground: a soft patch under it and, if it stands tall, the shadow it throws. */
@@ -473,14 +391,6 @@ function groundRing(ctx: CanvasRenderingContext2D, view: View, gx: number, gy: n
   ctx.ellipse(p.x, p.y, radiusCells * Math.SQRT2 * (TW / 2) * view.zoom, radiusCells * Math.SQRT2 * (TH / 2) * view.zoom, 0, 0, Math.PI * 2);
 }
 
-function deviceSpriteState(device: DeviceVisual): DeviceSpriteState {
-  if (device.state === 'broken') return 'broken';
-  if (device.type === 'fence') return device.hpRatio > 0.5 ? 'resting' : 'triggered';
-  if (device.state === 'active') return 'triggered';
-  if (device.state === 'armed') return 'armed';
-  return 'resting';
-}
-
 // ───────────────────────────── Fixed scenery ─────────────────────────────
 
 /** On a side of the lot the view looks across to: its trees stand behind everything. */
@@ -556,8 +466,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   ctx.clip();
   ctx.fillStyle = '#0c0906';
   ctx.fillRect(view.x, view.y, view.w, view.h);
-  // Sprites are drawn at a third of their size or less: plain bilinear filtering turns their ink lines to mush.
-  ctx.imageSmoothingQuality = 'high';
+  // Preserve ink lines at camera scale without doing the terrain bake's expensive filtering every frame.
+  ctx.imageSmoothingQuality = 'medium';
 
   drawGround(ctx, view);
 
@@ -567,7 +477,25 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   const casts: (() => void)[] = [];
   // By night the only shadows left are what the moon gives.
   const shade = frame.night ? 0.6 : 1;
-  const onScreen = (p: { x: number; y: number }, reach: number): boolean => p.x > view.x - reach * z && p.x < view.x + view.w + reach * z && p.y > view.y - 20 && p.y < view.y + view.h + reach * 1.9 * z;
+  // Thin foreground foliage where it would conceal a fighting figure or one of this side's
+  // doorways. The overlap is measured in the current projection, including painter's depth.
+  const sightlines: { x: number; y: number; depth: number }[] = [];
+  if (frame.night) {
+    for (const sector of VISIBLE_DOORS[view.rot]) {
+      const sill = doorSill(view, sector);
+      sightlines.push({ x: sill.x, y: sill.y - 25 * z, depth: depthOf(view.rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.3 });
+    }
+    for (const enemy of frame.enemies) {
+      if (!enemy.alive) continue;
+      const p = project(view, enemy.x, enemy.y);
+      sightlines.push({ x: p.x, y: p.y - 27 * z * enemy.def.size, depth: depthOf(view.rot, enemy.x, enemy.y) });
+    }
+    for (const body of frame.fallen ?? []) {
+      const p = project(view, body.x, body.y);
+      sightlines.push({ x: p.x, y: p.y - 8 * z, depth: depthOf(view.rot, body.x, body.y) });
+    }
+  }
+  const onScreen = (p: { x: number; y: number }, reach: number): boolean => p.x > view.x - reach * z && p.x < view.x + view.w + reach * z && p.y > view.y - 40 * z && p.y < view.y + view.h + reach * 1.9 * z;
 
   // Tree line: only the far sides, so the forest never hides the action. The row that borders the
   // lot is drawn here, where the wind can move it and the infected can walk out from behind it; the
@@ -602,8 +530,11 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
         if (art) {
           const w = HOUSE_DRAW_WIDTH * z;
           const h = (art.h / art.w) * w;
-          ctx.drawImage(art.img, corner.x - w / 2, corner.y + HOUSE_LIFT * z - h, w, h);
-          const chimney = housePoint(side.chimney.x, side.chimney.y);
+          const left = corner.x - w / 2;
+          const top = corner.y + HOUSE_LIFT * z - h;
+          paintHouse(ctx, view.rot, side.key, art, left, top, w, frame.houseHpRatio, frame.barricades);
+          if (frame.houseBreaks?.length) drawHouseDebris(ctx, frame.houseBreaks, view.rot, side.key, art, left, top, w);
+          const chimney = housePoint(view.rot, side.chimney.x, side.chimney.y);
           drawChimneySmoke(ctx, corner.x + chimney.dx * z, corner.y - chimney.lift * z, z, frame.time);
         } else {
           placeholder(ctx, corner.x, corner.y, 240 * z, 200 * z, '#8a6a47', 'house');
@@ -623,10 +554,20 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const key = prop.kind === 'car' ? `${art.key}_${view.rot === 0 ? 'front' : 'back'}` : art.key;
     const centreDepth = depthOf(view.rot, prop.x + prop.w / 2, prop.y + prop.h / 2) + 0.4;
     const lean = SWAYS.has(prop.kind) ? swayOf(frame.time, hash2(prop.x, prop.y, 3)) : 0;
+    let opacity = 1;
+    if (SWAYS.has(prop.kind) && sightlines.length) {
+      const height = art.h * z;
+      const canopyY = p.y + art.lift * z - height * 0.62;
+      for (const target of sightlines) {
+        if (centreDepth < target.depth) continue;
+        const distance = Math.hypot((target.x - p.x) / (height * 0.53), (target.y - canopyY) / (height * 0.45));
+        opacity = Math.min(opacity, 0.31 + 0.69 * smoothstep(0.22, 1.15, distance));
+      }
+    }
     drawables.push({
       depth: centreDepth,
       draw: () => {
-        const drawn = drawSprite(ctx, key, p.x, p.y + art.lift * z, art.h * z, false, 1, lean);
+        const drawn = drawSprite(ctx, key, p.x, p.y + art.lift * z, art.h * z, false, opacity, lean);
         if (!drawn) placeholder(ctx, p.x, p.y, 40 * z, 40 * z, '#5a6a4a', prop.kind);
         const action = frame.sceneryAction;
         if (drawn && action?.kind === prop.kind) {
@@ -648,12 +589,15 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   // Devices.
   for (const device of frame.devices) {
     const p = project(view, device.x + 0.5, device.y + 0.5);
+    if (!onScreen(p, 125)) continue;
     drawables.push({ depth: depthOf(view.rot, device.x + 0.5, device.y + 0.5) + 0.3, draw: () => drawDevice(ctx, view, frame, device, p) });
     const broken = device.state === 'broken';
     contacts.push({ gx: device.x + 0.5, gy: device.y + 0.5, rx: 0.56, ry: 0.56, alpha: device.type === 'fence' ? 0.3 : broken ? 0.3 : 0.42 });
-    const cast = broken ? 0 : (DEVICE_CAST[device.type] ?? 0);
+    const wear = broken ? frame.defenseMotion?.at(device.id) : undefined;
+    const remaining = wear && !calmMotion() ? Math.max(0, 1 - (frame.time - wear.brokeAt) / 0.52) : 0;
+    const cast = (DEVICE_CAST[device.type] ?? 0) * (broken ? remaining : 1);
     if (cast > 0) {
-      const art = deviceArt(device.type, device.facing, deviceSpriteState(device));
+      const art = deviceArt(device.type, device.facing, wear?.beforeBreak ?? devicePose(device));
       casts.push(() => castShadow(ctx, art.key, p.x, p.y + (art.lift - 6) * z, art.h * z, art.flip, cast * shade, 0.85));
     }
   }
@@ -674,7 +618,12 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   // Infected.
   for (const enemy of frame.enemies) {
     if (!enemy.alive) continue;
-    drawables.push({ depth: depthOf(view.rot, enemy.x, enemy.y), draw: () => drawEnemy(ctx, view, frame, enemy) });
+    let depth = depthOf(view.rot, enemy.x, enemy.y);
+    const log = enemy.crawlLog;
+    if (log && enemy.crawlDepth > 0.6 && Math.floor(enemy.x) === log.x && Math.floor(enemy.y) === log.y) {
+      depth = Math.min(depth, depthOf(view.rot, log.x + 0.5, log.y + 0.5));
+    }
+    drawables.push({ depth, draw: () => drawEnemy(ctx, view, frame, enemy) });
   }
 
   for (const fallen of frame.fallen ?? []) {
@@ -683,7 +632,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
 
   // Particles that stand up from the ground.
   for (const particle of frame.particles) {
-    if (particle.kind === 'ring' || particle.kind === 'splat') continue;
+    if (particle.kind === 'ring') continue;
     drawables.push({ depth: depthOf(view.rot, particle.x, particle.y) + 0.6, draw: () => drawParticle(ctx, view, particle) });
   }
 
@@ -694,7 +643,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   ctx.restore();
   for (const cast of casts) cast();
 
-  drawDecals(ctx, view, frame);
+  drawDecals(ctx, view, frame.decals);
   drawGroundOverlays(ctx, view, frame);
 
   drawables.sort((a, b) => a.depth - b.depth);
@@ -788,42 +737,18 @@ function drawLeaves(ctx: CanvasRenderingContext2D, view: View, time: number): vo
   }
 }
 
-function drawDecals(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): void {
-  for (const decal of frame.decals) {
-    if (decal.kind === 'mown') {
-      // The one immaculate thing in the garden.
-      diamond(ctx, view, decal.x, decal.y, 0.04);
-      ctx.fillStyle = 'rgba(142,178,72,0.62)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(196,222,120,0.5)';
-      ctx.lineWidth = 1.2 * view.zoom;
-      ctx.stroke();
-    } else if (decal.kind === 'splat') {
-      const p = project(view, decal.x + 0.5, decal.y + 0.5);
-      const art = sprite('fx_splat');
-      if (art) {
-        const w = 40 * view.zoom;
-        ctx.globalAlpha = 0.55;
-        ctx.drawImage(art.img, p.x - w / 2, p.y - w / 4, w, w / 2);
-        ctx.globalAlpha = 1;
-      }
-    } else {
-      const p = project(view, decal.x + 0.5, decal.y + 0.5);
-      ctx.fillStyle = 'rgba(70,46,24,0.75)';
-      for (let i = 0; i < 4; i++) {
-        const angle = (decal.x * 7 + decal.y * 13 + i * 2.1) % Math.PI;
-        ctx.save();
-        ctx.translate(p.x + Math.cos(i * 2.4) * 10 * view.zoom, p.y + Math.sin(i * 1.7) * 5 * view.zoom);
-        ctx.rotate(angle);
-        ctx.fillRect(-7 * view.zoom, -1.5 * view.zoom, 14 * view.zoom, 3 * view.zoom);
-        ctx.restore();
-      }
-    }
-  }
-}
-
 function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): void {
   const z = view.zoom;
+  // A cue identifies the trigger's footprint. The hovered trap still shows its full area of effect.
+  for (const d of frame.devices) {
+    if (!d.cue) continue;
+    diamond(ctx, view, d.x, d.y, 0.035);
+    ctx.fillStyle = 'rgba(247, 179, 75, 0.10)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 201, 116, 0.74)';
+    ctx.lineWidth = 1.4 * z;
+    ctx.stroke();
+  }
 
   if (frame.showBuildable && frame.hoverCell) {
     diamond(ctx, view, frame.hoverCell.x, frame.hoverCell.y, 0.03);
@@ -912,60 +837,59 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
       groundRing(ctx, view, particle.x, particle.y, (particle.radius ?? 1) * (0.25 + 0.75 * Math.min(1, t * 2.2)));
       ctx.strokeStyle = particle.color ?? '#f2a531';
       ctx.globalAlpha = 1 - t;
-      ctx.lineWidth = 3 * z;
+      ctx.lineWidth = 1.6 * z;
       ctx.stroke();
-      ctx.globalAlpha = (1 - t) * 0.18;
-      ctx.fillStyle = particle.color ?? '#f2a531';
-      ctx.fill();
       ctx.globalAlpha = 1;
-    } else if (particle.kind === 'splat') {
-      const p = project(view, particle.x, particle.y);
-      const art = sprite('fx_splat');
-      if (art) {
-        const w = 44 * z * Math.min(1, particle.age / 0.12);
-        ctx.globalAlpha = 0.8 * (1 - particle.age / particle.life);
-        ctx.drawImage(art.img, p.x - w / 2, p.y - w / 4, w, w / 2);
-        ctx.globalAlpha = 1;
-      }
     }
   }
 }
 
+// Door sill centres measured on the two original 760px paintings.
+const DOOR_SILLS: Record<SectorId, readonly [x: number, y: number, height: number]> = {
+  portail: [235, 680, 65], grange: [620, 694, 76], arriere: [227, 669, 64], verger: [566, 657, 73],
+};
+const VISIBLE_DOORS: Record<Rot, readonly SectorId[]> = { 0: ['portail', 'grange'], 1: ['arriere', 'verger'] };
+
+function doorSill(view: View, sector: SectorId): { x: number; y: number } {
+  const corner = houseCorner(view.rot);
+  const p = project(view, corner.x, corner.y);
+  const [x, y] = DOOR_SILLS[sector];
+  const offset = housePoint(view.rot, x, y);
+  return { x: p.x + offset.dx * view.zoom, y: p.y - offset.lift * view.zoom };
+}
+
 function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame, sector: SectorId, depth: number): Drawable[] {
-  // Only the two doors on the faces this rotation can see.
-  const visible: readonly SectorId[] = view.rot === 0 ? ['portail', 'grange'] : ['arriere', 'verger'];
-  if (!visible.includes(sector)) return [];
+  if (!VISIBLE_DOORS[view.rot].includes(sector)) return [];
   const barricade = frame.barricades[sector];
   const max = BARRICADE.maxHp[barricade.level];
   const ratio = barricade.hp / max;
-  const state = barricade.hp <= 0 ? 'broken' : ratio <= 0.5 ? 'triggered' : barricade.level === 1 ? 'armed' : 'resting';
-  // Door positions on the house art: centre of each visible wall.
+  const state = doorPose(ratio, barricade.level);
   const onLeftFace = sector === 'portail' || sector === 'arriere';
-  const mid = (HOUSE.x0 + HOUSE.x1 + 1) / 2;
-  const anchor: Record<SectorId, { x: number; y: number }> = {
-    portail: { x: mid - 0.25, y: HOUSE.y1 + 1.12 },
-    grange: { x: HOUSE.x1 + 1.12, y: mid - 0.05 },
-    arriere: { x: mid + 0.25, y: HOUSE.y0 - 0.12 },
-    verger: { x: HOUSE.x0 - 0.12, y: mid + 0.05 },
-  };
-  const p = project(view, anchor[sector].x, anchor[sector].y);
+  const p = doorSill(view, sector);
+  const h = DOOR_SILLS[sector][2];
   const z = view.zoom;
   return [
     {
       depth,
       draw: () => {
-        const drawn = drawSprite(ctx, `dev_barricade_${state}`, p.x, p.y + 12 * z, 70 * z, !onLeftFace);
+        const previous = (pose: ReturnType<typeof doorPose>) => ({ key: `dev_barricade_${pose}`, h, lift: h * 0.09, flip: onLeftFace });
+        ctx.save();
+        // The brace spans the two barn leaves; the three single doors use the narrower panel.
+        if (sector === 'grange') { ctx.translate(p.x, 0); ctx.scale(1.48, 1); ctx.translate(-p.x, 0); }
+        const drawn = drawDefense(ctx, p.x, p.y, z, { kind: 'barricade', art: previous(state), previous, hpRatio: ratio, maxHp: max, id: sector, time: frame.time, motion: frame.defenseMotion });
+        ctx.restore();
         if (!drawn) placeholder(ctx, p.x, p.y, 30 * z, 50 * z, '#7a5a35', 'door');
         if (frame.doorHighlight === sector) {
           ctx.strokeStyle = '#f2a531';
           ctx.lineWidth = 2;
-          ctx.strokeRect(p.x - 26 * z, p.y - 62 * z, 52 * z, 74 * z);
+          const width = sector === 'grange' ? 76 : 46;
+          ctx.strokeRect(p.x - width * z / 2, p.y - (h - 4) * z, width * z, h * z);
         }
         // Door health: always in sight by night, it is the thing being defended. By day a sound
         // door needs no bar; the panel has the figures.
         if (frame.night || ratio < 0.999 || frame.doorHighlight === sector) {
           const barW = 46 * z;
-          meter(ctx, p.x - barW / 2, p.y - 68 * z, barW, 5 * z, ratio, ratio > 0.5 ? '#9fcf5a' : ratio > 0.2 ? '#f2a531' : '#e0432e');
+          meter(ctx, p.x - barW / 2, p.y - (h + 3) * z, barW, 4 * z, ratio, ratio > 0.5 ? '#9fcf5a' : ratio > 0.2 ? '#f2a531' : '#e0432e');
         }
       },
     },
@@ -974,7 +898,7 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
 
 function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame, device: DeviceVisual, p: { x: number; y: number }): void {
   const z = view.zoom;
-  const state = deviceSpriteState(device);
+  const state = devicePose(device);
   const art = deviceArt(device.type, device.facing, state);
 
   if (device.highlight) {
@@ -986,9 +910,11 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
     ctx.stroke();
   }
 
-  let jitterX = 0;
-  if (device.state === 'active' && (device.type === 'horn' || device.type === 'log')) jitterX = Math.sin(frame.time * 70) * 1.5 * z;
-  const drawn = drawSprite(ctx, art.key, p.x + jitterX, p.y + art.lift * z, art.h * z, art.flip);
+  const drawn = drawDefense(ctx, p.x, p.y, z, {
+    kind: device.type, art, previous: (pose) => deviceArt(device.type, device.facing, pose), id: device.id,
+    hpRatio: device.hpRatio, state: device.state, activeAge: device.activeAge ?? 0, rearm: device.rearm ?? 0,
+    time: frame.time, motion: frame.defenseMotion,
+  });
   if (!drawn) placeholder(ctx, p.x, p.y, 34 * z, 34 * z, state === 'broken' ? '#4a3a2a' : '#b98a3a', device.type);
 
   if (device.type !== 'fence' && device.hpRatio < 0.999 && state !== 'broken') {
@@ -1006,10 +932,18 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   const top = p.y + art.lift * z - art.h * z;
   const pipY = top - 9 * z;
 
+  if (device.state === 'active') {
+    // The solid centre covers the instant of release; the outer arc runs down while deployed.
+    const left = Math.max(0, 1 - (device.activeAge ?? 0) / DEVICES[device.type].activeSeconds);
+    ctx.beginPath(); ctx.arc(p.x, pipY, 3 * z, 0, Math.PI * 2);
+    ctx.fillStyle = '#e5f5cd'; ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x, pipY, 5.5 * z, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left);
+    ctx.strokeStyle = '#cde8b8'; ctx.lineWidth = 1.4 * z; ctx.stroke();
+  }
   if (mode === 'auto') {
     // Automatic traps look after themselves: a small cool-coloured dot, never a key.
     if (device.state === 'broken') cross(ctx, p.x, pipY, 4 * z);
-    else {
+    else if (device.state !== 'active') {
       ctx.fillStyle = device.state === 'armed' ? 'rgba(150,220,235,0.9)' : 'rgba(90,100,104,0.9)';
       ctx.beginPath();
       ctx.arc(p.x, pipY, 3 * z, 0, Math.PI * 2);
@@ -1025,20 +959,9 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
     return;
   }
 
-  if (device.cue) {
-    // "Now": a beating ring on the ground and a bigger key.
-    const beat = 0.5 + 0.5 * Math.sin(frame.time * 12);
-    groundRing(ctx, view, device.x + 0.5, device.y + 0.5, DEVICES[device.type].radius > 0 ? DEVICES[device.type].radius : 0.9);
-    ctx.fillStyle = `rgba(255,200,60,${0.1 + beat * 0.14})`;
-    ctx.fill();
-    ctx.strokeStyle = `rgba(255,214,90,${0.65 + beat * 0.35})`;
-    ctx.lineWidth = (2 + beat * 1.5) * z;
-    ctx.stroke();
-  }
-
   // Readiness: a pip above every manual trap — amber ready, grey ring filling while re-arming, red cross broken.
   if (device.state === 'armed') {
-    const pulse = 0.75 + 0.25 * Math.sin(frame.time * 6 + device.id);
+    const pulse = calmMotion() ? 1 : 0.75 + 0.25 * Math.sin(frame.time * 6 + device.id);
     ctx.fillStyle = `rgba(255,190,60,${pulse})`;
     ctx.beginPath();
     ctx.arc(p.x, pipY, 5 * z, 0, Math.PI * 2);
@@ -1062,13 +985,13 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   }
 
   if (device.label && device.state !== 'broken') {
-    const grow = device.cue ? 1.45 + 0.15 * Math.sin(frame.time * 12) : 1;
-    const w = 18 * z * grow;
+    const grow = device.cue ? 1.10 : 1;
+    const w = 16 * z * grow;
     const lx = p.x + 12 * z;
     const ly = pipY - 9 * z * grow;
     ctx.fillStyle = device.cue ? '#ffd23c' : device.state === 'armed' ? '#f2a531' : '#3a3a3a';
     ctx.strokeStyle = '#0c0a08';
-    ctx.lineWidth = device.cue ? 2.5 : 1.5;
+    ctx.lineWidth = (device.cue ? 1.8 : 1.2) * z;
     ctx.beginPath();
     ctx.roundRect(lx - w / 2, ly - w / 2, w, w, 3 * z);
     ctx.fill();
@@ -1115,229 +1038,6 @@ function cross(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): 
   ctx.stroke();
 }
 
-/** Which way a figure faces on screen, from its movement in the grid: right from either side of the house. */
-function facingOf(view: View, fx: number, fy: number): { front: boolean; flip: boolean; dirX: number; dirY: number } {
-  const sign = view.rot === 0 ? 1 : -1;
-  const sdx = (fx - fy) * sign;
-  const sdy = (fx + fy) * sign;
-  const front = sdy >= -0.05;
-  const flip = front ? sdx > 0.05 : sdx < -0.05;
-  // The front sprite walks toward the lower-left, the back sprite toward the upper-right.
-  const dirX = (front ? -1 : 1) * (flip ? -1 : 1);
-  return { front, flip, dirX, dirY: front ? 0.5 : -0.5 };
-}
-
-/** The sprite for a pose, with the factor that keeps every pose of a character at the same scale. */
-function poseSprite(artKey: string, front: boolean, pose: Pose): { image: Sprite; scale: number } | null {
-  const base = `${artKey}_${front ? 'front' : 'back'}`;
-  const posed = sprite(`${base}_${pose}`);
-  const reference = sprite(`${base}_a`);
-  if (posed && reference) return { image: posed, scale: posed.h / reference.h };
-  // No animation sheet for this character (or still loading): the single turnaround sprite.
-  const single = sprite(base);
-  return single ? { image: single, scale: 1 } : null;
-}
-
-function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame, enemy: Enemy): void {
-  const z = view.zoom;
-  const art = ENEMY_ART[enemy.type];
-  const gait = GAIT[enemy.type];
-  const p = project(view, enemy.x, enemy.y);
-  if (p.x < view.x - 80 * z || p.x > view.x + view.w + 80 * z || p.y < view.y - 20 * z || p.y > view.y + view.h + 110 * z) return;
-
-  const { front, flip, dirX, dirY } = facingOf(view, enemy.fx, enemy.fy);
-  const held = enemy.nettedFor > 0 || enemy.stunnedFor > 0;
-  const moving = !held && (enemy.action === 'walk' || enemy.action === 'charge');
-  const telegraphing = enemy.action === 'windup' || enemy.action === 'rev' || enemy.action === 'speech';
-
-  // Steps: `phase` counts them, bent so that a limping walker takes one long and one short.
-  const cadence = ((4 + enemy.def.speed * 5) / Math.PI) * (gait.pace ?? 1) * (0.88 + 0.24 * trait(enemy.id, 1)) * (enemy.hasteFor > 0 ? 1.3 : 1);
-  const steps = frame.time * cadence + trait(enemy.id, 2) * 4;
-  const phase = steps + (gait.limp / Math.PI) * Math.sin(Math.PI * steps);
-  const within = phase - Math.floor(phase);
-
-  let pose: Pose = 'p';
-  let bob = 0;
-  let tilt = 0;
-  let pushX = 0;
-  let pushY = 0;
-  let shakeX = 0;
-  if (moving) {
-    pose = WALK_CYCLE[Math.floor(phase * 2) % 4] as Pose;
-    // Walkers are lowest on the contact pose and tallest on the passing one; gallopers rise once per bound.
-    bob = gait.bob * z * (gait.gallop ? 0.5 + 0.5 * Math.cos(Math.PI * (phase - 0.25)) : 0.5 - 0.5 * Math.cos(2 * Math.PI * (within - 0.25)));
-    tilt = gait.rock * Math.sin(Math.PI * phase) + (front ? -1 : 1) * gait.lean * (enemy.action === 'charge' ? 1.8 : 1);
-  } else if (enemy.action === 'attack' && !held) {
-    // Arms up, then down on the door with the whole body behind them.
-    const beat = Math.sin(frame.time * 8 + enemy.id);
-    pose = beat > 0 ? 'x' : 'a';
-    const strike = Math.max(0, -beat);
-    pushX = dirX * strike * 5 * z;
-    pushY = dirY * strike * 5 * z;
-    tilt = (front ? -1 : 1) * strike * 0.1;
-  } else if (telegraphing) {
-    pose = 'x';
-    shakeX = Math.sin(frame.time * 55 + enemy.id) * 1.6 * z;
-  } else if (enemy.action === 'jam') {
-    tilt = Math.sin(frame.time * 30) * 0.05;
-  }
-  if (held) tilt = Math.sin(frame.time * 18 + enemy.id) * 0.05;
-
-  // Taking a blow knocks the figure back for an instant.
-  const recoil = Math.min(1, enemy.hitFlash / 0.18);
-  pushX -= dirX * recoil * 3.5 * z;
-  pushY -= dirY * recoil * 3.5 * z;
-  tilt += (front ? 1 : -1) * recoil * 0.12;
-
-  contactShadow(ctx, p.x, p.y + 1 * z, 19 * enemy.def.size * z, 8.5 * enemy.def.size * z, 0.62);
-  if (moving && gait.dust && within < 0.3) {
-    // Footfall.
-    const t = within / 0.3;
-    ctx.fillStyle = `rgba(200,186,150,${0.32 * (1 - t)})`;
-    ctx.beginPath();
-    ctx.ellipse(p.x - dirX * 6 * z, p.y + 2 * z, (7 + t * 9) * enemy.def.size * z, (3 + t * 3) * enemy.def.size * z, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  const stature = enemy.def.boss ? 1 : 0.95 + 0.1 * trait(enemy.id, 3);
-  const figure = poseSprite(art.key, front, pose);
-  const h = art.h * z * stature;
-  ctx.save();
-  ctx.translate(p.x + shakeX + pushX, p.y + 4 * z - bob + pushY);
-  // Mirror first, so that leaning "forward" needs no second sign for the flipped sprite.
-  if (flip) ctx.scale(-1, 1);
-  ctx.rotate(tilt);
-  if (figure) {
-    const fh = h * figure.scale;
-    const fw = (figure.image.w / figure.image.h) * fh;
-    // A pose much shorter than the stride is a tuck in mid-air (sprinters, anything galloping): it is
-    // drawn off the ground rather than squatting on it.
-    const air = moving ? Math.max(0, h - fh) * 0.6 : 0;
-    ctx.translate(0, -air);
-    ctx.drawImage(figure.image.img, -fw / 2, -fh, fw, fh);
-    // The cameras' infrared lifts anything warm off the dark ground; a blow flashes brighter still.
-    const lift = Math.max(frame.night ? NIGHT_LIFT : 0, Math.min(1, enemy.hitFlash * 6));
-    if (lift > 0) {
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = lift;
-      ctx.drawImage(figure.image.img, -fw / 2, -fh, fw, fh);
-      ctx.globalAlpha = 1;
-      ctx.globalCompositeOperation = 'source-over';
-    }
-  } else {
-    placeholder(ctx, 0, 0, 22 * enemy.def.size * z, h, enemy.def.boss ? '#a8433a' : '#7d9a58', enemy.type);
-  }
-  ctx.restore();
-
-  const top = p.y - h;
-
-  if (enemy.nettedFor > 0) {
-    // A sagging net over the catch.
-    ctx.strokeStyle = 'rgba(226,202,150,0.9)';
-    ctx.lineWidth = 1.2 * z;
-    const rw = 20 * enemy.def.size * z;
-    const rh = h * 0.72;
-    for (let i = -2; i <= 2; i++) {
-      ctx.beginPath();
-      ctx.moveTo(p.x + i * rw * 0.45, p.y - rh);
-      ctx.quadraticCurveTo(p.x + i * rw * 0.6, p.y - rh * 0.4, p.x + i * rw * 0.5, p.y);
-      ctx.stroke();
-    }
-    for (let j = 1; j <= 3; j++) {
-      ctx.beginPath();
-      ctx.ellipse(p.x, p.y - (rh * j) / 3.4, rw * (0.75 + j * 0.1), 4 * z, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  }
-  if (enemy.stunnedFor > 0) {
-    for (let i = 0; i < 3; i++) {
-      const a = frame.time * 6 + (i * Math.PI * 2) / 3;
-      ctx.fillStyle = '#ffe58a';
-      ctx.beginPath();
-      ctx.arc(p.x + Math.cos(a) * 11 * z, top - 4 * z + Math.sin(a) * 4 * z, 2.4 * z, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  // Telegraphs: anything about to hit hard says so first.
-  if (enemy.action === 'windup' || enemy.action === 'rev' || enemy.action === 'speech') {
-    const blink = Math.sin(frame.time * 16) > 0;
-    ctx.fillStyle = blink ? '#ffd23a' : '#e0432e';
-    ctx.strokeStyle = '#1a1206';
-    ctx.lineWidth = 1.5;
-    const s = 11 * z;
-    ctx.save();
-    ctx.translate(p.x, top - 16 * z);
-    ctx.rotate(Math.PI / 4);
-    ctx.fillRect(-s / 2, -s / 2, s, s);
-    ctx.strokeRect(-s / 2, -s / 2, s, s);
-    ctx.restore();
-    ctx.fillStyle = '#1a1206';
-    ctx.font = `700 ${12 * z}px "DIN Condensed","Arial Narrow",sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('!', p.x, top - 12 * z);
-  }
-  if (enemy.hasteFor > 0) {
-    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-    ctx.lineWidth = 1.2 * z;
-    for (let i = 0; i < 3; i++) {
-      ctx.beginPath();
-      ctx.moveTo(p.x - 14 * z, p.y - (10 + i * 12) * z);
-      ctx.lineTo(p.x - 24 * z, p.y - (10 + i * 12) * z);
-      ctx.stroke();
-    }
-  }
-  if (enemy.shielded) {
-    ctx.strokeStyle = 'rgba(120,150,255,0.75)';
-    ctx.lineWidth = 1.5 * z;
-    ctx.beginPath();
-    ctx.ellipse(p.x, p.y, 13 * z, 6 * z, 0, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  // Health: bosses always, others once hurt.
-  const ratio = enemy.hp / enemy.def.hp;
-  if (enemy.def.boss || ratio < 0.999) {
-    const barW = (enemy.def.boss ? 54 : 24) * z;
-    const barH = (enemy.def.boss ? 5 : 3) * z;
-    const by = top - (enemy.def.boss ? 8 : 5) * z;
-    ctx.fillStyle = 'rgba(10,8,6,0.85)';
-    ctx.fillRect(p.x - barW / 2 - 1, by - 1, barW + 2, barH + 2);
-    ctx.fillStyle = enemy.def.boss ? '#d8483a' : '#c9d36a';
-    ctx.fillRect(p.x - barW / 2, by, barW * Math.max(0, ratio), barH);
-  }
-}
-
-/** Someone who has just been put down: topples backward, then fades into the splat left on the ground. */
-function drawFallen(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame, fallen: Fallen): void {
-  const z = view.zoom;
-  const art = ENEMY_ART[fallen.type];
-  const p = project(view, fallen.x, fallen.y);
-  const { front, flip } = facingOf(view, fallen.fx, fallen.fy);
-  const figure = poseSprite(art.key, front, 'p');
-  if (!figure) return;
-  const t = Math.min(1, fallen.age / FALL_SECONDS);
-  // Falls fast, with a small bounce as it lands.
-  const drop = Math.min(1, t / 0.38);
-  const eased = drop * drop * (3 - 2 * drop);
-  const bounce = t > 0.38 && t < 0.6 ? Math.sin(((t - 0.38) / 0.22) * Math.PI) * 0.07 : 0;
-  const angle = (front ? 1 : -1) * (eased * 1.42 - bounce);
-  const h = art.h * z * (0.95 + 0.1 * trait(fallen.id, 3)) * figure.scale;
-  const w = (figure.image.w / figure.image.h) * h;
-  ctx.save();
-  ctx.globalAlpha *= t < 0.55 ? 1 : 1 - (t - 0.55) / 0.45;
-  ctx.translate(p.x, p.y + 4 * z);
-  if (flip) ctx.scale(-1, 1);
-  ctx.rotate(angle);
-  ctx.drawImage(figure.image.img, -w / 2, -h, w, h);
-  if (frame.night) {
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha *= NIGHT_LIFT;
-    ctx.drawImage(figure.image.img, -w / 2, -h, w, h);
-  }
-  ctx.restore();
-}
-
 function drawParticle(ctx: CanvasRenderingContext2D, view: View, particle: Particle): void {
   const z = view.zoom;
   const t = particle.age / particle.life;
@@ -1355,14 +1055,43 @@ function drawParticle(ctx: CanvasRenderingContext2D, view: View, particle: Parti
     ctx.globalAlpha = 1;
     return;
   }
-  const key = particle.kind === 'burst' ? 'fx_burst' : particle.kind === 'dust' ? 'fx_dust' : 'fx_smoke';
-  const art = sprite(key);
-  if (!art) return;
-  const grow = particle.kind === 'burst' ? 0.5 + t * 0.9 : 0.6 + t * 0.8;
-  const size = (particle.radius ?? 1) * 46 * z * grow;
-  ctx.globalAlpha = particle.kind === 'burst' ? 1 - t * t : (1 - t) * 0.85;
-  ctx.drawImage(art.img, p.x - size / 2, p.y - size * 0.75 - (particle.kind === 'burst' ? 0 : t * 16 * z), size, size * (art.h / art.w));
-  ctx.globalAlpha = 1;
+  // Dust leaves the point of contact along the ground. Heavier grains arc up, land, and settle.
+  const force = particle.radius ?? 1;
+  const rotation = view.rot === 0 ? 1 : -1;
+  const seed = Math.floor(particle.x * 37 + particle.y * 101);
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.scale(rotation * z, z);
+  const dust = sprite('fx_dust');
+  if (dust) {
+    for (const side of [-1, 1]) {
+      const width = force * (10 + t * 21);
+      const height = width * (side < 0 ? 0.33 : 0.44);
+      const spread = side * force * (3 + 13 * Math.sin(t * Math.PI / 2));
+      ctx.globalAlpha = Math.min(1, t * 14) * (1 - t) ** 1.6 * 0.62;
+      ctx.drawImage(dust.img, spread - width / 2, -height - 3 * t, width, height);
+    }
+  }
+  if (particle.kind === 'burst') {
+    for (let i = 0; i < 7; i++) {
+      const angle = (i + hash2(i, seed, 21) * 0.7) * Math.PI * 2 / 7;
+      const travel = force * (12 + hash2(i, seed, 22) * 11) * t;
+      const lift = force * (9 + hash2(i, seed, 23) * 12) * 4 * t * (1 - t);
+      ctx.save();
+      ctx.translate(Math.cos(angle) * travel, Math.sin(angle) * travel * 0.5 - lift);
+      ctx.rotate(angle + t * 3);
+      ctx.globalAlpha = Math.min(1, (1 - t) * 4);
+      ctx.fillStyle = i % 2 === 0 ? '#d3ba87' : '#978260';
+      ctx.beginPath();
+      ctx.moveTo(-2, 0);
+      ctx.lineTo(1, -1.3);
+      ctx.lineTo(2.6, 0.4);
+      ctx.lineTo(0, 1.2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  ctx.restore();
 }
 
 function drawTopOverlays(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): void {
@@ -1375,7 +1104,7 @@ function drawTopOverlays(ctx: CanvasRenderingContext2D, view: View, frame: World
   const sx = Math.sign(toward.x - pc.x) || 1;
   const sy = Math.sign(toward.y - pc.y) || 1;
   const feather = 110 * view.zoom;
-  const shadeAlpha = 0.34;
+  const shadeAlpha = 0.22;
 
   const horizontal = ctx.createLinearGradient(pc.x, 0, pc.x - sx * feather, 0);
   horizontal.addColorStop(0, 'rgba(4,8,12,0)');
@@ -1400,7 +1129,7 @@ export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: num
   let best: DeviceVisual | null = null;
   let bestDepth = -Infinity;
   for (const device of devices) {
-    const art = DEVICE_ART[device.type];
+    const art = deviceArt(device.type, device.facing, devicePose(device));
     const p = project(view, device.x + 0.5, device.y + 0.5);
     const h = art.h * view.zoom;
     const w = h * 0.95;
@@ -1426,9 +1155,11 @@ export function pickProp(view: View, kinds: readonly PropKind[], sx: number, sy:
 
 /** Which door, if any, is under the pointer (for daytime repairs). */
 export function pickDoor(view: View, sx: number, sy: number): SectorId | null {
-  const visible: readonly SectorId[] = view.rot === 0 ? ['portail', 'grange'] : ['arriere', 'verger'];
   const g = unproject(view, sx, sy);
-  for (const sector of visible) {
+  for (const sector of VISIBLE_DOORS[view.rot]) {
+    const p = doorSill(view, sector);
+    const halfWidth = (sector === 'grange' ? 39 : 24) * view.zoom;
+    if (Math.abs(sx - p.x) < halfWidth && sy > p.y - DOOR_SILLS[sector][2] * view.zoom && sy < p.y + 5 * view.zoom) return sector;
     const entry = ENTRIES[sector];
     if (Math.hypot(g.gx - (entry.x + 0.5), g.gy - (entry.y + 0.5)) < 1.1) return sector;
   }

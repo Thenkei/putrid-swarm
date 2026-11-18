@@ -8,6 +8,7 @@
 //   texture  – `cols`x`rows` opaque swatches cut at exact fractions (inner crop)
 //   poses    – 2x2 animation poses of one character (`sheet` is its existing turnaround, attached as a reference);
 //              every pose is keyed, scaled by the same factor and anchored on its feet, as `<base>_<name>`
+//   atlas    – transparent, already registered cels; encode the entire sheet without trimming
 //
 // source:
 //   (default)          – generated with codex image generation, using `refs` (files in art/concepts) as style references
@@ -377,7 +378,7 @@ export const ART = [
       'Compact, almost square footprint. The camera sees the two lower walls: ' +
       'the wall facing LOWER-LEFT has the front door in its centre under a small tiled porch with two steps, and one boarded window; ' +
       'the wall facing LOWER-RIGHT has, in its centre, a lean-to wooden barn extension with a wide closed double barn door and a lantern. ' +
-      'A small improvised CCTV camera under the eaves on each visible wall, a few cables stapled along the walls, ivy. ' +
+      'Pale limewashed plaster over chipped limestone, burnt sienna tiles patched with galvanized sheet, weathered hand-cut timbers, warm amber glazing. A small CCTV camera under each eave, cables stapled along the walls, ivy. ' +
       `Only the building: no garden, no fence, no ground plane, no base. ${ISO} ${KEY} ${STYLE}`,
   },
   {
@@ -390,8 +391,62 @@ export const ART = [
       'Compact, almost square footprint. The camera sees the two lower walls: ' +
       'the wall facing LOWER-LEFT has a plain back kitchen door in its centre with one stone step and a rain barrel beside it; ' +
       'the wall facing LOWER-RIGHT has, in its centre, a tall French window (glazed double door) with half-closed wooden shutters, and climbing red vine. ' +
-      'A small improvised CCTV camera under the eaves on each visible wall, a few cables stapled along the walls. ' +
+      'Pale limewashed plaster over chipped limestone, burnt sienna tiles patched with galvanized sheet, weathered hand-cut timbers, warm amber glazing. A small CCTV camera under each eave, cables stapled along the walls. ' +
       `Only the building: no garden, no fence, no ground plane, no base. ${ISO} ${KEY} ${STYLE}`,
+  },
+  ...['front', 'back'].map((side) => ({
+    id: `obj_house_${side}_damaged`,
+    kind: 'sprite',
+    w: 760,
+    edit: `art/raw/obj_house_${side}.png`,
+    prompt:
+      'Paint damage on this exact building. Keep the chimney, windows, door sills, footprint, projection and framing in place. ' +
+      'Splinter the lower door, hang one broken shutter askew, expose a patch of laths under slipped roof tiles, break plaster to show masonry beneath. Preserve warm light in the windows. ' +
+      `The entire cottage alone on a transparent background, no garden or ground. ${STYLE}`,
+  })),
+  ...['front', 'back'].flatMap((side) => Object.entries({
+    stripped: 'Rip both upper-left shutters away, remove the central roof patch and expose a rectangle of laths. Strip a patch of plaster beside the lower door.',
+    failing: 'Keep shutters and roof patch missing. Tear away two fifths of the near roof and half the porch canopy, exposing rafters. Break the upper window pane; the lower pane stays amber.',
+    ruin: 'Tear open the attic, leaving splintered rafters, a jagged border of tiles, and genuine sky holes. The porch loses its cover and the wall opens to timber laths; the upper-left window is a dark empty frame.',
+  }).map(([stage, description]) => ({
+    id: `obj_house_${side}_${stage}`,
+    kind: 'sprite',
+    w: 760,
+    edit: `art/raw/obj_house_${side}_damaged.png`,
+    prompt: `Edit the existing damaged cottage in place. ${description} Preserve its exact projection, footprint, chimney, sills, doors, other lights and camera fixtures. Keep the entire sprite on transparency with no ground or debris beyond its footprint. ${STYLE}`,
+  }))),
+  {
+    id: 'yard_scatter',
+    kind: 'split', cols: 3, rows: 2, w: 128,
+    names: ['straw', 'fern', 'stones', 'leaves', 'yarrow', 'dock'],
+    refs: [REF_MORNING],
+    prompt:
+      'Three columns by two rows of individual low ground details, isolated with empty gutters. ' +
+      'Upper row: sparse ochre autumn grass tussock, olive bracken fern, loose group of flat slate stones. ' +
+      'Lower row: small drift of curled tawny oak leaves and a twig, small ivory yarrow flowerheads and sage blades, short meadow grass with dock leaves. ' +
+      `Nearly flat on the ground, three-quarter top-down angle, no dirt base. ${ISO} ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'yard_flora',
+    kind: 'split', cols: 3, rows: 3, w: 168,
+    names: ['foxtail', 'knapweed', 'clover', 'bramble', 'hazel', 'nettle', 'cabbage', 'leeks', 'chicory'],
+    refs: [REF_MORNING],
+    prompt:
+      'Transparent three-by-three sprite sheet of nine low plants for a French farm, each clump isolated with generous clear space. ' +
+      'First row: a windswept silver-green foxtail fan with tawny seed heads, muted purple knapweed, and spreading ivory-flowered clover. ' +
+      'Middle row: an arching russet blackberry cane with dark berries, a golden heart-leaved hazel sapling, and a dense triangle of serrated dark-green nettles. ' +
+      'Bottom row: a pair of blue-sage and plum cabbages, strap-leaved leeks with two cream allium umbels, and a low roadside chicory with faded periwinkle flowers. ' +
+      'Broad gouache shapes, warm grazing light, legible silhouettes seen from 35 degrees overhead. No text, soil base or shadow.',
+  },
+  {
+    id: 'yard_masonry',
+    kind: 'split', cols: 2, rows: 2, w: 256,
+    names: ['barn', 'hall', 'limestone', 'moss'],
+    refs: [REF_GARAGE, REF_MORNING],
+    prompt:
+      'Two by two isolated inserts. Upper row: straight-on rectangles filled edge to edge with a dim timber barn interior, and a dark cottage hallway with distant cold window light. ' +
+      'Lower row: an isolated oblong buff limestone paving flag, then a second darker mossy slab. Stones viewed straight from above, with irregular hewn edges and cracks. ' +
+      `Empty gutters. ${KEY} ${STYLE}`,
   },
   {
     id: 'obj_car',
@@ -1449,7 +1504,7 @@ export const ART = [
     prompt:
       'Texture swatch sheet: the square canvas is divided into exactly four equal square quadrants, each completely filled edge to edge with a different flat TOP-DOWN ground texture, no perspective, no objects, no shadows, even lighting, ' +
       'in the same inked and painted style as the ground in the reference. ' +
-      'Top-left: scruffy autumn meadow grass with a few fallen leaves. Top-right: packed brown earth of a garden path with small pebbles. Bottom-left: pale grey-beige driveway gravel. Bottom-right: dark forest-floor soil with pine needles and leaf litter. ' +
+      'Top-left: painterly swathes of earthy sage and olive late-autumn lawn with dry ochre blades. Top-right: smooth warm sienna silt with small cracks and compressed earth. Bottom-left: muted blue-grey silty gravel with tiny slate chips. Bottom-right: dark umber loam, copper beech leaves, pine needles and muted blue moss. Low-contrast, even gouache brushwork. ' +
       STYLE,
   },
   {
@@ -1639,6 +1694,11 @@ const ANIMATED = [
     ],
   },
 ];
+
+// Paired front / back cels for each motion, with one foot-registered row per character.
+ART.push({ id: 'defense_mob_poses', kind: 'atlas', w: 2688, source: { concept: 'art/raw/defense_mob_poses.png' } });
+// A lowering pose and three elbow/paw contacts for each crawling species, from both cameras.
+ART.push({ id: 'defense_crawl', kind: 'atlas', w: 864, source: { concept: 'art/raw/defense_crawl.png' } });
 
 for (const character of ANIMATED) {
   for (const view of ['front', 'back']) {

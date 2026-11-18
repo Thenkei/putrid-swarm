@@ -66,10 +66,10 @@ export function groundTerrainAt(gx: number, gy: number): GroundTerrain {
 
 const SEED = 20261117;
 /** How far a border wanders from the cell line, in cells. */
-const WARP = 0.42;
+const WARP = 0.72;
 const WARP_FREQUENCY = 0.5;
 /** Half-width of the band over which two terrains meet, in cells. */
-const SOFTEN = 0.3;
+const SOFTEN = 0.41;
 /** How ragged each terrain's edge is: turf frays, a dirt track does not. */
 const FRAY: Readonly<Record<GroundTerrain, { readonly amount: number; readonly frequency: number }>> = {
   forest: { amount: 0.5, frequency: 1.7 },
@@ -78,7 +78,7 @@ const FRAY: Readonly<Record<GroundTerrain, { readonly amount: number; readonly f
   grass: { amount: 0.6, frequency: 2.4 },
 };
 /** Width of the transition once the winner is known, in height units: small is crisp. */
-const CRISP = 0.15;
+const CRISP = 0.28;
 
 function boxBlur(source: Float32Array, size: number, radius: number): Float32Array {
   if (radius < 1) return source;

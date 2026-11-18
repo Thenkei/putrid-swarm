@@ -26,7 +26,10 @@ export interface DeviceRuntime {
   timer: number;
 }
 
-export type EnemyAction = 'walk' | 'attack' | 'windup' | 'charge' | 'rev' | 'jam' | 'speech' | 'idle';
+export type EnemyAction = 'walk' | 'crawl' | 'attack' | 'windup' | 'charge' | 'rev' | 'jam' | 'speech' | 'idle';
+
+export const HIT_REACTION_SECONDS = 0.36;
+export const BLOW_RECOVERY_SECONDS = 0.32;
 
 interface BossRuntime {
   phase: string;
@@ -51,6 +54,15 @@ export interface Enemy {
   hp: number;
   target: SectorId;
   action: EnemyAction;
+  /** The rig being crossed. A second, nearby log still sweeps this enemy from the side. */
+  crawlLog: DeviceRuntime | null;
+  /** 0 standing, 1 belly-down. Vulnerable while lowering or climbing back up. */
+  crawlDepth: number;
+  /** Animation clocks use simulation time. Shoves and knockback do not count as steps. */
+  travel: number;
+  moveSpeed: number;
+  actionSeconds: number;
+  blowRecovery: number;
   nettedFor: number;
   stunnedFor: number;
   hasteFor: number;
@@ -69,6 +81,9 @@ export interface Enemy {
 }
 
 export type TelegraphKind = 'mower' | 'ram' | 'speech' | 'whistle' | 'boar';
+
+const clearsLog = (e: Enemy, log: DeviceRuntime): boolean =>
+  e.action === 'crawl' && e.crawlLog === log && e.crawlDepth >= 1 && e.nettedFor <= 0 && e.stunnedFor <= 0;
 
 export type SimEvent =
   | { readonly type: 'wave'; readonly index: number; readonly total: number }
@@ -186,6 +201,7 @@ export class NightSim {
   waveIndex = 0;
   readonly waveCount: number;
   readonly devices: DeviceRuntime[];
+  private readonly logs: readonly DeviceRuntime[];
   readonly enemies: Enemy[] = [];
   readonly barricades: Record<SectorId, { hp: number; level: 0 | 1 }>;
   readonly decals: Decal[];
@@ -255,6 +271,7 @@ export class NightSim {
       state: d.broken ? 'broken' : isTrap(d.type) ? 'armed' : 'passive',
       timer: 0,
     }));
+    this.logs = this.devices.filter((d) => d.type === 'log');
     for (const d of this.devices) if (isTrap(d.type)) this.tallies.set(d.id, { fired: 0, hits: 0, kills: 0 });
     this.barricades = {
       portail: { ...yard.barricades.portail },
@@ -485,6 +502,7 @@ export class NightSim {
     let pressing = false;
     for (const e of this.enemies) {
       if (!e.alive || Math.hypot(e.x - cx, e.y - cy) > def.reach) continue;
+      if (device.type === 'log' && clearsLog(e, device)) continue;
       // The horn means nothing to a boss or to the chief's file; the floodlight adds nothing to the already dazzled.
       if (device.type === 'horn' && (e.def.boss || e.shielded || e.lureDevice !== null)) continue;
       if (device.type === 'floodlight' && e.lit) continue;
@@ -519,15 +537,17 @@ export class NightSim {
           this.damage(e, def.damage);
         }
         return inRange.length;
-      case 'log':
-        for (const e of inRange) {
+      case 'log': {
+        const swept = inRange.filter((e) => !clearsLog(e, device));
+        for (const e of swept) {
           this.interrupt(e);
           const control = e.def.boss ? COMBAT.bossControlFactor : 1;
           e.stunnedFor = Math.max(e.stunnedFor, COMBAT.logStunSeconds * control);
           this.knockback(e, cx, cy, COMBAT.logKnockbackCells * control);
           this.damage(e, def.damage);
         }
-        return inRange.length;
+        return swept.length;
+      }
       case 'net':
         for (const e of inRange) {
           this.interrupt(e);
@@ -562,7 +582,18 @@ export class NightSim {
     if (this.fieldsDirty) this.rebuildFields();
     this.updateDevices(dt);
     this.updateAuras();
-    for (const enemy of this.enemies) if (enemy.alive) this.updateEnemy(enemy, dt);
+    for (const enemy of this.enemies) {
+      if (!enemy.alive) continue;
+      const previous = enemy.action;
+      this.updateEnemy(enemy, dt);
+      enemy.actionSeconds = previous === enemy.action ? enemy.actionSeconds + dt : 0;
+      if (enemy.action === 'crawl') {
+        enemy.crawlDepth = Math.min(1, enemy.crawlDepth + dt / COMBAT.logCrawlLowerSeconds);
+      } else if (enemy.crawlDepth > 0) {
+        enemy.crawlDepth = Math.max(0, enemy.crawlDepth - dt / COMBAT.logCrawlLowerSeconds);
+        enemy.crawlLog = null;
+      }
+    }
     this.separate();
     this.resolveOutcome(dt);
   }
@@ -602,6 +633,12 @@ export class NightSim {
       hp: def.hp,
       target: sector,
       action: 'walk',
+      crawlLog: null,
+      crawlDepth: 0,
+      travel: 0,
+      moveSpeed: def.speed,
+      actionSeconds: 0,
+      blowRecovery: 0,
       nettedFor: 0,
       stunnedFor: 0,
       hasteFor: 0,
@@ -731,6 +768,7 @@ export class NightSim {
 
   private updateEnemy(e: Enemy, dt: number): void {
     e.hitFlash = Math.max(0, e.hitFlash - dt);
+    e.blowRecovery = Math.max(0, e.blowRecovery - dt);
     e.hasteFor = Math.max(0, e.hasteFor - dt);
     e.lureFor = Math.max(0, e.lureFor - dt);
     e.cooldown = Math.max(0, e.cooldown - dt);
@@ -804,8 +842,7 @@ export class NightSim {
     }
 
     e.windup = 0;
-    e.action = 'walk';
-    this.moveToward(e, step.x + 0.5 + e.offsetX * 0.6, step.y + 0.5 + e.offsetY * 0.6, this.speedOf(e), dt);
+    this.followStep(e, step, dt);
   }
 
   /** A standing palisade or a raised barrier on that cell, if any. */
@@ -821,12 +858,29 @@ export class NightSim {
     return speed;
   }
 
+  private followStep(e: Enemy, step: Cell, dt: number): void {
+    const cx = Math.floor(e.x);
+    const cy = Math.floor(e.y);
+    // Only duck into a rig on the route. A log on the next lane has the same
+    // damage radius, but the runner cannot crawl underneath that swing.
+    const log = e.def.crawlsUnderLogs && this.logs.find((d) =>
+      (d.state === 'armed' || d.state === 'active') &&
+      (d === e.crawlLog || (d.x === cx && d.y === cy) || (d.x === step.x && d.y === step.y)) &&
+      Math.hypot(e.x - d.x - 0.5, e.y - d.y - 0.5) <= COMBAT.logCrawlReach);
+    e.crawlLog = log || null;
+    e.action = log ? 'crawl' : 'walk';
+    const speed = this.speedOf(e) * (log ? COMBAT.logCrawlSpeedMultiplier : 1);
+    this.moveToward(e, step.x + 0.5 + e.offsetX * 0.6, step.y + 0.5 + e.offsetY * 0.6, speed, dt);
+  }
+
   private moveToward(e: Enemy, tx: number, ty: number, speed: number, dt: number): boolean {
     const dx = tx - e.x;
     const dy = ty - e.y;
     const distance = Math.hypot(dx, dy);
     if (distance < 1e-4) return true;
     const travel = Math.min(distance, speed * dt);
+    e.travel += travel;
+    e.moveSpeed = speed;
     e.x += (dx / distance) * travel;
     e.y += (dy / distance) * travel;
     e.fx = dx / distance;
@@ -855,6 +909,7 @@ export class NightSim {
     if (e.windup > 0) return false;
     e.windup = 0;
     e.cooldown = interval;
+    e.blowRecovery = BLOW_RECOVERY_SECONDS;
     e.action = 'attack';
     return true;
   }
@@ -867,8 +922,7 @@ export class NightSim {
     const sector = e.target;
     const barricade = this.barricades[sector];
     const entry = ENTRIES[sector];
-    e.fx = entry.x + 0.5 - e.x || e.fx;
-    e.fy = entry.y + 0.5 - e.y || e.fy;
+    this.face(e, entry.x + 0.5, entry.y + 0.5);
 
     if (barricade.hp > 0) {
       const continuous = e.def.windupSeconds <= 0;
@@ -888,6 +942,8 @@ export class NightSim {
     if (e.def.windupSeconds <= 0) {
       if (e.cooldown > 0) return;
       e.cooldown = 2.5;
+      e.action = 'attack';
+      e.blowRecovery = BLOW_RECOVERY_SECONDS;
     } else if (!this.strike(e, dt, sector, 'ram', 3)) {
       return;
     }
@@ -924,8 +980,7 @@ export class NightSim {
   }
 
   private attackDevice(e: Enemy, device: DeviceRuntime, dt: number): void {
-    e.fx = device.x + 0.5 - e.x || e.fx;
-    e.fy = device.y + 0.5 - e.y || e.fy;
+    this.face(e, device.x + 0.5, device.y + 0.5);
     const continuous = e.def.windupSeconds <= 0;
     if (!this.strike(e, dt, sectorOf(device.x, device.y), this.telegraphKind(e), 0.7)) return;
     const amount = continuous ? Math.max(6, e.def.barricadeDamage * 1.5) * dt : e.def.barricadeDamage * FENCE_BLOW_FACTOR;
@@ -973,13 +1028,13 @@ export class NightSim {
     const distance = Math.hypot(e.x - (horn.x + 0.5), e.y - (horn.y + 0.5));
     if (distance < 0.95) {
       e.action = 'attack';
+      this.face(e, horn.x + 0.5, horn.y + 0.5);
       this.damageDevice(horn, LURE_GNAW_DPS * dt);
       return true;
     }
     const step = nextStep(field, Math.floor(e.x), Math.floor(e.y), this.fences);
     if (!step) return false;
-    e.action = 'walk';
-    this.moveToward(e, step.x + 0.5 + e.offsetX * 0.6, step.y + 0.5 + e.offsetY * 0.6, this.speedOf(e), dt);
+    this.followStep(e, step, dt);
     return true;
   }
 
@@ -1088,8 +1143,10 @@ export class NightSim {
     }
     // On the doorstep: two brisk knocks, then on with the round.
     e.action = 'attack';
+    this.face(e, entry.x + 0.5, entry.y + 0.5);
     if (e.cooldown > 0) return;
     e.cooldown = BOSS.mail.knockInterval;
+    e.blowRecovery = BLOW_RECOVERY_SECONDS;
     const barricade = this.barricades[boss.sector];
     if (barricade.hp > 0) this.hitBarricade(boss.sector, e.def.barricadeDamage, true);
     else {
@@ -1140,6 +1197,15 @@ export class NightSim {
 
   // ───────────────────────────── Combat helpers ─────────────────────────────
 
+  private face(e: Enemy, x: number, y: number): void {
+    const dx = x - e.x;
+    const dy = y - e.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance < 0.001) return;
+    e.fx = dx / distance;
+    e.fy = dy / distance;
+  }
+
   private telegraph(kind: TelegraphKind, e: Enemy, sector: SectorId, seconds: number): void {
     this.events.push({ type: 'telegraph', kind, enemyId: e.id, x: e.x, y: e.y, sector, seconds });
   }
@@ -1167,7 +1233,7 @@ export class NightSim {
     if (e.type === 'chief' && e.nettedFor <= 0 && !e.lit) dealt *= BOSS.chief.selfDamageTaken;
     if (e.type === 'mower' && e.boss?.phase === 'jam') dealt *= 1.5;
     e.hp -= dealt;
-    e.hitFlash = 0.18;
+    e.hitFlash = HIT_REACTION_SECONDS;
     this.events.push({ type: 'enemy_hit', x: e.x, y: e.y, amount: Math.round(dealt) });
     if (e.hp > 0) return;
     e.hp = 0;
