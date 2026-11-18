@@ -2,7 +2,7 @@
 // rides in the boot until the refuge. Someone else may already be standing at the best lot.
 
 import { DAY_HOURS, LOCATIONS, SEARCH_HOURS } from '../core/data/locations';
-import { CHIEF_SEARCH_LIMIT, clockLabel, leaveLocation, neighborStatus, prepareSearch, type NeighborMeeting, type SearchOutcome } from '../core/game';
+import { clockLabel, leaveLocation, neighborStatus, prepareSearch, visitSearchLimit, type NeighborMeeting, type SearchOutcome } from '../core/game';
 import { spotRng, type Puzzle } from '../core/scavenge';
 import type { Dispute, GameState, LocationId } from '../core/types';
 import { RESOURCE_IDS } from '../core/types';
@@ -26,7 +26,7 @@ export class LocationScene implements Scene {
     const location = LOCATIONS[this.id];
     const state = this.state;
     const key = `searches:${this.id}:${state.day}:${state.locations[this.id].visits}`;
-    return location.neighbor === 'chief' && neighborStatus('chief', state.day) === 'alive' && (state.flags[key] ?? 0) >= CHIEF_SEARCH_LIMIT;
+    return (state.flags[key] ?? 0) >= visitSearchLimit(location, state.day);
   }
 
   constructor(
@@ -84,7 +84,7 @@ export class LocationScene implements Scene {
     // What is already safe at home, to judge what this trip still has to bring back.
     const stash = el('div', { class: 'stash' }, [el('span', { class: 'muted', text: s.encounter.stash }), inventoryBar(state.inventory)]);
 
-    const canStillSearch = state.hoursLeft >= SEARCH_HOURS + location.travelHours;
+    const canStillSearch = state.hoursLeft + 1e-9 >= SEARCH_HOURS + location.travelHours;
     const spots = location.spots.map((spot, index) => {
       const p = platePoint(location.plate, spot.x, spot.y);
       const name = spotNames[spot.key] ?? spot.key;
@@ -293,7 +293,6 @@ export class LocationScene implements Scene {
       if (code === 'Escape') this.puzzle.cancel();
       return;
     }
-    if (this.panel.onKeyDown(code)) return;
-    if (code === 'Escape' && !this.meeting) this.leave();
+    this.panel.onKeyDown(code);
   }
 }

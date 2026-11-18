@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEVICES } from '../src/core/data/devices';
 import { LOCATIONS } from '../src/core/data/locations';
 import { NIGHTS } from '../src/core/data/waves';
-import { arriveHome, concludeNight, leaveLocation, newGame, prepareSearch, retryChapter, searchSpot, startNextDay, startNight, travelTo } from '../src/core/game';
+import { arriveHome, concludeNight, leaveLocation, newGame, plannedSearches, prepareSearch, retryChapter, searchSpot, startNextDay, startNight, travelTo } from '../src/core/game';
 import { ENTRIES, SPAWN_CELLS, idx, isBuildable } from '../src/core/map';
 import { NightSim } from '../src/core/night';
 import { auditRoutes, computeField } from '../src/core/pathing';
@@ -837,6 +837,26 @@ describe('campaign', () => {
     const result = searchSpot(there.state, 0);
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('no_time');
+  });
+
+  it('quotes a shed visit after the greeting and keeps the return drive affordable', () => {
+    const home = { ...newGame(5), hoursLeft: 1 };
+    expect(plannedSearches(home, LOCATIONS.shed)).toBe(0);
+    const visit = unwrap(travelTo(home, 'shed')).state;
+    expect(prepareSearch(visit, 0)).toMatchObject({ ok: false, error: { code: 'no_time' } });
+    const later = { ...home, flags: visit.flags };
+    expect(plannedSearches(later, LOCATIONS.shed)).toBe(1);
+    const searched = unwrap(searchSpot(unwrap(travelTo(later, 'shed')).state, 0)).state;
+    expect(searched.hoursLeft).toBe(LOCATIONS.shed.travelHours);
+  });
+
+  it('caps the map estimate by the visit limit and the spots still stocked', () => {
+    const home = { ...newGame(5), day: 3 };
+    const station = LOCATIONS.police;
+    expect(plannedSearches(home, station)).toBe(2);
+    expect(plannedSearches({ ...home, day: 7 }, station)).toBe(station.spots.length);
+    const locations = { ...home.locations, police: { ...home.locations.police, searched: [0, 1, 2, 3] } };
+    expect(plannedSearches({ ...home, locations }, station)).toBe(1);
   });
 
   it('keeps later destinations locked until their day', () => {
