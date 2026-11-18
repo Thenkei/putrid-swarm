@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_ham_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[delighted, flustered] Oh! Someone! Sorry, I’d stopped expecting it. This is the farm up the hill.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-18T02:45:13.187Z",
+  "bytes": 85724,
+  "sha256": "8e534c37cbc4f27ebb10f2d444d03280f53902e51463d0940539239808273395"
+}

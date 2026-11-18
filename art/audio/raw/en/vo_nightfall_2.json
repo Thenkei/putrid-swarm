@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_nightfall_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] Shutters closed. Screens on.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:52.136Z",
+  "bytes": 40585,
+  "sha256": "a20644a549e42b7e2db53a3d0690b9c0682f24fae1d564c8a17fc645ff412cc6"
+}

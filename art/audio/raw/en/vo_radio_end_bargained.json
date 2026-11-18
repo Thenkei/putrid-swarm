@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_end_bargained",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[wry] Haggled. Like at the market.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:47.547Z",
+  "bytes": 44764,
+  "sha256": "d6329e144fe0f703dd25440a065bdfa28477aa7d1df541152d1212e3eb0316f5"
+}

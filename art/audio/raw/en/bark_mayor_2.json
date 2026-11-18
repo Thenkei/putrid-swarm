@@ -1,0 +1,19 @@
+{
+  "id": "en/bark_mayor_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/QMNPncWXVcTVhJ9rDEQO",
+  "request": {
+    "text": "[hoarse, rasping, through a megaphone] Together… for a clean… village!",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Stephyra",
+  "generatedAt": "2026-11-18T02:47:55.803Z",
+  "bytes": 58557,
+  "sha256": "59e3fd5bff395b8c2ebc792371b59daa2295bac8dde209945e40e1b15b0e1d11"
+}

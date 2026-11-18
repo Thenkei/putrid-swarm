@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_car_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "A full tank, four tyres, no neighbours. It will do.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:38.783Z",
+  "bytes": 63990,
+  "sha256": "dd88c8befce35f7a7e3a1abb447c2c046c1e9eb0cea3b3978b660f50632bc469"
+}

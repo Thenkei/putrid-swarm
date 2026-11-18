@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_emptied",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[hollow, quiet] There is nobody left. I pulled too hard.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.4,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:29.483Z",
+  "bytes": 52287,
+  "sha256": "7b727e2349602a4ddbe4807c4595a029b60135e91affd4ad6185f5780bcc189b"
+}

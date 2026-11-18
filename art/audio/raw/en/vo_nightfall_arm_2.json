@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_nightfall_arm_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] My arm itches. The one that is not there.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:54.524Z",
+  "bytes": 49780,
+  "sha256": "b5181b1e39a28cd78a75fb2ffd968f0d646bf72731847d4c0c637de829e536bc"
+}

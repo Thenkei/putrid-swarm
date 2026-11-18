@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_name_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[softly] Think of the bakery. Of your wife.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:23.355Z",
+  "bytes": 44764,
+  "sha256": "72d7d2d68f13bf1498861461de5e79e8a657240a8ac60cadc54f0367d7349e38"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_egg_smoke_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[slow] The neighbour grows it strong.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:30.824Z",
+  "bytes": 40585,
+  "sha256": "48c9b5e8faa7d0123bbcde5d011e230732b606bb82100a2a66016b1b88b54b2a"
+}

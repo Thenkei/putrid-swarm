@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_camper_owes_shelter",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Come. You’ll hold a door with me. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:52.968Z",
+  "bytes": 47272,
+  "sha256": "4fc7cca0d35d9ada440c65a021ad70d2daf11e8482f29302288dc007558308b0"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_grudge_re_invite",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[surprised, unsure] Alone? I… all right. Alone. I’m coming. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:45.359Z",
+  "bytes": 77783,
+  "sha256": "d57450785a9cf0cb60363445d68cdaf070a3371c5c0f50cdd74b391e32bd409c"
+}

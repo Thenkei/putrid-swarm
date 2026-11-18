@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_hello",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[hesitant, clears throat] Hello? I… I read you. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:43.211Z",
+  "bytes": 65244,
+  "sha256": "349edaa82a7d8de2157eecf5217404a376778607a38d07d29c9564ec78bb15d5"
+}

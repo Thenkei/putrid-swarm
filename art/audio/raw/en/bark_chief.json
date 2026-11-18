@@ -1,0 +1,19 @@
+{
+  "id": "en/bark_chief",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/5l4ttmr4SKNgi0HnOelT",
+  "request": {
+    "text": "[growling, hoarse] Move along! Nothing… to see!",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Paul K",
+  "generatedAt": "2026-11-18T02:47:56.952Z",
+  "bytes": 48526,
+  "sha256": "3449f1aa632a0da53a3b737d3d401f2bd1ea05296a13160c14f743cdb3769b89"
+}

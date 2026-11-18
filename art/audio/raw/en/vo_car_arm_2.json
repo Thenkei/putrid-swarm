@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_car_arm_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Steering with the knee. They do not teach you that at driving school.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:48.768Z",
+  "bytes": 67752,
+  "sha256": "fba4d58d1b9f5650724720ccfeef18df9058081c13826fbc8751c746b02f79b5"
+}

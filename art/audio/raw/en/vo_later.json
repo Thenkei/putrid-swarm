@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_later",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[sighs] Right. The house still stands. The old car still starts. That is something.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:26.479Z",
+  "bytes": 103278,
+  "sha256": "131ed05ffae3b3863d453a6ea3f6cd8363e6d97fae13b6d3cfefdc22cf35a850"
+}

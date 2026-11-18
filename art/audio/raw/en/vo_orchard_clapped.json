@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_orchard_clapped",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[amused exhale] There. Go and eat the neighbours’ cable.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:13.300Z",
+  "bytes": 54795,
+  "sha256": "9e0df716640b481f1c96210f31c948928ba14936d67839ce7faee9036f9b0aee"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_trap_broken",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "They broke one of my traps.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:01.681Z",
+  "bytes": 31807,
+  "sha256": "da26873bda4e682fff3b743493e86cf8a0cf06cb455186b27f57a6068b59869b"
+}

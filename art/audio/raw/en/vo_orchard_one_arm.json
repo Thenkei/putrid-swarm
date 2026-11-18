@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_orchard_one_arm",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[weary] One arm. Four screens. Five nights. Worth a try.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:18.996Z",
+  "bytes": 84470,
+  "sha256": "aaeb6f7a1267a9c0b7652786785743e2983ecd0ca94ba03ee4143d34918679b3"
+}

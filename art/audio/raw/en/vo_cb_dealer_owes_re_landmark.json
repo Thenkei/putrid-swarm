@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_dealer_owes_re_landmark",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[amused] Ha! Where we argued over the crate. Clever. It’ll be there. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-18T02:47:17.189Z",
+  "bytes": 88232,
+  "sha256": "c943c8d38444b623f05ea5781b4a21f41fbde5f781da788cc75e2ddd9d23780f"
+}

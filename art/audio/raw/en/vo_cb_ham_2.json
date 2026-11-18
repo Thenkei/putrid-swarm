@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_ham_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[chatty] I’ve got binoculars and a big window. I can see the whole village from here. I watch them gather, of an evening.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-18T02:47:01.250Z",
+  "bytes": 104950,
+  "sha256": "bdb9700326d0b8c2ec462f5a6ded7e8e0464296af9d59b1059a21d938b1a979c"
+}

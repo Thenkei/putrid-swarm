@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_lost_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[muttering] No, no, stay there.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:43.496Z",
+  "bytes": 35569,
+  "sha256": "42e7a25bd5d4891f93f6a0425021127bf3d0646fa74e017827222069dcd5044d"
+}

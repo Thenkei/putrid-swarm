@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_camper_owes_shed",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[cautious] Come. But you sleep in the shed, locked in. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:53.622Z",
+  "bytes": 71514,
+  "sha256": "e58d6fea53a17df6f867439b0427155a3a5d279f1f15e5dbacc29093ceab6e9e"
+}

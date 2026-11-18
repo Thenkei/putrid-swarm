@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_owes_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[worried] My camper won’t start. They’ve been circling it since dawn. Banging on the sides.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:23.435Z",
+  "bytes": 86978,
+  "sha256": "3d2d5946867a3780737fdc030dfe8af56aca73973d5e914c9aa1dc138947a1e0"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_orchard_arrive",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] Camera four. Nothing since last night. Let’s have a look.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:10.974Z",
+  "bytes": 67752,
+  "sha256": "5ccc00c5ec2f1a96f1ef307a2981c907f25745bdde61cabb18224341f0361991"
+}

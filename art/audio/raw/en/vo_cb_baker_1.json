@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_baker_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[cheerful, a little slurred] Morning round. Two baguettes for the town hall. One well-done tradition…",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:47:48.590Z",
+  "bytes": 77783,
+  "sha256": "af1dc058d5b399c7c96ba0055b8126483ba1d54a8fc5cabcdfd9a67f7f9d06e0"
+}

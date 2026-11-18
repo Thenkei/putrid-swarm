@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_egg_on",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[sighs] Right. Back to it.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:28.490Z",
+  "bytes": 43510,
+  "sha256": "cc1161471efbb14195efdac7c880f0c16670da25e7adfb5e7aa2593d55d25fee"
+}

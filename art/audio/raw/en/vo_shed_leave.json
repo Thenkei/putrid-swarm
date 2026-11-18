@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_leave",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] I will be back. With water.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:29.771Z",
+  "bytes": 38077,
+  "sha256": "24c91e3e6b5eae78b24a586f024cf2a26209f16dda5c5883a1298cd6bf3863ca"
+}

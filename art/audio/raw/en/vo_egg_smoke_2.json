@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_egg_smoke_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[slow, amused] The colours are odd tonight.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:30.535Z",
+  "bytes": 38077,
+  "sha256": "6542a8aea75954fce26310e0f54f937532a2b04186fa68cc3345add6e4313b49"
+}

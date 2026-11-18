@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_baker_drift_4",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[mumbling, far away] Well done… not too well done…",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:46:31.771Z",
+  "bytes": 52287,
+  "sha256": "8671dca74679a37dd8fc63da68eb88efb543fcb7691be03c82c682efffb2e84f"
+}

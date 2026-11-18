@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_see",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[sad, softly] The baker. He always gave me my change in cents.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:20.134Z",
+  "bytes": 63990,
+  "sha256": "30e554b8ec3b7779fbbff5b41dc2e723032ea43cf35606bc38612dabb275e3b6"
+}

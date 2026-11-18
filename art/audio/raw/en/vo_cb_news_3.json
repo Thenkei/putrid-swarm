@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_news_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/m5U7XCsc8v988k2RJAqN",
+  "request": {
+    "text": "[calm, official] … this message is broadcast on a loop. Stay tuned…",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.6,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Manon",
+  "generatedAt": "2026-11-18T02:47:47.494Z",
+  "bytes": 57303,
+  "sha256": "6f10e942ef7dd41dfe146ee2aae6e3d97c0938b246e111600c934f1f4923b520"
+}

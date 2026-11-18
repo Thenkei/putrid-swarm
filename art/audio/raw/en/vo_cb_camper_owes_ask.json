@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_owes_ask",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[pleading] Can I come to yours tonight? I’ll hold a door. I can hold a door. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:24.077Z",
+  "bytes": 74021,
+  "sha256": "4fadac3fbf8a5cba1926777aefcc023dd4fbbc54bc9bfd1e5c1c8bd1bf6c9cb4"
+}

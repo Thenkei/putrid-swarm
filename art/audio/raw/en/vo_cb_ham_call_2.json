@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_ham_call_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[old, patient] General call. Anybody. Really, anybody.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-18T02:46:58.943Z",
+  "bytes": 65244,
+  "sha256": "527da8437ac1ade953f55e35c4c5e3313a556d694af2cc46845788023e2382f9"
+}

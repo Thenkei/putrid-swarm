@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_dealer_grudge_call_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[cold] Neighbourhood committee. We know you’re listening.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-18T02:47:29.144Z",
+  "bytes": 54795,
+  "sha256": "56c8f89b04fb11bc748261d0c9646060eedc33a4a6a07d5b7779b40352250f04"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_broadcast",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/m5U7XCsc8v988k2RJAqN",
+  "request": {
+    "text": "Good evening. We interrupt our programmes. Unusually violent assaults are being reported tonight in several villages of the valley. Authorities refer to an initial case, a “patient zero”, without confirming the source of the contamination. Everyone is asked to stay at home, doors and shutters closed. And to open to no one. Not even a neighbour.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.6,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Manon",
+  "generatedAt": "2026-11-18T02:45:29.979Z",
+  "bytes": 333992,
+  "sha256": "443b2f72148ad095902b31357eb3b3bb7b1179171aed20cdacd28a791c507ef2"
+}

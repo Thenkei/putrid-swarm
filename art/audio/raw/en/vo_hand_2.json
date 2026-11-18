@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_hand_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[hurried] Hang on. Coming. I only have the one hand.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:56.955Z",
+  "bytes": 48526,
+  "sha256": "83c58687cd309ba0f52340bf165a5d632ca7c7300bcf6cf780f653d98a13ef4c"
+}

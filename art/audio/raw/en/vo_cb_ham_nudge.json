@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_ham_nudge",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[uncertain] Hello? I thought I heard someone. Are you still there? Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-18T02:47:02.753Z",
+  "bytes": 71514,
+  "sha256": "f860747bc2a3183464a3545e087bc5bd8f8a3b0bfa9f38c8e65a3f2d7acb69b7"
+}

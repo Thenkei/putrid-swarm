@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_grudge_2b",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[tired] I’m on my own here. The van lot are asleep.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:40.781Z",
+  "bytes": 54795,
+  "sha256": "64a960733b1ce7d30955ea326afb8217150141437de2301def7cc8f4203ce784"
+}

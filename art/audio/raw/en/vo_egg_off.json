@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_egg_off",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "There. No more bad news.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:27.436Z",
+  "bytes": 36823,
+  "sha256": "67f8902db222c457d6a94a3ff8253a018c6888cabc6ac1a1a564dfbd1fff12ce"
+}

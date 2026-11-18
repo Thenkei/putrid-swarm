@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_home_arm_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[exhales] Almost in one piece. The car still is.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:51.236Z",
+  "bytes": 65244,
+  "sha256": "8928292c0a127ac31bc015b9831c14331fa7c645f721d4d86bb2923cf7fb14a7"
+}

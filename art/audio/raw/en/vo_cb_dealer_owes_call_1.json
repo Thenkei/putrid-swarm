@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_dealer_owes_call_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[brisk] Hello, hello. The Dealer here. The man with the yellow estate, can you hear me?",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-18T02:47:09.220Z",
+  "bytes": 69006,
+  "sha256": "b8d288f606db6a30c231dc8cf7be38911686998a9842f1e04f2ff5fd589565d1"
+}

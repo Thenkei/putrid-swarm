@@ -4,6 +4,7 @@
 //   node tools/gen-audio.mjs                    # everything that is missing
 //   node tools/gen-audio.mjs --only log,vo_dawn --force
 //   node tools/gen-audio.mjs --kind voice --dry-run
+//   node tools/gen-audio.mjs --lang en          # the English voices (ids are then en/<id>)
 //
 // Needs ELEVENLABS_API_KEY in the environment or in a git-ignored .env at the project root.
 // Every request is billable: existing files are never regenerated without --force, and a failed
@@ -15,6 +16,7 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'no
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AUDIO, MODELS, VOICES } from './audio-manifest.mjs';
+import { DUBS, voicesIn } from './audio-lang.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const RAW_DIR = join(ROOT, 'art', 'audio', 'raw');
@@ -35,6 +37,9 @@ const kind = option('kind');
 const force = flag('force');
 const dryRun = flag('dry-run');
 const concurrency = Number(option('concurrency') ?? 2);
+const lang = option('lang') ?? 'fr';
+/** What this run draws from: everything for the source language, the voices alone for a dub. */
+const ENTRIES = lang === 'fr' ? AUDIO : voicesIn(lang);
 
 function loadKey() {
   if (process.env.ELEVENLABS_API_KEY) return process.env.ELEVENLABS_API_KEY;
@@ -65,7 +70,7 @@ export function requestFor(entry) {
       if (!voice) throw new Error(`${entry.id}: unknown voice role "${entry.role}"`);
       return {
         path: `/v1/text-to-speech/${voice.id}?output_format=mp3_44100_128`,
-        body: { text: entry.text, model_id: MODELS.voice, language_code: 'fr', voice_settings: { stability: entry.stability, similarity_boost: entry.similarity } },
+        body: { text: entry.text, model_id: MODELS.voice, language_code: entry.lang ? DUBS[entry.lang].code : 'fr', voice_settings: { stability: entry.stability, similarity_boost: entry.similarity } },
       };
     }
     default:
@@ -100,6 +105,7 @@ async function generate(entry, apiKey) {
         console.log(`✗ ${entry.id}: empty response (${bytes.length} bytes)`);
         return false;
       }
+      mkdirSync(dirname(rawPath(entry.id)), { recursive: true });
       writeFileSync(rawPath(entry.id), bytes);
       writeFileSync(
         join(RAW_DIR, `${entry.id}.json`),
@@ -118,14 +124,14 @@ async function generate(entry, apiKey) {
 }
 
 if (only) {
-  const unknown = only.filter((id) => !AUDIO.some((e) => e.id === id));
+  const unknown = only.filter((id) => !ENTRIES.some((e) => e.id === id));
   if (unknown.length) {
     console.error(`Unknown audio ids: ${unknown.join(', ')}`);
     process.exit(2);
   }
 }
 
-const queue = AUDIO.filter((e) => !only || only.includes(e.id))
+const queue = ENTRIES.filter((e) => !only || only.includes(e.id))
   .filter((e) => !kind || e.kind === kind)
   .filter((e) => force || !hasRaw(e.id));
 

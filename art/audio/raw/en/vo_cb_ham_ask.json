@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_ham_ask",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[shy] Would you stay on the line a bit? I can tell you which way they’ll come tonight. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-18T02:47:02.939Z",
+  "bytes": 79037,
+  "sha256": "c20deb2e89ce98572cdfbf883f05828376912e7086b63966d4bccf77fffdd451"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_day1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Twelve hours of daylight. Search, nail, and be home before dark.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:37.477Z",
+  "bytes": 75275,
+  "sha256": "e77f1d15e06e032cf1bb13118ed5e89489eea8260792df0a2f6244dc8697f9de"
+}

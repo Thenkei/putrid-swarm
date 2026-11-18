@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_ham_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[matter-of-fact, then fond] My wife’s in the sitting room. She doesn’t say much any more. Mind you, she never did.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-18T02:47:01.472Z",
+  "bytes": 88232,
+  "sha256": "802538d25782b49ccb585d039a5d216ea52f390a0edd51a84d67ab2d8e802c6d"
+}

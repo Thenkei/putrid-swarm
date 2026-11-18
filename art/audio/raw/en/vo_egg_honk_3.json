@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_egg_honk_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[wry] Very discreet. Well done.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:32.087Z",
+  "bytes": 41838,
+  "sha256": "0084dbcce0024771662e6e04f45143279fa9570486dd3fb4eeea0152a2fec723"
+}

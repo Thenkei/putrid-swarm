@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_owes_call_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[nervous] Hello? Hello, it’s the camper. Is anyone there?",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:18.845Z",
+  "bytes": 65244,
+  "sha256": "bbf220b7384a8c295d39e3bfc57a0b75bbd3a030b4e2e1d702cb97ea396152b2"
+}

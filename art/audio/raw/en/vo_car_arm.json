@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_car_arm",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[wry] The key, the gear, the wheel. One-handed, it is a circus act.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:53:53.682Z",
+  "bytes": 90740,
+  "sha256": "c41190d5cf51663f825a04f2c1ffcbc28da25d002d68f4c0658d7e6ad1005e2e"
+}

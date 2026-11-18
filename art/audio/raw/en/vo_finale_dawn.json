@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_finale_dawn",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly, puzzled] They are not leaving. [beat] They want an encore.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:47:53.334Z",
+  "bytes": 53541,
+  "sha256": "bb37bb172bb57b8dc86a372d886e2116f3be20ec3e3539a0c8922d15cae2dce2"
+}

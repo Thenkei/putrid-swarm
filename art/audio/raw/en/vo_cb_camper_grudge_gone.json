@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_grudge_gone",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[resigned] No answer. I’ll tell them. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:43.229Z",
+  "bytes": 49780,
+  "sha256": "f7e32ee954cb906add45df6eb5826dbc7263f33777e259ed774d9898c4aa4167"
+}

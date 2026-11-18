@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_grudge_nudge",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[nervous] Hello? Can you hear me? Don’t pretend. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:42.699Z",
+  "bytes": 59811,
+  "sha256": "314a036a77f50f21b4531796023544c885ac3e9001255d1cac97b94b0984e8e3"
+}

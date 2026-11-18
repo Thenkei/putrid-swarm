@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_ham_gone",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[sad, then brave] Right. Only the wind. [pause] See-Q, See-Q…",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-18T02:53:55.728Z",
+  "bytes": 84470,
+  "sha256": "ddca4a4413ae26f4ae304704e9740767309dadc2d1d232e0107ae478fb8b0505"
+}

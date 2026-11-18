@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_good_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[short laugh] Nice.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:00.203Z",
+  "bytes": 30554,
+  "sha256": "549d44dd960f9613ee0fefdd5cac6c06630e2f4f9ea71cf195b815a027ed272a"
+}

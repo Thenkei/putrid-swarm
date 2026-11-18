@@ -1,0 +1,19 @@
+{
+  "id": "en/bark_mechanic",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/RVSvUPdGobWOTgnlXLRP",
+  "request": {
+    "text": "[growling, slow] I will put that… on the bill.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Rudy",
+  "generatedAt": "2026-11-18T02:47:58.238Z",
+  "bytes": 52287,
+  "sha256": "e42988e811c62d70ca733e6be6872d112fc7ea3dcae31ad1beb792ed2a77c2c2"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_dealer_owes_call_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[brisk] Hello? The Dealer here. I’ve got something for you.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-18T02:47:10.261Z",
+  "bytes": 52287,
+  "sha256": "37789c4250f88b0edc6e38de04bb90df0c6f6a6aaa41b1fd062a824ec969b8aa"
+}

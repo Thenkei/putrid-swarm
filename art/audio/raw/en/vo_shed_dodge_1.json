@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_dodge_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[startled, breathless] Not the fingers!",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:26.036Z",
+  "bytes": 26792,
+  "sha256": "91bc5f54a88a9be2ff8b2fd5bfbbb25e20b13e1d36316994523f3ce8f5dfedc9"
+}

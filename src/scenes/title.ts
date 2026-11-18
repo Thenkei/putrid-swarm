@@ -182,6 +182,7 @@ export class TitleScene implements Scene {
       menu = el('div', { class: 'menu' }, [
         item(`${s.title.language} · ${s.lang}`, () => {
           setLang(getLang() === 'fr' ? 'en' : 'fr');
+          audio.syncVoices();
           this.build();
         }),
         item(`${s.title.sound} · ${audio.enabled ? s.title.on : s.title.off}`, () => {

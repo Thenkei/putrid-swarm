@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_car_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[pleading] Start. Please, start.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:37.503Z",
+  "bytes": 49780,
+  "sha256": "02ae5adf004857bc64f40e9d0da7364d5f73fc965070e9b7914fdce84b26ee5e"
+}

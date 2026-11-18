@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_hand_4",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[under his breath] Easy. One thing at a time.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:57.902Z",
+  "bytes": 36823,
+  "sha256": "e79a40bcc83c892ff55000d6fa76fbb29451f40c54af4a33f56bd50f37c6eb61"
+}

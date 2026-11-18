@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_grudge_re_refuse",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[worried] No? Right. [pause] They won’t like it. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:44.447Z",
+  "bytes": 67752,
+  "sha256": "4af6f02e10e1bc18111720101c482b389c137a5dd44c7b604f80bb5b5f6d2d80"
+}

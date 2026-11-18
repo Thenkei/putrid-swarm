@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_camper_grudge_battery",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[sighs] All right. A battery at the gate, at noon. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:56.825Z",
+  "bytes": 71514,
+  "sha256": "ed0c8b5769539f851ec860e1ae97d848d501a73f12954444405f7d5599513391"
+}

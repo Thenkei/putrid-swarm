@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_baker_hurt",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[exhausted, begging quietly] Finish me. Before it comes back.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:46:35.396Z",
+  "bytes": 48526,
+  "sha256": "eab96c951c04822cb7c6c4c5a70b8d019a054bc91ab0666fbb2ef2bc80665b3c"
+}

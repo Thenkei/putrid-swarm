@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_baker_drift_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[mumbling, slurred] Will that be all?…",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:46:30.614Z",
+  "bytes": 26792,
+  "sha256": "d2bebb8d3ad9daa9efcd5840f02853a986a6ce410a493ed63578bf81821308db"
+}

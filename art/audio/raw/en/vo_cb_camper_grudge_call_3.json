@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_grudge_call_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[bitter] Hello? I know you’re there. Answer.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:38.912Z",
+  "bytes": 49780,
+  "sha256": "54e968df35daf796374d02de77387256e4755b66d04640d61719f157437faad7"
+}

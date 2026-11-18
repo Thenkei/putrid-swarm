@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_grudge_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[bitter] It’s the camper. The one you shoved about, the other day.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:39.601Z",
+  "bytes": 61065,
+  "sha256": "4d821b25150d5e2f1e615afd6eb3d0bda73b2b7a86ee6c7a9a663e9a703edd78"
+}

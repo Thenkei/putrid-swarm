@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_news",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[flat] Last week’s telly. It hasn’t changed its mind.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:45.497Z",
+  "bytes": 53541,
+  "sha256": "a769198cd52dc17d303d370e79c3cca43ceb09f99bb29893a626be06c61aa7c3"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_orchard_clap",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[loud, firm] Go on! Shoo! Off you go!",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:12.965Z",
+  "bytes": 41838,
+  "sha256": "e1077788d8168ce8010f1acad3c6c5ee1ff64e5d425d188607610d33637572f5"
+}

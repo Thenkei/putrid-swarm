@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_car_9",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "If I meet anyone, I am not stopping.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:41.763Z",
+  "bytes": 48526,
+  "sha256": "849ca10b4c3ac827afcf028ea98a5016b07fe32dab02e6a6db13f29c688c24fb"
+}

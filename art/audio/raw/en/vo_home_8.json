@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_home_8",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "The sun is going down. No time to hang about.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:46.312Z",
+  "bytes": 48526,
+  "sha256": "7607bb2d97ae649cf1a242f76bbfb073884fb5399c6993b5ec0691cfdcae185d"
+}

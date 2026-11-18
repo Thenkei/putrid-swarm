@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_ham_re_many",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[relieved, a little lost] Lots of you? Oh, good. Good. Then I won’t bother you. Good day to you all. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-18T02:47:07.825Z",
+  "bytes": 100771,
+  "sha256": "c1ce547a0f58b1dce7873678f1eee7f0a0ea078da6ebc582035794aaa7248901"
+}

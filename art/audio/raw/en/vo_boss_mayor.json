@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_boss_mayor",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[weary] Madam Mayor. Still campaigning.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:04.728Z",
+  "bytes": 49780,
+  "sha256": "843a3c4d606ee4bcfc3627b5e36a6b50e15e0baf0c8d268195a8b7acc2bfb0c2"
+}

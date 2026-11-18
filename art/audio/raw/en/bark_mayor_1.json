@@ -1,0 +1,19 @@
+{
+  "id": "en/bark_mayor_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/QMNPncWXVcTVhJ9rDEQO",
+  "request": {
+    "text": "[hoarse, rasping, through a megaphone] My dear… fellow citizens! Vote… for… stability!",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Stephyra",
+  "generatedAt": "2026-11-18T02:47:56.044Z",
+  "bytes": 82798,
+  "sha256": "25b794dceab5cfae8ac56ffea90e9d8046602817d780e8c81b393c0f50e0c54e"
+}

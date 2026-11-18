@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_dodge_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[panting] He nearly had me.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:26.908Z",
+  "bytes": 43510,
+  "sha256": "5acf0f054e480a6b7f92e95169ffcabe06ec524d906f23dd169cafe78aa53b21"
+}

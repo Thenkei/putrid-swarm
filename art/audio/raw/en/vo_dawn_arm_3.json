@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_dawn_arm_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[tired] The rooster. I would give it a round of applause.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:08.612Z",
+  "bytes": 57303,
+  "sha256": "0764a195b47876a70a4ed0cd450504cf76c9b21635a4cd3a1e8f5de052285c8a"
+}

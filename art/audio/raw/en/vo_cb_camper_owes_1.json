@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_owes_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[relieved, polite] Ah! Hello! Sorry. It’s the camper. You left me the crate, the other day.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:21.095Z",
+  "bytes": 81545,
+  "sha256": "786f3723caebd7a46d70aaf8007137849e1c61af3485192c9e5d68fa49df5a94"
+}

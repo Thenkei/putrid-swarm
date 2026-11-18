@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_home_9",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[weary] Home again. What is left of it.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:53:53.047Z",
+  "bytes": 51034,
+  "sha256": "ec2075369945cb3f2f5d1781ea62c994f92206975a8f6d6cb15bf3b874167c17"
+}
