@@ -117,6 +117,23 @@ export interface TravelOutcome {
 
 const flagKey = (kind: string, id: string, day: number): string => `${kind}:${id}:${day}`;
 
+/** The mower's first guided tour each day uses a quarter hour, up to the time available before the return drive. */
+function greetingHours(state: GameState, location: LocationDef): number {
+  if (location.neighbor !== 'mower' || neighborStatus('mower', state.day) === 'gone' || state.flags[flagKey('met', 'mower', state.day)]) return 0;
+  return Math.min(0.25, Math.max(0, state.hoursLeft - roundTripHours(location)));
+}
+
+export function visitSearchLimit(location: LocationDef, day: number): number {
+  return location.neighbor === 'chief' && neighborStatus('chief', day) === 'alive' ? CHIEF_SEARCH_LIMIT : Infinity;
+}
+
+/** Upper bound on distinct spots a player can search on the next trip from home. */
+export function plannedSearches(state: GameState, location: LocationDef): number {
+  const time = state.hoursLeft - roundTripHours(location) - greetingHours(state, location);
+  const remaining = location.spots.length - state.locations[location.id].searched.length;
+  return Math.max(0, Math.min(Math.floor((time + 1e-9) / SEARCH_HOURS), remaining, visitSearchLimit(location, state.day)));
+}
+
 export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome, DayError> {
   if (state.phase !== 'day') return err({ code: 'wrong_phase' });
   if (state.where !== 'home') return err({ code: 'not_home' });
@@ -142,13 +159,9 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
     const first = !next.flags[key];
     const rng = createRng(next.rng);
     let gift: Cost = {};
-    let hoursLost = 0;
+    const hoursLost = greetingHours(state, location);
     if (first) {
       switch (neighbor) {
-        case 'mower':
-          // A guided tour of the lawn stripes is not optional.
-          hoursLost = 0.25;
-          break;
         case 'mechanic':
           gift = rng.chance(0.5) ? { springs: 1 } : { scrap: 2 };
           next = { ...next, flags: { ...next.flags, bills: (next.flags['bills'] ?? 0) + 1 } };
@@ -163,8 +176,6 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
           break;
       }
     }
-    // Never let the lecture strand the player in town after dark.
-    hoursLost = Math.min(hoursLost, Math.max(0, next.hoursLeft - location.travelHours));
     next = {
       ...next,
       rng: rng.state(),
@@ -218,7 +229,7 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
 
   const visitKey = flagKey('searches', location.id, state.day) + `:${progress.visits}`;
   const searchesThisVisit = state.flags[visitKey] ?? 0;
-  if (location.neighbor === 'chief' && neighborStatus('chief', state.day) === 'alive' && searchesThisVisit >= CHIEF_SEARCH_LIMIT) {
+  if (searchesThisVisit >= visitSearchLimit(location, state.day)) {
     return err({ code: 'escorted_out' });
   }
 
