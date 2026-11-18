@@ -11,12 +11,14 @@ import { bossOfNight, clockLabel, startNight } from '../core/game';
 import { ENTRIES, GRID_H, GRID_W, SPAWN_CELLS, idx } from '../core/map';
 import { computeField, traceRoute } from '../core/pathing';
 import type { Cell, DeviceInstance, DeviceTypeId, Facing, GameState, Result, SectorId } from '../core/types';
-import { DEVICE_TYPE_IDS, SECTOR_IDS, ok } from '../core/types';
+import { DEVICE_TYPE_IDS, RESOURCE_IDS, SECTOR_IDS, ok } from '../core/types';
 import {
   affordableCount,
   barricadeMaxHp,
+  brokenDevices,
   build,
   canAfford,
+  daylightRefund,
   deviceAt,
   dismantle,
   fenceCells,
@@ -26,7 +28,6 @@ import {
   refundOf,
   reinforceBarricade,
   repairAll,
-  repairAllCost,
   repairBarricade,
   repairCostOf,
   repairDevice,
@@ -43,7 +44,7 @@ import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { sayAny, sayOnce } from '../engine/voice';
-import { applyDaylight, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, unproject, WELL_CLINK_AT, type DeviceVisual, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
+import { applyDaylight, cameraView, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, VISIBLE_DOORS, WELL_CLINK_AT, type DeviceVisual, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
 import { costLine, describeCost, inventoryBar } from './common';
 import { goMap, goNightfall, goTitle } from './flow';
 
@@ -108,6 +109,8 @@ export class DayScene implements Scene {
   private hover: Cell | null = null;
   private hoverDevice: DeviceInstance | null = null;
   private hoverDoor: SectorId | null = null;
+  private panelDoor: SectorId | null = null;
+  private previewHp: number | undefined;
   private showRoutes = true;
   private sceneryAction: SceneryAction | null = null;
   private time = 0;
@@ -131,6 +134,7 @@ export class DayScene implements Scene {
 
   private root!: HTMLElement;
   private info!: HTMLElement;
+  private refundTag!: HTMLElement;
   private routeCache: { key: string; forecast: Forecast } | null = null;
   private ghostCache: { key: string; ghost: Ghost | null; problem: YardError | null } | null = null;
 
@@ -158,6 +162,10 @@ export class DayScene implements Scene {
     this.root = el('div');
     this.app.ui.append(this.root);
     this.refresh();
+  }
+
+  exit(): void {
+    delete this.app.canvas.dataset.yardCursor;
   }
 
   // ───────────────────────────── HUD ─────────────────────────────
@@ -228,7 +236,11 @@ export class DayScene implements Scene {
     // The two chores that come back every day, each in one click: take back the piece just laid, and put
     // everything the night broke back on its feet.
     const fresh = lastFresh(state);
-    const wrecks = repairAllCost(yard);
+    const wrecks = brokenDevices(yard).length;
+    const repairs = repairAll(state);
+    const count = repairs.ok ? repairs.value.repaired : 0;
+    const after = repairs.ok ? repairs.value.state : state;
+    const bill = Object.fromEntries(RESOURCE_IDS.map((id) => [id, state.inventory[id] - after.inventory[id]]));
     const quick = el('div', { class: 'tool-row quick' }, [
       el('button', {
         class: 'btn',
@@ -238,10 +250,10 @@ export class DayScene implements Scene {
         onClick: () => this.undo(),
       }),
       el('button', {
-        class: `btn ${wrecks.count > 0 ? 'btn-alert' : ''}`,
-        text: wrecks.count > 0 ? fmt(s.day.repairAll, { n: wrecks.count }) : s.day.repairAllNone,
-        disabled: wrecks.count === 0,
-        title: wrecks.count > 0 ? `${describeCost(wrecks.cost)} · ${fmt(s.day.time, { h: hours(wrecks.hours) })}` : s.day.repairAllNoneTitle,
+        class: `btn ${count > 0 ? 'btn-alert' : ''}`,
+        text: wrecks === 0 ? s.day.repairAllNone : fmt(count === wrecks ? s.day.repairAll : s.day.repairPart, { n: count, total: wrecks }),
+        disabled: count === 0,
+        title: repairs.ok ? `${describeCost(bill)} · ${fmt(s.day.time, { h: hours(state.hoursLeft - after.hoursLeft) })}` : wrecks ? yardErrorText(repairs.error) : s.day.repairAllNoneTitle,
         onClick: () => this.repairEverything(),
       }),
     ]);
@@ -263,11 +275,13 @@ export class DayScene implements Scene {
       const max = barricadeMaxHp(barricade.level);
       const ratio = barricade.hp / max;
       const damaged = barricade.hp < max;
+      const repair = repairBarricade(state, sector);
+      const nextHp = repair.ok ? repair.value.yard.barricades[sector].hp : barricade.hp;
       const button = damaged
         ? el('button', {
             class: 'btn icon-btn',
             text: '+',
-            title: `${fmt(s.day.doorRepair, { hp: BARRICADE.repairPerWood })} · ${fmt(s.day.time, { h: hours(BARRICADE.repairHours) })}`,
+            title: repair.ok ? this.doorRepairLabel(nextHp - barricade.hp) : yardErrorText(repair.error),
             onClick: () => this.apply(repairBarricade(this.state, sector), s.day.repaired, 'build'),
           })
         : barricade.level === 0
@@ -278,11 +292,22 @@ export class DayScene implements Scene {
               onClick: () => this.apply(reinforceBarricade(this.state, sector), s.day.repaired, 'build'),
             })
           : el('span');
-      return el('div', { class: 'row' }, [
-        el('span', { title: cover > 0 ? fmt(s.day.covered, { n: cover }) : s.day.uncovered }, [s.sector[sector], el('span', { class: `cover ${exposed ? 'bad' : cover === 0 ? 'none' : ''}`, text: `${cover}` })]),
-        el('span', { class: `meter house ${ratio <= 0.35 ? 'low' : ''}`, title: `${barricade.hp} / ${max}` }, [el('i', { style: { width: `${ratio * 100}%` } })]),
+      const row = el('div', { class: 'row', data: { door: sector } }, [
+        el('span', {}, [
+          el('button', { class: 'door-location', text: s.sector[sector], title: fmt(s.day.showDoor, { sector: s.sector[sector] }), onClick: () => this.showDoor(sector) }),
+          el('span', { class: `cover ${exposed ? 'bad' : cover === 0 ? 'none' : ''}`, text: `${cover}`, title: cover > 0 ? fmt(s.day.covered, { n: cover }) : s.day.uncovered }),
+        ]),
+        el('span', { class: `meter house ${ratio <= 0.35 ? 'low' : ''}`, title: `${barricade.hp} / ${max}` }, [
+          el('i', { style: { width: `${ratio * 100}%` } }),
+          repair.ok ? el('span', { class: 'repair-gain', style: { left: `${ratio * 100}%`, width: `${((nextHp - barricade.hp) / max) * 100}%` } }) : null,
+        ]),
         button,
       ]);
+      row.addEventListener('mouseenter', () => this.inspectDoor(sector));
+      row.addEventListener('mouseleave', () => this.inspectDoor(null));
+      row.addEventListener('focusin', () => this.inspectDoor(sector));
+      row.addEventListener('focusout', () => this.inspectDoor(null));
+      return row;
     });
     const houseRow = el('div', { class: 'row' }, [
       el('span', {}, [s.day.house]),
@@ -321,10 +346,13 @@ export class DayScene implements Scene {
     this.info = el('div', { class: 'panel info-card' });
     // The window onto the yard, seated in the desk like the panels around it.
     const frame = el('div', { class: 'yard-frame', style: { left: `${RECT.x}px`, top: `${RECT.y}px`, width: `${RECT.w}px`, height: `${RECT.h}px` } });
+    this.refundTag = el('div', { class: 'yard-refund' });
+    frame.append(this.refundTag);
     // One column: the doors' panel grows a line taller with every door that needs a nail, and the card under it follows.
     const side = el('div', { class: 'day-side' }, [doors, tonight]);
     this.root.replaceChildren(frame, topbar, panel, viewTools, side, actions, this.info);
-    this.updateInfo();
+    this.panelDoor = SECTOR_IDS.find((_, index) => doorRows[index]?.matches(':hover')) ?? null;
+    this.updateHover(this.app.pointer, true);
     this.maybeHint();
   }
 
@@ -419,8 +447,52 @@ export class DayScene implements Scene {
     );
   }
 
+  private inspectDoor(sector: SectorId | null): void {
+    this.panelDoor = sector;
+    this.updateInfo();
+  }
+
+  private showDoor(sector: SectorId): void {
+    const view = cameraView(sector, RECT, this.zoom);
+    audio.play('camera');
+    this.rot = view.rot;
+    this.cx = view.cx;
+    this.cy = view.cy;
+    this.ghostCache = null;
+    this.panelDoor = sector;
+    this.updateHover(this.app.pointer, true);
+  }
+
+  private doorRepairLabel(gain: number): string {
+    const s = S().day;
+    return `${fmt(s.doorRepair, { hp: gain })} · ${fmt(s.time, { h: hours(BARRICADE.repairHours) })}`;
+  }
+
+  private get inspectedDoor(): SectorId | null {
+    return this.panelDoor ?? (this.mode.kind === 'repair' || this.mode.kind === 'idle' ? this.hoverDoor : null);
+  }
+
   private updateInfo(): void {
     const s = S();
+    this.refundTag.hidden = true;
+    this.previewHp = undefined;
+    const sector = this.inspectedDoor;
+    if (sector) {
+      const door = this.state.yard.barricades[sector];
+      const repair = repairBarricade(this.state, sector);
+      const hp = repair.ok ? repair.value.yard.barricades[sector].hp : undefined;
+      this.previewHp = hp;
+      this.info.replaceChildren(
+        el('b', { text: fmt(s.day.door, { sector: s.sector[sector] }) }),
+        hp === undefined ? `${door.hp} / ${barricadeMaxHp(door.level)}` : fmt(s.day.repairHp, { from: door.hp, to: hp }),
+      );
+      if (hp !== undefined) this.info.append(el('div', { text: this.doorRepairLabel(hp - door.hp) }));
+      else if (!repair.ok && door.hp < barricadeMaxHp(door.level)) this.info.append(el('div', { class: 'bad', text: yardErrorText(repair.error) }));
+      if (this.panelDoor && !VISIBLE_DOORS[this.rot].includes(sector)) {
+        this.info.append(el('div', { class: 'muted', text: fmt(s.day.showDoorHint, { sector: s.sector[sector] }) }));
+      }
+      return;
+    }
     if (this.mode.kind === 'build') {
       this.showDeviceInfo(this.mode.type);
       const { ghost, problem } = this.currentGhost();
@@ -449,9 +521,23 @@ export class DayScene implements Scene {
               : fmt(tally.kills > 0 ? s.day.tallyKills : s.day.tally, { fired: tally.fired, hits: tally.hits, kills: tally.kills });
         lines.push(el('div', { class: tally.fired === 0 ? 'tally silent' : 'tally', text }));
       }
-      if (device.broken || device.hp < def.maxHp) lines.push(el('div', {}, [`${s.day.repair} : `, costLine(repairCostOf(device.type), this.state.inventory)]));
+      if (device.broken || device.hp < def.maxHp) {
+        lines.push(el('div', {}, [fmt(s.day.repairHp, { from: device.hp, to: def.maxHp }), ' · ', costLine(repairCostOf(device.type), this.state.inventory), ` · ${fmt(s.day.time, { h: hours(def.buildHours / 2) })}`]));
+      }
       const fresh = isFresh(device, this.state.day);
-      lines.push(el('div', {}, [`${s.day.dismantle} → ${s.day.refund} `, costLine(refundOf(device, this.state.day)), fresh ? el('span', { class: 'muted', text: `  ·  ${fmt(s.day.time, { h: hours(def.buildHours) })}` }) : null]));
+      const refund = refundOf(device, this.state.day);
+      const timeBack = daylightRefund(device, this.state);
+      const timeText = timeBack > 0 ? ` · +${fmt(s.day.time, { h: hours(timeBack) })}` : '';
+      lines.push(el('div', {}, [`${s.day.dismantle} → ${s.day.refund} `, costLine(refund), timeText]));
+      if (this.mode.kind === 'dismantle') {
+        const point = project(this.view, device.x + 0.5, device.y + 0.5);
+        this.refundTag.replaceChildren(costLine(refund, undefined, '+'), timeText);
+        this.refundTag.hidden = false;
+        const left = point.x < RECT.x + RECT.w / 2;
+        this.refundTag.style.left = `${point.x - RECT.x + (left ? 16 : -16)}px`;
+        this.refundTag.style.top = `${Math.max(18, Math.min(RECT.h - 18, point.y - RECT.y - 10 * this.zoom))}px`;
+        this.refundTag.style.transform = left ? 'translateY(-50%)' : 'translate(-100%, -50%)';
+      }
       if (fresh) lines.push(el('div', { class: 'tally', text: s.day.freshNote }));
       lines.push(el('div', { class: 'muted', text: s.day.turnHint }));
       this.info.replaceChildren(...lines);
@@ -714,7 +800,9 @@ export class DayScene implements Scene {
       hoverCell: reaching ? { x: reaching.x, y: reaching.y } : this.hover,
       hoverRadius: reachDef && reachDef.mode !== 'passive' ? Math.max(reachDef.radius, reachDef.reach) : 0,
       showBuildable: this.mode.kind === 'build',
-      doorHighlight: this.mode.kind === 'repair' ? this.hoverDoor : null,
+      doorHighlight: this.inspectedDoor,
+      doorRepairHp: this.previewHp ?? null,
+      dismantleTarget: this.mode.kind === 'dismantle' ? hoverId ?? null : null,
     };
 
     ctx.fillStyle = '#120e09';
@@ -748,10 +836,19 @@ export class DayScene implements Scene {
 
   // ───────────────────────────── Input ─────────────────────────────
 
-  private updateHover(pointer: Pointer): void {
+  private get quickRepair(): boolean {
+    if (this.hoverDevice) return this.hoverDevice.broken;
+    if (!this.hoverDoor) return false;
+    const door = this.state.yard.barricades[this.hoverDoor];
+    return door.hp < barricadeMaxHp(door.level);
+  }
+
+  private updateHover(pointer: Pointer, refreshInfo = false): void {
     const view = this.view;
-    const before = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.hoverDoor}`;
-    if (!inView(view, pointer.x, pointer.y)) {
+    const before = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor}`;
+    const inside = pointer.overCanvas && inView(view, pointer.x, pointer.y);
+    if (inside) this.panelDoor = null;
+    if (!inside) {
       this.hover = null;
       this.hoverDevice = null;
       this.hoverDoor = null;
@@ -769,8 +866,14 @@ export class DayScene implements Scene {
         this.hoverDoor = this.hoverDevice ? null : pickDoor(view, pointer.x, pointer.y);
       }
     }
-    const after = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.hoverDoor}`;
-    if (before !== after) this.updateInfo();
+    let cursor = '';
+    if (inside) {
+      if (this.mode.kind === 'repair' || this.mode.kind === 'dismantle') cursor = this.mode.kind;
+      else if (this.mode.kind === 'idle' && this.quickRepair) cursor = 'repair';
+    }
+    if (this.app.canvas.dataset.yardCursor !== cursor) this.app.canvas.dataset.yardCursor = cursor;
+    const after = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor}`;
+    if (refreshInfo || before !== after) this.updateInfo();
   }
 
   onPointerDown(pointer: Pointer, event: PointerEvent): void {
@@ -857,6 +960,8 @@ export class DayScene implements Scene {
         const dvy = wy / 32 - wx / 64;
         this.cx = panLimit(drag.cx - dvx * sign, GRID_W);
         this.cy = panLimit(drag.cy - dvy * sign, GRID_H);
+        this.app.canvas.dataset.yardCursor = 'pan';
+        this.refundTag.hidden = true;
         return;
       }
       if (!drag.pan && this.paintsLine()) {
@@ -872,8 +977,9 @@ export class DayScene implements Scene {
   onPointerUp(pointer: Pointer): void {
     const drag = this.drag;
     this.drag = null;
-    if (!drag || (drag.moved && drag.pan) || drag.painted) return;
-    this.updateHover(pointer);
+    if (!drag) return;
+    this.updateHover(pointer, drag.moved && drag.pan);
+    if ((drag.moved && drag.pan) || drag.painted) return;
     if (drag.secondary) this.turn();
     else this.click();
   }
@@ -887,7 +993,7 @@ export class DayScene implements Scene {
       this.apply(build(state, type, this.hover.x, this.hover.y, this.facing), '', 'build', this.hover);
       return;
     }
-    if (this.mode.kind === 'repair') {
+    if (this.mode.kind === 'repair' || (this.mode.kind === 'idle' && this.quickRepair)) {
       if (this.hoverDevice) this.apply(repairDevice(state, this.hoverDevice.id), s.day.repaired, 'build', this.hoverDevice);
       else if (this.hoverDoor) this.apply(repairBarricade(state, this.hoverDoor), s.day.repaired, 'build');
       return;
@@ -900,11 +1006,7 @@ export class DayScene implements Scene {
       }
       return;
     }
-    // Idle: a click on something does the obvious thing to it.
-    if (this.hoverDevice?.broken) this.apply(repairDevice(state, this.hoverDevice.id), s.day.repaired, 'build', this.hoverDevice);
-    else if (this.hoverDoor && state.yard.barricades[this.hoverDoor].hp < barricadeMaxHp(state.yard.barricades[this.hoverDoor].level)) {
-      this.apply(repairBarricade(state, this.hoverDoor), s.day.repaired, 'build');
-    } else if (!this.hoverDevice && !this.hoverDoor) this.poke();
+    if (!this.hoverDevice && !this.hoverDoor) this.poke();
   }
 
   /** Nothing useful: the break's horn, and a washer down the well. Neither costs or changes anything. */
@@ -922,6 +1024,7 @@ export class DayScene implements Scene {
     const after = unproject(this.view, pointer.x, pointer.y);
     this.cx = panLimit(this.cx + before.gx - after.gx, GRID_W);
     this.cy = panLimit(this.cy + before.gy - after.gy, GRID_H);
+    this.updateHover(pointer, true);
   }
 
   onKeyDown(code: string): void {

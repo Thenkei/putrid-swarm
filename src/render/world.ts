@@ -99,6 +99,9 @@ export interface WorldFrame {
   readonly focusSector?: SectorId;
   readonly showBuildable?: boolean;
   readonly doorHighlight?: SectorId | null;
+  /** HP after one affordable repair on the highlighted door. */
+  readonly doorRepairHp?: number | null;
+  readonly dismantleTarget?: number | null;
 }
 
 // ───────────────────────────── Sprite tables ─────────────────────────────
@@ -931,24 +934,24 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
   }
 }
 
+export const VISIBLE_DOORS: Readonly<Record<Rot, readonly SectorId[]>> = { 0: ['portail', 'grange'], 1: ['arriere', 'verger'] };
+const DOOR_ANCHORS: Record<SectorId, Cell> = {
+  portail: { x: HOUSE_CENTER.x - 0.25, y: HOUSE.y1 + 1.12 },
+  grange: { x: HOUSE.x1 + 1.12, y: HOUSE_CENTER.y - 0.05 },
+  arriere: { x: HOUSE_CENTER.x + 0.25, y: HOUSE.y0 - 0.12 },
+  verger: { x: HOUSE.x0 - 0.12, y: HOUSE_CENTER.y + 0.05 },
+};
+
 function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame, sector: SectorId, depth: number): Drawable[] {
-  // Only the two doors on the faces this rotation can see.
-  const visible: readonly SectorId[] = view.rot === 0 ? ['portail', 'grange'] : ['arriere', 'verger'];
-  if (!visible.includes(sector)) return [];
+  if (!VISIBLE_DOORS[view.rot].includes(sector)) return [];
   const barricade = frame.barricades[sector];
   const max = BARRICADE.maxHp[barricade.level];
   const ratio = barricade.hp / max;
   const state = barricade.hp <= 0 ? 'broken' : ratio <= 0.5 ? 'triggered' : barricade.level === 1 ? 'armed' : 'resting';
   // Door positions on the house art: centre of each visible wall.
   const onLeftFace = sector === 'portail' || sector === 'arriere';
-  const mid = (HOUSE.x0 + HOUSE.x1 + 1) / 2;
-  const anchor: Record<SectorId, { x: number; y: number }> = {
-    portail: { x: mid - 0.25, y: HOUSE.y1 + 1.12 },
-    grange: { x: HOUSE.x1 + 1.12, y: mid - 0.05 },
-    arriere: { x: mid + 0.25, y: HOUSE.y0 - 0.12 },
-    verger: { x: HOUSE.x0 - 0.12, y: mid + 0.05 },
-  };
-  const p = project(view, anchor[sector].x, anchor[sector].y);
+  const anchor = DOOR_ANCHORS[sector];
+  const p = project(view, anchor.x, anchor.y);
   const z = view.zoom;
   return [
     {
@@ -966,6 +969,17 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
         if (frame.night || ratio < 0.999 || frame.doorHighlight === sector) {
           const barW = 46 * z;
           meter(ctx, p.x - barW / 2, p.y - 68 * z, barW, 5 * z, ratio, ratio > 0.5 ? '#9fcf5a' : ratio > 0.2 ? '#f2a531' : '#e0432e');
+          if (frame.doorHighlight === sector && frame.doorRepairHp != null) {
+            ctx.save();
+            ctx.setLineDash([2, 2]);
+            ctx.strokeStyle = '#e4f5ac';
+            ctx.lineWidth = 3 * z;
+            ctx.beginPath();
+            ctx.moveTo(p.x + (ratio - 0.5) * barW, p.y - 65.5 * z);
+            ctx.lineTo(p.x + (frame.doorRepairHp / max - 0.5) * barW, p.y - 65.5 * z);
+            ctx.stroke();
+            ctx.restore();
+          }
         }
       },
     },
@@ -976,12 +990,13 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   const z = view.zoom;
   const state = deviceSpriteState(device);
   const art = deviceArt(device.type, device.facing, state);
+  const removing = frame.dismantleTarget === device.id;
 
   if (device.highlight) {
     diamond(ctx, view, device.x, device.y, 0.02);
-    ctx.fillStyle = 'rgba(242,165,49,0.3)';
+    ctx.fillStyle = removing ? 'rgba(226,80,59,0.45)' : 'rgba(242,165,49,0.3)';
     ctx.fill();
-    ctx.strokeStyle = '#f2a531';
+    ctx.strokeStyle = removing ? '#ff937d' : '#f2a531';
     ctx.lineWidth = 2;
     ctx.stroke();
   }
@@ -997,6 +1012,15 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   }
 
   if (!frame.night) {
+    if (removing) {
+      const y = p.y + (art.lift - art.h / 2) * z;
+      ctx.fillStyle = '#221611';
+      ctx.beginPath();
+      ctx.arc(p.x, y, 9, 0, Math.PI * 2);
+      ctx.fill();
+      cross(ctx, p.x, y, 4.5);
+      return;
+    }
     // Never smaller than it reads at: the tag keeps its size when the view is pulled back.
     if (device.silent && state !== 'broken') asleep(ctx, p.x, p.y + art.lift * z - art.h * z - 8 * z, Math.max(1, z), frame.time + device.id);
     return;
@@ -1426,9 +1450,11 @@ export function pickProp(view: View, kinds: readonly PropKind[], sx: number, sy:
 
 /** Which door, if any, is under the pointer (for daytime repairs). */
 export function pickDoor(view: View, sx: number, sy: number): SectorId | null {
-  const visible: readonly SectorId[] = view.rot === 0 ? ['portail', 'grange'] : ['arriere', 'verger'];
   const g = unproject(view, sx, sy);
-  for (const sector of visible) {
+  for (const sector of VISIBLE_DOORS[view.rot]) {
+    const anchor = DOOR_ANCHORS[sector];
+    const p = project(view, anchor.x, anchor.y);
+    if (Math.abs(sx - p.x) <= 26 * view.zoom && sy >= p.y - 62 * view.zoom && sy <= p.y + 12 * view.zoom) return sector;
     const entry = ENTRIES[sector];
     if (Math.hypot(g.gx - (entry.x + 0.5), g.gy - (entry.y + 0.5)) < 1.1) return sector;
   }

@@ -15,6 +15,7 @@ export interface Pointer {
   x: number;
   y: number;
   down: boolean;
+  overCanvas: boolean;
 }
 
 export interface Scene {
@@ -38,7 +39,7 @@ export class App {
   readonly canvas: HTMLCanvasElement;
   readonly ctx: CanvasRenderingContext2D;
   readonly ui: HTMLElement;
-  readonly pointer: Pointer = { x: 0, y: 0, down: false };
+  readonly pointer: Pointer = { x: 0, y: 0, down: false, overCanvas: false };
   /** The campaign. Null until a run is started or loaded. */
   state: GameState | null = null;
   time = 0;
@@ -69,6 +70,7 @@ export class App {
       const rect = this.stage.getBoundingClientRect();
       this.pointer.x = (event.clientX - rect.left) / this.scale;
       this.pointer.y = (event.clientY - rect.top) / this.scale;
+      this.pointer.overCanvas = event.target === this.canvas;
     };
     this.canvas.addEventListener('pointerdown', (event) => {
       audio.unlock();
