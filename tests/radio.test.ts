@@ -511,6 +511,7 @@ const report = (night: number, survived = true): NightReport => ({
   bossDefeated: null,
   durationSeconds: 60,
   cameraLost: null,
+  traps: {},
 });
 
 const STOCK: Inventory = { wood: 10, scrap: 6, springs: 3, wire: 4, battery: 2 };

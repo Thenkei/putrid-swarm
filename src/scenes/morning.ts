@@ -3,6 +3,7 @@
 import { BARRICADE, HOUSE_MAX_HP } from '../core/data/devices';
 import { chapterWaiting } from '../core/chapters';
 import { bossOfNight, startNextDay } from '../core/game';
+import { silentTraps } from '../core/yard';
 import type { GameState } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import type { App, Scene } from '../engine/app';
@@ -35,13 +36,16 @@ export class MorningScene implements Scene {
     const boss = bossOfNight(night);
     const bossLine = boss ? (report?.bossDefeated === boss ? s.neighbor[boss].defeated : s.neighbor[boss].escaped) : s.morning.quiet;
 
-    const row = (label: string, value: string, tone: '' | 'bad' | 'good' = ''): HTMLElement => el('tr', {}, [el('td', { text: label }), el('td', { class: tone, text: value })]);
+    const silent = silentTraps(state).length;
+    const row = (label: string, value: string, tone: '' | 'bad' | 'good' | 'warn' = ''): HTMLElement => el('tr', {}, [el('td', { text: label }), el('td', { class: tone, text: value })]);
     const rows = [
       row(s.morning.kills, String(kills), 'good'),
       row(s.morning.autoTriggers, String(report?.autoTriggers ?? 0)),
       row(s.morning.triggers, String(report?.triggers ?? 0)),
       row(s.morning.breaches, String(report?.breaches ?? 0), (report?.breaches ?? 0) > 0 ? 'bad' : 'good'),
       row(s.morning.devices, String(report?.devicesBroken ?? 0), (report?.devicesBroken ?? 0) > 0 ? 'bad' : 'good'),
+      // Working traps nobody walked into: the yard marks which ones, the day after.
+      ...(silent > 0 ? [row(s.morning.silent, String(silent), 'warn')] : []),
       row(s.morning.house, `${state.yard.houseHp} / ${HOUSE_MAX_HP}${report && report.houseDamage > 0 ? `  (−${report.houseDamage})` : ''}`, report && report.houseDamage > 0 ? 'bad' : 'good'),
       ...SECTOR_IDS.map((sector) => {
         const barricade = state.yard.barricades[sector];

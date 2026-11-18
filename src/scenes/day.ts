@@ -11,23 +11,31 @@ import { bossOfNight, clockLabel, startNight } from '../core/game';
 import { ENTRIES, GRID_H, GRID_W, SPAWN_CELLS, idx } from '../core/map';
 import { computeField, traceRoute } from '../core/pathing';
 import type { Cell, DeviceInstance, DeviceTypeId, Facing, GameState, Result, SectorId } from '../core/types';
-import { DEVICE_TYPE_IDS, SECTOR_IDS } from '../core/types';
+import { DEVICE_TYPE_IDS, SECTOR_IDS, ok } from '../core/types';
 import {
+  affordableCount,
   barricadeMaxHp,
   build,
   canAfford,
   deviceAt,
   dismantle,
   fenceCells,
+  isFresh,
+  lastFresh,
   placementProblem,
   refundOf,
   reinforceBarricade,
+  repairAll,
+  repairAllCost,
   repairBarricade,
   repairCostOf,
   repairDevice,
   repairHouse,
+  tallyOf,
   type YardError,
   turnDevice,
+  undoLastBuild,
+  wasSilent,
 } from '../core/yard';
 import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/app';
 import { assetUrl, sprite } from '../engine/assets';
@@ -78,6 +86,8 @@ export function yardErrorText(error: YardError): string {
       return fmt(s.err.seals_routes, { sectors: error.sectors.map((id) => s.sector[id]).join(', ') });
     case 'nothing_to_repair':
       return s.err.nothing_to_repair;
+    case 'nothing_to_undo':
+      return s.err.nothing_to_undo;
     case 'already_reinforced':
       return s.err.already_reinforced;
     case 'not_broken':
@@ -182,7 +192,8 @@ export class DayScene implements Scene {
       const img = el('img');
       if (url) img.src = url;
       const selected = this.mode.kind === 'build' && this.mode.type === type;
-      const affordable = canAfford(state.inventory, def.cost) && state.hoursLeft >= def.buildHours;
+      const count = affordableCount(state.inventory, type, state.hoursLeft);
+      const affordable = count > 0;
       const tag = def.mode === 'auto' ? s.day.tagAuto : def.mode === 'manual' ? s.day.tagManual : s.day.tagPassive;
       return el(
         'button',
@@ -195,7 +206,14 @@ export class DayScene implements Scene {
         },
         [
           img,
-          el('span', { class: 'name' }, [s.device[type].name, el('span', { text: fmt(s.day.time, { h: hours(def.buildHours) }) })]),
+          el('span', { class: 'name' }, [
+            s.device[type].name,
+            el('span', {}, [
+              // How many of them the stock and the daylight still pay for: the answer to "can I close this gap?".
+              count > 0 ? el('i', { class: 'stock-count', text: `×${count}`, title: fmt(s.day.affordable, { n: count }) }) : null,
+              fmt(s.day.time, { h: hours(def.buildHours) }),
+            ]),
+          ]),
           el('span', { class: 'meta' }, [costLine(def.cost, state.inventory), el('span', { class: `tag tag-${def.mode}`, text: tag })]),
         ],
       );
@@ -206,11 +224,32 @@ export class DayScene implements Scene {
         text: label,
         onClick: () => this.setMode(this.mode.kind === kind ? { kind: 'idle' } : { kind }),
       });
+    // The two chores that come back every day, each in one click: take back the piece just laid, and put
+    // everything the night broke back on its feet.
+    const fresh = lastFresh(state);
+    const wrecks = repairAllCost(yard);
+    const quick = el('div', { class: 'tool-row quick' }, [
+      el('button', {
+        class: 'btn',
+        text: s.day.undo,
+        disabled: !fresh,
+        title: fresh ? fmt(s.day.undoTitle, { name: s.device[fresh.type].name }) : s.day.undoNone,
+        onClick: () => this.undo(),
+      }),
+      el('button', {
+        class: `btn ${wrecks.count > 0 ? 'btn-alert' : ''}`,
+        text: wrecks.count > 0 ? fmt(s.day.repairAll, { n: wrecks.count }) : s.day.repairAllNone,
+        disabled: wrecks.count === 0,
+        title: wrecks.count > 0 ? `${describeCost(wrecks.cost)} · ${fmt(s.day.time, { h: hours(wrecks.hours) })}` : s.day.repairAllNoneTitle,
+        onClick: () => this.repairEverything(),
+      }),
+    ]);
     const panel = el('div', { class: 'panel build-panel' }, [
       el('h3', { text: s.day.build }),
       ...cards,
       el('h3', { text: s.day.tools }),
       el('div', { class: 'tool-row' }, [tool('repair', s.day.repair), tool('dismantle', s.day.dismantle)]),
+      quick,
     ]);
 
     // Doors and house. Each door also says how many working traps stand on the way to it.
@@ -281,7 +320,9 @@ export class DayScene implements Scene {
     this.info = el('div', { class: 'panel info-card' });
     // The window onto the yard, seated in the desk like the panels around it.
     const frame = el('div', { class: 'yard-frame', style: { left: `${RECT.x}px`, top: `${RECT.y}px`, width: `${RECT.w}px`, height: `${RECT.h}px` } });
-    this.root.replaceChildren(frame, topbar, panel, viewTools, doors, tonight, actions, this.info);
+    // One column: the doors' panel grows a line taller with every door that needs a nail, and the card under it follows.
+    const side = el('div', { class: 'day-side' }, [doors, tonight]);
+    this.root.replaceChildren(frame, topbar, panel, viewTools, side, actions, this.info);
     this.updateInfo();
     this.maybeHint();
   }
@@ -396,8 +437,21 @@ export class DayScene implements Scene {
       const def = DEVICES[device.type];
       const lines: (HTMLElement | string)[] = [el('b', { text: `${s.device[device.type].name}${device.broken ? ` · ${s.day.broken}` : ''}` })];
       lines.push(`${device.hp} / ${def.maxHp}`);
+      const tally = tallyOf(this.state, device);
+      if (tally && !device.broken) {
+        // What the night made of it: the one honest review of where it stands.
+        const text =
+          tally.fired === 0
+            ? s.day.tallySilent
+            : device.type === 'barrier'
+              ? fmt(s.day.tallyBarrier, { fired: tally.fired, hits: tally.hits })
+              : fmt(tally.kills > 0 ? s.day.tallyKills : s.day.tally, { fired: tally.fired, hits: tally.hits, kills: tally.kills });
+        lines.push(el('div', { class: tally.fired === 0 ? 'tally silent' : 'tally', text }));
+      }
       if (device.broken || device.hp < def.maxHp) lines.push(el('div', {}, [`${s.day.repair} : `, costLine(repairCostOf(device.type), this.state.inventory)]));
-      lines.push(el('div', {}, [`${s.day.dismantle} → ${s.day.refund} `, costLine(refundOf(device))]));
+      const fresh = isFresh(device, this.state.day);
+      lines.push(el('div', {}, [`${s.day.dismantle} → ${s.day.refund} `, costLine(refundOf(device, this.state.day)), fresh ? el('span', { class: 'muted', text: `  ·  ${fmt(s.day.time, { h: hours(def.buildHours) })}` }) : null]));
+      if (fresh) lines.push(el('div', { class: 'tally', text: s.day.freshNote }));
       lines.push(el('div', { class: 'muted', text: s.day.turnHint }));
       this.info.replaceChildren(...lines);
       return;
@@ -437,6 +491,32 @@ export class DayScene implements Scene {
   private toggleRoutes(): void {
     this.showRoutes = !this.showRoutes;
     this.refresh();
+  }
+
+  /** Takes back the last piece laid today, whole: materials and daylight. */
+  private undo(): void {
+    const result = undoLastBuild(this.state);
+    if (!result.ok) {
+      audio.play('deny');
+      this.app.toast(yardErrorText(result.error), 'error');
+      return;
+    }
+    const { device } = result.value;
+    if (this.hoverDevice?.id === device.id) this.hoverDevice = null;
+    this.apply(ok(result.value.state), fmt(S().day.undone, { name: S().device[device.type].name }), 'click', device);
+  }
+
+  /** Repairs every broken device the stock and the daylight allow, and says what is left. */
+  private repairEverything(): void {
+    const s = S();
+    const result = repairAll(this.state);
+    if (!result.ok) {
+      audio.play('deny');
+      this.app.toast(yardErrorText(result.error), 'error');
+      return;
+    }
+    const { repaired, left } = result.value;
+    this.apply(ok(result.value.state), left > 0 ? fmt(s.day.repairedSome, { n: repaired, left }) : fmt(s.day.repairedAll, { n: repaired }), 'build');
   }
 
   private askNight(): void {
@@ -590,6 +670,7 @@ export class DayScene implements Scene {
     const placing = this.currentGhost().ghost;
     const ghost = placing ? { ...placing, idle: this.ghostIdle() } : null;
     const hoverId = this.mode.kind === 'repair' || this.mode.kind === 'dismantle' ? this.hoverDevice?.id : undefined;
+    const marksSilent = this.showRoutes && this.mode.kind !== 'build';
     const devices: DeviceVisual[] = state.yard.devices.map((d) => ({
       id: d.id,
       type: d.type,
@@ -599,8 +680,13 @@ export class DayScene implements Scene {
       state: d.broken ? 'broken' : 'idle',
       hpRatio: d.hp / DEVICES[d.type].maxHp,
       highlight: d.id === hoverId,
+      // Shown with the routes: both answer "is this trap where they walk?".
+      silent: marksSilent && wasSilent(state, d),
     }));
     const def = this.mode.kind === 'build' ? DEVICES[this.mode.type] : null;
+    // Out of build mode, the trap under the pointer shows how far it reaches.
+    const reaching = !def && this.hoverDevice && isTrap(this.hoverDevice.type) && !this.hoverDevice.broken ? this.hoverDevice : null;
+    const reachDef = reaching ? DEVICES[reaching.type] : def;
     const frame: WorldFrame = {
       time: this.time,
       night: false,
@@ -613,8 +699,8 @@ export class DayScene implements Scene {
       ghost,
       // While placing something the routes are the whole point, so they show regardless of the toggle.
       ...(this.showRoutes || this.mode.kind === 'build' ? { routes: this.forecast().routes, traffic: this.forecast().traffic } : {}),
-      hoverCell: this.hover,
-      hoverRadius: def && def.mode !== 'passive' ? Math.max(def.radius, def.reach) : 0,
+      hoverCell: reaching ? { x: reaching.x, y: reaching.y } : this.hover,
+      hoverRadius: reachDef && reachDef.mode !== 'passive' ? Math.max(reachDef.radius, reachDef.reach) : 0,
       showBuildable: this.mode.kind === 'build',
       doorHighlight: this.mode.kind === 'repair' ? this.hoverDoor : null,
     };
@@ -822,6 +908,7 @@ export class DayScene implements Scene {
     if (code === 'KeyR') this.flip();
     else if (code === 'KeyF') this.turn();
     else if (code === 'KeyT') this.toggleRoutes();
+    else if (code === 'Backspace') this.undo();
     else if (code === 'Escape') {
       if (this.mode.kind !== 'idle') this.setMode({ kind: 'idle' });
     } else if (code.startsWith('Digit')) {

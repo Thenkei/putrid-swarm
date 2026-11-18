@@ -26,6 +26,7 @@ const report: NightReport = {
   bossDefeated: null,
   durationSeconds: 120,
   cameraLost: null,
+  traps: {},
 };
 
 const maimed: GameState = { ...layout(newGame(7), 3), day: DAY, orchard: 'maimed', totals: { kills: 40, triggers: 20, searches: 9 } };

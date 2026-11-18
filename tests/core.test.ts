@@ -9,7 +9,7 @@ import { auditRoutes, computeField } from '../src/core/pathing';
 import { deserialize, serialize } from '../src/core/save';
 import type { GameState } from '../src/core/types';
 import { RESOURCE_IDS, SECTOR_IDS } from '../src/core/types';
-import { build, dismantle, fenceCells, placementProblem, repairBarricade, repairDevice, turnDevice } from '../src/core/yard';
+import { affordableCount, build, dismantle, fenceCells, isFresh, lastFresh, placementProblem, refundOf, repairAll, repairAllCost, repairBarricade, repairDevice, silentTraps, tallyOf, turnDevice, undoLastBuild, wasSilent } from '../src/core/yard';
 import { layout, operate } from './operator';
 
 const rich = (state: GameState): GameState => ({ ...state, inventory: { wood: 99, scrap: 99, springs: 99, wire: 99, battery: 99 }, hoursLeft: 999 });
@@ -50,13 +50,16 @@ describe('economy', () => {
     if (!result.ok) expect(result.error.code).toBe('no_time');
   });
 
-  it('refunds half (rounded up) when dismantling and charges half to repair', () => {
+  it('refunds half (rounded up) when dismantling a piece that has been through a night, and charges half to repair', () => {
     let state = rich(newGame(1));
     state = unwrap(build(state, 'log', 6, 15));
     const device = state.yard.devices.at(-1)!;
     const before = state.inventory.wood;
-    const dismantled = unwrap(dismantle(state, device.id));
+    // The next day it is part of the yard: half comes back, and no daylight.
+    const later: GameState = { ...state, day: state.day + 1 };
+    const dismantled = unwrap(dismantle(later, device.id));
     expect(dismantled.inventory.wood).toBe(before + 2);
+    expect(dismantled.hoursLeft).toBe(later.hoursLeft);
 
     const broken: GameState = { ...state, yard: { ...state.yard, devices: state.yard.devices.map((d) => (d.id === device.id ? { ...d, broken: true, hp: 0 } : d)) } };
     const repaired = unwrap(repairDevice(broken, device.id));
@@ -73,6 +76,183 @@ describe('economy', () => {
     const twice = unwrap(repairBarricade(once, 'portail'));
     expect(twice.yard.barricades.portail.hp).toBe(160);
     expect(repairBarricade(twice, 'portail').ok).toBe(false);
+  });
+});
+
+describe('taking back what was laid today', () => {
+  it('gives a piece laid today back whole: every material and the daylight it took', () => {
+    const start = newGame(1);
+    const built = unwrap(build(start, 'log', 6, 15));
+    const device = built.yard.devices.at(-1)!;
+    expect(isFresh(device, built.day)).toBe(true);
+    expect(refundOf(device, built.day)).toEqual(DEVICES.log.cost);
+    const back = unwrap(dismantle(built, device.id));
+    expect(back.inventory).toEqual(start.inventory);
+    expect(back.hoursLeft).toBeCloseTo(start.hoursLeft, 9);
+    expect(back.yard.devices).toEqual(start.yard.devices);
+  });
+
+  it('undoes the pieces of the day one by one, the last first, and nothing older', () => {
+    const start = newGame(1);
+    let state = unwrap(build(start, 'fence', 5, 18));
+    state = unwrap(build(state, 'fence', 6, 18));
+    state = unwrap(build(state, 'spikes', 6, 15));
+    expect(lastFresh(state)?.type).toBe('spikes');
+    const order: string[] = [];
+    for (;;) {
+      const undone = undoLastBuild(state);
+      if (!undone.ok) {
+        expect(undone.error.code).toBe('nothing_to_undo');
+        break;
+      }
+      order.push(`${undone.value.device.type}@${undone.value.device.x}`);
+      state = undone.value.state;
+    }
+    expect(order).toEqual(['spikes@6', 'fence@6', 'fence@5']);
+    // The yard the run started with was never "laid today": it stays.
+    expect(state.yard.devices).toEqual(start.yard.devices);
+    expect(state.inventory).toEqual(start.inventory);
+    expect(state.hoursLeft).toBeCloseTo(start.hoursLeft, 9);
+  });
+
+  it('is over once the piece has been through a night, was damaged, or broke', () => {
+    const built = unwrap(build(newGame(1), 'log', 6, 15));
+    const device = built.yard.devices.at(-1)!;
+    expect(isFresh(device, built.day + 1)).toBe(false);
+    expect(isFresh({ ...device, hp: device.hp - 1 }, built.day)).toBe(false);
+    expect(isFresh({ ...device, broken: true, hp: 0 }, built.day)).toBe(false);
+    // The night itself forgets the day: what it hands back is the yard, not today's work.
+    const sim = new NightSim(1, built.yard, 7);
+    expect(sim.toYard(built.yard).devices.every((d) => d.builtDay === undefined)).toBe(true);
+  });
+
+  it('never gives back more daylight than a day holds, and keeps the day it was laid through a save', () => {
+    const built = unwrap(build(newGame(1), 'log', 6, 15));
+    const device = built.yard.devices.at(-1)!;
+    const loaded = deserialize(serialize(built));
+    expect(loaded?.yard.devices.at(-1)?.builtDay).toBe(1);
+    const forged = deserialize(serialize({ ...built, yard: { ...built.yard, devices: built.yard.devices.map((d) => ({ ...d, builtDay: 'today' })) } } as unknown as GameState));
+    expect(forged?.yard.devices.every((d) => d.builtDay === undefined)).toBe(true);
+    const back = unwrap(dismantle({ ...built, hoursLeft: 12 }, device.id));
+    expect(back.hoursLeft).toBe(12);
+  });
+
+  it('says how many of a device the stock and the daylight pay for', () => {
+    const state = newGame(1);
+    expect(affordableCount(state.inventory, 'fence', state.hoursLeft)).toBe(state.inventory.wood);
+    expect(affordableCount(state.inventory, 'log', state.hoursLeft)).toBe(Math.min(Math.floor(state.inventory.wood / 3), state.inventory.wire, state.inventory.scrap));
+    expect(affordableCount(state.inventory, 'log', 1)).toBe(1);
+    expect(affordableCount({ ...state.inventory, battery: 0 }, 'horn', state.hoursLeft)).toBe(0);
+    expect(affordableCount(rich(state).inventory, 'spikes', 0.4)).toBe(0);
+  });
+});
+
+describe('repairing everything the night broke', () => {
+  const wreck = (state: GameState, ids: readonly number[]): GameState => ({
+    ...state,
+    yard: { ...state.yard, devices: state.yard.devices.map((d) => (ids.includes(d.id) ? { ...d, broken: true, hp: 0 } : d)) },
+  });
+
+  it('repairs every broken device for exactly what each repair costs', () => {
+    const base = rich(newGame(1));
+    const broken = wreck(base, base.yard.devices.filter((d) => d.type !== 'fence').map((d) => d.id));
+    const bill = repairAllCost(broken.yard);
+    expect(bill.count).toBe(3);
+    const result = unwrap(repairAll(broken));
+    expect(result).toMatchObject({ repaired: 3, left: 0 });
+    expect(result.state.yard.devices.some((d) => d.broken)).toBe(false);
+    for (const id of RESOURCE_IDS) expect(result.state.inventory[id]).toBe(broken.inventory[id] - (bill.cost[id] ?? 0));
+    expect(result.state.hoursLeft).toBeCloseTo(broken.hoursLeft - bill.hours, 9);
+  });
+
+  it('passes over what the stock cannot pay for and still repairs the cheaper ones further on', () => {
+    const base = newGame(1);
+    const log = base.yard.devices.find((d) => d.type === 'log')!;
+    const spikes = base.yard.devices.filter((d) => d.type === 'spikes');
+    // Scrap for the stakes only: the log (wood, wire, scrap) comes first in the yard and cannot be paid.
+    const broken = wreck({ ...base, inventory: { wood: 0, scrap: 2, springs: 2, wire: 0, battery: 0 } }, [log.id, ...spikes.map((d) => d.id)]);
+    const result = unwrap(repairAll(broken));
+    expect(result).toMatchObject({ repaired: 2, left: 1 });
+    expect(result.state.yard.devices.find((d) => d.id === log.id)?.broken).toBe(true);
+    for (const id of RESOURCE_IDS) expect(result.state.inventory[id]).toBeGreaterThanOrEqual(0);
+  });
+
+  it('is refused with the reason when nothing is broken, or nothing can be paid for', () => {
+    const base = newGame(1);
+    expect(repairAll(base)).toMatchObject({ ok: false, error: { code: 'nothing_to_repair' } });
+    const log = base.yard.devices.find((d) => d.type === 'log')!;
+    expect(repairAll(wreck({ ...base, inventory: { wood: 0, scrap: 0, springs: 0, wire: 0, battery: 0 } }, [log.id]))).toMatchObject({ ok: false, error: { code: 'cannot_afford' } });
+    expect(repairAll(wreck({ ...rich(base), hoursLeft: 0 }, [log.id]))).toMatchObject({ ok: false, error: { code: 'no_time' } });
+  });
+});
+
+describe('what each trap did last night', () => {
+  it('tallies every trap of the yard, fired or not, and the tallies add up to the report', () => {
+    const state = layout(newGame(3), 3);
+    const sim = new NightSim(3, state.yard, 11);
+    run(sim, 600, (s) => operate(s));
+    const report = sim.report();
+    const traps = state.yard.devices.filter((d) => d.type !== 'fence');
+    expect(Object.keys(report.traps).map(Number).sort((a, b) => a - b)).toEqual(traps.map((d) => d.id).sort((a, b) => a - b));
+    const fired = Object.values(report.traps).reduce((sum, t) => sum + t.fired, 0);
+    expect(fired).toBe(report.triggers + report.autoTriggers);
+    expect(fired).toBeGreaterThan(0);
+    const kills = Object.values(report.kills).reduce((sum, n) => sum + (n ?? 0), 0);
+    // Every kill is a trap's: nothing else hurts them.
+    expect(Object.values(report.traps).reduce((sum, t) => sum + t.kills, 0)).toBe(kills);
+  });
+
+  it('marks a working trap nobody walked into as silent, and never one laid since or broken', () => {
+    // Stakes in a far corner of the lot, off every route.
+    let state = rich(newGame(1));
+    state = unwrap(build(state, 'spikes', 3, 3));
+    const lonely = state.yard.devices.at(-1)!;
+    state = unwrap(startNight(state));
+    const sim = new NightSim(1, state.yard, 5);
+    run(sim, 600, (s) => operate(s));
+    const morning = concludeNight(state, sim);
+    expect(morning.phase).toBe('morning');
+    const after = morning.yard.devices.find((d) => d.id === lonely.id)!;
+    expect(tallyOf(morning, after)).toEqual({ fired: 0, hits: 0, kills: 0 });
+    expect(wasSilent(morning, after)).toBe(true);
+    expect(silentTraps(morning).map((d) => d.id)).toContain(lonely.id);
+    // The gate's own stakes went off: not silent.
+    const gate = morning.yard.devices.find((d) => d.type === 'spikes' && d.x === 10 && d.y === 16)!;
+    expect(tallyOf(morning, gate)?.fired).toBeGreaterThan(0);
+    expect(wasSilent(morning, gate)).toBe(false);
+
+    const day = rich(startNextDay(morning));
+    const laid = unwrap(build(day, 'spikes', 4, 4)).yard.devices.at(-1)!;
+    expect(tallyOf(day, laid)).toBeUndefined();
+    expect(wasSilent(day, laid)).toBe(false);
+    expect(wasSilent(day, { ...after, broken: true })).toBe(false);
+    // Palisades are not traps: they have no tally to be silent about.
+    expect(silentTraps(day).every((d) => d.type !== 'fence')).toBe(true);
+  });
+
+  it('counts what stood at a barrier when it went up', () => {
+    const state = layout(newGame(3), 4);
+    const barrier = state.yard.devices.find((d) => d.type === 'barrier');
+    expect(barrier).toBeDefined();
+    const sim = new NightSim(3, state.yard, 11);
+    run(sim, 600, (s) => operate(s));
+    const tally = sim.report().traps[barrier!.id]!;
+    if (tally.fired > 0) expect(tally.hits).toBeGreaterThanOrEqual(tally.fired);
+    expect(tally.kills).toBe(0);
+  });
+
+  it('loads a report saved before traps were tallied as one with none, and drops a malformed tally', () => {
+    const state = layout(newGame(3), 3);
+    const night = unwrap(startNight(state));
+    const sim = new NightSim(1, night.yard, 5);
+    run(sim, 600, (s) => operate(s));
+    const morning = concludeNight(night, sim);
+    const { traps: _traps, ...old } = morning.lastNight!;
+    expect(deserialize(JSON.stringify({ ...morning, lastNight: old }))?.lastNight?.traps).toEqual({});
+    const id = Number(Object.keys(morning.lastNight!.traps)[0]);
+    const forged = { ...morning, lastNight: { ...morning.lastNight, traps: { [id]: { fired: -1, hits: 0, kills: 0 }, nope: 3 } } };
+    expect(deserialize(JSON.stringify(forged))?.lastNight?.traps).toEqual({});
+    expect(deserialize(serialize(morning))?.lastNight?.traps).toEqual(morning.lastNight!.traps);
   });
 });
 

@@ -730,7 +730,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   padding: 10px 10px 8px;
-  gap: 6px;
+  gap: 4px;
 }
 
 .build-panel h3 {
@@ -830,9 +830,43 @@ button:disabled {
   padding: 4px 6px 2px;
 }
 
+/* The second row: the short one keeps its width, the one with a count takes the rest. */
+.tool-row.quick .btn {
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.tool-row.quick .btn:first-child {
+  flex: 0 0 auto;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
 .btn.sel {
   border-color: var(--amber);
   color: var(--amber);
+}
+
+/* Something the night broke is waiting: the one button that asks to be pressed. */
+.btn.btn-alert {
+  border-color: #c9603f;
+  color: #ffb49c;
+}
+
+.dev-card .stock-count {
+  margin-right: 7px;
+  font-style: normal;
+  color: var(--cream);
+}
+
+/* What a trap did last night, on its card. */
+.info-card .tally {
+  margin-top: 3px;
+  color: #c8f08a;
+}
+
+.info-card .tally.silent {
+  color: #ffc24a;
 }
 
 .info-card {
@@ -895,11 +929,18 @@ button:disabled {
   gap: 6px;
 }
 
-.door-chips {
+/* The doors, then tonight's card: stacked, so the second follows the first whatever its height. */
+.day-side {
   position: absolute;
   right: 12px;
   top: 100px;
   width: 262px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.door-chips {
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -942,11 +983,15 @@ button:disabled {
   height: 10px;
 }
 
+/* A door's button never makes its row taller than the others. */
+.door-chips .btn.icon-btn {
+  min-height: 24px;
+  height: 24px;
+  padding: 2px 0 0;
+  font-size: 18px;
+}
+
 .tonight {
-  position: absolute;
-  right: 12px;
-  top: 250px;
-  width: 262px;
   padding: 8px 12px 6px;
   font-size: 18px;
   line-height: 1.25;
@@ -1953,6 +1998,10 @@ button:disabled {
 
 .report .bad {
   color: #a3261a;
+}
+
+.report .warn {
+  color: #94590a;
 }
 
 .report .good {
