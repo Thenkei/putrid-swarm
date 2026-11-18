@@ -228,6 +228,10 @@ export class TitleScene implements Scene {
           this.view = 'options';
           this.build();
         }),
+        item(s.guide.title, async () => {
+          const { FieldGuideScene } = await import('./field-guide');
+          if (this.alive) this.app.go(() => new FieldGuideScene(this.app, () => new TitleScene(this.app)));
+        }),
         item(S().credits.menu, () => this.app.go(() => new CreditsScene(this.app))),
       ]);
     }
@@ -264,8 +268,9 @@ export class TitleScene implements Scene {
     desk.draw(ctx, this.time);
   }
 
-  onKeyDown(code: string): void {
+  onKeyDown(code: string, event: KeyboardEvent): void {
     this.awake();
+    if (code === 'Enter' && event.target instanceof HTMLButtonElement) return;
     this.typed = code === CODE[this.typed] ? this.typed + 1 : code === CODE[0] ? 1 : 0;
     if (this.typed === CODE.length) {
       this.typed = 0;

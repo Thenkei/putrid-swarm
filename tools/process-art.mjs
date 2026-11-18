@@ -27,7 +27,7 @@ const args = process.argv.slice(2);
 const onlyIndex = args.indexOf('--only');
 const only = onlyIndex >= 0 ? args[onlyIndex + 1].split(',') : null;
 
-for (const dir of ['plates', 'sprites', 'textures']) mkdirSync(join(OUT_DIR, dir), { recursive: true });
+for (const dir of ['plates', 'sprites', 'textures', 'yard']) mkdirSync(join(OUT_DIR, dir), { recursive: true });
 
 const manifest = existsSync(MANIFEST_PATH) ? JSON.parse(readFileSync(MANIFEST_PATH, 'utf8')) : {};
 
@@ -153,7 +153,27 @@ async function writeSprite(img, box, entry, name) {
   const file = `sprites/${name}.webp`;
   const info = await pipeline.webp({ quality: 90, alphaQuality: 95, effort: 5 }).toFile(join(OUT_DIR, file));
   manifest[name] = { file, w: info.width, h: info.height };
+  // These particular illustrations are also unwrapped onto 3D surfaces. Keep the exact
+  // same crop at source definition, including the shared framing of device states.
+  const character = /^(en|boss)_\w+_(front|back)$/.test(name);
+  if (character || yardPaint.has(name)) {
+    const detail = `yard/${name}.webp`;
+    const max = character ? 640 : 1280;
+    await sharp(img.data, { raw: { width: img.width, height: img.height, channels: 4 } })
+      .extract({ left: box.x0, top: box.y0, width, height })
+      .resize({ width: max, height: max, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 91, alphaQuality: 96, effort: 5 })
+      .toFile(join(OUT_DIR, detail));
+    manifest[name].detail = detail;
+  }
 }
+
+const yardPaint = new Set([
+  'obj_house_front', 'obj_house_back', 'obj_car_front', 'obj_car_back',
+  'obj_trees_oak', 'obj_trees_apple', 'obj_trees_pine', 'obj_props_well', 'obj_props_woodpile',
+  'obj_props2_rock', 'obj_props2_barrel', 'dev_log_armed', 'dev_fence_resting',
+  'dev_spikes_resting', 'dev_floodlight_resting',
+]);
 
 // ───────────────────────────── Per-kind processing ─────────────────────────────
 

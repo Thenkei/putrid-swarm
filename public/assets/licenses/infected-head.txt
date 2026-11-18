@@ -1,0 +1,17 @@
+Putrid Swarm — infected head credits
+
+The eight human head models include adapted geometry, skin and normal-map data from
+Infinite, 3D Head Scan by Lee Perry-Smith / Infinite-Realities, based on work at
+https://www.triplegangers.com/ and licensed under Creative Commons Attribution 3.0 Unported.
+https://creativecommons.org/licenses/by/3.0/
+
+Morgan McGuire and Guedis Cardenas prepared the distributed scan.
+https://casual-effects.com/data/
+
+The source for this adaptation is the r170 Three.js example asset set.
+https://github.com/mrdoob/three.js/tree/r170/examples/models/gltf/LeePerrySmith
+
+Putrid Swarm cropped and retopologized the bust for two viewing distances, opened and
+resculpted its eyelids, fitted original face studies, modified the scan's surface maps
+and shaped and dressed each character. The portraits, hair, wardrobe and animal art
+were created for the game.

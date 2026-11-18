@@ -1,6 +1,6 @@
 # Putrid Swarm
 
-A 2D isometric survival and defense game. By day, take the old yellow break into the village, search what the neighbours left behind and set improvised traps around the house. By night, sit at the camera desk: the simple traps go off by themselves, the big ones wait for your signal, one sector at a time, while familiar neighbours come back as bosses who still cling to their habits.
+An isometric survival and defense game. By day, take the old yellow break into the village, search what the neighbours left behind and set improvised traps around the house. By night, sit at the camera desk: the simple traps go off by themselves, the big ones wait for your signal, one sector at a time, while familiar neighbours come back as bosses who still cling to their habits.
 
 The game is playable from the opening on the protagonist's computer screen to the seventh dawn, and past it to the one way every run ends. French is the source language; English is available in the options.
 
@@ -21,6 +21,16 @@ pnpm typecheck
 pnpm build      # static build in dist/
 pnpm check      # typecheck + tests + build: what the deployment runs
 ```
+
+### 3D defence experiment
+
+**Decision — no-go.** We tested whether 3D would give the yard more depth and make a trap firing or a fence breaking easier to read from the isometric cameras. After several art passes, the extra detail was clearest in the Field Guide. At normal playing distance, the result still fell short of the visual quality we wanted. The illustrated isometric yard remains the art direction for the game. [Compare placement and the night gate camera](docs/experiments/defence-renderer-comparison.webp).
+
+To replay the prototype on this branch, run `pnpm gate-study` and open <http://127.0.0.1:5186/>. The first-night yard opens with a barrier at the palisade gap and a floodlight inside the fence. Click **3D** to switch between the illustrated yard and the 3D yard during placement or on the camera desk. Reload to replay the same layout and wave. The experiment defaults to 3D during placement and on all four night cameras. The illustrated mode also runs on browsers without WebGL 2.
+
+Open **Field guide** from the title screen or the yard toolbar to inspect all seven defences and eleven infected. Choose an action to replay it, select the break or fall to hold the final pose, or use **Play all 18** for a continuous tour. Drag to turn the model, scroll to zoom, and switch between daylight and night lighting. In the local preview, [start the tour](http://127.0.0.1:5186/?showcase=all) or [open the cyclist directly](http://127.0.0.1:5186/?showcase=runner).
+
+To reproduce the visual and timing comparison with local Chrome, leave the study running and execute `node tools/gate-study.mjs /tmp/gate-shots`.
 
 ### Controls
 
@@ -159,7 +169,7 @@ The handoff listed these as open. They are settled here so the game could be bui
 | Open question | Chosen for this build |
 | --- | --- |
 | Engine and platform | TypeScript, Vite, Canvas 2D, no game engine; runs in a desktop browser |
-| Projection | 2D isometric; the back of the house is seen by rotating the view 180° |
+| Projection | Orthographic 3D yard with an illustrated alternative. Rotate the view 180° to inspect the back of the house. |
 | Cameras | four, with live thumbnails and a threat alert per sector |
 | Day clock | 12 hours shared by travel, search and construction; forced return before dark |
 | Trap activation | mixed, after the first playtest: stakes and nets automatic, the rest fired by hand on a visible cue |
@@ -243,7 +253,9 @@ Every tour drives the installed Chrome by default; `PS_BROWSER=firefox` or `PS_B
 
 `art/concepts/` holds the creator's seventeen concept images, untouched. Several are used directly as full-screen plates (surveillance room, morning after, the garage, the village, the car boot, the return before night).
 
-Everything else was generated with the codex image tool, using those concepts as style and character references, then keyed and cut into runtime assets:
+The 3D yard uses captured ground, bark, metal and building surfaces, photographed vegetation, and original fitted character and vehicle textures. The human head geometry is adapted from a scan by Lee Perry-Smith / Infinite-Realities under CC BY 3.0. [Material sources, original prompts and bake instructions](art/materials/SOURCES.md) · [Head scan attribution](public/assets/licenses/infected-head.txt)
+
+The illustrated sprites were generated with the Codex image tool using the concepts as style and character references. These commands key and cut them into runtime assets.
 
 ```bash
 pnpm art:gen       # art/raw/<id>.png, one codex call per entry of tools/art-manifest.mjs
@@ -256,7 +268,7 @@ The title desk is a retouch of a first pass (`edit:` entries): the painted smoke
 
 Every picture the protagonist is in has a one-armed twin made the same way (`<plate>_one_arm`: the control room, the morning, the garage, the town, the boot, the return, the village, the van, the swarmed mower, and the rider on it). `heroArt` in `src/scenes/common.ts` picks the twin once the arm is gone, through `drawPlate(…, { oneArmed })`; a missing twin falls back on the original.
 
-`tools/art-manifest.mjs` is the single list of every image, its prompt and its references. The game tolerates missing art and draws placeholders, so one sprite can be regenerated without touching code. Generated images are derivatives of the concepts, not recovered originals; the old `Thendeo/PutridSwarm` ArtWorks folder is still unrecovered.
+`tools/art-manifest.mjs` lists the illustrated sprite and plate prompts and their references. The game tolerates missing art and draws placeholders, so one sprite can be regenerated without touching code. Generated images are derivatives of the concepts. The old `Thendeo/PutridSwarm` ArtWorks folder is still unrecovered.
 
 ## Sound
 

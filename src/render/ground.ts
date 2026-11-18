@@ -5,10 +5,14 @@
 // under the trees and the shadow of the house. What does change (the edge of the world as the
 // view pans, the darkness closing in beyond the clearing) is drawn live by `drawGround`.
 
-import { GRID_H, GRID_W, HOUSE } from '../core/map';
+import { GRID_H, GRID_W, HOUSE, PROPS } from '../core/map';
 import { sprite, type Sprite } from '../engine/assets';
-import { fbm, smoothstep } from './noise';
+import { dressSoil, meadowTint } from './yard-soil';
+import { capturedGround, outerTracks, scanPattern } from './scanned-ground';
+import { surfaceHeight } from './surface-height';
+import { fbm, seeded, smoothstep } from './noise';
 import { TH, TW, groundMatrix, project, viewBounds, viewX, viewY, world, type Rot, type View } from './projection';
+import { TREES } from './scenery';
 import { SHADOW_RGB } from './shadows';
 import { FIELD_MARGIN, GROUND_TERRAINS, TRACKS, layerAlpha, terrainField, type GroundTerrain, type TerrainField } from './terrainfield';
 
@@ -232,6 +236,257 @@ function fieldPictures(): FieldArt {
   return fieldArt;
 }
 
+// Stamp each chip into colour and height at the same world coordinates. Lighting and the
+// printed route overlay stay out of the height field. The same ruts continue into the woods.
+function dressPaths(ctx: CanvasRenderingContext2D, height: CanvasRenderingContext2D): void {
+  const random = seeded(3219);
+  const gravel = scanPattern(ctx, 'gravel') ?? swatchFill(ctx, 'gravel');
+  function stone(x: number, y: number, width: number, length: number, rotation: number): void {
+    const face = new Path2D();
+    const lip = new Path2D();
+    const shade = Math.round(32 + random() * 17);
+    for (let i = 0; i < 8; i++) {
+      const angle = ((i + 0.5) * Math.PI) / 4;
+      const u = Math.sign(Math.cos(angle)) * Math.pow(Math.abs(Math.cos(angle)), 0.62) * width * (0.43 + random() * 0.13);
+      const v = Math.sign(Math.sin(angle)) * Math.pow(Math.abs(Math.sin(angle)), 0.62) * length * (0.43 + random() * 0.13);
+      const px = x + u * Math.cos(rotation) - v * Math.sin(rotation);
+      const py = y + u * Math.sin(rotation) + v * Math.cos(rotation);
+      if (i === 0) {
+        face.moveTo(px, py);
+        lip.moveTo(px, py + length * 0.08);
+      } else {
+        face.lineTo(px, py);
+        lip.lineTo(px, py + length * 0.08);
+      }
+    }
+    face.closePath();
+    lip.closePath();
+    ctx.fillStyle = '#574d3d';
+    ctx.fill(lip);
+    height.fillStyle = '#494949';
+    height.fill(lip);
+    ctx.fillStyle = 'hsl(39 13% ' + shade + '%)';
+    ctx.fill(face);
+    ctx.save();
+    ctx.globalAlpha = 0.36;
+    ctx.fillStyle = gravel;
+    ctx.fill(face);
+    ctx.restore();
+    const level = Math.round(155 + random() * 65);
+    height.fillStyle = 'rgb(' + level + ' ' + level + ' ' + level + ')';
+    height.fill(face);
+    if (width > 0.3) {
+      // A broken vein across selected slabs, with a thin lip on the high side.
+      const vein = new Path2D();
+      vein.moveTo(x - width * 0.34, y - length * 0.34);
+      vein.lineTo(x - width * 0.08, y - length * 0.05);
+      vein.lineTo(x + width * 0.09, y - length * 0.08);
+      vein.lineTo(x + width * 0.22, y + length * (random() - 0.5));
+      ctx.strokeStyle = 'rgba(45,37,31,0.51)';
+      height.strokeStyle = '#666';
+      ctx.lineWidth = height.lineWidth = 0.023;
+      ctx.stroke(vein);
+      height.stroke(vein);
+    }
+  }
+  // The porch paving splits into loose shale the farther it gets from either threshold.
+  for (const side of [1, -1]) {
+    const rows = side > 0 ? 13 : 7;
+    for (let row = 0; row < rows; row++) {
+      for (let col = -1; col <= 1; col++) {
+        if (random() < (row / rows) * 0.66) continue;
+        stone(
+          11 + col * 0.49 + ((row % 2) - 0.5) * 0.17 + random() * 0.09,
+          11 + side * (2.79 + row * 0.33 + random() * 0.09),
+          0.36 + random() * 0.22,
+          0.23 + random() * 0.14,
+          (random() - 0.5) * 0.49,
+        );
+      }
+    }
+  }
+  for (let i = 0; i < 330; i++) {
+    const along = random() * 13;
+    const across = (random() > 0.5 ? 1 : -1) * (0.55 + random() * 0.64);
+    const barn = i % 3 !== 0;
+    stone(barn ? 13.5 + along : 11 + across, barn ? 12 + across : 14.3 + along, 0.045 + random() * 0.14, 0.04 + random() * 0.1, random() * Math.PI);
+  }
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 57; i++) {
+      const x = 14.1 + i * 0.21;
+      const y = 12 + side * 0.44 + (fbm(x * 0.6, side * 3.1, 91, 2) - 0.5) * 0.22;
+      if (random() < 0.19) continue;
+      const groove = new Path2D();
+      groove.moveTo(x - 0.078, y - 0.095);
+      groove.lineTo(x, y);
+      groove.lineTo(x - 0.078, y + 0.095);
+      ctx.lineWidth = height.lineWidth = 0.042;
+      ctx.strokeStyle = 'rgba(57,45,34,0.38)';
+      height.strokeStyle = '#515151';
+      ctx.stroke(groove);
+      height.stroke(groove);
+    }
+  }
+}
+
+/** Diffuse texture in world coordinates for the mesh yard. The live lights supply its shadows. */
+export function groundAlbedo(): {
+  clearing: HTMLCanvasElement;
+  relief: HTMLCanvasElement;
+  normal?: HTMLCanvasElement;
+  grain: Uint8Array;
+  clearingSize: number;
+  surround: HTMLCanvasElement;
+  surroundSize: number;
+} {
+  const { field, masks, blend, tone, shade } = fieldPictures();
+  const photographed = capturedGround(field, blend);
+  const canvas = photographed?.albedo ?? document.createElement('canvas');
+  if (!photographed) canvas.width = canvas.height = 2048;
+  const ctx = canvas.getContext('2d')!;
+  const layer = document.createElement('canvas');
+  layer.width = layer.height = photographed ? 1 : canvas.width;
+  const paint = layer.getContext('2d')!;
+  const variation = layer.cloneNode() as HTMLCanvasElement;
+  const turned = variation.getContext('2d')!;
+  const scale = canvas.width / field.extent;
+  if (!photographed) for (const terrain of GROUND_TERRAINS) {
+    paint.resetTransform();
+    paint.clearRect(0, 0, layer.width, layer.height);
+    paint.setTransform(scale, 0, 0, scale, -field.origin * scale, -field.origin * scale);
+    paint.fillStyle = swatchFill(paint, terrain);
+    paint.fillRect(field.origin, field.origin, field.extent, field.extent);
+    paint.resetTransform();
+    // Break up the swatch repeat before clipping the combined paint to this terrain.
+    turned.globalCompositeOperation = 'copy';
+    turned.drawImage(blend, 0, 0, variation.width, variation.height);
+    turned.globalCompositeOperation = 'source-in';
+    turned.setTransform(scale, 0, 0, scale, -field.origin * scale, -field.origin * scale);
+    turned.fillStyle = swatchFill(turned, terrain, true);
+    turned.fillRect(field.origin, field.origin, field.extent, field.extent);
+    turned.resetTransform();
+    paint.drawImage(variation, 0, 0);
+    const mask = masks[terrain];
+    if (mask) {
+      paint.globalCompositeOperation = 'destination-in';
+      paint.drawImage(mask, 0, 0, layer.width, layer.height);
+      paint.globalCompositeOperation = 'source-over';
+    }
+    ctx.drawImage(layer, 0, 0);
+  }
+  const relief = photographed?.surface ?? surfaceHeight(canvas, 1536);
+  const height = relief.getContext('2d')!;
+  const reliefScale = relief.width / field.extent;
+  height.setTransform(reliefScale, 0, 0, reliefScale, -field.origin * reliefScale, -field.origin * reliefScale);
+  ctx.setTransform(scale, 0, 0, scale, -field.origin * scale, -field.origin * scale);
+  ctx.save();
+  ctx.resetTransform();
+  if (!photographed) ctx.drawImage(meadowTint(field), 0, 0, canvas.width, canvas.height);
+  ctx.restore();
+  paintRutLines(height);
+  dressSoil(ctx, height, !!photographed);
+  dressPaths(ctx, height);
+  ctx.resetTransform();
+  ctx.globalAlpha = photographed ? 0.48 : 1;
+  ctx.globalCompositeOperation = 'soft-light';
+  ctx.drawImage(tone, 0, 0, canvas.width, canvas.height);
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(shade, 0, 0, canvas.width, canvas.height);
+  ctx.globalAlpha = 1;
+  ctx.setTransform(scale, 0, 0, scale, -field.origin * scale, -field.origin * scale);
+  paintRutLines(ctx);
+  // Contact shade is stable between cameras. The vehicle and actors can move, so only
+  // permanent scenery receives it here. The renderer supplies their directional shadows.
+  function shadeAt(x: number, y: number, rx: number, ry: number, alpha: number): void {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(rx, ry);
+    const blob = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    blob.addColorStop(0, 'rgba(37,26,16,' + alpha + ')');
+    blob.addColorStop(0.5, 'rgba(43,32,20,' + alpha * 0.62 + ')');
+    blob.addColorStop(1, 'rgba(43,32,20,0)');
+    ctx.fillStyle = blob;
+    ctx.fillRect(-1, -1, 2, 2);
+    ctx.restore();
+  }
+  for (const t of TREES) if (t.row < 2) shadeAt(t.gx, t.gy, 1.72, 1.47, 0.29);
+  for (const prop of PROPS) {
+    if (prop.kind === 'car') continue;
+    const canopy = prop.kind === 'oak' || prop.kind === 'apple';
+    shadeAt(prop.x + prop.w / 2, prop.y + prop.h / 2, canopy ? 1.85 : prop.w * 0.88, canopy ? 1.55 : prop.h * 0.85, 0.46);
+  }
+  for (const sign of [-1, 1]) {
+    shadeAt(11 + sign * 1.96, 11, 0.92, 2.9, 0.49);
+    shadeAt(11, 11 + sign * 1.96, 2.83, 0.93, 0.49);
+  }
+  ctx.resetTransform();
+  // The wide day view can pan past the clearing. Continue both tracks across forest litter.
+  const extent = field.extent + 52;
+  const origin = (GRID_W - extent) / 2;
+  const surround = document.createElement('canvas');
+  surround.width = surround.height = photographed ? 1792 : 1280;
+  const outer = surround.getContext('2d')!;
+  const density = surround.width / extent;
+  outer.setTransform(density, 0, 0, density, -origin * density, -origin * density);
+  outer.fillStyle = scanPattern(outer, 'forest') ?? swatchFill(outer, 'forest');
+  outer.fillRect(origin, origin, extent, extent);
+  if (photographed) outerTracks(outer,origin+extent);
+  else {
+    outer.fillStyle = swatchFill(outer, 'path');
+    outer.fillRect(TRACKS.gate.x0, GRID_H, TRACKS.gate.x1 - TRACKS.gate.x0, extent / 2);
+    outer.fillStyle = swatchFill(outer, 'gravel');
+    outer.fillRect(GRID_W, TRACKS.barn.y0, extent / 2, TRACKS.barn.y1 - TRACKS.barn.y0);
+  }
+  outer.fillStyle = photographed ? 'rgba(30,32,26,0.31)' : 'rgba(27,22,17,0.48)';
+  outer.fillRect(origin, origin, extent, extent);
+  // Feather the last rows into the surrounding forest, including the track shoulders.
+  ctx.globalCompositeOperation = 'destination-out';
+  for (const reversed of [false, true]) {
+    const start = reversed ? canvas.width : 0;
+    const end = reversed ? canvas.width - 80 : 80;
+    for (const horizontal of [true, false]) {
+      const fade = ctx.createLinearGradient(horizontal ? start : 0, horizontal ? 0 : start, horizontal ? end : 0, horizontal ? 0 : end);
+      fade.addColorStop(0, '#000');
+      fade.addColorStop(1, 'transparent');
+      ctx.fillStyle = fade;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+  // Red carries macro height. Green and blue select the fine grass and gravel:
+  // packed earth supplies the rest, with a little grass fibre in the forest litter.
+  const grain = new Uint8Array(photographed ? 0 : 256 * 256 * 4).fill(128);
+  const packed = height.getImageData(0, 0, relief.width, relief.height);
+  for (let y = 0; y < relief.height; y++) {
+    const row = Math.floor(y * field.size / relief.height) * field.size;
+    for (let x = 0; x < relief.width; x++) {
+      const i = row + Math.floor(x * field.size / relief.width);
+      const p = (y * relief.width + x) * 4;
+      if (photographed) {
+        // The ground is dielectric. Its unused blue channel locates the native
+        // trail, turf and litter grain without another material-mask texture.
+        const w = photographed.weights;
+        packed.data[p + 2] = 128 + 127 * (w.gravel[i]! + w.path[i]! - w.forest[i]!);
+        continue;
+      }
+      packed.data[p + 1] = 255 * (field.weights.grass[i]! + field.weights.forest[i]! * 0.35);
+      packed.data[p + 2] = 255 * field.weights.gravel[i]!;
+    }
+  }
+  height.putImageData(packed, 0, 0);
+  if (photographed) return { clearing: canvas, relief, normal: photographed.normal, grain, clearingSize: field.extent, surround, surroundSize: extent };
+  for (const [channel, terrain] of (['grass', 'gravel', 'path'] as const).entries()) {
+    const tile = tileOf(terrain);
+    if (!tile) continue;
+    const fine = surfaceHeight(tile, 256);
+    const pixels = fine.getContext('2d')!.getImageData(0, 0, fine.width, fine.height).data;
+    for (let y = 0; y < 256; y++) for (let x = 0; x < 256; x++) {
+      const i = (Math.floor(y * fine.height / 256) * fine.width + Math.floor(x * fine.width / 256)) * 4;
+      grain[(y * 256 + x) * 4 + channel] = pixels[i]!;
+    }
+  }
+  return { clearing: canvas, relief, grain, clearingSize: field.extent, surround, surroundSize: extent };
+}
+
 /** Sets a context of the cache to grid coordinates for a side of the house. */
 function toGrid(target: CanvasRenderingContext2D, rot: Rot): void {
   const s = GROUND_SCALE;
@@ -270,8 +525,7 @@ function softPolygon(ctx: CanvasRenderingContext2D, points: readonly { x: number
 }
 
 /** Two wheel ruts along the gravel track, worn darker, running out under the trees. */
-function paintRuts(ctx: CanvasRenderingContext2D, rot: Rot): void {
-  toGrid(ctx, rot);
+function paintRutLines(ctx: CanvasRenderingContext2D): void {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   const centre = (TRACKS.barn.y0 + TRACKS.barn.y1) / 2;
@@ -365,7 +619,8 @@ function buildGround(rot: Rot): HTMLCanvasElement {
     ctx.drawImage(lay.canvas, 0, 0);
   }
 
-  paintRuts(ctx, rot);
+  toGrid(ctx, rot);
+  paintRutLines(ctx);
 
   // The slow drift of light and colour, then the shade of the wood.
   toGrid(ctx, rot);

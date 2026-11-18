@@ -1,3 +1,4 @@
+import type { Yard3D } from './yard-3d';
 // Isometric renderer for the homestead. It draws whatever state it is handed; it owns no game logic.
 // One renderer serves the daytime yard and all four night cameras, so the views cannot disagree.
 
@@ -28,6 +29,7 @@ export interface DeviceVisual {
   readonly hpRatio: number;
   /** 0..1 progress of the re-arm, when rearming. */
   readonly rearm?: number;
+  readonly activeAge?: number;
   readonly label?: string;
   readonly highlight?: boolean;
   /** Manual trap with enough under it to be worth firing now: drawn so it cannot be missed. */
@@ -71,8 +73,11 @@ export interface Ghost {
 }
 
 export interface WorldFrame {
+  readonly models?: Yard3D | undefined;
   readonly time: number;
   readonly night: boolean;
+  /** Fraction of preparation daylight already spent. */
+  readonly dusk?: number;
   readonly carPresent: boolean;
   readonly devices: readonly DeviceVisual[];
   readonly barricades: Readonly<Record<SectorId, { hp: number; level: 0 | 1 }>>;
@@ -248,7 +253,18 @@ function housePoint(x: number, y: number): { dx: number; lift: number } {
 }
 
 /** The lit windows and the lantern of the house, for the side a view looks from. */
-export function houseLights(rot: Rot): readonly Light[] {
+export function houseLights(rot: Rot, models?: Yard3D): readonly Light[] {
+  if (models) {
+    if (!models.roofVisible) return [];
+    const sign = rot === 0 ? 1 : -1;
+    const lights: Light[] = [];
+    for (const offset of [-1.32, 1.3]) {
+      const lamp = { radius: 1.35, color: 'rgba(255,198,118,0.45)', lift: 66, glow: 0.32, round: true };
+      lights.push({ ...lamp, gx: HOUSE_CENTER.x + sign * offset, gy: HOUSE_CENTER.y + sign * 2.15 });
+      lights.push({ ...lamp, gx: HOUSE_CENTER.x + sign * 2.15, gy: HOUSE_CENTER.y - sign * offset });
+    }
+    return lights;
+  }
   const corner = houseCorner(rot);
   return HOUSE_ART[rot].lamps.map((lamp) => ({
     gx: corner.x,
@@ -494,6 +510,32 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   ctx.fillRect(view.x, view.y, view.w, view.h);
   // Sprites are drawn at a third of their size or less: plain bilinear filtering turns their ink lines to mush.
   ctx.imageSmoothingQuality = 'high';
+
+  if (frame.models) {
+    frame.models.draw(ctx, view, frame, paintYardMarkings);
+    for (const sector of SECTOR_IDS) {
+      for (const item of barricadeDrawables(ctx, view, frame, sector, 0)) item.draw();
+    }
+    for (const d of frame.devices) drawDevice(ctx, view, frame, d, project(view, d.x + 0.5, d.y + 0.5));
+    for (const enemy of frame.enemies) {
+      if (enemy.alive) drawEnemyStatus(ctx, view, frame, enemy, project(view, enemy.x, enemy.y), ENEMY_ART[enemy.type].h * z);
+    }
+    for (const particle of frame.particles) {
+      if (particle.kind !== 'ring' && particle.kind !== 'splat') drawParticle(ctx, view, particle);
+    }
+    if (frame.models.roofVisible) {
+      const stack = project(view, HOUSE_CENTER.x + 0.8, HOUSE_CENTER.y - 1.04);
+      drawChimneySmoke(ctx, stack.x, stack.y - 179 * z, z, frame.time);
+    }
+    if (frame.night) drawMist(ctx, view, frame.time);
+    else {
+      drawCloudShadows(ctx, view, frame.time);
+      drawLeaves(ctx, view, frame.time);
+    }
+    drawTopOverlays(ctx, view, frame);
+    ctx.restore();
+    return;
+  }
 
   drawGround(ctx, view);
 
@@ -750,6 +792,11 @@ function drawDecals(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   }
 }
 
+function paintYardMarkings(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): void {
+  drawDecals(ctx, view, frame);
+  drawGroundOverlays(ctx, view, frame);
+}
+
 function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): void {
   const z = view.zoom;
 
@@ -882,8 +929,10 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
     {
       depth,
       draw: () => {
-        const drawn = drawSprite(ctx, `dev_barricade_${state}`, p.x, p.y + 12 * z, 70 * z, !onLeftFace);
-        if (!drawn) placeholder(ctx, p.x, p.y, 30 * z, 50 * z, '#7a5a35', 'door');
+        if (!frame.models) {
+          const drawn = drawSprite(ctx, `dev_barricade_${state}`, p.x, p.y + 12 * z, 70 * z, !onLeftFace);
+          if (!drawn) placeholder(ctx, p.x, p.y, 30 * z, 50 * z, '#7a5a35', 'door');
+        }
         if (frame.doorHighlight === sector) {
           ctx.strokeStyle = '#f2a531';
           ctx.lineWidth = 2;
@@ -914,10 +963,12 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
     ctx.stroke();
   }
 
-  let jitterX = 0;
-  if (device.state === 'active' && (device.type === 'horn' || device.type === 'log')) jitterX = Math.sin(frame.time * 70) * 1.5 * z;
-  const drawn = drawSprite(ctx, art.key, p.x + jitterX, p.y + art.lift * z, art.h * z, art.flip);
-  if (!drawn) placeholder(ctx, p.x, p.y, 34 * z, 34 * z, state === 'broken' ? '#4a3a2a' : '#b98a3a', device.type);
+  if (!frame.models) {
+    let jitterX = 0;
+    if (device.state === 'active' && (device.type === 'horn' || device.type === 'log')) jitterX = Math.sin(frame.time * 70) * 1.5 * z;
+    const drawn = drawSprite(ctx, art.key, p.x + jitterX, p.y + art.lift * z, art.h * z, art.flip);
+    if (!drawn) placeholder(ctx, p.x, p.y, 34 * z, 34 * z, state === 'broken' ? '#4a3a2a' : '#b98a3a', device.type);
+  }
 
   if (device.type !== 'fence' && device.hpRatio < 0.999 && state !== 'broken') {
     const barW = 28 * z;
@@ -931,7 +982,7 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   }
   const mode = DEVICES[device.type].mode;
   if (mode === 'passive') return;
-  const top = p.y + art.lift * z - art.h * z;
+  const top = p.y + (frame.models?.deviceTop(device) ?? (art.lift - art.h)) * z;
   const pipY = top - 9 * z;
 
   if (mode === 'auto') {
@@ -1157,8 +1208,12 @@ function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame,
   }
   ctx.restore();
 
-  const top = p.y - h;
+  drawEnemyStatus(ctx, view, frame, enemy, p, h);
+}
 
+function drawEnemyStatus(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame, enemy: Enemy, p: { x: number; y: number }, h: number): void {
+  const z = view.zoom;
+  const top = p.y - h;
   if (enemy.nettedFor > 0) {
     // A sagging net over the catch.
     ctx.strokeStyle = 'rgba(226,202,150,0.9)';
@@ -1323,8 +1378,9 @@ function drawTopOverlays(ctx: CanvasRenderingContext2D, view: View, frame: World
 // ───────────────────────────── Picking ─────────────────────────────
 
 /** The device under the pointer, judged on its drawn sprite (traps are taller than their tile). */
-export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: number, sy: number): DeviceVisual | null {
+export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: number, sy: number, models?: Yard3D): DeviceVisual | null {
   if (!inView(view, sx, sy)) return null;
+  if (models) return models.pick(view, devices, sx, sy);
   let best: DeviceVisual | null = null;
   let bestDepth = -Infinity;
   for (const device of devices) {

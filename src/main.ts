@@ -42,8 +42,16 @@ async function boot(): Promise<void> {
   const [report] = await Promise.all([loadAssets((done, total) => loading.progress(done, total)), resolveKeyLabels(), audio.preload()]);
   if (report.failed.length > 0) console.warn(`[assets] ${report.failed.length} asset(s) missing, using placeholders:`, report.failed);
 
-  const title = (): Scene => new TitleScene(app);
-  app.go(warningSeen() ? title : () => new WarningScene(app, title));
+  let firstScene = (): Scene => new TitleScene(app);
+  const showcase = new URLSearchParams(location.search).get('showcase');
+  if (showcase !== null) {
+    const { FieldGuideScene } = await import('./scenes/field-guide');
+    firstScene = () => new FieldGuideScene(app, () => new TitleScene(app), showcase);
+  } else if (import.meta.env.DEV && import.meta.env.MODE === 'gate-study') {
+    const { gateStudy } = await import('./scenes/gate-study');
+    firstScene = await gateStudy(app);
+  }
+  app.go(warningSeen() ? firstScene : () => new WarningScene(app, firstScene));
 
   // Handy in development: `__app.state` in the console.
   if (import.meta.env.DEV) (window as unknown as { __app: App }).__app = app;

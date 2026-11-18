@@ -97,47 +97,56 @@
   "obj_house_front": {
     "file": "sprites/obj_house_front.webp",
     "w": 760,
-    "h": 741
+    "h": 741,
+    "detail": "yard/obj_house_front.webp"
   },
   "obj_house_back": {
     "file": "sprites/obj_house_back.webp",
     "w": 760,
-    "h": 742
+    "h": 742,
+    "detail": "yard/obj_house_back.webp"
   },
   "obj_car_front": {
     "file": "sprites/obj_car_front.webp",
     "w": 320,
-    "h": 242
+    "h": 242,
+    "detail": "yard/obj_car_front.webp"
   },
   "obj_car_back": {
     "file": "sprites/obj_car_back.webp",
     "w": 320,
-    "h": 225
+    "h": 225,
+    "detail": "yard/obj_car_back.webp"
   },
   "obj_trees_pine": {
     "file": "sprites/obj_trees_pine.webp",
     "w": 218,
-    "h": 430
+    "h": 430,
+    "detail": "yard/obj_trees_pine.webp"
   },
   "obj_trees_oak": {
     "file": "sprites/obj_trees_oak.webp",
     "w": 429,
-    "h": 430
+    "h": 430,
+    "detail": "yard/obj_trees_oak.webp"
   },
   "obj_trees_apple": {
     "file": "sprites/obj_trees_apple.webp",
     "w": 383,
-    "h": 430
+    "h": 430,
+    "detail": "yard/obj_trees_apple.webp"
   },
   "obj_props_well": {
     "file": "sprites/obj_props_well.webp",
     "w": 174,
-    "h": 230
+    "h": 230,
+    "detail": "yard/obj_props_well.webp"
   },
   "obj_props_woodpile": {
     "file": "sprites/obj_props_woodpile.webp",
     "w": 231,
-    "h": 230
+    "h": 230,
+    "detail": "yard/obj_props_woodpile.webp"
   },
   "obj_props_veg": {
     "file": "sprites/obj_props_veg.webp",
@@ -157,12 +166,14 @@
   "obj_props2_rock": {
     "file": "sprites/obj_props2_rock.webp",
     "w": 223,
-    "h": 170
+    "h": 170,
+    "detail": "yard/obj_props2_rock.webp"
   },
   "obj_props2_barrel": {
     "file": "sprites/obj_props2_barrel.webp",
     "w": 120,
-    "h": 170
+    "h": 170,
+    "detail": "yard/obj_props2_barrel.webp"
   },
   "obj_props2_mailbox": {
     "file": "sprites/obj_props2_mailbox.webp",
@@ -177,112 +188,134 @@
   "en_shambler_front": {
     "file": "sprites/en_shambler_front.webp",
     "w": 129,
-    "h": 200
+    "h": 200,
+    "detail": "yard/en_shambler_front.webp"
   },
   "en_shambler_back": {
     "file": "sprites/en_shambler_back.webp",
     "w": 133,
-    "h": 200
+    "h": 200,
+    "detail": "yard/en_shambler_back.webp"
   },
   "en_runner_front": {
     "file": "sprites/en_runner_front.webp",
     "w": 121,
-    "h": 200
+    "h": 200,
+    "detail": "yard/en_runner_front.webp"
   },
   "en_runner_back": {
     "file": "sprites/en_runner_back.webp",
     "w": 115,
-    "h": 200
+    "h": 200,
+    "detail": "yard/en_runner_back.webp"
   },
   "en_brute_front": {
     "file": "sprites/en_brute_front.webp",
     "w": 181,
-    "h": 245
+    "h": 245,
+    "detail": "yard/en_brute_front.webp"
   },
   "en_brute_back": {
     "file": "sprites/en_brute_back.webp",
     "w": 173,
-    "h": 245
+    "h": 245,
+    "detail": "yard/en_brute_back.webp"
   },
   "en_dog_front": {
     "file": "sprites/en_dog_front.webp",
     "w": 172,
-    "h": 120
+    "h": 120,
+    "detail": "yard/en_dog_front.webp"
   },
   "en_dog_back": {
     "file": "sprites/en_dog_back.webp",
     "w": 129,
-    "h": 120
+    "h": 120,
+    "detail": "yard/en_dog_back.webp"
   },
   "en_boar_front": {
     "file": "sprites/en_boar_front.webp",
     "w": 153,
-    "h": 155
+    "h": 155,
+    "detail": "yard/en_boar_front.webp"
   },
   "en_boar_back": {
     "file": "sprites/en_boar_back.webp",
     "w": 133,
-    "h": 155
+    "h": 155,
+    "detail": "yard/en_boar_back.webp"
   },
   "en_deer_front": {
     "file": "sprites/en_deer_front.webp",
     "w": 211,
-    "h": 215
+    "h": 215,
+    "detail": "yard/en_deer_front.webp"
   },
   "en_deer_back": {
     "file": "sprites/en_deer_back.webp",
     "w": 178,
-    "h": 215
+    "h": 215,
+    "detail": "yard/en_deer_back.webp"
   },
   "boss_mower_front": {
     "file": "sprites/boss_mower_front.webp",
     "w": 198,
-    "h": 250
+    "h": 250,
+    "detail": "yard/boss_mower_front.webp"
   },
   "boss_mower_back": {
     "file": "sprites/boss_mower_back.webp",
     "w": 221,
-    "h": 250
+    "h": 250,
+    "detail": "yard/boss_mower_back.webp"
   },
   "boss_mechanic_front": {
     "file": "sprites/boss_mechanic_front.webp",
     "w": 277,
-    "h": 265
+    "h": 265,
+    "detail": "yard/boss_mechanic_front.webp"
   },
   "boss_mechanic_back": {
     "file": "sprites/boss_mechanic_back.webp",
     "w": 262,
-    "h": 265
+    "h": 265,
+    "detail": "yard/boss_mechanic_back.webp"
   },
   "boss_mail_front": {
     "file": "sprites/boss_mail_front.webp",
     "w": 215,
-    "h": 240
+    "h": 240,
+    "detail": "yard/boss_mail_front.webp"
   },
   "boss_mail_back": {
     "file": "sprites/boss_mail_back.webp",
     "w": 197,
-    "h": 240
+    "h": 240,
+    "detail": "yard/boss_mail_back.webp"
   },
   "boss_chief_front": {
     "file": "sprites/boss_chief_front.webp",
     "w": 228,
-    "h": 260
+    "h": 260,
+    "detail": "yard/boss_chief_front.webp"
   },
   "boss_chief_back": {
     "file": "sprites/boss_chief_back.webp",
     "w": 214,
-    "h": 260
+    "h": 260,
+    "detail": "yard/boss_chief_back.webp"
   },
   "boss_mayor_front": {
     "file": "sprites/boss_mayor_front.webp",
     "w": 219,
-    "h": 275
+    "h": 275,
+    "detail": "yard/boss_mayor_front.webp"
   },
   "boss_mayor_back": {
     "file": "sprites/boss_mayor_back.webp",
     "w": 212,
-    "h": 275
+    "h": 275,
+    "detail": "yard/boss_mayor_back.webp"
   },
   "por_mower_alive": {
     "file": "sprites/por_mower_alive.webp",
@@ -402,7 +435,8 @@
   "dev_log_armed": {
     "file": "sprites/dev_log_armed.webp",
     "w": 232,
-    "h": 230
+    "h": 230,
+    "detail": "yard/dev_log_armed.webp"
   },
   "dev_log_triggered": {
     "file": "sprites/dev_log_triggered.webp",
@@ -417,7 +451,8 @@
   "dev_spikes_resting": {
     "file": "sprites/dev_spikes_resting.webp",
     "w": 120,
-    "h": 130
+    "h": 130,
+    "detail": "yard/dev_spikes_resting.webp"
   },
   "dev_spikes_armed": {
     "file": "sprites/dev_spikes_armed.webp",
@@ -437,7 +472,8 @@
   "dev_floodlight_resting": {
     "file": "sprites/dev_floodlight_resting.webp",
     "w": 191,
-    "h": 230
+    "h": 230,
+    "detail": "yard/dev_floodlight_resting.webp"
   },
   "dev_floodlight_armed": {
     "file": "sprites/dev_floodlight_armed.webp",
@@ -457,7 +493,8 @@
   "dev_fence_resting": {
     "file": "sprites/dev_fence_resting.webp",
     "w": 169,
-    "h": 150
+    "h": 150,
+    "detail": "yard/dev_fence_resting.webp"
   },
   "dev_fence_armed": {
     "file": "sprites/dev_fence_armed.webp",
