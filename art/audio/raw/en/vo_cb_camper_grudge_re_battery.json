@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_grudge_re_battery",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[relieved, quietly] A battery at noon. All right. Thanks. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:43.798Z",
+  "bytes": 56049,
+  "sha256": "775ea4de8fa55325717b9d4a86f4abd8b1eeab204d02e14439d4a5090ab7fc6e"
+}

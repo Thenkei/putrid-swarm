@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_coffee_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[grumbling] Nobody talks to me before my coffee.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:35.958Z",
+  "bytes": 44764,
+  "sha256": "af45869034fb98bf74bb11a3ed34538c72bae3c59a2698779186fe3430e5e09f"
+}

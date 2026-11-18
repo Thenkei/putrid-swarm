@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_baker_flash",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[waking up, confused, worried] My wife. Did she close the bakery? She mustn’t be on her own.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.4,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:46:33.375Z",
+  "bytes": 72767,
+  "sha256": "e0181ad89cf9e97492e89ac1bfc39fc3cad017d02a6c02c35b855707c857fbe3"
+}

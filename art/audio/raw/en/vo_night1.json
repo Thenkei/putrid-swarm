@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_night1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "The stakes and the net go off by themselves. The rest is me pressing.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:58.530Z",
+  "bytes": 70260,
+  "sha256": "fd4ce3b01d99884b9f0208519aa948045406639442cc37b0f27f354b1a03f982"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_cut_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[urgent, pleading] Come back. Come back!",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:27.617Z",
+  "bytes": 33061,
+  "sha256": "776704dbae3a983f350399a3313227d6ceb96c1f207776696c2209b2692a0980"
+}

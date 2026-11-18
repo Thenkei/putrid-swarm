@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_dealer_grudge_call_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[cold, official] Neighbourhood committee here. The committee calling the yellow estate.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-18T02:52:49.171Z",
+  "bytes": 61065,
+  "sha256": "2d543986e44b47010f1badfa2f15c05a9fe2781d7ad9349b66b73c81183a4b69"
+}

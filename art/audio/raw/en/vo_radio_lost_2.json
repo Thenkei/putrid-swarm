@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_lost_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[tense, quietly] I’m losing you. Don’t move.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:44.106Z",
+  "bytes": 36823,
+  "sha256": "b792a0c5845392210547f29db94a5aa4bd10aa21909aaaa4d3b17817d8305f21"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_home_arm_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Empty the boot. One box at a time.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:51.083Z",
+  "bytes": 44764,
+  "sha256": "a7615d15657a01c85e1add1838077307a894a39d7a5345bf58fc135b009c72c0"
+}

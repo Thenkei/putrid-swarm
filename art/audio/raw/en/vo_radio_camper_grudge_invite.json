@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_camper_grudge_invite",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[gently] Come alone. We’ll talk. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:57.768Z",
+  "bytes": 46018,
+  "sha256": "0f5ab1b72459468c70c1a4bdfae65b70f0f60f748a3a3261748385c7c943bc18"
+}

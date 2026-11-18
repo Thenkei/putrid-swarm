@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_owes_gone",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[shaky] Right. Right. They’re still banging. I… I’ll call back. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:25.761Z",
+  "bytes": 95755,
+  "sha256": "2f15460c92aa86f80934861ad883a8c6d42a45525756fd5b850edb2be9bf90e5"
+}

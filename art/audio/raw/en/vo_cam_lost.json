@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cam_lost",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[annoyed] Number four. No picture. Not now.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:09.763Z",
+  "bytes": 53541,
+  "sha256": "33ef9bbddb60232f1c20a825de8ed9463ae81e18893a2fb2dd6e2e1ee8526b76"
+}

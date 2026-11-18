@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_ham_many",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[too cheerful] There are lots of us here. All’s well. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:50.280Z",
+  "bytes": 48526,
+  "sha256": "831f1bfb3e224f098700a4265ab2e566a03c82d47166247d731de81a153a481e"
+}

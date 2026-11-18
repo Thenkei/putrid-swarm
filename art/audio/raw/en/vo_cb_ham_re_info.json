@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_ham_re_info",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[hurt, polite] Ah. Yes. Of course. Mostly by the gate. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-18T02:47:07.362Z",
+  "bytes": 63990,
+  "sha256": "ca407f016a1f223473c6ea3fa6a27d790f6da46d6b0ddd9352b6fa51214b3c32"
+}

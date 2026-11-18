@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_baker_freed",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[moved, quietly] Thank you. I’ll come round with a delivery.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:46:40.782Z",
+  "bytes": 47272,
+  "sha256": "37f82773ec2a69215f4d83b7971967934f15641d88dfbdd8a06521235b4e3f12"
+}

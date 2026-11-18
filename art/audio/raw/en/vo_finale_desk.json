@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_finale_desk",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[resigned, quietly] Right. They have found the study.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:47:49.613Z",
+  "bytes": 43510,
+  "sha256": "b5aecd6264071296af133404658ec52f9eb4e7c9418297a548a27892c7d45a46"
+}

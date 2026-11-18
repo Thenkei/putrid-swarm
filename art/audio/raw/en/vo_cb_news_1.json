@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_news_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/m5U7XCsc8v988k2RJAqN",
+  "request": {
+    "text": "[calm, official] … stay at home, doors and shutters closed. Open to no one. Not even a neighbour…",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.6,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Manon",
+  "generatedAt": "2026-11-18T02:47:46.283Z",
+  "bytes": 93247,
+  "sha256": "553068315490f515b04701bdd8ee267b421792ca1403744be826393269467943"
+}

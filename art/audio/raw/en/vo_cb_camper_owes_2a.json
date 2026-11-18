@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_owes_2a",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[too casual] I got bitten on the hand last night. It’s nothing. It’s only on the surface.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:21.608Z",
+  "bytes": 67752,
+  "sha256": "f1670b6a41955a42c8754b925cb97247eb840fed5f39c0598d48f5adf73a62b9"
+}

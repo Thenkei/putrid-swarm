@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_owes_nudge",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[anxious] Hello? Are you still there? Say something. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:24.620Z",
+  "bytes": 54795,
+  "sha256": "9f09292b2027acba5e72cf34786270ca6a27bcaf5978c63eaef010d0c579ce2d"
+}

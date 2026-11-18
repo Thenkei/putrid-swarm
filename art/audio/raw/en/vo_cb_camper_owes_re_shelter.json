@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_owes_re_shelter",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[overjoyed] Thank you. Thank you! I’ll be there before dark. I’ll bring my crisps. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:26.291Z",
+  "bytes": 85724,
+  "sha256": "83072e812eb7ea4b15939684f894dc0d3e992a6517b4d4c80540815c7bc5b3a6"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_grudge_2a",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[whispering, scared] They’re right next to me. They hear everything.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:40.038Z",
+  "bytes": 53541,
+  "sha256": "1b52134de7206f2f80bb0669e135c8f156db5476d5da10f7ca6ab81bab1f4a9f"
+}

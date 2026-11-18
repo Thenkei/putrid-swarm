@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_boss_mechanic",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "The mechanic. With his hoist. And his bill.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:02.811Z",
+  "bytes": 56049,
+  "sha256": "25e71e37d6d0d36ec9bd4083edd68cca0f23986ba75a5aa233b3c3b1304f8ac9"
+}

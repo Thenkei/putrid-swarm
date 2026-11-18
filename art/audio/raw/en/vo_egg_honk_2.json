@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_egg_honk_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "That still works, at least.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:31.648Z",
+  "bytes": 33061,
+  "sha256": "e1e0b711d5dd0dec0a93f2777a77054ac29dafc7e5ee18f1ed717a9ab0939622"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_end_lied",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly, to himself] Sorry.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:48.102Z",
+  "bytes": 44764,
+  "sha256": "74a41a0fb397b70cd39280a7b28b3c611423537b17a38c9cf349e0bba83c39a5"
+}

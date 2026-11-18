@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_ham_re_stay_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[moved] Thank you for staying. A voice does you good. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-18T02:47:05.939Z",
+  "bytes": 62318,
+  "sha256": "21a447887fbfd81bb181d50f7dd99f68370293843adc6bdb301efa7fff48abe0"
+}

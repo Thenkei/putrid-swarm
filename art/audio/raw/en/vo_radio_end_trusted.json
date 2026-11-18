@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_end_trusted",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] There. We’ll see who comes.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:47.215Z",
+  "bytes": 35569,
+  "sha256": "d82d58401a02180ec680608ed9e4c476f929bf0a1fbb4ab9ee116e591e8ce1a1"
+}

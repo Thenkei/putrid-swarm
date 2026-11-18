@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_cut_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[urgent, exasperated] Not now. Finish your sentence!",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:28.005Z",
+  "bytes": 40585,
+  "sha256": "85619e9215914cc35cb643039f3b5496704607c7463dabd59bc8e75d4c0c2d55"
+}

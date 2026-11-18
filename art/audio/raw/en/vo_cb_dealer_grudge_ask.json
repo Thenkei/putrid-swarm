@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_dealer_grudge_ask",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[official] The committee requests a contribution. Tell us where to collect it. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-18T02:47:33.995Z",
+  "bytes": 71514,
+  "sha256": "b69206da55ed5f824f92d95c763dff5ce0a9907c91bdd7e799d36e0640b3a5a8"
+}

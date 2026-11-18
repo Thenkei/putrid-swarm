@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_baker_stash",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[hurried, focused] My van. End of the lane, in the ditch. The oven wood is in it. And the battery is new.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:46:36.987Z",
+  "bytes": 75275,
+  "sha256": "2298dc6581ab0dc2deb093c875c060a95a9834ac27a906bb9202d48bc2d5ddc4"
+}

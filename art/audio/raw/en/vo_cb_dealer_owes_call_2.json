@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_dealer_owes_call_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[impatient] The Dealer calling the yellow estate. I know you’ve got a radio. Everyone’s got a radio.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-18T02:47:09.297Z",
+  "bytes": 85724,
+  "sha256": "5174a6aa34d2061c3df829f172287dc5a1c6f3d6a5053462d4198acc382fc16d"
+}

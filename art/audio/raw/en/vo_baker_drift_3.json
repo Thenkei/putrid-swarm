@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_baker_drift_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[mumbling, drowsy] The sourdough… got to feed the sourdough…",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:46:31.702Z",
+  "bytes": 53541,
+  "sha256": "54a200ad1c64981a985d1675fc234b75295908637c647b56de6afddb08048fb2"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_orchard_infected",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[panicked, breathless] It is climbing. It is climbing up the arm. Cut it. Quick!",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:15.557Z",
+  "bytes": 58557,
+  "sha256": "665ec65744b5373b72a38ab6351cf999340d3c8ac429f747c52f4912e4e41ae0"
+}

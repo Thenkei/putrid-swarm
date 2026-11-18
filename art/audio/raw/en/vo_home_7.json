@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_home_7",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Right. What can we nail together with all this?",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:45.906Z",
+  "bytes": 48526,
+  "sha256": "4f8acaadc6a531bdfe8ac305af05539926970f6f01058f26331631c1bf6a4ee0"
+}

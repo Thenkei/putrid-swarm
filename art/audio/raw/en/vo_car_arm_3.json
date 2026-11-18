@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_car_arm_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[sighs] Seatbelt. It takes longer with one hand. Still: seatbelt.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:50.030Z",
+  "bytes": 93247,
+  "sha256": "2f219371d61a198404fa66824cdbfa0dd7fe0d1b4bed781af5e416902624ded1"
+}

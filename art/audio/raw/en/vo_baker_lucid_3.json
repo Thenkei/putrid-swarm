@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_baker_lucid_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[ashamed, quiet] I’m sorry. For all this.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:46:34.288Z",
+  "bytes": 39331,
+  "sha256": "aa0f40a7b61f2c3c753ad99e1e5820e8a0a017c031cb4f76aa211473f8bdb74d"
+}

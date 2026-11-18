@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_free",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[softly] Go on. Go home.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:28.460Z",
+  "bytes": 33061,
+  "sha256": "f9888b5e5bcf6a8308d5e9f1d41afccb39a9768b146c6aa98faad4d5471b0825"
+}

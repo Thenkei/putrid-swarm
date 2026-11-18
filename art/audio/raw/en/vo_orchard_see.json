@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_orchard_see",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[surprised, softly] A rabbit. Is it you eating my cable?",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:10.875Z",
+  "bytes": 51034,
+  "sha256": "efdc8d319ebda154bde785350ff7df76d0baa199bedac31fb0466c09f8b38b71"
+}

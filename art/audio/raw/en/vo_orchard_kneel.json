@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_orchard_kneel",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[shaky whisper] Don’t look. Look at the apples.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:16.545Z",
+  "bytes": 41838,
+  "sha256": "70798d605480d40f4d6538df2d196cc68b7e738c7a7641fc9e99a0a6d33d5e21"
+}

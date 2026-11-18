@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_dealer_grudge_re_lie",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[suspicious] The police station. In the basement. [pause] Fine. We’re going. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-18T02:47:36.693Z",
+  "bytes": 94501,
+  "sha256": "89cebf03b006f4c5b1baa85064a6ba050df686dd5161b2cce6ce2520eefbec5f"
+}

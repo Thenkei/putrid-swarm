@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_finale_go",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[shouting, exhilarated] You wanted noise?!",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:47:51.982Z",
+  "bytes": 26792,
+  "sha256": "73dd4810bc41d7a6f6e90acbf0ed8c9e737753d59aa762106efc010f8342e204"
+}

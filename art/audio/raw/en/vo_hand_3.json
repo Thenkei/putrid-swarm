@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_hand_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[wry] I used to have a hand for each.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:57.143Z",
+  "bytes": 39331,
+  "sha256": "7bd40312ae40afeda25d917d2e5ad257abe010e8f44ed9bf28d1acf33555def3"
+}

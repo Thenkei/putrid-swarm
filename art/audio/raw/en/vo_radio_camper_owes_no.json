@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_camper_owes_no",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] No. I’m sorry. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:53.857Z",
+  "bytes": 36823,
+  "sha256": "19e6592663f615f9f09c46917874a7f4e4c8937e2026e1d4452ac01276246b64"
+}

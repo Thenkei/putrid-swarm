@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_found",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[holding his breath, whispering] Someone. Someone alive.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:41.874Z",
+  "bytes": 51034,
+  "sha256": "5da6ba0e97d21ed7a5db323d5db2fb6c58e3a993eb2d6b9ed7577c19f1531928"
+}

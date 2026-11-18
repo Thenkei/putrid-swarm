@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_won",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Seven nights. Nobody knocks at the door any more.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:09.771Z",
+  "bytes": 56049,
+  "sha256": "d7e82c1dad660fd5e1da922cfa7faedfa51ee231c6bf6eb33c5499c53e5c6b49"
+}

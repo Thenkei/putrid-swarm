@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_home_5",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Empty the boot, and get to work.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:44.837Z",
+  "bytes": 36823,
+  "sha256": "1e00deaf2e225fc2e75f30bf12577345615b801c65bef9d029317dc213d989b5"
+}

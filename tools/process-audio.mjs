@@ -12,7 +12,10 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { AUDIO } from './audio-manifest.mjs';
+import { allEntries } from './audio-lang.mjs';
+
+/** Every language: the source's sounds and voices, then each dub's voices under `<lang>/<id>`. */
+const AUDIO = allEntries();
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const RAW_DIR = join(ROOT, 'art', 'audio', 'raw');
@@ -54,7 +57,7 @@ const PROFILE = {
   // Beds must keep their exact length: the generator made them loop.
   loop: { chain: () => 'anull', peak: -6, channels: 2, bitrate: '128k' },
   music: { chain: () => 'loudnorm=I=-17:TP=-1.5:LRA=11', peak: null, channels: 2, bitrate: '128k' },
-  voice: { chain: (entry) => [TRIM_BOTH, entry.fx ? FX[entry.fx] : null, 'afade=t=in:d=0.01', fadeTail(DECLICK)].filter(Boolean).join(','), peak: -2, channels: 1, bitrate: '96k' },
+  voice: { chain: (entry, tail, tempo = 1) => [TRIM_BOTH, tempo !== 1 ? `atempo=${tempo.toFixed(4)}` : null, entry.fx ? FX[entry.fx] : null, 'afade=t=in:d=0.01', fadeTail(DECLICK)].filter(Boolean).join(','), peak: -2, channels: 1, bitrate: '96k' },
 };
 
 function ffmpeg(input, filters, output, inputOptions = []) {
@@ -84,13 +87,36 @@ function tailFor(entry, raw, seconds) {
   return Math.min(0.5, Math.max(0.1, seconds * 0.25));
 }
 
+/** A dubbed line may be said a little faster to fit the time the game gives it; past this it is rewritten instead. */
+const MAX_TEMPO = 1.22;
+const SLOT_MARGIN = 0.08;
+
+/**
+ * How much faster a dubbed line has to be said to end inside its slot (1 when it already does). The
+ * radio hears a line piece by piece over a fixed time, measured on the French recording: a longer
+ * English one would be cut off by the next.
+ */
+function tempoFor(entry, raw) {
+  if (!entry.slot) return 1;
+  const log = ffmpeg(raw, `${TRIM_BOTH},astats=metadata=0`);
+  const samples = /Number of samples: (\d+)/.exec(log);
+  const rate = /(\d+) Hz/.exec(log);
+  if (!samples || !rate) return 1;
+  const seconds = Number(samples[1]) / Number(rate[1]);
+  const tempo = seconds / (entry.slot - SLOT_MARGIN);
+  if (tempo <= 1) return 1;
+  if (tempo > MAX_TEMPO) tooLong.push(`${entry.id} ${seconds.toFixed(1)}s for ${entry.slot}s`);
+  else fitted.push(`${entry.id} ×${tempo.toFixed(2)}`);
+  return Math.min(MAX_TEMPO, tempo);
+}
+
 function processEntry(entry) {
   const raw = join(RAW_DIR, `${entry.id}.mp3`);
   if (!existsSync(raw)) return null;
   const profile = PROFILE[entry.kind];
   if (!profile) throw new Error(`${entry.id}: no processing profile for kind "${entry.kind}"`);
   const tail = entry.kind === 'sfx' ? tailFor(entry, raw, duration(raw)) : 0;
-  let filters = profile.chain(entry, tail);
+  let filters = profile.chain(entry, tail, entry.kind === 'voice' ? tempoFor(entry, raw) : 1);
   if (profile.peak !== null) {
     // Measure the peak after the chain, then bring it to the target in the real pass.
     const measured = /max_volume: (-?[\d.]+) dB/.exec(ffmpeg(raw, `${filters},volumedetect`));
@@ -101,6 +127,7 @@ function processEntry(entry) {
   filters += ',asetnsamples=n=1152:p=1';
   const file = `${entry.id}.mp3`;
   const target = join(OUT_DIR, file);
+  mkdirSync(dirname(target), { recursive: true });
   ffmpeg(raw, filters, ['-ac', String(profile.channels), '-c:a', 'libmp3lame', '-b:a', profile.bitrate, target]);
   const seconds = duration(target);
   if (!(seconds > 0.12)) throw new Error(`${entry.id}: nothing left after trimming (${seconds}s)`);
@@ -114,6 +141,8 @@ const manifest = {};
 const missing = [];
 const failed = [];
 const faded = [];
+const fitted = [];
+const tooLong = [];
 for (const entry of AUDIO) {
   if (only && !only.includes(entry.id)) {
     if (previous[entry.id]) manifest[entry.id] = previous[entry.id];
@@ -133,7 +162,9 @@ writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
 const total = Object.values(manifest).reduce((sum, e) => sum + e.seconds, 0);
 console.log(`${Object.keys(manifest).length} sound(s) in public/assets/audio (${total.toFixed(0)} s of audio).`);
 if (faded.length) console.log(`Cut off by the generator, faded out: ${faded.join(', ')}`);
-if (missing.length) console.log(`Not generated yet: ${missing.join(', ')}`);
+if (fitted.length) console.log(`Said faster to fit their slot: ${fitted.join(', ')}`);
+if (tooLong.length) console.log(`STILL TOO LONG for their slot (shorten the line): ${tooLong.join(', ')}`);
+if (missing.length) console.log(`Not generated yet: ${missing.length > 40 ? `${missing.length} sounds (${missing.slice(0, 5).join(', ')}…)` : missing.join(', ')}`);
 if (failed.length) {
   console.error(`Failed: ${failed.join(', ')}`);
   process.exit(1);

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_flour",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[softly, hopeful] Flower. Does that ring a bell?",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:53:54.145Z",
+  "bytes": 40585,
+  "sha256": "6ad57f87750fe46709845a53f6d0a665ce8c1758685fe3d4dfea3d2d4f453b5b"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_car_7",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Seat belt. Even now. Especially now.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:40.701Z",
+  "bytes": 58557,
+  "sha256": "83f46cd302a409955e33774cc2b38382b5f9a89e4574a7c6cca83afc1edd0d22"
+}

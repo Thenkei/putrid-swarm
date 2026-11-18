@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_ham_call_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[old, hopeful] See-Q, See-Q. The farm up the hill here. Anyone?",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-18T02:53:55.080Z",
+  "bytes": 67752,
+  "sha256": "b8872a8846b7da2b0779ad67f4a8f32fca3ab2ffbd99fa845ded2fc0f2f61dda"
+}

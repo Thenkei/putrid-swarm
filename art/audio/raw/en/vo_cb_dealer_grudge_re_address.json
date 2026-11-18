@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_dealer_grudge_re_address",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[satisfied] The wash-house lane. Entered in the register. We’ll come at noon. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-18T02:47:35.752Z",
+  "bytes": 77783,
+  "sha256": "c8e1370e284c08e63c3c1d225aa1d9c5476bf8771f8c4cdc8017ae93a06fea20"
+}

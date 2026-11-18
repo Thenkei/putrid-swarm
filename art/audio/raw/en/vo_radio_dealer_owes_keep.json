@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_dealer_owes_keep",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[kindly] Keep it. Go in peace. Over.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:52.369Z",
+  "bytes": 44764,
+  "sha256": "76fd73f52e7823e68ac99661d2416a8e51cd61c5d1d6049d544e7c5be1b6a12b"
+}

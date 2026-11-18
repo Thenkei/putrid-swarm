@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_finale_end_dawn",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[tired, satisfied] It was a lovely morning, all the same.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:47:54.276Z",
+  "bytes": 48526,
+  "sha256": "cb4a5412d37361669c5282ca00a445b44affbd782bebdc3725d5d6ad117aaf38"
+}

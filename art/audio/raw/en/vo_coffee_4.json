@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_coffee_4",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[satisfied sigh] Keep calm. Drink coffee.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:36.461Z",
+  "bytes": 49780,
+  "sha256": "9c05ac36d3cb8bef597907742575a343d1dd0804b270073bd83f7a50adde0a87"
+}

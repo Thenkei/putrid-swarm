@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_breach",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[alarmed] The door has given way!",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:00.903Z",
+  "bytes": 29300,
+  "sha256": "c6289b92b76e68c60b0b3f6ced788d29b035341ec245330a2bf46e1f9c48482c"
+}

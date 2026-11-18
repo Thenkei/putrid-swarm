@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_sit",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[sighs, calm] Right. We will wait. The two of us.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:22.430Z",
+  "bytes": 62318,
+  "sha256": "7942b3b220864f9fd97ed2e1f5d17a9c824d4a59c371da45e46495b419de93fd"
+}

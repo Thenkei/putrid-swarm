@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_baker_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[cheerful, far away] The country loaf is running late. My apologies to the customers…",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:47:48.631Z",
+  "bytes": 63990,
+  "sha256": "f26f249d12d41933da4a8c5405323a5e54cd162eeb4c5e2eb406b4222be6ca68"
+}

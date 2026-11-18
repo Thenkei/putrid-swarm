@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_arrive",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly, surprised] The CB. Six nights it’s done nothing but hiss. And now someone’s talking.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:42.622Z",
+  "bytes": 90740,
+  "sha256": "db8044f51bb6634026f5804a07f94fe109bf3fd0fa3129eaac57f0d0048900f7"
+}

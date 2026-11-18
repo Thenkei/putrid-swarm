@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_baker_tonight",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[hurried, low] Tonight it’s the round. She always does your gate last. The others follow her.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:46:37.056Z",
+  "bytes": 62318,
+  "sha256": "417474967f38e8750cc86a53e87cb013b12656c4407c8fed8e498c517a0565b6"
+}

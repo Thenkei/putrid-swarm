@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_car_10",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "There and back. No detours.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:41.855Z",
+  "bytes": 40585,
+  "sha256": "fcb58570c74b623ddb778e607e7361c260e13cc983a613f75de7f339eea06616"
+}

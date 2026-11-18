@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_baker_lucid_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[tired, kind] You’ve lost weight, you. You used to take a tradition.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:45:11.772Z",
+  "bytes": 58557,
+  "sha256": "1ccdf21068ac169d347e4254df0fcc56ea55ce08c2a64d5f63213ed2700de47b"
+}

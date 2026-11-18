@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_owes_re_no",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[small voice] No. Yes. I understand. I’ll try someone else. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:27.954Z",
+  "bytes": 84470,
+  "sha256": "a2538ee9c278b1794bf3ca132f0eef9f5c3854cbe01c62313332b579bb5291d5"
+}

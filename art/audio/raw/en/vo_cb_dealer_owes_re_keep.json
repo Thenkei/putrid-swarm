@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_dealer_owes_re_keep",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[taken aback] Keep it? But then I still owe you something. [sighs] That’s worse. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-18T02:47:17.357Z",
+  "bytes": 91994,
+  "sha256": "793ada6a9522a5cdfd9aa271df7e797f6f7ed968a7c0ca1a4001e7a17503be32"
+}

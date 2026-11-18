@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_nightfall_4",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] They come out with the dark. Like mosquitoes.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:53.290Z",
+  "bytes": 49780,
+  "sha256": "f3af5aea85da4e66399ba59c468e94e07c9b210e2e4de9e10c2245bfd86b46c6"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_shock",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[shaky whisper] Look at the wall. Look at the wall.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:22.279Z",
+  "bytes": 51034,
+  "sha256": "ed7ec3de577cc5e8f9f0b1bc65731eb80e7e829f01ce74e306e60fa32a6a5c28"
+}

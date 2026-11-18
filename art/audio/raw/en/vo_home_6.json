@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_home_6",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "The gate held without me. Good gate.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:45.334Z",
+  "bytes": 47272,
+  "sha256": "53f76aed219033627ee93ce37b4a4a75d9b2e18846c9fecf39e66ce3a949dcd4"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_baker_first_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[struggling, urgent] He had the key. The key to the…",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:46:39.582Z",
+  "bytes": 38077,
+  "sha256": "2741e4f8aaf36ef880ded8243f663491ad1ec4367a315e3b966692cbfab936c6"
+}

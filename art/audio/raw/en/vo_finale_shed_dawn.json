@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_finale_shed_dawn",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[fond, grinning] Morning, my lovely. Today, we mow.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:47:54.280Z",
+  "bytes": 65244,
+  "sha256": "52ec23406c274e44fd79c8cddb73c3e0e26a78fe3bc7759c023c10e2140da73c"
+}

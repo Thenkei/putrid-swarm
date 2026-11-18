@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_leads",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[uneasy] The jump leads. I am only taking them. To see.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:21.248Z",
+  "bytes": 66498,
+  "sha256": "b985073db20b6017a16299612fbc5aceaaafdb0f01317043c5fbc7f06f2cb220"
+}

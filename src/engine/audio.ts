@@ -4,6 +4,7 @@
 // Sound is a reinforcement only: every state it signals also has a visible equivalent.
 
 import { Decks } from './deck';
+import { getLang } from './i18n';
 
 export type Sfx =
   | 'click'
@@ -126,7 +127,12 @@ interface Sample {
   /** Encoded bytes, kept until an AudioContext exists to decode them. */
   data: ArrayBuffer | null;
   buffer: AudioBuffer | null;
+  /** Its file has been asked for (it may still be on its way, or have failed). */
+  requested: boolean;
 }
+
+/** A dubbed line is filed under its language: `en/vo_dawn` is `vo_dawn` said in English. */
+const DUB = /^([a-z]{2})\/(.+)$/;
 
 interface Playing {
   readonly source: AudioBufferSourceNode;
@@ -284,13 +290,30 @@ class AudioEngine {
       console.warn('[audio] manifest.json unavailable; using synthesised sound only', error);
       return;
     }
+    for (const [id, entry] of Object.entries(manifest)) this.samples.set(id, { entry, data: null, buffer: null, requested: false });
+    await this.fetchWanted();
+  }
+
+  /**
+   * Whether a recording is worth fetching now. Voices are only fetched in the language being played:
+   * a dub for its own language, a French line for French or wherever the dub has no such line.
+   */
+  private wanted(id: string, entry: SampleEntry): boolean {
+    if (entry.kind === 'music') return false;
+    if (entry.kind !== 'voice') return true;
+    const lang = getLang();
+    const dub = DUB.exec(id);
+    if (dub) return dub[1] === lang;
+    return lang === 'fr' || !this.samples.has(`${lang}/${id}`);
+  }
+
+  private async fetchWanted(): Promise<void> {
     await Promise.all(
-      Object.entries(manifest).map(async ([id, entry]) => {
-        const sample: Sample = { entry, data: null, buffer: null };
-        this.samples.set(id, sample);
-        if (entry.kind === 'music') return;
+      [...this.samples].map(async ([id, sample]) => {
+        if (sample.requested || !this.wanted(id, sample.entry)) return;
+        sample.requested = true;
         try {
-          const response = await fetch(BASE + entry.file);
+          const response = await fetch(BASE + sample.entry.file);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           sample.data = await response.arrayBuffer();
           if (this.ctx) await this.decode(id, sample);
@@ -299,6 +322,17 @@ class AudioEngine {
         }
       }),
     );
+  }
+
+  /** The language changed: fetch the voices of the new one. What was already fetched is kept. */
+  syncVoices(): void {
+    void this.fetchWanted();
+  }
+
+  /** The recording of a line in the language being played; the French one where the dub has none. */
+  private voiceSample(id: string): Sample | undefined {
+    const lang = getLang();
+    return (lang === 'fr' ? undefined : this.samples.get(`${lang}/${id}`)) ?? this.samples.get(id);
   }
 
   private async decode(id: string, sample: Sample): Promise<void> {
@@ -516,7 +550,7 @@ class AudioEngine {
    * A line never talks over another unless `interrupt` is set.
    */
   say(id: string, interrupt = false): number {
-    const sample = this.samples.get(id);
+    const sample = this.voiceSample(id);
     if (!sample || sample.entry.kind !== 'voice') return 0;
     const seconds = sample.entry.seconds;
     if (!this.ctx || !this.enabled || !sample.buffer || !this.voiceBus) return seconds;
@@ -614,7 +648,7 @@ class AudioEngine {
    * channel is faded out first.
    */
   sayOn(channel: string, id: string, level: number): number {
-    const sample = this.samples.get(id);
+    const sample = this.voiceSample(id);
     if (!sample || sample.entry.kind !== 'voice') return 0;
     const seconds = sample.entry.seconds;
     if (!this.ctx || !this.enabled || !sample.buffer || !this.voiceBus) return seconds;

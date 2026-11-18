@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_grudge_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[sullen, then homesick] They want a battery. Me, I just want to go home. To Dunkirk.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:41.591Z",
+  "bytes": 80291,
+  "sha256": "133fb8ccea8a3226dfdd366db421dad3482b759c4d4bacc4fc1092dcdece4801"
+}

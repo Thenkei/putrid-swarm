@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_home",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Home. Now we nail.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:42.708Z",
+  "bytes": 39331,
+  "sha256": "747a5bf9a3f5e7fe25a3bd4f4e7d00c5af1a8657ee55ed47f38e2ce82020fa3b"
+}

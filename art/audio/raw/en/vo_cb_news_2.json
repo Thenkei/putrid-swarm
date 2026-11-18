@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_news_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/m5U7XCsc8v988k2RJAqN",
+  "request": {
+    "text": "[calm, official] … emergency services are assessing the situation. A further update will follow this evening…",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.6,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Manon",
+  "generatedAt": "2026-11-18T02:47:47.149Z",
+  "bytes": 88232,
+  "sha256": "4ec2f8c5c4b2cefe37111dba857e33d4bf795abc0035998fa7d08a6cea79ca09"
+}

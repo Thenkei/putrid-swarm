@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_baker_chief",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/JdwJ7jL68CWmQZuo7KgG",
+  "request": {
+    "text": "[hurried, a faint smile] The chief? He counted to eleven outside my window. Then he whistled. He hates being lit up.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Peter",
+  "generatedAt": "2026-11-18T02:46:38.717Z",
+  "bytes": 95755,
+  "sha256": "54b69b174d50d37dd830a32257b95b07918df5e83bcc0751d060995c14fb9dad"
+}

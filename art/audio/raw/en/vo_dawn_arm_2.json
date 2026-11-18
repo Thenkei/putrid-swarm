@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_dawn_arm_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[relieved] Held. One-handed, but held.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:07.761Z",
+  "bytes": 48526,
+  "sha256": "acec76a0040ae148da0ee7fa68b54ff0f5cbcbf3209544be635037b247a4bcb2"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_dodge_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[breathless] Whoa. Easy.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.3,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:26.141Z",
+  "bytes": 35569,
+  "sha256": "9b7169bbae8f47b4e28064bc04b52bfee3867596c78b50c7687a026b66495db5"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_name_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[gently] She has kept the sourdough going, your wife. She is waiting.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:24.294Z",
+  "bytes": 61065,
+  "sha256": "c22df5060a8d61d2ff28414bfe2967e38a2318f88cbfbabe4746828fd8588493"
+}

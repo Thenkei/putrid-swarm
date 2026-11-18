@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_nightfall_arm_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[quietly] One hand on the traps, one eye on the cameras. Come on.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:55.308Z",
+  "bytes": 57303,
+  "sha256": "d9caf2c87b8c5d982be4411bc63d0908809df8823d0e9366aa6bb033c2a2d326"
+}

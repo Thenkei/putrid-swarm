@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_ham_call_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/3BZLNrQEzQVYs6kPOW4S",
+  "request": {
+    "text": "[old, tired] The farm up the hill. Six days I’ve been calling. Anyone?",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Justin Doré",
+  "generatedAt": "2026-11-18T02:46:59.621Z",
+  "bytes": 80291,
+  "sha256": "2e5e2e1cc676db4f071fe012850f1b31903084ddafb851e9075b91e306033c76"
+}

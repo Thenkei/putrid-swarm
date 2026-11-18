@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_orchard_mended",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Spliced. Four screens. Like before.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:17.815Z",
+  "bytes": 52287,
+  "sha256": "1e14e638390f9e5a4cd46a0a065ec5244c227bcce3ac1ddd1eed86c3dba306e7"
+}

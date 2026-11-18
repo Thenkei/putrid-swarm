@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_camper_owes_call_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/NBjtCdChq5Ph56VnCM8Z",
+  "request": {
+    "text": "[forced cheer] It’s the camper van’s radio. At least that works. Anyone?",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Théo",
+  "generatedAt": "2026-11-18T02:47:20.078Z",
+  "bytes": 70260,
+  "sha256": "736b12a50f36885d72d8b938e4797b7d7ccab28fd13d9104d33c8116c59ce87b"
+}

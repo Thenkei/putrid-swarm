@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_shed_hammer",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[flat] The hammer. Just in case.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:25.336Z",
+  "bytes": 36823,
+  "sha256": "d81fef31b0abab146ae4632eb035b9c3fe0741d286530d2fa4dc24868abd0704"
+}

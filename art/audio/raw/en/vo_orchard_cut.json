@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_orchard_cut",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[weak, slow] It is done… It is done.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.35,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:17.533Z",
+  "bytes": 48526,
+  "sha256": "5fc80a9d34c85da478ada1be630ea7ec7e62543d1ecc555a8fc6235bde73b3c4"
+}

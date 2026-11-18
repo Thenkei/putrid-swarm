@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_home_10",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "Another trip without meeting anyone. Suits me.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:45:47.353Z",
+  "bytes": 48526,
+  "sha256": "965c459585a590c07d0594f15e76ddd407f6b068a12cedc63500f7bb7b171ec8"
+}

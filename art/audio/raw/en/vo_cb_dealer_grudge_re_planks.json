@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_cb_dealer_grudge_re_planks",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/uFA9UGUhpwqGjVhz3lA2",
+  "request": {
+    "text": "[weary] Two planks. [pause] The committee takes note. Out.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Christine",
+  "generatedAt": "2026-11-18T02:47:37.091Z",
+  "bytes": 74021,
+  "sha256": "b78c3715370dd97fb22b02d93deb775e2a951d53cbd740b7b8c83446b0092a29"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "en/vo_radio_one_hand",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[wry] A knob, a mic. It takes two hands. I’ve got one.",
+    "model_id": "eleven_v4",
+    "language_code": "en",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:46:45.354Z",
+  "bytes": 71514,
+  "sha256": "15a8d92cd92e8116543d932035334be32f918b6a4f601b45e1210216741361fe"
+}
