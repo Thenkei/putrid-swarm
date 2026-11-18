@@ -45,7 +45,7 @@ export const fr = {
   device: {
     fence: { name: 'Palissade', desc: 'Bloque les marcheurs et dessine leur chemin. Les béliers passent à travers, les sauteurs par-dessus.' },
     spikes: { name: 'Pieux', desc: 'Automatique : jaillit dès qu’on lui marche dessus, puis se réarme seul. Posez-le sur le passage.' },
-    log: { name: 'Rondin', desc: 'À déclencher : balaie tout ce qui est dessous. Gros dégâts, étourdit et repousse. Long à remonter.' },
+    log: { name: 'Rondin', desc: 'À déclencher à la main. Gros dégâts, étourdit et repousse. Les coureurs et les chiens rampent dessous. Déclenchez à leur approche ou prenez-les au filet. Long à remonter.' },
     net: { name: 'Filet', desc: 'Automatique : se referme sur deux infectés ou plus et les retient. Les prises encaissent +50 % de dégâts.' },
     barrier: { name: 'Barrière', desc: 'À déclencher : se dresse quelques secondes et retient la file. Idéale juste avant un rondin.' },
     horn: { name: 'Klaxon', desc: 'À déclencher : attire les infectés alentour vers lui. Consomme de la batterie.' },

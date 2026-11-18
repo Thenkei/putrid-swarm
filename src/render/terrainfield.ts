@@ -42,10 +42,26 @@ export const TRACKS = {
   barn: { y0: 11, y1: 13 },
 } as const;
 
+/** The gateways stay straight across the lot; deeper in the woods their tracks find a way between stands. */
+export function roadCentre(road: keyof typeof TRACKS, along: number): number {
+  const gate = road === 'gate';
+  const distance = Math.max(0, along - (gate ? GRID_H : GRID_W) - 1.8);
+  const turn = smoothstep(0, 7, distance);
+  const bend = gate ? 2.3 * Math.sin(distance * 0.23) + 1.2 * Math.sin(distance * 0.11) :
+    -2.0 * Math.sin(distance * 0.26) - 1.65 * Math.sin(distance * 0.08);
+  return (gate ? (TRACKS.gate.x0 + TRACKS.gate.x1) : (TRACKS.barn.y0 + TRACKS.barn.y1)) / 2 + turn * bend;
+}
+
 /** True on a way out beyond the lot, or within `clearance` cells of one: nothing grows there. */
 export function onTrack(gx: number, gy: number, clearance = 0): boolean {
-  if (gy >= GRID_H - 1 && gx >= TRACKS.gate.x0 - clearance && gx < TRACKS.gate.x1 + clearance) return true;
-  if (gx >= GRID_W - 1 && gy >= TRACKS.barn.y0 - clearance && gy < TRACKS.barn.y1 + clearance) return true;
+  if (gy >= GRID_H - 1) {
+    const offset = gx - roadCentre('gate', gy);
+    if (offset >= -1 - clearance && offset < 1 + clearance) return true;
+  }
+  if (gx >= GRID_W - 1) {
+    const offset = gy - roadCentre('barn', gx);
+    if (offset >= -1 - clearance && offset < 1 + clearance) return true;
+  }
   return false;
 }
 
@@ -61,15 +77,24 @@ export function groundTerrainAt(gx: number, gy: number): GroundTerrain {
     return gy >= GRID_H ? 'path' : 'gravel';
   }
   const terrain = terrainAt(x, y);
+  if ((terrain === 'grass' || terrain === 'forest') && Math.min(gx, gy, GRID_W - gx, GRID_H - gy) < 3.5) {
+    // Leaf litter drifts into the turf at the woodland edge and rounds off the corners of the clearing.
+    const radius = 3.6;
+    const dx = Math.abs(gx - GRID_W / 2) - (GRID_W / 2 - 1 - radius);
+    const dy = Math.abs(gy - GRID_H / 2) - (GRID_H / 2 - 1 - radius);
+    const distance = Math.hypot(Math.max(0, dx), Math.max(0, dy)) + Math.min(0, Math.max(dx, dy)) - radius;
+    const margin = (fbm(gx * 0.23, gy * 0.23, 871, 2) - 0.5) * 3.2;
+    return distance > margin ? 'forest' : 'grass';
+  }
   return terrain === 'house' ? 'path' : terrain;
 }
 
 const SEED = 20261117;
 /** How far a border wanders from the cell line, in cells. */
-const WARP = 0.42;
+const WARP = 0.72;
 const WARP_FREQUENCY = 0.5;
 /** Half-width of the band over which two terrains meet, in cells. */
-const SOFTEN = 0.3;
+const SOFTEN = 0.41;
 /** How ragged each terrain's edge is: turf frays, a dirt track does not. */
 const FRAY: Readonly<Record<GroundTerrain, { readonly amount: number; readonly frequency: number }>> = {
   forest: { amount: 0.5, frequency: 1.7 },
@@ -78,7 +103,7 @@ const FRAY: Readonly<Record<GroundTerrain, { readonly amount: number; readonly f
   grass: { amount: 0.6, frequency: 2.4 },
 };
 /** Width of the transition once the winner is known, in height units: small is crisp. */
-const CRISP = 0.15;
+const CRISP = 0.28;
 
 function boxBlur(source: Float32Array, size: number, radius: number): Float32Array {
   if (radius < 1) return source;

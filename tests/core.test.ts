@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { DEVICES } from '../src/core/data/devices';
+import { COMBAT, DEVICES } from '../src/core/data/devices';
 import { LOCATIONS } from '../src/core/data/locations';
 import { NIGHTS } from '../src/core/data/waves';
 import { arriveHome, concludeNight, leaveLocation, newGame, plannedSearches, prepareSearch, retryChapter, searchSpot, startNextDay, startNight, travelTo } from '../src/core/game';
 import { ENTRIES, SPAWN_CELLS, idx, isBuildable } from '../src/core/map';
-import { NightSim } from '../src/core/night';
+import { NightSim, type Enemy } from '../src/core/night';
 import { auditRoutes, computeField } from '../src/core/pathing';
 import { deserialize, serialize } from '../src/core/save';
 import type { GameState } from '../src/core/types';
@@ -548,7 +548,10 @@ describe('night simulation', () => {
     let cued = false;
     run(sim, 120, (s) => {
       const opportunity = s.opportunity(log.id);
-      const under = s.enemies.filter((e) => Math.hypot(e.x - (log.x + 0.5), e.y - (log.y + 0.5)) <= DEVICES.log.reach);
+      const under = s.enemies.filter((e) => {
+        const beneath = e.crawlLog?.id === log.id && e.crawlDepth === 1 && !e.nettedFor && !e.stunnedFor;
+        return !beneath && Math.hypot(e.x - (log.x + 0.5), e.y - (log.y + 0.5)) <= DEVICES.log.reach;
+      });
       if (s.device(log.id)?.state === 'armed') {
         expect(opportunity.targets).toBe(under.length);
         // Worth firing: a group, or a single one already gnawing at the door.
@@ -668,14 +671,14 @@ describe('night simulation', () => {
       const net = state.yard.devices.at(-1)!;
       const sim = new NightSim(2, state.yard, 1);
       let closedAt = -1;
-      let caught: { enemy: (typeof sim.enemies)[number]; x: number; y: number }[] = [];
+      let caught: { enemy: (typeof sim.enemies)[number]; x: number; y: number; travel: number }[] = [];
       let heldChecked = false;
       let released = false;
       run(sim, 200, (s) => {
         if (closedAt < 0) {
           if (s.device(net.id)?.state !== 'active') return;
           closedAt = s.time;
-          caught = s.enemies.filter((e) => e.nettedFor > 0).map((enemy) => ({ enemy, x: enemy.x, y: enemy.y }));
+          caught = s.enemies.filter((e) => e.nettedFor > 0).map((enemy) => ({ enemy, x: enemy.x, y: enemy.y, travel: enemy.travel }));
           return;
         }
         if (!heldChecked && s.time >= closedAt + 3) {
@@ -683,10 +686,11 @@ describe('night simulation', () => {
           for (const c of caught) {
             expect(c.enemy.x).toBeCloseTo(c.x, 5);
             expect(c.enemy.y).toBeCloseTo(c.y, 5);
+            expect(c.enemy.travel).toBe(c.travel);
           }
         }
         if (s.time >= closedAt + DEVICES.net.activeSeconds + 2) {
-          released = caught.some((c) => c.enemy.alive && Math.hypot(c.enemy.x - c.x, c.enemy.y - c.y) > 0.5);
+          released = caught.some((c) => c.enemy.alive && c.enemy.travel > c.travel + 0.5 && Math.hypot(c.enemy.x - c.x, c.enemy.y - c.y) > 0.5);
           (s as unknown as { outcome: string }).outcome = 'paused';
         }
       });
@@ -725,16 +729,74 @@ describe('night simulation', () => {
       expect(target.alive ? target.y : 0).toBeLessThan(17.5);
     });
 
-    it('the log hits everything in reach, once, and knocks it back', () => {
+    it('the log hits an upright villager once and knocks it back', () => {
       const { sim, device, target } = scenario('log', 9, 17, 1.2);
       const hp = target.hp;
+      const travel = target.travel;
       const before = Math.hypot(target.x - 9.5, target.y - 17.5);
       expect(sim.trigger(device.id).ok).toBe(true);
       expect(target.hp).toBeLessThan(hp);
+      expect(target.hitFlash).toBeGreaterThan(0);
+      expect(target.travel).toBe(travel);
       expect(Math.hypot(target.x - 9.5, target.y - 17.5)).toBeGreaterThan(before);
       const after = target.hp;
       sim.trigger(device.id);
       expect(target.hp).toBe(after);
+    });
+
+    describe('crawling under a log', () => {
+      function crossing(animal = false, beside?: 'net' | 'log') {
+        const game = rich(newGame(42));
+        // Prowlers pick the weakest door. Give them the same gate approach as the runners.
+        const strong = { level: 1, hp: 280 } as const;
+        const barricades = animal ? { portail: { level: 0 as const, hp: 80 }, grange: strong, verger: strong, arriere: strong } : game.yard.barricades;
+        let yard = unwrap(build({ ...game, yard: { ...game.yard, devices: [], barricades } }, 'log', 10, 17));
+        if (beside) yard = unwrap(build(yard, beside, 9, 17));
+        return new NightSim(animal ? 4 : 5, yard.yard, 42);
+      }
+
+      function until(sim: NightSim, matches: (enemy: Enemy) => boolean): Enemy {
+        for (let step = 0; step < 1200; step++) {
+          sim.step(1 / 60);
+          const e = sim.enemies.find((enemy) => enemy.alive && matches(enemy));
+          if (e) return e;
+        }
+        throw new Error('No infected reached the expected posture');
+      }
+
+      it.each(['runner', 'dog'] as const)('%s gets down, clears its rig, then stands and resumes its route', (type) => {
+        const sim = crossing(type === 'dog');
+        const log = sim.devices[0]!;
+        const e = until(sim, (mob) => mob.type === type && mob.crawlDepth === 1);
+        expect(e.crawlLog).toBe(log);
+        expect(e.action).toBe('crawl');
+        expect(e.moveSpeed).toBeCloseTo(e.def.speed * COMBAT.logCrawlSpeedMultiplier);
+        expect(sim.opportunity(log.id).targets).toBe(0);
+        const hp = e.hp;
+        const travel = e.travel;
+        expect(sim.trigger(log.id).ok).toBe(true);
+        expect(e.hp).toBe(hp);
+        expect(e.stunnedFor).toBe(0);
+        expect(sim.report().traps[log.id]).toMatchObject({ fired: 1, hits: 0, kills: 0 });
+        until(sim, (mob) => mob === e && mob.action === 'walk' && mob.crawlDepth === 0);
+        expect(e.crawlLog).toBeNull();
+        expect(e.travel).toBeGreaterThan(travel + 0.5);
+        expect(e.moveSpeed).toBe(e.def.speed);
+      });
+
+      it.each(['approach', 'second log', 'net'] as const)('the %s leaves a runner exposed to the swing', (timing) => {
+        const sim = crossing(false, timing === 'second log' ? 'log' : timing === 'net' ? 'net' : undefined);
+        const log = sim.devices[timing === 'second log' ? 1 : 0]!;
+        const e = until(sim, (mob) => {
+          if (mob.type !== 'runner') return false;
+          if (timing === 'net') return mob.nettedFor > 0 && mob.crawlDepth > 0.5;
+          return timing === 'approach' ? mob.crawlDepth > 0 && mob.crawlDepth < 1 : mob.crawlDepth === 1;
+        });
+        expect(sim.opportunity(log.id).targets).toBeGreaterThan(0);
+        expect(sim.trigger(log.id).ok).toBe(true);
+        expect(e.alive).toBe(false);
+        expect(sim.report().traps[log.id]?.kills).toBeGreaterThan(0);
+      });
     });
   });
 });

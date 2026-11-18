@@ -5,12 +5,17 @@ export interface Sprite {
   readonly img: HTMLImageElement;
   readonly w: number;
   readonly h: number;
+  /** Ground contact in normalized image coordinates, measured from the top left. */
+  readonly footX?: number;
+  readonly footY?: number;
 }
 
 interface ManifestEntry {
   readonly file: string;
   readonly w: number;
   readonly h: number;
+  readonly footX?: number;
+  readonly footY?: number;
 }
 
 const sprites = new Map<string, Sprite>();
@@ -48,7 +53,7 @@ export async function loadAssets(onProgress: (done: number, total: number) => vo
     entries.map(async ([key, entry]) => {
       try {
         const img = await loadImage(BASE + entry.file);
-        sprites.set(key, { img, w: entry.w, h: entry.h });
+        sprites.set(key, { img, w: entry.w, h: entry.h, footX: entry.footX ?? 0.5, footY: entry.footY ?? 1 });
       } catch (error) {
         failed.push(key);
         console.warn(`[assets] ${key}`, error);

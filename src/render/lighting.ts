@@ -45,24 +45,31 @@ function lightPoint(view: View, light: Light): { x: number; y: number } {
 
 // ───────────────────────────── Night ─────────────────────────────
 
-const lightCanvas = document.createElement('canvas');
+// The desk alternates between the main monitor and a thumbnail every frame. Each size keeps
+// its backing store so switching feeds doesn't clear and reallocate the other monitor's surface.
+const lightMaps = new Map<string, HTMLCanvasElement>();
 
 /** Multiplies a light map over a view that has just been drawn: blue night, warm pools of light, then the lamps themselves. */
 export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: readonly Light[], time = 0): void {
   const scale = 0.5;
   const w = Math.ceil(view.w * scale);
   const h = Math.ceil(view.h * scale);
-  if (lightCanvas.width !== w || lightCanvas.height !== h) {
+  const key = `${w}x${h}`;
+  let lightCanvas = lightMaps.get(key);
+  if (!lightCanvas) {
+    lightCanvas = document.createElement('canvas');
     lightCanvas.width = w;
     lightCanvas.height = h;
+    lightMaps.set(key, lightCanvas);
   }
   const lctx = lightCanvas.getContext('2d') as CanvasRenderingContext2D;
   lctx.globalCompositeOperation = 'source-over';
   lctx.globalAlpha = 1;
   // What little light the sky gives comes from one side.
   const sky = lctx.createLinearGradient(0, 0, w, h);
-  sky.addColorStop(0, '#7b93c2');
-  sky.addColorStop(1, '#5b7098');
+  sky.addColorStop(0, '#a7bbd1');
+  sky.addColorStop(0.58, '#8ba3bd');
+  sky.addColorStop(1, '#738aaa');
   lctx.fillStyle = sky;
   lctx.fillRect(0, 0, w, h);
   lctx.globalCompositeOperation = 'lighter';
@@ -261,25 +268,20 @@ function grainPattern(ctx: CanvasRenderingContext2D): CanvasPattern | null {
   return grain;
 }
 
-/** The monitor look: teal cast, sensor grain, scanlines, a little roll and a vignette. */
+/** Sensor grain, scanlines, a little roll and a vignette over the graded night feed. */
 export function applyCctv(ctx: CanvasRenderingContext2D, view: View, time: number, strength = 1): void {
   ctx.save();
   ctx.beginPath();
   ctx.rect(view.x, view.y, view.w, view.h);
   ctx.clip();
 
-  ctx.globalCompositeOperation = 'color';
-  ctx.fillStyle = `rgba(86,140,150,${0.2 * strength})`;
-  ctx.fillRect(view.x, view.y, view.w, view.h);
-  ctx.globalCompositeOperation = 'source-over';
-
-  // Sensor noise: a new throw of the same grain every frame, which is all noise is.
+  // Sample the sensor at 12 Hz, independently of display refresh and how often a feed is drawn.
+  const exposure = calmMotion() ? 0 : Math.floor(time * 12);
   const noise = grainPattern(ctx);
   if (noise) {
-    const still = calmMotion();
-    noise.setTransform(new DOMMatrix().translate(still ? 0 : Math.floor(Math.random() * 128), still ? 0 : Math.floor(Math.random() * 128)));
+    noise.setTransform(new DOMMatrix().translate((exposure * 47) % 128, (exposure * 71) % 128));
     ctx.fillStyle = noise;
-    ctx.globalAlpha = 0.2 * strength;
+    ctx.globalAlpha = 0.075 * strength;
     ctx.fillRect(view.x, view.y, view.w, view.h);
     ctx.globalAlpha = 1;
   }
@@ -289,7 +291,7 @@ export function applyCctv(ctx: CanvasRenderingContext2D, view: View, time: numbe
     tile.width = 4;
     tile.height = 3;
     const tctx = tile.getContext('2d') as CanvasRenderingContext2D;
-    tctx.fillStyle = 'rgba(0,0,0,0.22)';
+    tctx.fillStyle = 'rgba(4,12,18,0.1)';
     tctx.fillRect(0, 2, 4, 1);
     scanlines = ctx.createPattern(tile, 'repeat');
   }
@@ -301,7 +303,7 @@ export function applyCctv(ctx: CanvasRenderingContext2D, view: View, time: numbe
   }
 
   // A slow bright band rolling down the tube.
-  const band = view.y + ((time * 46) % (view.h + 120)) - 60;
+  const band = view.y + (((calmMotion() ? 0 : time) * 46) % (view.h + 120)) - 60;
   const roll = ctx.createLinearGradient(0, band - 40, 0, band + 40);
   roll.addColorStop(0, 'rgba(255,255,255,0)');
   roll.addColorStop(0.5, `rgba(255,255,255,${0.045 * strength})`);
@@ -311,7 +313,7 @@ export function applyCctv(ctx: CanvasRenderingContext2D, view: View, time: numbe
 
   const vignette = ctx.createRadialGradient(view.x + view.w / 2, view.y + view.h / 2, view.h * 0.35, view.x + view.w / 2, view.y + view.h / 2, view.w * 0.72);
   vignette.addColorStop(0, 'rgba(0,0,0,0)');
-  vignette.addColorStop(1, `rgba(0,0,0,${0.5 * strength})`);
+  vignette.addColorStop(1, `rgba(4,10,16,${0.37 * strength})`);
   ctx.fillStyle = vignette;
   ctx.fillRect(view.x, view.y, view.w, view.h);
   ctx.restore();

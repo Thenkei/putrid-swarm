@@ -7,6 +7,7 @@
 // size they come out soft, with no blur filter anywhere.
 
 import { sprite } from '../engine/assets';
+import { BOTTOM_CENTRE, type Foot } from './registration';
 
 /** Where the top of a sprite of height 1 lands, in screen units, relative to its foot. */
 export const SHADOW_REACH = { x: 0.62, y: -0.31 } as const;
@@ -17,7 +18,7 @@ const OUTLINE_HEIGHT = 40;
 const outlines = new Map<string, HTMLCanvasElement | null>();
 
 /** The outline of a sprite, small and filled with shadow ink. */
-function outline(key: string): HTMLCanvasElement | null {
+export function shadowOutline(key: string): HTMLCanvasElement | null {
   const known = outlines.get(key);
   if (known !== undefined) return known;
   const art = sprite(key);
@@ -43,15 +44,20 @@ function outline(key: string): HTMLCanvasElement | null {
  * The shadow thrown by a standing sprite whose foot is at (x, y) and which is drawn `height` tall.
  * `length` scales how far it reaches (1 = as far as the thing is tall, along the light).
  */
-export function castShadow(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, height: number, flip: boolean, alpha: number, length = 1): void {
-  const shape = outline(key);
+export function castShadow(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, height: number, flip: boolean, alpha: number, length = 1, foot: Foot = BOTTOM_CENTRE): void {
+  const shape = shadowOutline(key);
   if (!shape || alpha <= 0) return;
+  castSilhouette(ctx, shape, x, y, height, flip, alpha, length, foot);
+}
+
+/** Project a silhouette made from an articulated pose using the same light as the scenery. */
+export function castSilhouette(ctx: CanvasRenderingContext2D, shape: HTMLCanvasElement, x: number, y: number, height: number, flip: boolean, alpha: number, length: number, foot: Foot = BOTTOM_CENTRE): void {
   const width = (shape.width / shape.height) * height;
   ctx.save();
   ctx.globalAlpha *= alpha;
   // Sprite space has y running up the figure as negative: its top (0, -height) lands on the tip.
   ctx.transform(flip ? -1 : 1, 0, -SHADOW_REACH.x * length, -SHADOW_REACH.y * length, x, y);
-  ctx.drawImage(shape, -width / 2, -height, width, height);
+  ctx.drawImage(shape, -width * foot[0], -height * foot[1], width, height);
   ctx.restore();
 }
 

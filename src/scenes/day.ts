@@ -44,7 +44,9 @@ import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { sayAny, sayOnce } from '../engine/voice';
-import { applyDaylight, cameraView, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, VISIBLE_DOORS, WELL_CLINK_AT, type DeviceVisual, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
+import { applyDaylight, cameraView, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, WELL_CLINK_AT, type DeviceVisual, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
+import { deviceArt } from '../render/defenses';
+import { VISIBLE_DOORS } from '../render/house';
 import { costLine, describeCost, inventoryBar } from './common';
 import { goMap, goNightfall, goTitle } from './flow';
 
@@ -63,6 +65,13 @@ const panLimit = (value: number, size: number): number => Math.min(size - PAN_IN
 
 /** How close a predicted route must pass for a device there to do anything. A barrier only holds what walks into it. */
 const coverReach = (type: DeviceTypeId): number => (type === 'barrier' ? 0.5 : DEVICES[type].reach);
+
+function dayDeviceVisual(d: DeviceInstance, highlight = false, silent = false): DeviceVisual {
+  return {
+    id: d.id, type: d.type, x: d.x, y: d.y, facing: d.facing,
+    state: d.broken ? 'broken' : 'idle', hpRatio: d.hp / DEVICES[d.type].maxHp, highlight, silent,
+  };
+}
 
 /** Where the infected are predicted to walk: sample routes to draw, and every cell stepped on per door. */
 interface Forecast {
@@ -135,6 +144,7 @@ export class DayScene implements Scene {
   private root!: HTMLElement;
   private info!: HTMLElement;
   private refundTag!: HTMLElement;
+  private readonly buildIcons = new Map<DeviceTypeId, HTMLImageElement>();
   private routeCache: { key: string; forecast: Forecast } | null = null;
   private ghostCache: { key: string; ghost: Ghost | null; problem: YardError | null } | null = null;
 
@@ -158,7 +168,7 @@ export class DayScene implements Scene {
     audio.setAmbience('day');
     audio.setMusic('day');
     // Painted while the screen is still dark from the scene change, not during the first frame.
-    prepareWorld();
+    prepareWorld({ ...this.view, rot: this.rot === 0 ? 1 : 0 }, this.view);
     this.root = el('div');
     this.app.ui.append(this.root);
     this.refresh();
@@ -169,6 +179,18 @@ export class DayScene implements Scene {
   }
 
   // ───────────────────────────── HUD ─────────────────────────────
+
+  private refreshBuildArt(): void {
+    for (const [type, img] of this.buildIcons) {
+      const selected = this.mode.kind === 'build' && this.mode.type === type;
+      const art = deviceArt(type, selected ? this.facing : 0, type === 'fence' ? 'resting' : 'armed', this.rot);
+      const url = assetUrl(art.key);
+      if (url) {
+        if (img.getAttribute('src') !== url) img.src = url;
+      } else img.removeAttribute('src');
+      img.style.transform = art.flip ? 'scaleX(-1)' : '';
+    }
+  }
 
   private refresh(): void {
     const s = S();
@@ -197,10 +219,9 @@ export class DayScene implements Scene {
     // Build menu.
     const cards = DEVICE_TYPE_IDS.map((type, i) => {
       const def = DEVICES[type];
-      const url = assetUrl(`dev_${type}_${type === 'fence' ? 'resting' : 'armed'}`);
-      const img = el('img');
-      if (url) img.src = url;
       const selected = this.mode.kind === 'build' && this.mode.type === type;
+      const img = el('img');
+      this.buildIcons.set(type, img);
       const count = affordableCount(state.inventory, type, state.hoursLeft);
       const affordable = count > 0;
       const tag = def.mode === 'auto' ? s.day.tagAuto : def.mode === 'manual' ? s.day.tagManual : s.day.tagPassive;
@@ -227,6 +248,7 @@ export class DayScene implements Scene {
         ],
       );
     });
+    this.refreshBuildArt();
     const tool = (kind: 'repair' | 'dismantle', label: string): HTMLElement =>
       el('button', {
         class: `btn ${this.mode.kind === kind ? 'sel' : ''}`,
@@ -455,12 +477,14 @@ export class DayScene implements Scene {
   private showDoor(sector: SectorId): void {
     const view = cameraView(sector, RECT, this.zoom);
     audio.play('camera');
-    this.rot = view.rot;
+    if (this.rot !== view.rot) {
+      this.rot = view.rot;
+      this.refreshBuildArt();
+    }
     this.cx = view.cx;
     this.cy = view.cy;
     this.ghostCache = null;
-    this.panelDoor = sector;
-    this.updateHover(this.app.pointer, true);
+    this.updateHover(this.app.pointer, true, sector);
   }
 
   private doorRepairLabel(gain: number): string {
@@ -559,9 +583,9 @@ export class DayScene implements Scene {
   private flip(): void {
     audio.play('camera');
     this.rot = this.rot === 0 ? 1 : 0;
-    // Keep looking at the same piece of ground.
     this.ghostCache = null;
-    this.refresh();
+    this.refreshBuildArt();
+    this.updateHover(this.app.pointer, true);
   }
 
   /** Turns the piece in hand, or the placed device under the pointer when nothing is being built. */
@@ -570,6 +594,8 @@ export class DayScene implements Scene {
       audio.play('click');
       this.facing = turned(this.mode.type, this.facing);
       this.ghostCache = null;
+      this.refreshBuildArt();
+      this.updateInfo();
       return;
     }
     if (this.hoverDevice) this.apply(turnDevice(this.state, this.hoverDevice.id), '', 'click');
@@ -768,18 +794,7 @@ export class DayScene implements Scene {
     const ghost = placing ? { ...placing, idle: this.ghostIdle() } : null;
     const hoverId = this.mode.kind === 'repair' || this.mode.kind === 'dismantle' ? this.hoverDevice?.id : undefined;
     const marksSilent = this.showRoutes && this.mode.kind !== 'build';
-    const devices: DeviceVisual[] = state.yard.devices.map((d) => ({
-      id: d.id,
-      type: d.type,
-      x: d.x,
-      y: d.y,
-      facing: d.facing,
-      state: d.broken ? 'broken' : 'idle',
-      hpRatio: d.hp / DEVICES[d.type].maxHp,
-      highlight: d.id === hoverId,
-      // Shown with the routes: both answer "is this trap where they walk?".
-      silent: marksSilent && wasSilent(state, d),
-    }));
+    const devices = state.yard.devices.map(d => dayDeviceVisual(d, d.id === hoverId, marksSilent && wasSilent(state, d)));
     const def = this.mode.kind === 'build' ? DEVICES[this.mode.type] : null;
     // Out of build mode, the trap under the pointer shows how far it reaches.
     const reaching = !def && this.hoverDevice && isTrap(this.hoverDevice.type) && !this.hoverDevice.broken ? this.hoverDevice : null;
@@ -791,6 +806,7 @@ export class DayScene implements Scene {
       sceneryAction: this.sceneryAction,
       devices,
       barricades: state.yard.barricades,
+      houseHpRatio: state.yard.houseHp / HOUSE_MAX_HP,
       decals: state.yard.decals,
       enemies: [],
       particles: this.particles,
@@ -814,7 +830,7 @@ export class DayScene implements Scene {
     ctx.clip();
     drawWorld(ctx, this.view, frame);
     // The hour it is: the light warms as the daylight runs out, and the lamps come on before dark.
-    applyDaylight(ctx, this.view, 1 - state.hoursLeft / DAY_HOURS, houseLights(this.rot), this.time);
+    applyDaylight(ctx, this.view, 1 - state.hoursLeft / DAY_HOURS, houseLights(this.rot, frame.barricades, frame.houseHpRatio), this.time);
     ctx.restore();
 
     if (this.reveal > 0) {
@@ -843,11 +859,12 @@ export class DayScene implements Scene {
     return door.hp < barricadeMaxHp(door.level);
   }
 
-  private updateHover(pointer: Pointer, refreshInfo = false): void {
+  private updateHover(pointer: Pointer, refreshInfo = false, inspected?: SectorId): void {
     const view = this.view;
     const before = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor}`;
     const inside = pointer.overCanvas && inView(view, pointer.x, pointer.y);
-    if (inside) this.panelDoor = null;
+    if (inspected) this.panelDoor = inspected;
+    else if (inside) this.panelDoor = null;
     if (!inside) {
       this.hover = null;
       this.hoverDevice = null;
@@ -860,7 +877,7 @@ export class DayScene implements Scene {
         this.hoverDevice = null;
         this.hoverDoor = null;
       } else {
-        const visuals: DeviceVisual[] = this.state.yard.devices.map((d) => ({ id: d.id, type: d.type, x: d.x, y: d.y, state: 'idle', hpRatio: 1 }));
+        const visuals = this.state.yard.devices.map(d => dayDeviceVisual(d));
         const picked = pickDevice(view, visuals, pointer.x, pointer.y);
         this.hoverDevice = picked ? (this.state.yard.devices.find((d) => d.id === picked.id) ?? null) : null;
         this.hoverDoor = this.hoverDevice ? null : pickDoor(view, pointer.x, pointer.y);

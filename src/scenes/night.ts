@@ -3,7 +3,7 @@
 
 import { BARRICADE, COMBAT, DEVICES, HOUSE_MAX_HP, isAuto, isManual } from '../core/data/devices';
 import { concludeNight } from '../core/game';
-import { ENTRIES, HOUSE, sectorOf } from '../core/map';
+import { HOUSE, sectorOf } from '../core/map';
 import { NightSim, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
 import { deskFor, outageFor } from '../core/orchard';
 import { allyFor } from '../core/radio';
@@ -15,6 +15,9 @@ import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
+import { DefenseMotion, deviceArt, floodlightEmitter } from '../render/defenses';
+import { THRESHOLDS, doorStance, houseDamageStage } from '../render/house';
+import { HOUSE_BREAK_SECONDS, type HouseBreak } from '../render/house-debris';
 import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
 import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
 import { drawPlate, oneArmed } from './common';
@@ -90,6 +93,7 @@ interface TrapButton {
 
 export class NightScene implements Scene {
   private readonly sim: NightSim;
+  private readonly defenseMotion = new DefenseMotion();
   private cam: SectorId = 'portail';
   private accumulator = 0;
   private time = 0;
@@ -101,6 +105,7 @@ export class NightScene implements Scene {
   private flash = 0;
   private readonly particles: Particle[] = [];
   private readonly fallen: Fallen[] = [];
+  private readonly houseBreaks: HouseBreak[] = [];
   private hoverDevice: number | null = null;
 
   private readonly minis = new Map<SectorId, HTMLCanvasElement>();
@@ -139,6 +144,7 @@ export class NightScene implements Scene {
   constructor(private readonly app: App) {
     const state = this.state;
     this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state), deskFor(state), allyFor(state));
+    this.defenseMotion.update(this.sim);
     try {
       // The evening as it stood, so a lost night can be replayed with the same yard.
       sessionStorage.setItem('putrid-swarm.evening', JSON.stringify(state));
@@ -160,7 +166,7 @@ export class NightScene implements Scene {
     audio.setAmbience('night');
     audio.setMusic('night');
     // Both sides of the house are on the monitors at once: painted now, while the screen is dark.
-    prepareWorld();
+    prepareWorld(...SECTOR_IDS.map(sector => this.viewFor(sector, MAIN, MAIN_ZOOM)));
     const s = S();
     this.waveEl = el('span', { class: 'label-strong' });
     this.energyEl = el('span');
@@ -188,6 +194,9 @@ export class NightScene implements Scene {
     ]);
 
     const minis: HTMLElement[] = [];
+    // Keep the live thumbnails at camera-feed resolution. The selected monitor, controls and
+    // text render at display density; supersampling three small video buffers competes with it.
+    const miniPixelRatio = Math.min(1.25, this.app.pixelRatio);
     for (const sector of SECTOR_IDS) {
       const count = el('span', { class: 'count' });
       const door = el('i');
@@ -205,8 +214,8 @@ export class NightScene implements Scene {
       this.miniEls.set(sector, { root, count, door });
       minis.push(root);
       const canvas = document.createElement('canvas');
-      canvas.width = Math.round(MINI.w * this.app.pixelRatio);
-      canvas.height = Math.round(MINI.h * this.app.pixelRatio);
+      canvas.width = Math.round(MINI.w * miniPixelRatio);
+      canvas.height = Math.round(MINI.h * miniPixelRatio);
       this.minis.set(sector, canvas);
     }
 
@@ -374,10 +383,13 @@ export class NightScene implements Scene {
     const labels = trapKeyLabels();
     this.trapButtons.clear();
     const traps = this.camTraps();
+    const rot = this.viewFor(this.cam, MAIN, MAIN_ZOOM).rot;
     const children: HTMLElement[] = traps.map((device, index) => {
-      const url = assetUrl(`dev_${device.type}_armed`);
+      const art = deviceArt(device.type, device.facing, 'armed', rot);
+      const url = assetUrl(art.key);
       const img = el('img');
       if (url) img.src = url;
+      if (art.flip) img.style.transform = 'scaleX(-1)';
       const status = el('span', { class: 'status' });
       const fill = el('span', { class: 'fill' });
       const root = el(
@@ -526,6 +538,7 @@ export class NightScene implements Scene {
   private press(press: DeskPress): void {
     if (this.paused || this.ending) return;
     this.sim.act(press);
+    this.defenseMotion.update(this.sim);
     // Feedback is produced from the simulation's own events, so it cannot disagree with what happened.
     this.consume(this.sim.drainEvents());
   }
@@ -622,6 +635,7 @@ export class NightScene implements Scene {
         y: d.y,
         facing: d.facing,
         state: d.state,
+        activeAge: d.state === 'active' ? def.activeSeconds - d.timer : 0,
         hpRatio: Math.max(0, d.hp / def.maxHp),
         rearm: d.state === 'rearming' ? 1 - d.timer / def.rearmSeconds : 0,
         highlight: sector !== null && d.id === this.hoverDevice,
@@ -677,7 +691,6 @@ export class NightScene implements Scene {
           audio.setMusic('night');
           this.bossAlive = null;
           this.banner(s.enemy[event.boss], 'good');
-          this.particles.push({ kind: 'smoke', x: event.x, y: event.y, age: 0, life: 1.2, radius: 2.4 });
           break;
         case 'trigger': {
           const sound = TRIGGER_SOUND[event.device];
@@ -688,7 +701,7 @@ export class NightScene implements Scene {
           const def = DEVICES[event.device];
           const cx = event.x + 0.5;
           const cy = event.y + 0.5;
-          if (def.radius > 0) this.particles.push({ kind: 'ring', x: cx, y: cy, age: 0, life: event.device === 'horn' || event.device === 'floodlight' ? 1.1 : 0.45, radius: def.radius, color: event.device === 'net' ? '#e2ca96' : '#f2a531' });
+          if (event.device === 'horn' || event.device === 'net') this.particles.push({ kind: 'ring', x: cx, y: cy, age: 0, life: event.device === 'horn' ? 1.1 : 0.45, radius: def.radius, color: event.device === 'net' ? '#e2ca96' : '#f2b960' });
           if (event.device === 'spikes' || event.device === 'log') this.particles.push({ kind: 'burst', x: cx, y: cy, age: 0, life: 0.35, radius: event.device === 'log' ? 1.7 : 1.1 });
           if (event.device === 'barrier') this.particles.push({ kind: 'dust', x: cx, y: cy, age: 0, life: 0.5, radius: 1 });
           break;
@@ -704,18 +717,24 @@ export class NightScene implements Scene {
           if (event.device !== 'fence') this.remark('vo_trap_broken', 30);
           this.particles.push({ kind: 'dust', x: event.x + 0.5, y: event.y + 0.5, age: 0, life: 0.7, radius: 1.4 });
           break;
-        case 'enemy_hit':
-          if (event.amount >= 30) this.particles.push({ kind: 'text', x: event.x, y: event.y, age: 0, life: 0.7, text: `-${event.amount}` });
+        case 'enemy_hit': {
+          if (event.amount >= 30) {
+            const p = doorStance(event.pose);
+            this.particles.push({ kind: 'text', x: p.x, y: p.y, age: 0, life: 0.7, text: `-${event.amount}` });
+          }
           audio.play('hit');
           break;
-        case 'enemy_dead':
+        }
+        case 'enemy_dead': {
           audio.play('kill');
-          this.particles.push({ kind: 'splat', x: event.x, y: event.y, age: 0, life: 1.4 });
-          this.fallen.push({ id: event.id, type: event.enemy, x: event.x, y: event.y, fx: event.fx, fy: event.fy, age: 0 });
+          const pose = doorStance(event.pose);
+          this.fallen.push({ id: event.id, type: event.enemy, x: pose.x, y: pose.y, fx: pose.fx, fy: pose.fy, age: 0,
+            ...(pose.threshold && { threshold: pose.threshold }) });
           break;
+        }
         case 'barricade_hit':
           audio.play('door');
-          this.particles.push({ kind: 'dust', x: ENTRIES[event.sector].x + 0.5, y: ENTRIES[event.sector].y + 0.5, age: 0, life: 0.4, radius: 0.8 });
+          this.particles.push({ kind: 'dust', x: THRESHOLDS[event.sector].gx, y: THRESHOLDS[event.sector].gy, age: 0, life: 0.4, radius: 0.8 });
           break;
         case 'breach':
           audio.play('breach');
@@ -796,20 +815,25 @@ export class NightScene implements Scene {
 
   // ───────────────────────────── Loop ─────────────────────────────
 
-  update(dt: number): void {
-    this.time += dt;
+  private advanceEffects(dt: number): void {
     this.flash = Math.max(0, this.flash - dt);
+    for (const hit of this.houseBreaks) hit.age += dt;
+    while (this.houseBreaks[0] && this.houseBreaks[0].age >= HOUSE_BREAK_SECONDS) this.houseBreaks.shift();
     for (const fallen of this.fallen) fallen.age += dt;
     for (let i = this.fallen.length - 1; i >= 0; i--) if ((this.fallen[i] as Fallen).age >= FALL_SECONDS) this.fallen.splice(i, 1);
     for (const particle of this.particles) particle.age += dt;
     for (let i = this.particles.length - 1; i >= 0; i--) if ((this.particles[i] as Particle).age >= (this.particles[i] as Particle).life) this.particles.splice(i, 1);
+  }
 
+  update(dt: number): void {
+    if (this.paused) return;
+    this.time += dt;
     if (this.ending) {
+      this.advanceEffects(dt);
       this.ending.t += dt;
       if (this.ending.t >= END_HOLD_SECONDS) this.finish();
       return;
     }
-    if (this.paused) return;
     if (this.coachNoteUntil > 0 && this.time >= this.coachNoteUntil && !this.coach) {
       this.coachNoteUntil = 0;
       this.coachEl.className = 'coach';
@@ -821,6 +845,8 @@ export class NightScene implements Scene {
     }
     this.murmur();
 
+    const previousTime = this.sim.time;
+    const previousStage = houseDamageStage(this.sim.houseHp / HOUSE_MAX_HP);
     this.accumulator += dt * this.speed;
     let steps = 0;
     while (this.accumulator >= STEP && steps < MAX_STEPS_PER_FRAME * this.speed) {
@@ -829,6 +855,10 @@ export class NightScene implements Scene {
       steps++;
     }
     if (steps === MAX_STEPS_PER_FRAME * this.speed) this.accumulator = 0;
+    this.advanceEffects(this.sim.time - previousTime);
+    const stage = houseDamageStage(this.sim.houseHp / HOUSE_MAX_HP);
+    if (stage > previousStage) this.houseBreaks.push({ from: previousStage, to: stage, age: 0 });
+    this.defenseMotion.update(this.sim);
     this.consume(this.sim.drainEvents());
     this.syncHud();
     this.maybeCoach();
@@ -865,15 +895,18 @@ export class NightScene implements Scene {
   private frame(sector: SectorId, main: boolean): WorldFrame {
     const hovered = main && this.hoverDevice !== null ? this.sim.device(this.hoverDevice) : undefined;
     return {
-      time: this.time,
+      time: this.sim.time + (this.ending?.t ?? 0),
       night: true,
       carPresent: true,
+      houseHpRatio: this.sim.houseHp / HOUSE_MAX_HP,
+      houseBreaks: this.houseBreaks,
       devices: this.deviceVisuals(main ? sector : null),
       barricades: this.sim.barricades,
+      defenseMotion: this.defenseMotion,
       decals: this.sim.decals,
       enemies: this.sim.enemies,
       fallen: this.fallen,
-      particles: main ? this.particles : [],
+      particles: main ? this.particles : this.particles.filter((particle) => particle.kind !== 'text'),
       lanes: this.sim.telegraphedLanes(),
       focusSector: sector,
       hoverCell: hovered ? { x: hovered.x, y: hovered.y } : null,
@@ -886,23 +919,20 @@ export class NightScene implements Scene {
     const lights: Light[] = [
       // What spills out of the house on every side, then its windows and its lantern.
       { gx: (HOUSE.x0 + HOUSE.x1 + 1) / 2, gy: (HOUSE.y0 + HOUSE.y1 + 1) / 2, radius: 4.4, color: 'rgba(255,214,150,0.5)', lift: 40 },
-      ...houseLights(rot),
+      ...houseLights(rot, this.sim.barricades, this.sim.houseHp / HOUSE_MAX_HP),
     ];
     // A lamp over each door: the doorsteps are where the night is decided.
-    for (const sector of SECTOR_IDS) lights.push({ gx: ENTRIES[sector].x + 0.5, gy: ENTRIES[sector].y + 0.5, radius: 2.6, color: 'rgba(255,196,120,0.72)', lift: 10, flicker: 0.35 });
+    for (const sector of SECTOR_IDS) lights.push({ gx: THRESHOLDS[sector].gx, gy: THRESHOLDS[sector].gy, radius: 2.6, color: 'rgba(255,196,120,0.72)', lift: 10, flicker: 0.35 });
     for (const device of this.sim.devices) {
       if (device.state === 'broken') continue;
       if (device.type === 'floodlight' && device.state === 'active') {
         // The pool it throws on the ground, and the lamp itself at the top of its pole.
         lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: DEVICES.floodlight.radius, color: 'rgba(255,244,214,1)' });
-        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.2, color: 'rgba(255,244,214,0.6)', lift: 62, glow: 1, round: true });
+        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.2, color: 'rgba(255,244,214,0.6)',
+          ...floodlightEmitter(device.facing, rot), glow: 1, round: true });
       }
       else if (device.state === 'active') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.6, color: 'rgba(255,180,90,0.6)' });
       else if (device.state === 'armed') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 0.9, color: 'rgba(255,170,70,0.35)', lift: 20 });
-    }
-    // The cameras' infrared picks up anything that moves: a faint halo keeps silhouettes readable.
-    for (const enemy of this.sim.enemies) {
-      if (enemy.alive) lights.push({ gx: enemy.x, gy: enemy.y, radius: enemy.def.boss ? 1.7 : 1.25, color: enemy.def.boss ? 'rgba(255,220,196,0.72)' : 'rgba(214,236,220,0.62)', lift: 18 });
     }
     return lights;
   }
@@ -920,9 +950,10 @@ export class NightScene implements Scene {
       return;
     }
     const view = this.viewFor(sector, rect, (MAIN_ZOOM * MINI.w) / MAIN.w);
-    drawWorld(mctx, view, this.frame(sector, false));
-    applyNight(mctx, view, this.lights(view.rot), this.time);
-    applyCctv(mctx, view, this.time + SECTOR_IDS.indexOf(sector) * 1.7, 1);
+    const frame = this.frame(sector, false);
+    drawWorld(mctx, view, frame);
+    applyNight(mctx, view, this.lights(view.rot), frame.time);
+    applyCctv(mctx, view, frame.time + SECTOR_IDS.indexOf(sector) * 1.7, 1);
   }
 
   render(ctx: CanvasRenderingContext2D): void {
@@ -934,14 +965,22 @@ export class NightScene implements Scene {
       drawNoSignal(ctx, MAIN, this.time, S().night.noSignal, 34, Math.max(0, 1 - (this.time - this.lostAt) / 0.9));
     } else {
       const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
-      drawWorld(ctx, view, this.frame(this.cam, true));
-      applyNight(ctx, view, this.lights(view.rot), this.time);
-      applyCctv(ctx, view, this.time, 0.85);
+      const frame = this.frame(this.cam, true);
+      drawWorld(ctx, view, frame);
+      applyNight(ctx, view, this.lights(view.rot), frame.time);
+      applyCctv(ctx, view, frame.time, 0.85);
     }
 
     if (this.flash > 0) {
-      ctx.fillStyle = `rgba(230, 60, 40, ${Math.min(0.4, this.flash)})`;
-      ctx.fillRect(MAIN.x, MAIN.y, MAIN.w, MAIN.h);
+      ctx.save();
+      ctx.translate(MAIN.x + MAIN.w / 2, MAIN.y + MAIN.h / 2);
+      ctx.scale(MAIN.w / 2, MAIN.h / 2);
+      const edges = ctx.createRadialGradient(0, 0, 0.45, 0, 0, 1.38);
+      edges.addColorStop(0, 'rgba(204,57,37,0)');
+      edges.addColorStop(1, `rgba(220,58,40,${Math.min(0.64, this.flash * 1.5)})`);
+      ctx.fillStyle = edges;
+      ctx.fillRect(-1, -1, 2, 2);
+      ctx.restore();
     }
     if (this.ending) {
       const t = Math.min(1, this.ending.t / END_HOLD_SECONDS);
