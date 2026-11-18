@@ -14,7 +14,7 @@ import { SAVER_AFTER, SAVER_CORNER_AT, saverAt } from '../engine/saver';
 import { drawPlate } from './common';
 import { CreditsScene } from './credits';
 import { JOINT, MUG, POWER, SPEAKER, VOLUME_STEP_CLICK, VOLUME_STEP_WHEEL, desk, inside } from './desk';
-import { goDay, resumeGame } from './flow';
+import { goDay, goTitle, resumeGame } from './flow';
 
 const SAVER_TINTS = ['#d8f2e8', '#f2a531', '#9fd8e3', '#e0725c', '#c8f08a', '#d9a8e6'] as const;
 const MIRE_SECONDS = 7;
@@ -32,6 +32,7 @@ export class TitleScene implements Scene {
   private view: 'main' | 'options' | 'confirm' = 'main';
   private time = 0;
   private alive = true;
+  private recentDrags: number[] = [];
 
   constructor(private readonly app: App) {}
 
@@ -55,6 +56,14 @@ export class TitleScene implements Scene {
   }
 
   // ───────────────────────────── Easter eggs ─────────────────────────────
+
+  private readonly onExhale = (): void => {
+    // Scene time slows down in a background tab. The thirty seconds are real time.
+    const now = performance.now();
+    this.recentDrags = this.recentDrags.filter((at) => now - at < 30_000);
+    this.recentDrags.push(now);
+    if (this.recentDrags.length === 5) this.app.go(() => new TaranjaDeathScene(this.app));
+  };
 
   private togglePower(): void {
     desk.powered = !desk.powered;
@@ -252,7 +261,7 @@ export class TitleScene implements Scene {
 
   update(dt: number): void {
     this.time += dt;
-    desk.update(this.time);
+    desk.update(this.time, this.onExhale);
     this.updateSaver();
     if (this.mire && (this.time >= this.mire.until || !desk.powered)) {
       this.mire.node.remove();
@@ -284,6 +293,31 @@ export class TitleScene implements Scene {
       if (saved) resumeGame(this.app, saved);
       else this.begin();
     }
+  }
+}
+
+class TaranjaDeathScene implements Scene {
+  constructor(private readonly app: App) {}
+
+  enter(): void {
+    hush();
+    audio.setMusic('none');
+    audio.setAmbience('none');
+    audio.play('thud');
+    const s = S();
+    const back = el('button', { class: 'btn btn-primary', text: s.end.menu, onClick: () => goTitle(this.app) });
+    this.app.ui.append(el('div', { class: 'center-col end' }, [
+      el('h1', { text: s.title.taranja.title }),
+      el('p', { text: s.title.taranja.text }),
+      el('div', { class: 'row' }, [back]),
+    ]));
+    back.focus();
+  }
+
+  update(): void {}
+
+  render(ctx: CanvasRenderingContext2D): void {
+    drawPlate(ctx, 'plate_gameover');
   }
 }
 

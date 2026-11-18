@@ -5,6 +5,10 @@ export const en: Strings = {
   lang: 'English',
   title: {
     mire: 'End of programmes',
+    taranja: {
+      title: 'Died in the menu',
+      text: 'On the fifth drag, you drop dead with your nose on the push-to-talk key. Taranja calls for a minute of silence. Then you hear a mutter. “Can someone mute the corpse?”',
+    },
     start: 'Start',
     continue: 'Continue',
     options: 'Options',
