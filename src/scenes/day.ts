@@ -43,7 +43,7 @@ import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { sayAny, sayOnce } from '../engine/voice';
-import { applyDaylight, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, unproject, type DeviceVisual, type Ghost, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
+import { applyDaylight, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, unproject, WELL_CLINK_AT, type DeviceVisual, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
 import { costLine, describeCost, inventoryBar } from './common';
 import { goMap, goNightfall, goTitle } from './flow';
 
@@ -109,8 +109,7 @@ export class DayScene implements Scene {
   private hoverDevice: DeviceInstance | null = null;
   private hoverDoor: SectorId | null = null;
   private showRoutes = true;
-  /** Scene time before which the scenery does not answer another click. */
-  private pokedUntil = 0;
+  private sceneryAction: SceneryAction | null = null;
   private time = 0;
   private reveal: number;
   private readonly particles: Particle[] = [];
@@ -655,7 +654,17 @@ export class DayScene implements Scene {
   // ───────────────────────────── Loop ─────────────────────────────
 
   update(dt: number): void {
+    const previousTime = this.time;
     this.time += dt;
+    const action = this.sceneryAction;
+    if (action) {
+      const age = this.time - action.startedAt;
+      const previous = previousTime - action.startedAt;
+      if (action.kind === 'well' && previous < WELL_CLINK_AT && age >= WELL_CLINK_AT) audio.play('tin');
+      const voiceAt = action.kind === 'car' ? 1.7 : 1.5;
+      if (previous < voiceAt && age >= voiceAt) sayAny(action.kind === 'car' ? 'honk' : 'well');
+      if (age >= Math.max(1.6, voiceAt)) this.sceneryAction = null;
+    }
     if (this.reveal > 0) {
       this.reveal = Math.max(0, this.reveal - dt);
       if (this.reveal === 0) {
@@ -693,6 +702,7 @@ export class DayScene implements Scene {
       time: this.time,
       night: false,
       carPresent: true,
+      sceneryAction: this.sceneryAction,
       devices,
       barricades: state.yard.barricades,
       decals: state.yard.decals,
@@ -900,17 +910,9 @@ export class DayScene implements Scene {
   /** Nothing useful: the break's horn, and a washer down the well. Neither costs or changes anything. */
   private poke(): void {
     const prop = pickProp(this.view, ['car', 'well'], this.app.pointer.x, this.app.pointer.y);
-    if (!prop || this.time < this.pokedUntil) return;
-    this.pokedUntil = this.time + 1.6;
-    if (prop === 'car') {
-      audio.play('horn');
-      window.setTimeout(() => sayAny('honk'), 1700);
-    } else {
-      audio.play('washer');
-      // It falls for a while before it is heard.
-      window.setTimeout(() => audio.play('tin'), 900);
-      window.setTimeout(() => sayAny('well'), 1500);
-    }
+    if (this.sceneryAction || (prop !== 'car' && prop !== 'well')) return;
+    this.sceneryAction = { kind: prop, startedAt: this.time };
+    audio.play(prop === 'car' ? 'horn' : 'washer');
   }
 
   onWheel(deltaY: number, pointer: Pointer): void {

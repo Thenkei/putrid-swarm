@@ -150,6 +150,7 @@ async function writeSprite(img, box, entry, name) {
   let pipeline = sharp(img.data, { raw: { width: img.width, height: img.height, channels: 4 } }).extract({ left: box.x0, top: box.y0, width, height });
   const resize = entry.h ? { height: Math.min(entry.h, height) } : { width: Math.min(entry.w ?? width, width) };
   pipeline = pipeline.resize({ ...resize, kernel: 'lanczos3' });
+  if (entry.mirrorSprites?.includes(name)) pipeline = pipeline.flop();
   const file = `sprites/${name}.webp`;
   const info = await pipeline.webp({ quality: 90, alphaQuality: 95, effort: 5 }).toFile(join(OUT_DIR, file));
   manifest[name] = { file, w: info.width, h: info.height };

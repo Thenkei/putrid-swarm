@@ -942,7 +942,6 @@ class AudioEngine {
         break;
       case 'clap':
         this.noise('bandpass', 1900, 1500, 0.07, 0.6, 0, 1.2);
-        this.noise('bandpass', 1900, 1500, 0.07, 0.6, 0.2, 1.2);
         break;
       case 'rabbit_bolt':
         for (let i = 0; i < 4; i++) this.noise('bandpass', 1500, 700, 0.09, 0.2 - i * 0.04, i * 0.12, 1);

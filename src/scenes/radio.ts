@@ -7,6 +7,7 @@
 
 import { settleRadio } from '../core/game';
 import { hasLeftArm } from '../core/orchard';
+import { createRng } from '../core/rng';
 import {
   RADIO,
   SCRIPTS,
@@ -82,7 +83,7 @@ const SPOT = {
   readout: { a: at(SET, 0.326, 0.386), b: at(SET, 0.6, 0.52) },
   /** The tuning knob's dome. */
   knob: at(SET, 0.724, 0.494),
-  knobR: 0.075 * PLATE.w,
+  knobR: 54,
   /** The bent-wire hook the microphone hangs on. */
   hook: at(SET, 0.903, 0.39),
   /** The set, seen from the chair. */
@@ -102,6 +103,13 @@ const smooth = (t: number): number => {
   const c = clamp01(t);
   return c * c * (3 - 2 * c);
 };
+
+/** The visible plate bounds are shared by the scenery and the hands touching it. */
+function frameShot(shot: Shot, cam: Cam): Cam {
+  const zoom = Math.max(1, cam.zoom);
+  const top = -OVER * shot.focusY;
+  return { zoom, x: clamp(cam.x, CX / zoom, PLATE.w - CX / zoom), y: clamp(cam.y, top + CY / zoom, top + PLATE.h - CY / zoom) };
+}
 
 /** The band, in megahertz, as the readout shows it. */
 const mhz = (dial: number): string => (26.965 + dial * 0.44).toFixed(3);
@@ -180,6 +188,12 @@ const INTRO_SECONDS = 2.8;
 const OUTRO_SECONDS = 4.2;
 /** Band crossed between two clicks of the knob. */
 const DETENT = 0.022;
+const KNOB_ARC = 4.6;
+/** Arm sprite heights at the panel and at the player's mouth, in stage units. */
+const PANEL_HAND = 730;
+const NEAR_HAND = 860;
+/** Fraction of the trip to the mouth at which the fingers close around the hanging mic. */
+const MIC_PICKUP = 0.36;
 const rememberEnding = (ending: Ending): boolean => remember(endingId('radio', ending));
 
 type Phase = 'intro' | 'play' | 'outro' | 'card';
@@ -214,7 +228,7 @@ export class RadioScene implements Scene {
   private needle = 0;
   private needleSpeed = 0;
   private turnedSince = 0;
-  private twist = 0;
+  private grain = createRng(0).next;
   /** The set has been switched off: no more static, a dead needle. */
   private dead = false;
   private hungUp = false;
@@ -227,9 +241,10 @@ export class RadioScene implements Scene {
   private previous: Shown | null = null;
 
   private readonly atmo = new Atmosphere({ motes: 70 });
-  /** Where each hand is, eased toward where it is going. */
-  private readonly right = { x: 1000, y: 900, lean: -0.3, reach: 0, art: 'radio_hands_dial' };
-  private readonly leftHand = { x: 300, y: 900, lean: 0.3, reach: 0 };
+  private dialReach = 0;
+  /** 0 at the dial (left hand offscreen), 1 holding the mic, in either direction. */
+  private micTravel = 0;
+  private micRaised = 0;
 
   private readonly queue: { at: number; run: () => void }[] = [];
 
@@ -529,9 +544,8 @@ export class RadioScene implements Scene {
   private promptDown(id: PromptId, event: PointerEvent): void {
     const spec = SPEC[id];
     if (id === 'tune') {
-      // Pressed on its left half turns down the band, on its right half up.
-      const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
-      this.pointerHold = event.clientX < box.left + box.width * 0.25 ? 'left' : 'right';
+      const leftKey = (event.currentTarget as HTMLElement).querySelector('.key-left');
+      this.pointerHold = leftKey && event.clientX <= leftKey.getBoundingClientRect().right ? 'left' : 'right';
     } else if (spec.hold) this.pointerHold = spec.hold;
     else if (spec.tap) this.send(spec.tap);
   }
@@ -592,14 +606,13 @@ export class RadioScene implements Scene {
   private play(dt: number): void {
     const before = this.radio.dial;
     this.apply(tick(this.radio, dt, this.held()));
-    // The knob clicks as it turns, and the wrist twists with it.
+    // Carry the fraction of the last detent into the next turn.
     const moved = this.radio.dial - before;
     this.turnedSince += Math.abs(moved);
     if (this.turnedSince >= DETENT) {
-      this.turnedSince = 0;
+      this.turnedSince %= DETENT;
       audio.play('radio_knob', 0.45);
     }
-    this.twist = lerp(this.twist, Math.sign(moved) * 0.09, 1 - Math.exp(-dt * 10));
   }
 
   /** How loud their voice comes out of the set: a little of it even off-tune, the rest with the dial. */
@@ -646,42 +659,20 @@ export class RadioScene implements Scene {
     const o = this.radio;
     const playing = this.phase === 'play' || (this.phase === 'outro' && this.phaseTime < 1.4 && !this.hungUp);
     const onSet = playing && o.beat !== 'arrive';
-    const knob = this.onScreen(SPOT.knob);
-    const mouth = { x: 580, y: 425 };
-    const dial = { x: knob.x - SPOT.knobR * 0.62 * this.cam.zoom, y: knob.y - SPOT.knobR * 0.55 * this.cam.zoom };
-    // With one hand: where it is between the knob and the microphone.
-    let tip = dial;
-    let art = 'radio_hands_dial';
-    let lean = -0.32 + this.twist;
-    if (this.oneArm) {
-      const r = smooth(o.reach);
-      const toMic = o.hand === 'mic' || o.hand === 'to_mic';
-      const t = o.hand === 'mic' ? 1 : o.hand === 'to_mic' ? r : o.hand === 'to_dial' ? 1 - r : 0;
-      tip = { x: lerp(dial.x, mouth.x, t), y: lerp(dial.y, mouth.y, t) - Math.sin(t * Math.PI) * 60 };
-      if (t > 0.5 || (toMic && t > 0.45)) art = 'radio_hands_mic';
-      lean = lerp(lean, -0.12, t);
+    if (this.oneArm && onSet) {
+      switch (o.hand) {
+        case 'dial': this.micTravel = 0; break;
+        case 'to_mic': this.micTravel = o.reach; break;
+        case 'mic': this.micTravel = 1; break;
+        case 'to_dial': this.micTravel = 1 - o.reach; break;
+      }
+    } else {
+      const pickup = onSet && o.beat !== 'search';
+      this.micTravel = clamp01(this.micTravel + (pickup ? dt : -dt) / RADIO.crossSeconds);
     }
-    const k = 1 - Math.exp(-dt * 12);
-    this.right.x = lerp(this.right.x, tip.x, k);
-    this.right.y = lerp(this.right.y, tip.y, k);
-    this.right.lean = lerp(this.right.lean, lean, k);
-    this.right.art = art;
-    this.right.reach = lerp(this.right.reach, onSet ? 1 : 0, 1 - Math.exp(-dt * 5));
-
-    // With two: the left hand has the microphone from the moment there is someone to talk to, and raises it to speak.
-    const holding = !this.oneArm && onSet && o.beat !== 'search';
-    const raised = o.said !== null;
-    const left = raised ? { x: 500, y: 430 } : { x: 330, y: 610 };
-    this.leftHand.x = lerp(this.leftHand.x, left.x, k * 0.8);
-    this.leftHand.y = lerp(this.leftHand.y, left.y, k * 0.8);
-    this.leftHand.lean = lerp(this.leftHand.lean, raised ? 0.16 : 0.42, k);
-    this.leftHand.reach = lerp(this.leftHand.reach, holding ? 1 : 0, 1 - Math.exp(-dt * 5));
-  }
-
-  /** Whether the microphone is on its hook rather than in a hand. */
-  private micOnHook(): boolean {
-    if (!this.oneArm) return this.leftHand.reach < 0.5;
-    return this.right.art !== 'radio_hands_mic' || this.right.reach < 0.5;
+    const atDesk = onSet || (this.oneArm && this.micTravel > 0);
+    this.dialReach = lerp(this.dialReach, atDesk ? 1 : 0, 1 - Math.exp(-dt * 7));
+    this.micRaised = lerp(this.micRaised, o.said ? 1 : 0, 1 - Math.exp(-dt * 9));
   }
 
   /** The camera eases toward where the moment wants it. */
@@ -705,7 +696,8 @@ export class RadioScene implements Scene {
   }
 
   private onScreen(point: Point): Point {
-    return { x: (point.x - this.cam.x) * this.cam.zoom + CX, y: (point.y - this.cam.y) * this.cam.zoom + CY };
+    const { zoom, x, y } = frameShot(SET, this.cam);
+    return { x: (point.x - x) * zoom + CX, y: (point.y - y) * zoom + CY };
   }
 
   // ───────────────────────────── HUD ─────────────────────────────
@@ -728,7 +720,12 @@ export class RadioScene implements Scene {
       if (!node) continue;
       node.style.setProperty('--p', String(clamp01(prompt.progress ?? 0)));
       const spec = SPEC[prompt.id];
-      node.classList.toggle('held', prompt.id === 'tune' ? held.left || held.right : spec.hold !== undefined && held[spec.hold]);
+      if (prompt.id === 'tune') {
+        node.classList.toggle('turn-left', held.left && !held.right);
+        node.classList.toggle('turn-right', held.right && !held.left);
+      } else {
+        node.classList.toggle('held', spec.hold !== undefined && held[spec.hold]);
+      }
       node.classList.toggle('weak', prompt.weak === true);
     }
     const weak = prompts.some((p) => p.weak);
@@ -819,10 +816,8 @@ export class RadioScene implements Scene {
 
   private drawShot(ctx: CanvasRenderingContext2D, shot: Shot, cam: Cam, alpha: number, props?: () => void): void {
     if (alpha <= 0) return;
-    const zoom = Math.max(1, cam.zoom);
+    const { x, y, zoom } = frameShot(shot, cam);
     const top = -OVER * shot.focusY;
-    const x = clamp(cam.x, CX / zoom, PLATE.w - CX / zoom);
-    const y = clamp(cam.y, top + CY / zoom, top + PLATE.h - CY / zoom);
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(CX, CY);
@@ -937,7 +932,7 @@ export class RadioScene implements Scene {
         const f = i / steps;
         const band = o.dial - span / 2 + f * span;
         const level = band < 0 || band > 1 ? 0 : signalAt(o, band);
-        const grass = (Math.random() - 0.5) * (0.06 + (1 - level) * 0.08);
+        const grass = (this.grain() - 0.5) * (0.06 + (1 - level) * 0.08);
         const py = base - (level * 0.9 + 0.05 + grass) * tall;
         if (i === 0) ctx.moveTo(a.x + f * w, py);
         else ctx.lineTo(a.x + f * w, py);
@@ -965,38 +960,54 @@ export class RadioScene implements Scene {
     ctx.fillRect(a.x, a.y, w, h * 0.35);
     if (!this.dead) {
       ctx.fillStyle = 'rgba(200, 255, 210, 0.08)';
-      for (let i = 0; i < 26; i++) ctx.fillRect(a.x + Math.random() * w, a.y + Math.random() * h, 2, 1);
+      for (let i = 0; i < 26; i++) ctx.fillRect(a.x + this.grain() * w, a.y + this.grain() * h, 2, 1);
     }
     ctx.restore();
   }
 
-  /** A painted notch on the knob's dome, turning with the dial. */
+  /** The scale and collar stay on the panel. The scalloped face turns around the shaft. */
   private drawKnob(ctx: CanvasRenderingContext2D): void {
     const { x, y } = SPOT.knob;
     const r = SPOT.knobR;
-    const a = -Math.PI / 2 - 2.3 + this.radio.dial * 4.6;
+    const art = sprite('radio_tuning_knob');
     ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(0.94, 1);
+    ctx.strokeStyle = '#d4b17c';
+    ctx.lineWidth = 2;
     ctx.lineCap = 'round';
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
-    ctx.lineWidth = 7;
     ctx.beginPath();
-    ctx.moveTo(x + Math.cos(a) * r * 0.45 + 2, y + Math.sin(a) * r * 0.45 + 2);
-    ctx.lineTo(x + Math.cos(a) * r * 0.86 + 2, y + Math.sin(a) * r * 0.86 + 2);
+    for (let i = 0; i <= 12; i++) {
+      const a = -Math.PI / 2 + (i / 12 - 0.5) * KNOB_ARC;
+      const outer = r + (i % 3 === 0 ? 16 : 11);
+      ctx.moveTo(Math.cos(a) * (r + 7), Math.sin(a) * (r + 7));
+      ctx.lineTo(Math.cos(a) * outer, Math.sin(a) * outer);
+    }
     ctx.stroke();
-    ctx.strokeStyle = '#efe2c4';
-    ctx.lineWidth = 5;
+    ctx.fillStyle = '#32251c';
+    ctx.strokeStyle = '#947245';
     ctx.beginPath();
-    ctx.moveTo(x + Math.cos(a) * r * 0.45, y + Math.sin(a) * r * 0.45);
-    ctx.lineTo(x + Math.cos(a) * r * 0.86, y + Math.sin(a) * r * 0.86);
+    ctx.arc(-3, -4, r + 1, 0, Math.PI * 2);
+    ctx.shadowColor = 'rgba(20, 12, 8, 0.7)';
+    ctx.shadowBlur = 5;
+    ctx.shadowOffsetY = 5;
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
     ctx.stroke();
+    ctx.rotate((this.radio.dial - 0.5) * KNOB_ARC);
+    if (art) ctx.drawImage(art.img, -r, -r, 2 * r, 2 * r);
+    else {
+      ctx.fillStyle = '#efe2c4';
+      ctx.fillRect(-2, -r + 4, 4, r - 10);
+    }
     ctx.restore();
   }
 
   /** The microphone on its hook, and its curly cord. */
   private drawMic(ctx: CanvasRenderingContext2D): void {
     const art = sprite('radio_parts_mic');
-    if (!art || !this.micOnHook()) return;
-    const height = 210;
+    if (!art || this.micTravel >= MIC_PICKUP) return;
+    const height = 252;
     const width = (art.w / art.h) * height;
     const sway = Math.sin(this.time * 1.3) * 0.02;
     const top = { x: SPOT.hook.x, y: SPOT.hook.y - 20 };
@@ -1027,20 +1038,54 @@ export class RadioScene implements Scene {
       if (arriving > 0) this.drawSet(ctx, { zoom: 1.2 - 0.16 * arriving, x: CX, y: CY }, arriving);
       return;
     }
-    const jitter = this.crackle > 0.5 && !this.dead ? (Math.random() - 0.5) * 2 : 0;
+    const jitter = this.crackle > 0.5 && !this.dead ? (this.grain() - 0.5) * 2 : 0;
     this.drawSet(ctx, { zoom: this.cam.zoom, x: this.cam.x + jitter, y: this.cam.y }, 1);
   }
 
   /** The hands that come into the picture. */
   private drawBody(ctx: CanvasRenderingContext2D): void {
     if (this.phase === 'card') return;
-    if (this.leftHand.reach > 0.01) {
-      // The left hand, holding the microphone: the right hand's picture, mirrored.
-      drawArm(ctx, sprite('radio_hands_mic'), { x: this.leftHand.x, y: this.leftHand.y }, { height: 560, lean: this.leftHand.lean, reach: this.leftHand.reach, mirror: true });
+    const knob = this.onScreen(SPOT.knob);
+    // Turn through eight detents with the knob, then slide the fingers back around its rim.
+    const phase = (this.radio.dial / (10 * DETENT)) % 1;
+    const grip = phase < 0.8 ? phase / 0.8 : 1 - smooth((phase - 0.8) / 0.2);
+    const twist = (grip - 0.5) * (8 * DETENT * KNOB_ARC);
+    const slip = phase > 0.8 ? Math.sin(Math.PI * (phase - 0.8) / 0.2) : 0;
+    const height = PANEL_HAND * this.cam.zoom;
+    const dialLean = -0.32 + twist;
+    // Offset from the arm's drawing pivot to the centre of the opening between thumb and index.
+    const gripX = -0.096 * height;
+    const gripY = 0.077 * height;
+    const dial = {
+      x: knob.x - gripX * Math.cos(dialLean) + gripY * Math.sin(dialLean) + slip * 12,
+      y: knob.y - gripX * Math.sin(dialLean) - gripY * Math.cos(dialLean) - slip * 7,
+    };
+    const tuningHand = sprite('radio_hands_dial') ?? sprite('desk_hand_open');
+    if ((!this.oneArm || this.micTravel === 0) && this.dialReach > 0.01) {
+      drawArm(ctx, tuningHand, dial, { height, lean: dialLean, reach: this.dialReach });
     }
-    if (this.right.reach > 0.01) {
-      drawArm(ctx, sprite(this.right.art) ?? sprite('desk_hand_open'), { x: this.right.x, y: this.right.y }, { height: 600, lean: this.right.lean, reach: this.right.reach });
-    }
+
+    if (this.micTravel > 0) this.drawMicHand(ctx, dial, dialLean);
+  }
+
+  private drawMicHand(ctx: CanvasRenderingContext2D, dial: Point, dialLean: number): void {
+    const t = this.micTravel;
+    const left = !this.oneArm;
+    const panelHeight = PANEL_HAND * this.cam.zoom;
+    const hook = this.onScreen({ x: SPOT.hook.x, y: SPOT.hook.y - 20 });
+    // The held grille sits to one side of the arm sprite, 4% of its height above drawArm's pivot.
+    const dock = { x: hook.x + (left ? -1 : 1) * panelHeight * 0.067, y: hook.y + panelHeight * 0.04 };
+    const held = t >= MIC_PICKUP;
+    const start = left ? { x: 770, y: STAGE_H + 100 } : dial;
+    const end = left ? { x: lerp(330, 500, this.micRaised), y: lerp(554, 405, this.micRaised) } : { x: 580, y: 405 };
+    const from = held ? dock : start;
+    const to = held ? end : dock;
+    const turn = smooth(held ? (t - MIC_PICKUP) / (1 - MIC_PICKUP) : t / MIC_PICKUP);
+    const height = held ? lerp(panelHeight, NEAR_HAND, turn) : panelHeight;
+    const tip = { x: lerp(from.x, to.x, turn), y: lerp(from.y, to.y, turn) - Math.sin(turn * Math.PI) * (held ? 52 : 20) };
+    const lean = held ? lerp(0, left ? lerp(0.42, 0.16, this.micRaised) : -0.12, turn) : lerp(left ? 0.70 : dialLean, 0, turn);
+    const art = sprite(held ? 'radio_hands_mic' : left ? 'desk_hand_open' : 'radio_hands_dial') ?? sprite('desk_hand_open');
+    drawArm(ctx, art, tip, { height, lean, mirror: left });
   }
 
   private drawVeil(ctx: CanvasRenderingContext2D): void {
@@ -1073,7 +1118,7 @@ export class RadioScene implements Scene {
     // A burst of interference, when the static spits.
     if (this.crackle > 0.6 && !this.dead) {
       ctx.fillStyle = 'rgba(230, 240, 255, 0.05)';
-      for (let i = 0; i < 4; i++) ctx.fillRect(0, Math.random() * STAGE_H, STAGE_W, 1 + Math.random() * 2);
+      for (let i = 0; i < 4; i++) ctx.fillRect(0, this.grain() * STAGE_H, STAGE_W, 1 + this.grain() * 2);
     }
     if (this.phase === 'intro') flat('#000', 1 - this.phaseTime / 1.4);
     if (this.phase === 'outro') flat('#000', clamp01((this.phaseTime - (OUTRO_SECONDS - 1.6)) / 1.4) * 0.6);
@@ -1081,10 +1126,12 @@ export class RadioScene implements Scene {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
+    // Sample the tube noise at a fixed rate. A paused scene redraws exactly the same glass and static.
+    this.grain = createRng(Math.floor(this.time * 30)).next;
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);
     ctx.save();
-    ctx.translate((Math.random() * 2 - 1) * this.shake, (Math.random() * 2 - 1) * this.shake);
+    ctx.translate((this.grain() * 2 - 1) * this.shake, (this.grain() * 2 - 1) * this.shake);
     this.drawGround(ctx);
     this.atmo.drawFront(ctx, -(this.cam.x - CX) * 0.4, 0.8);
     ctx.restore();
