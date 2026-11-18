@@ -749,7 +749,7 @@ export class NightScene implements Scene {
           audio.play('kill');
           const pose = doorStance(event.pose);
           if (event.showAt === undefined) this.logReactions.cancel(event.id);
-          this.fallen.push({ id: event.id, type: event.enemy, x: pose.x, y: pose.y, fx: pose.fx, fy: pose.fy, crawlDepth: pose.crawlDepth, crawlLog: pose.crawlLog ?? null, age: now - (event.showAt ?? now),
+          this.fallen.push({ id: event.id, type: event.enemy, x: pose.x, y: pose.y, fx: pose.fx, fy: pose.fy, crawlDepth: pose.crawlDepth, age: now - (event.showAt ?? now),
             ...(pose.threshold && { threshold: pose.threshold }) });
           break;
         }

@@ -32,7 +32,6 @@ it('keeps the captured runner flat until nearby spikes rearm under the net', () 
     const death = sim.drainEvents().find(e => e.type === 'enemy_dead' && e.id === 1);
     if (death?.type === 'enemy_dead') {
       expect(death.pose.crawlDepth).toBe(1);
-      expect(death.pose.crawlLog).toEqual({ x: log!.x, y: log!.y });
       expect(sim.time - caughtAt!).toBeGreaterThan(0.5);
       return;
     }
@@ -77,7 +76,7 @@ describe('overlapping swings', () => {
   });
 });
 
-function crossing(type: 'runner' | 'dog') {
+function crossingSim(type: 'runner' | 'dog') {
   const state = newGame(42);
   const strong = { level: 1, hp: 280 } as const;
   const barricades = { portail: { level: 0 as const, hp: 80 }, grange: strong, verger: strong, arriere: strong };
@@ -85,7 +84,11 @@ function crossing(type: 'runner' | 'dog') {
   if (!yard.ok) throw Error('Cannot place crossing log');
   const side = build({ ...yard.value, inventory: state.inventory, hoursLeft: 12 }, 'log', 9, 17);
   if (!side.ok) throw Error('Cannot place side log');
-  const sim = new NightSim(type === 'dog' ? 4 : 5, side.value.yard, 42);
+  return new NightSim(type === 'dog' ? 4 : 5, side.value.yard, 42);
+}
+
+function crossing(type: 'runner' | 'dog') {
+  const sim = crossingSim(type);
   for (let i = 0; i < 1200; i++) {
     sim.step(1 / 60);
     const crawler = sim.enemies.find(e => e.type === type && e.crawlDepth === 1);
@@ -95,6 +98,33 @@ function crossing(type: 'runner' | 'dog') {
 }
 
 describe('log impact on camera', () => {
+  it.each(['runner', 'dog'] as const)('keeps a %s crawling through the winch return until its feet clear the rig', type => {
+    const sim = crossingSim(type);
+    const log = sim.devices[0]!;
+    // Release before this actor enters the sweep. The whole traversal then takes
+    // place under a load that is slowly being hoisted back up.
+    const approaching = () => sim.enemies.find(e => e.type === type && Math.hypot(e.x - log.x - 0.5, e.y - log.y - 0.5) < 2.2);
+    for (let i = 0; i < 1200 && !approaching(); i++) sim.step(1 / 60);
+    const crawler = approaching();
+    if (!crawler) throw Error('No crawler approached the winch');
+    expect(sim.trigger(log.id).ok).toBe(true);
+    let crossedDuringReset = false;
+    let rising = false;
+    for (let i = 0; i < 300; i++) {
+      sim.step(1 / 60);
+      if (log.state !== 'rearming') continue;
+      if (Math.floor(crawler.x) === log.x && Math.floor(crawler.y) === log.y) {
+        expect(crawler).toMatchObject({ action: 'crawl', crawlDepth: 1, crawlLog: log });
+        crossedDuringReset = true;
+      }
+      if (crawler.action === 'walk' && crawler.crawlDepth > 0) rising = true;
+      if (rising && crawler.crawlDepth === 0) break;
+    }
+    expect(crossedDuringReset).toBe(true);
+    expect(rising).toBe(true);
+    expect(crawler).toMatchObject({ crawlDepth: 0, crawlLog: null, action: 'walk' });
+  });
+
   it.each(['runner', 'dog'] as const)('keeps a %s under its own log, then carries its low pose through a fatal side impact', type => {
     const { sim, crawler } = crossing(type);
     expect(sim.trigger(sim.devices[0]!.id).ok).toBe(true);

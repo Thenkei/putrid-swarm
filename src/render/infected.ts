@@ -3,7 +3,7 @@
 
 import { BOSS } from '../core/data/enemies';
 import { BLOW_RECOVERY_SECONDS, HIT_REACTION_SECONDS, type Enemy, type LogTarget } from '../core/night';
-import type { Cell, EnemyTypeId, SectorId } from '../core/types';
+import type { EnemyTypeId, SectorId } from '../core/types';
 import { sprite, type Sprite } from '../engine/assets';
 import { calmMotion } from './lighting';
 import { smoothstep } from './noise';
@@ -19,7 +19,6 @@ export interface Fallen {
   readonly fx: number;
   readonly fy: number;
   readonly crawlDepth?: number;
-  readonly crawlLog?: Cell | null;
   age: number;
 }
 
@@ -56,6 +55,13 @@ const ART: Readonly<Record<EnemyTypeId, CharacterArt>> = {
 const CLIPS = ['walk', 'run', 'grip', 'hit', 'fall', 'dead'] as const;
 const CRAWL_CLIPS = ['kneel', 'crawlLeft', 'crawlGather', 'crawlRight'] as const;
 const CRAWL_CYCLE = ['crawlLeft', 'crawlGather', 'crawlRight', 'crawlGather'] as const;
+// Top of the ink in each crawl cel. All four rows share the ground line at 146.
+// Register the actual silhouette: the transparent headroom varies by as much as
+// 31 pixels between strokes of the same gait in the same camera.
+const CRAWL_TOP = [
+  [41, 72, 89, 84], [32, 47, 62, 54],
+  [12, 50, 70, 59], [4, 28, 59, 46],
+] as const;
 type Clip = (typeof CLIPS)[number];
 type CrawlClip = (typeof CRAWL_CLIPS)[number];
 type Pose = Clip | CrawlClip | 'a' | 'p' | 'b' | 'x';
@@ -87,8 +93,9 @@ function figureFor(art: CharacterArt, front: boolean, pose: Pose): Figure | null
     const cw = sheet.w / CRAWL_CLIPS.length;
     const ch = sheet.h / 4;
     const row = (art.key === 'en_dog' ? 2 : 0) + (front ? 0 : 1);
-    // In this atlas 128 source pixels are one standing character height.
-    figure = { source: sheet, sx: crawl * cw, sy: row * ch, sw: cw, sh: ch, width: cw / 128, height: ch / 128, reverse: false };
+    const top = CRAWL_TOP[row]![crawl]!;
+    figure = { source: sheet, sx: crawl * cw, sy: row * ch + top, sw: cw, sh: 146 - top,
+      width: cw / 128, height: 1, reverse: false };
   } else if (atlas) {
     const cw = atlas.w / (CLIPS.length * 2);
     const ch = atlas.h / 11;
@@ -138,6 +145,14 @@ function facing(view: View, fx: number, fy: number) {
   return { front, dir, flip: front ? dir > 0 : dir < 0, depth: front ? 0.38 : -0.38 };
 }
 
+// The rear painting includes the distance from the near boot to the far shoulder.
+// Follow one continuous height envelope through kneel, alternate reaches and rise.
+function crawlHeight(art: CharacterArt, front: boolean, depth: number): number {
+  const standing = art.animal ? 1 : 0.92;
+  const prone = art.animal ? (front ? 0.57 : 0.68) : (front ? 0.42 : 0.50);
+  return standing + (prone - standing) * smoothstep(0, 1, depth);
+}
+
 interface Movement {
   pose: Pose;
   /** Displacement and squash use standing height as unit; forward is movement towards the target. */
@@ -153,11 +168,13 @@ interface Movement {
 export function shoulderAt(view: View, target: LogTarget) {
   const art = ART[target.type];
   const h = art.height * view.zoom * stature(art, target.id);
-  const { dir, depth } = facing(view, target.fx, target.fy);
-  const low = target.crawlDepth >= 0.6;
+  const { dir, depth, front } = facing(view, target.fx, target.fy);
+  const low = smoothstep(0, 1, target.crawlDepth);
   const p = project(view, target.x, target.y);
-  const forward = low ? 0.28 : art.animal ? 0.25 : 0.08;
-  const lift = h * (low ? 0.30 : target.crawlDepth > 0 ? 0.52 : art.animal ? 0.57 : 0.73);
+  const upright = art.animal ? 0.25 : 0.08;
+  const forward = upright + (0.28 - upright) * low;
+  const shoulder = art.animal ? 0.57 : 0.73;
+  const lift = h * (shoulder + (crawlHeight(art, front, 1) * 0.67 - shoulder) * low);
   return { x: p.x + h * dir * forward, y: p.y + h * depth * forward, lift };
 }
 
@@ -182,14 +199,14 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
       m.lean = (art.animal ? -0.025 : 0.10) * recoil;
       m.squash = 1 - (art.animal ? 0.20 : 0.24) * recoil;
     }
-  } else if (e.nettedFor > 0 || e.stunnedFor > 0 || e.action === 'jam') {
+  } else if (e.nettedFor > 0 || e.stunnedFor > 0 || e.action === 'jam' || (e.action === 'idle' && e.crawlDepth > 0)) {
     const low = Math.max(e.crawlDepth, e.hitCrawlDepth ?? 0);
-    m.pose = low > 0.5 ? 'crawlGather' : low > 0 ? 'kneel' : 'p';
+    m.pose = low >= 0.6 ? 'crawlGather' : low > 0 ? 'kneel' : 'p';
     m.squash = 0.96;
-  } else if (e.action === 'crawl' || (e.action === 'walk' && e.crawlDepth > 0)) {
+  } else if (e.crawlDepth > 0) {
     const phase = (e.travel / (art.animal ? 0.83 : 0.68) + trait(e.id)) % 1;
     m.pose = e.crawlDepth < 0.6 ? 'kneel' : CRAWL_CYCLE[Math.floor(phase * 4)]!;
-    m.squash = e.crawlDepth < 0.6 ? 1 - 0.14 * e.crawlDepth : 1 - 0.025 * Math.sin(TAU * phase);
+    m.squash = 1 - 0.025 * Math.sin(TAU * phase) * e.crawlDepth;
     m.forward = 0.023 * Math.sin(TAU * phase);
     m.lean = 0.022 * Math.cos(TAU * phase);
   } else if (e.blowRecovery > 0 || (e.action === 'attack' && (e.type !== 'mail' || e.cooldown <= 0))) {
@@ -354,6 +371,10 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
   const reduced = calmMotion();
   const movement = motion(enemy, art, reduced);
   const f = figureFor(art, front, movement.pose);
+  const crouching = CRAWL_CLIPS.includes(movement.pose as CrawlClip);
+  const low = enemy.hitFlash > 0 || enemy.nettedFor > 0 || enemy.stunnedFor > 0
+    ? Math.max(enemy.crawlDepth, enemy.hitCrawlDepth ?? 0) : enemy.crawlDepth;
+  const posture = crouching ? crawlHeight(art, front, low) : 1;
   if (f && !reduced && movement.step < 1 && movement.pose === 'p' && !art.wheels) {
     // With legs tucked, the bottom of the cel is the lifted foot. Keep the chest
     // near the stride's shoulder line while a grounded walker retains a little dip.
@@ -372,7 +393,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
   ctx.save();
   ctx.translate(p.x + dir * movement.forward * h, p.y + 3 * z + h * (movement.forward * depth - movement.up));
   ctx.rotate(dir * movement.lean);
-  ctx.scale(flip ? -1 : 1, movement.squash);
+  ctx.scale(flip ? -1 : 1, posture * movement.squash);
   if (f) drawFigure(ctx, f, h, enemy.nettedFor > 0 ? 'net' : enemy.threshold ? 'door' : 'live', frame.night, movement.flash);
   else {
     ctx.fillStyle = enemy.def.boss ? '#a8433a' : '#7d9a58';
@@ -382,8 +403,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
   }
   ctx.restore();
 
-  const crouching = CRAWL_CLIPS.includes(movement.pose as CrawlClip);
-  const top = p.y - h * (crouching ? movement.pose === 'kneel' ? 0.78 : 0.51 : 1);
+  const top = p.y - h * posture;
   if (enemy.stunnedFor > 0) {
     for (let i = 0; i < 3; i++) {
       const a = (reduced ? 0 : frame.time * 6) + (i * Math.PI * 2) / 3;
@@ -452,9 +472,12 @@ export function drawFallen(ctx: CanvasRenderingContext2D, view: View, frame: Mom
   const opacity = 1 - smoothstep(FALL_SECONDS - 0.62, FALL_SECONDS, age);
   if (opacity <= 0) return;
   const { front, flip, dir, depth } = facing(view, body.fx, body.fy);
-  const low = (body.crawlDepth ?? 0) > 0;
+  const initialDepth = body.crawlDepth ?? 0;
+  const low = initialDepth > 0;
   const rollEnd = low ? 0.24 : 0.39;
-  const pose: Pose = low && age < rollEnd ? 'crawlGather' : age < 0.12 ? 'hit' : age < rollEnd ? 'fall' : 'dead';
+  const under = initialDepth + (1 - initialDepth) * smoothstep(0, rollEnd, age);
+  const falling: Pose = low ? (under < 0.6 ? 'kneel' : 'crawlGather') : (age < 0.12 ? 'hit' : 'fall');
+  const pose = age < rollEnd ? falling : 'dead';
   const cel = figureFor(art, front, pose);
   if (!cel) return;
   const p = project(view, body.x, body.y);
@@ -474,7 +497,8 @@ export function drawFallen(ctx: CanvasRenderingContext2D, view: View, frame: Mom
   } else if (!sprite('defense_mob_poses')) ctx.rotate(-dir * collapse * 1.35);
   else if (!reduced && pose !== 'dead') ctx.rotate(dir * (pose === 'hit' ? -0.08 : -buckle * 0.13));
   const squash = pose === 'crawlGather' ? 1 - 0.28 * buckle : pose === 'fall' ? 1 - 0.22 * buckle : 1 - 0.045 * settle;
-  ctx.scale(flip ? -1 : 1, (low && pose === 'dead' ? 0.80 : 1) * (reduced ? 1 : squash));
+  const posture = low ? pose === 'dead' ? 0.80 : crawlHeight(art, front, under) : 1;
+  ctx.scale(flip ? -1 : 1, posture * (reduced ? 1 : squash));
   drawFigure(ctx, cel, h, 'fallen', frame.night);
   ctx.restore();
 }

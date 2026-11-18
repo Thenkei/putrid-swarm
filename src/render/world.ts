@@ -7,7 +7,7 @@ import type { DeviceRuntimeState, Enemy, LogTarget } from '../core/night';
 import type { Cell, Decal, DeviceTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { sprite } from '../engine/assets';
-import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseMotion } from './defenses';
+import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseMotion, type LogLayer } from './defenses';
 import { drawDecals } from './aftermath';
 import { drawEnemy, drawFallen, FALL_SECONDS, type Fallen } from './infected';
 import { drawGround, prepareGround, setGroundDresser } from './ground';
@@ -523,8 +523,18 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   for (const device of frame.devices) {
     const p = project(view, device.x + 0.5, device.y + 0.5);
     if (!onScreen(p, 125)) continue;
-    drawables.push({ depth: depthOf(view.rot, device.x + 0.5, device.y + 0.5) + 0.3, draw: () => drawDevice(ctx, view, frame, device, p) });
+    const depth = depthOf(view.rot, device.x + 0.5, device.y + 0.5);
     const broken = device.state === 'broken';
+    if (device.type === 'log' && !broken) {
+      // The outer planted feet span the crossing. An actor keeps its own ground
+      // depth as it passes the far frame, the suspended timber, then the near legs.
+      const art = deviceArt('log', device.facing, 'armed', view.rot);
+      const atFoot = (y: number) => depth + (y / 200 - art.foot[1]) * art.h / (TH / 2);
+      drawables.push(
+        { depth: atFoot(view.rot === 0 ? 143 : 140), draw: () => drawDevice(ctx, view, frame, device, p, 'far') },
+        { depth: atFoot(view.rot === 0 ? 196 : 198), draw: () => drawDevice(ctx, view, frame, device, p, 'near') },
+      );
+    } else drawables.push({ depth: depth + 0.3, draw: () => drawDevice(ctx, view, frame, device, p) });
     contacts.push({ gx: device.x + 0.5, gy: device.y + 0.5, rx: 0.56, ry: 0.56, alpha: device.type === 'fence' ? 0.3 : broken ? 0.3 : 0.42 });
     const wear = broken ? frame.defenseMotion?.at(device.id) : undefined;
     const remaining = wear && !calmMotion() ? Math.max(0, 1 - (frame.time - wear.brokeAt) / 0.52) : 0;
@@ -558,20 +568,12 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   for (const enemy of actors) {
     let depth = depthOf(view.rot, enemy.x, enemy.y);
     if (enemy.threshold && VISIBLE_DOORS[view.rot].includes(enemy.threshold)) depth = Math.max(depth, outsideWall);
-    const log = enemy.crawlLog;
-    if (log && enemy.crawlDepth > 0.6 && Math.floor(enemy.x) === log.x && Math.floor(enemy.y) === log.y) {
-      depth = Math.min(depth, depthOf(view.rot, log.x + 0.5, log.y + 0.5));
-    }
     drawables.push({ depth, draw: () => drawEnemy(ctx, view, frame, enemy) });
   }
 
   for (const fallen of frame.fallen ?? []) {
     let depth = depthOf(view.rot, fallen.x, fallen.y) - 0.05;
     if (fallen.threshold && VISIBLE_DOORS[view.rot].includes(fallen.threshold)) depth = Math.max(depth, outsideWall);
-    const log = fallen.crawlLog;
-    if (log && (fallen.crawlDepth ?? 0) > 0.6 && Math.floor(fallen.x) === log.x && Math.floor(fallen.y) === log.y) {
-      depth = Math.min(depth, depthOf(view.rot, log.x + 0.5, log.y + 0.5));
-    }
     drawables.push({ depth, draw: () => drawFallen(ctx, view, frame, fallen) });
   }
 
@@ -864,13 +866,13 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
   ];
 }
 
-function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame, device: DeviceVisual, p: { x: number; y: number }): void {
+function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame, device: DeviceVisual, p: { x: number; y: number }, logLayer?: LogLayer): void {
   const z = view.zoom;
   const state = devicePose(device);
   const art = deviceArt(device.type, device.facing, state, view.rot);
   const removing = frame.dismantleTarget === device.id;
 
-  if (device.highlight) {
+  if (device.highlight && logLayer !== 'near') {
     diamond(ctx, view, device.x, device.y, 0.02);
     ctx.fillStyle = removing ? 'rgba(226,80,59,0.45)' : 'rgba(242,165,49,0.3)';
     ctx.fill();
@@ -882,9 +884,10 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   const drawn = drawDefense(ctx, p.x, p.y, z, {
     kind: device.type, art, rot: view.rot, previous: (pose) => deviceArt(device.type, device.facing, pose, view.rot), id: device.id,
     hpRatio: device.hpRatio, state: device.state, activeAge: device.activeAge ?? 0, rearm: device.rearm ?? 0,
-    time: frame.time, motion: frame.defenseMotion,
+    time: frame.time, motion: frame.defenseMotion, ...(logLayer && { logLayer }),
     ...(device.logTarget && { aim: logAim(view, p, art, device.logTarget, false, device.hpRatio) }),
   });
+  if (logLayer === 'far') return;
   if (!drawn) placeholder(ctx, p.x, p.y, 34 * z, 34 * z, state === 'broken' ? '#4a3a2a' : '#b98a3a', device.type);
 
   if (device.type !== 'fence' && device.hpRatio < 0.999 && state !== 'broken') {

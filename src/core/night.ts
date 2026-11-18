@@ -91,7 +91,7 @@ export interface Enemy {
 export type TelegraphKind = 'mower' | 'ram' | 'speech' | 'whistle' | 'boar';
 
 /** Position and approach at the instant of impact, before a shove or the end-of-step sweep. */
-export type EnemyImpact = Pick<Enemy, 'x' | 'y' | 'fx' | 'fy' | 'type' | 'def' | 'target' | 'action' | 'offsetX' | 'offsetY' | 'lureDevice' | 'crawlDepth'> & { readonly crawlLog?: Cell | null };
+export type EnemyImpact = Pick<Enemy, 'x' | 'y' | 'fx' | 'fy' | 'type' | 'def' | 'target' | 'action' | 'offsetX' | 'offsetY' | 'lureDevice' | 'crawlDepth'>;
 
 const clearsLog = (e: Enemy, log: DeviceRuntime): boolean =>
   e.action === 'crawl' && e.crawlLog === log && e.crawlDepth >= 1 && e.nettedFor <= 0 && e.stunnedFor <= 0;
@@ -105,10 +105,9 @@ export interface LogSweep {
 export type LogTarget = EnemyImpact & Pick<Enemy, 'id'>;
 
 function impactPose(enemy: Enemy): EnemyImpact {
-  const { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth, crawlLog } = enemy;
+  const { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth } = enemy;
   const target = type === 'mower' && enemy.boss ? enemy.boss.sector : enemy.target;
-  return { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth, target,
-    crawlLog: crawlLog ? { x: crawlLog.x, y: crawlLog.y } : null };
+  return { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth, target };
 }
 
 export type SimEvent = (
@@ -630,11 +629,12 @@ export class NightSim {
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
       const previous = enemy.action;
+      const restrained = enemy.nettedFor > 0 || enemy.stunnedFor > 0;
       this.updateEnemy(enemy, dt);
       enemy.actionSeconds = previous === enemy.action ? enemy.actionSeconds + dt : 0;
       if (enemy.action === 'crawl') {
         enemy.crawlDepth = Math.min(1, enemy.crawlDepth + dt / COMBAT.logCrawlLowerSeconds);
-      } else if (enemy.crawlDepth > 0 && enemy.nettedFor <= 0 && enemy.stunnedFor <= 0) {
+      } else if (enemy.crawlDepth > 0 && !restrained) {
         enemy.crawlDepth = Math.max(0, enemy.crawlDepth - dt / COMBAT.logCrawlLowerSeconds);
         enemy.crawlLog = null;
       }
@@ -909,10 +909,10 @@ export class NightSim {
   private followStep(e: Enemy, step: Cell, dt: number): void {
     const cx = Math.floor(e.x);
     const cy = Math.floor(e.y);
-    // Only duck into a rig on the route. A log on the next lane has the same
-    // damage radius, but the runner cannot crawl underneath that swing.
+    // Duck through intact rigs even while the winch hoists the load. A rig in
+    // the next lane can swing across the route, but it has no overhead cover here.
     const log = e.def.crawlsUnderLogs && this.logs.find((d) =>
-      (d.state === 'armed' || d.state === 'active') &&
+      d.state !== 'broken' &&
       (d === e.crawlLog || (d.x === cx && d.y === cy) || (d.x === step.x && d.y === step.y)) &&
       Math.hypot(e.x - d.x - 0.5, e.y - d.y - 0.5) <= COMBAT.logCrawlReach);
     e.crawlLog = log || null;

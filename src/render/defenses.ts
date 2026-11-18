@@ -299,6 +299,25 @@ function drawPlank(ctx: CanvasRenderingContext2D, art: Sprite, image: CanvasImag
 // The load and lashings move independently of the gallows. Copy the back timbers from the
 // relaxed painting in the area the raised log used to cover.
 const load = [37,51, 47,51, 60,55, 88,64, 117,75, 125,77, 124,98, 117,109, 104,108, 42,86, 33,79];
+
+export type LogLayer = 'far' | 'near';
+// Traces between the two A-frames, including the near winch. Mirroring a fitted
+// rig flips x alone: the same two painted feet still register its depth.
+const nearFrame = [118,44, 200,44, 200,200, 89,200, 94,156, 110,122, 117,80];
+const rearNearFrame = [127,34, 200,34, 200,200, 92,200, 104,156, 120,93];
+const slackLoad = [44,114, 51,110, 66,110, 69,38, 77,38, 73,111, 104,120,
+  106,48, 115,48, 112,122, 127,129, 129,156, 114,162, 45,140, 42,134];
+const rearSlackLoad = [57,119, 68,111, 79,109, 79,29, 90,29, 87,111, 108,118,
+  111,40, 121,42, 119,122, 151,130, 155,150, 144,162, 125,163, 58,140];
+
+function paintLogFrame(ctx: CanvasRenderingContext2D, art: Sprite, image: CanvasImageSource,
+  rear: boolean, layer?: LogLayer, suspended?: readonly number[]): void {
+  if (!layer) { ctx.drawImage(image, 0, 0, 200, 200); return; }
+  const parts = cut(art, image, rear ? rearNearFrame : nearFrame, suspended);
+  if (parts) ctx.drawImage(layer === 'far' ? parts.base : parts.moving, 0, 0, 200, 200);
+  else if (layer === 'near') ctx.drawImage(image, 0, 0, 200, 200);
+}
+
 /** Displacement from the resting swing arc that puts the near end of the timber on the shoulder. */
 export function logAim(view: View, root: Point, art: DefenseArt, target: LogTarget, shadow = false, hpRatio = 1): Point {
   const shoulder = shoulderAt(view, doorStance(target));
@@ -321,19 +340,22 @@ export function logAim(view: View, root: Point, art: DefenseArt, target: LogTarg
   return { x: x - midX - cap, y: y - midY - cap * 0.32 };
 }
 
-function drawLog(ctx: CanvasRenderingContext2D, ratio: number, release: number, aimX = 0, aimY = 0): boolean {
+function drawLog(ctx: CanvasRenderingContext2D, ratio: number, release: number, aimX = 0, aimY = 0, pass?: LogLayer): boolean {
   const ready = sprite('dev_log_armed');
   const resting = sprite('dev_log_resting');
   if (!ready || !resting) return false;
   const layer = cut(ready, finish(ready, 'dev_log_armed', 'log', ratio), load);
   if (!layer) return false;
-  ctx.save();
-  trace(ctx, load); ctx.clip();
-  // Only the back leg occupies this hole. The relaxed drawing also has two vertical ropes here.
-  trace(ctx, [32,42, 45,40, 76,136, 59,142]); ctx.clip();
-  ctx.drawImage(resting.img, -7, 0, 200, 200);
-  ctx.restore();
-  ctx.drawImage(layer.base, 0, 0, 200, 200);
+  if (pass !== 'near') {
+    ctx.save();
+    trace(ctx, load); ctx.clip();
+    // Only the back leg occupies this hole. The relaxed drawing also has two vertical ropes here.
+    trace(ctx, [32,42, 45,40, 76,136, 59,142]); ctx.clip();
+    ctx.drawImage(resting.img, -7, 0, 200, 200);
+    ctx.restore();
+  }
+  paintLogFrame(ctx, ready, layer.base, false, pass);
+  if (pass === 'far') return true;
   const dx = -17 * release + aimX;
   const dy = 56 * release + aimY;
   // Extension from the two knots; the original short upper lashings stay at their pivots.
@@ -352,36 +374,33 @@ function drawLog(ctx: CanvasRenderingContext2D, ratio: number, release: number, 
 const backLoadHole = [47,51, 62,47, 70,44, 76,29, 89,32, 81,49, 97,54, 108,55,
   113,42, 125,45, 114,63, 140,72, 146,79, 142,105, 124,102, 48,76, 43,68];
 const nearLeg = [104,188, 105,180, 112,175, 136,69, 152,68, 153,75, 130,178, 134,180, 133,188, 118,199];
-interface BackRig { base: HTMLCanvasElement; foreground: HTMLCanvasElement }
-const backRigs = new WeakMap<CanvasImageSource, BackRig>();
-function backRig(ready: Sprite, resting: Sprite, image: CanvasImageSource): BackRig | undefined {
+const backRigs = new WeakMap<CanvasImageSource, HTMLCanvasElement>();
+function backRig(ready: Sprite, resting: Sprite, image: CanvasImageSource): HTMLCanvasElement | undefined {
   const cached = backRigs.get(image);
   if (cached) return cached;
-  const base = document.createElement('canvas'), foreground = document.createElement('canvas');
-  for (const surface of [base, foreground]) { surface.width = ready.w; surface.height = ready.h; }
-  const c = base.getContext('2d'), front = foreground.getContext('2d');
-  if (!c || !front) return;
+  const base = document.createElement('canvas');
+  base.width = ready.w; base.height = ready.h;
+  const c = base.getContext('2d');
+  if (!c) return;
   c.scale(ready.w / 200, ready.h / 200); c.drawImage(image, 0, 0, 200, 200);
   c.save(); trace(c, backLoadHole); c.clip(); c.clearRect(0, 0, 200, 200);
   // Restore the leg where the hoisted load covered it using the unloaded part of the neutral painting.
   trace(c, [47,23, 58,23, 90,144, 73,144]); c.clip();
   c.drawImage(resting.img, 0, 0, 200, 200); c.restore();
-  front.scale(ready.w / 200, ready.h / 200);
-  trace(front, nearLeg);
-  trace(front, [152,70, 160,72, 185,158, 190,156, 197,160, 197,168, 174,174, 170,164], true);
-  front.clip(); front.drawImage(image, 0, 0, 200, 200);
-  const result = { base, foreground };
-  backRigs.set(image, result);
-  return result;
+  // The mask for the hoisted load also touches the near leg.
+  trace(c, nearLeg); c.clip(); c.drawImage(image, 0, 0, 200, 200);
+  backRigs.set(image, base);
+  return base;
 }
 
-function drawBackLog(ctx: CanvasRenderingContext2D, ratio: number, release: number, aimX = 0, aimY = 0): boolean {
+function drawBackLog(ctx: CanvasRenderingContext2D, ratio: number, release: number, aimX = 0, aimY = 0, pass?: LogLayer): boolean {
   const ready = sprite('dev_back_log_armed'), resting = sprite('dev_back_log_resting'), trunkArt = sprite('dev_log_armed');
   if (!ready || !resting || !trunkArt) return false;
   const rig = backRig(ready, resting, finish(ready, 'dev_back_log_armed', 'log', ratio));
   const trunk = cut(trunkArt, finish(trunkArt, 'dev_log_armed', 'log', ratio), load);
   if (!rig || !trunk) return false;
-  ctx.drawImage(rig.base, 0, 0, 200, 200);
+  if (pass !== 'near') paintLogFrame(ctx, ready, rig, true, 'far');
+  if (pass === 'far') return true;
   // Both cameras follow the same swing. In this view the trunk moves away and to the right.
   const x = 19 + 17 * release + aimX, y = -2 + 52 * release + aimY;
   ctx.lineCap = 'round';
@@ -391,7 +410,7 @@ function drawBackLog(ctx: CanvasRenderingContext2D, ratio: number, release: numb
     ctx.moveTo(119, 45); ctx.lineTo(x + 91, y + 76); ctx.stroke();
   }
   ctx.drawImage(trunk.moving, x, y, 200, 200);
-  ctx.drawImage(rig.foreground, 0, 0, 200, 200);
+  paintLogFrame(ctx, ready, rig, true, 'near');
   return true;
 }
 
@@ -486,6 +505,7 @@ interface DefenseDrawing {
   hpRatio: number; id: number | SectorId; state?: DeviceRuntimeState | 'idle'; activeAge?: number;
   motion: DefenseMotion | undefined; time: number; rearm?: number; maxHp?: number;
   aim?: Point;
+  logLayer?: LogLayer;
 }
 
 // A trap can be destroyed halfway through a swing or while winching back. Freeze that
@@ -555,7 +575,7 @@ export function drawDefense(ctx: CanvasRenderingContext2D, x: number, y: number,
     drawPlank(ctx, art, image, bearingPlank(d.art.key), (w.pullX - w.pullY) * across, (w.pullX + w.pullY) * down);
     if (d.kind === 'barricade') drawPlank(ctx, art, image, planks.tabletop, (w.lowPullX - w.lowPullY) * across, (w.lowPullX + w.lowPullY) * down);
   } else drawOperation(ctx, d, art, image, still);
-  if (!timber && !still && hitAge < 0.34 && d.hpRatio > 0) chips(ctx, d.kind, hitAge, false, direction);
+  if (d.logLayer !== 'far' && !timber && !still && hitAge < 0.34 && d.hpRatio > 0) chips(ctx, d.kind, hitAge, false, direction);
   ctx.restore();
   return true;
 }
@@ -571,7 +591,7 @@ function drawOperation(ctx: CanvasRenderingContext2D, d: DefenseDrawing, art: Sp
         : ease(age / LOG_CONTACT_SECONDS) + 0.31 * Math.sin(afterContact * 10) * Math.exp(-afterContact * 2.1);
       const swing = still ? drop * Number((d.activeAge ?? 1) < LOG_CONTACT_SECONDS + 0.53)
         : ease(age / LOG_CONTACT_SECONDS) * (1 - ease((afterContact - 0.045) / 0.48));
-      if (!logRig(ctx, d.hpRatio, drop, (d.aim?.x ?? 0) * swing, (d.aim?.y ?? 0) * swing)) ctx.drawImage(image, 0, 0, 200, 200);
+      if (!logRig(ctx, d.hpRatio, drop, (d.aim?.x ?? 0) * swing, (d.aim?.y ?? 0) * swing, d.logLayer) && d.logLayer !== 'far') ctx.drawImage(image, 0, 0, 200, 200);
     } else {
       ctx.save(); drawMechanism(ctx, d.kind, art, image, age, rear); ctx.restore();
     }
@@ -580,7 +600,7 @@ function drawOperation(ctx: CanvasRenderingContext2D, d: DefenseDrawing, art: Sp
     const age = progress * DEVICES[d.kind].rearmSeconds;
     const fired = sprite(d.previous('triggered').key);
     // The winch takes the full re-arm to lift the trunk back into its cradle.
-    if (d.kind !== 'log' || !logRig(ctx, d.hpRatio, 1 - ease(progress))) {
+    if (d.kind !== 'log' || (!logRig(ctx, d.hpRatio, 1 - ease(progress), 0, 0, d.logLayer) && d.logLayer !== 'far')) {
       ctx.drawImage(image, 0, 0, 200, 200);
       if (fired && movingParts[d.kind] && age < 0.55) {
         ctx.save(); ctx.globalAlpha *= 1 - ease((age - 0.16) / 0.39);
@@ -594,6 +614,10 @@ function drawOperation(ctx: CanvasRenderingContext2D, d: DefenseDrawing, art: Sp
         }
       }
     }
+  } else if (d.kind === 'log' && d.logLayer) {
+    const raised = d.art.key.endsWith('_armed');
+    const suspended = rear ? (raised ? backLoadHole : rearSlackLoad) : (raised ? load : slackLoad);
+    paintLogFrame(ctx, art, image, rear, d.logLayer, suspended);
   } else ctx.drawImage(image, 0, 0, 200, 200);
 }
 
