@@ -441,6 +441,7 @@ const report = (night: number, extra: Partial<NightReport> = {}): NightReport =>
   bossDefeated: null,
   durationSeconds: 90,
   cameraLost: null,
+  traps: {},
   ...extra,
 });
 

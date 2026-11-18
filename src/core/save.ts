@@ -1,7 +1,7 @@
 // Save-game (de)serialisation. Parsing is defensive: a corrupt or foreign blob yields null,
 // never a half-valid GameState.
 
-import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, Fate, Fight, GameState, Intel, Inventory, OrchardChapter, Outing, Phase, RivalId, SectorId, ShedChapter, Stance, Standing } from './types';
+import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, Fate, Fight, GameState, Intel, Inventory, OrchardChapter, Outing, Phase, RivalId, SectorId, ShedChapter, Stance, Standing, TrapTally } from './types';
 import { chapterOfFate, chapterWaiting } from './chapters';
 import { CALLERS, ENDINGS as RADIO_ENDINGS, QUIET_RADIO, optionOf, rollCall, type AnswerId, type Call, type CallerId, type Ending as RadioEnding, type RadioStage } from './radio';
 import { createRng } from './rng';
@@ -31,6 +31,27 @@ function withFacing(devices: readonly DeviceInstance[]): DeviceInstance[] {
     const alongY = d.type === 'fence' && (fenceAt(d.x, d.y - 1) || fenceAt(d.x, d.y + 1)) && !(fenceAt(d.x - 1, d.y) || fenceAt(d.x + 1, d.y));
     return { ...d, facing: alongY ? 1 : 0 };
   });
+}
+
+/** A day a device says it was laid on is only kept if it is one: anything else is a piece that has always been there. */
+function withBuiltDay(devices: readonly DeviceInstance[]): DeviceInstance[] {
+  return devices.map((d) => {
+    const { builtDay, ...rest } = d;
+    return isNumber(builtDay) && Number.isInteger(builtDay) && builtDay >= 1 ? d : rest;
+  });
+}
+
+/** Reports saved before traps were tallied have nothing per trap; a malformed entry is dropped. */
+function parseTallies(v: unknown): Record<number, TrapTally> {
+  if (!isRecord(v)) return {};
+  const tallies: Record<number, TrapTally> = {};
+  for (const [id, raw] of Object.entries(v)) {
+    const count = (n: unknown): n is number => isNumber(n) && Number.isInteger(n) && n >= 0;
+    if (Number.isInteger(Number(id)) && isRecord(raw) && count(raw['fired']) && count(raw['hits']) && count(raw['kills'])) {
+      tallies[Number(id)] = { fired: raw['fired'], hits: raw['hits'], kills: raw['kills'] };
+    }
+  }
+  return tallies;
 }
 
 // ───────────────────────────── Outings and encounters ─────────────────────────────
@@ -236,6 +257,7 @@ export function deserialize(raw: string): GameState | null {
     autoTriggers: isNumber(parsed.lastNight.autoTriggers) ? parsed.lastNight.autoTriggers : 0,
     // Reports saved before a camera could go dark have none.
     cameraLost: SECTOR_IDS.includes(parsed.lastNight.cameraLost as SectorId) ? parsed.lastNight.cameraLost : null,
+    traps: parseTallies((parsed.lastNight as { traps?: unknown }).traps),
   };
   const shed = parseShed(data);
   const radio = parseRadio(data, parsePeople(data['people']), shed.shed, data['seed'] as number);
@@ -243,6 +265,6 @@ export function deserialize(raw: string): GameState | null {
   const reported: GameState = { ...chaptered, fate: parseFate(data, chaptered) };
   // Outside the day nobody is out: the trip, if a save still carries one, is over.
   const trip = parseTrip(data, parsed.phase === 'day' ? parsed.where : 'home');
-  const state: GameState = { ...reported, ...trip, yard: { ...reported.yard, devices: withFacing(reported.yard.devices) } };
+  const state: GameState = { ...reported, ...trip, yard: { ...reported.yard, devices: withBuiltDay(withFacing(reported.yard.devices)) } };
   return state.phase === 'night' ? { ...state, phase: 'day', where: 'home', hoursLeft: 0 } : state;
 }

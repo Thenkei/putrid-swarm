@@ -20,6 +20,7 @@ const report: NightReport = {
   bossDefeated: 'chief',
   durationSeconds: 140,
   cameraLost: null,
+  traps: {},
 };
 
 const people = (dealer: Standing | null, camper: Standing | null): GameState['people'] => ({

@@ -31,7 +31,10 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Day | `F` or right click | turn the piece in hand, or the placed device under the pointer |
 | Day | `1`–`7` | pick a device |
 | Day | `R` | look at the lot from the other side |
-| Day | `T` | show or hide the predicted walking routes |
+| Day | `T` | show or hide the predicted walking routes, and the "zz" over the traps that never went off last night |
+| Day | `Backspace`, or "Reprendre" | take back the last piece laid today: materials and daylight come back whole |
+| Day | "Tout réparer" | repair every broken device the stock and the daylight allow |
+| Day | point at a trap | what it did last night, and how far it reaches |
 | Day | wheel, drag | zoom, pan |
 | Outing | click a spot | search it; a spot with a face on it is claimed by someone: click it to talk |
 | Encounter | `1`–`6` | pick a way out (each shows what it costs before it is chosen) |
@@ -121,6 +124,10 @@ The house falls when its integrity reaches zero; infected only get in through a 
 
 **The placement rule is visible.** Palisades block walkers and reshape their routes; the red dashed lines and the worn ground under them show where they will walk. While a trap is being placed the game says whether any predicted route comes within its reach, each door shows how many working traps stand on the way to it, and the "tonight" card names the approaches with fresh tracks. A palisade that would cut a stretch of tree line off from every door is refused, with the reason.
 
+**The night reviews the yard.** Every trap is tallied over the night: how often it went off, how many stood in it, how many it stopped. The next day a trap says so when it is pointed at, with its reach drawn on the ground; a working trap that never went off wears a "zz" for as long as the routes are shown, and the morning report counts them. A prediction says where a trap should work; the tally says whether it did.
+
+**A misplaced piece costs a click.** Anything laid today can be taken back whole until the night — its materials and the daylight it took — one piece at a time, the last first (`Backspace`). Once it has been through a night it is part of the yard: dismantling gives half back, as before. Each build card says how many of the device the stock and the daylight still pay for, and one button repairs everything the night broke, as far as the stock goes.
+
 | Device | Fires | Role |
 | --- | --- | --- |
 | Palissade | — | shapes routes; rams go through, jumpers over |
@@ -154,6 +161,8 @@ The handoff listed these as open. They are settled here so the game could be bui
 | Cameras | four, with live thumbnails and a threat alert per sector |
 | Day clock | 12 hours shared by travel, search and construction; forced return before dark |
 | Trap activation | mixed, after the first playtest: stakes and nets automatic, the rest fired by hand on a visible cue |
+| Taking a piece back | free on the day it is laid, materials and daylight, because a misclick is not a decision; from the next morning the half refund applies. It cannot be turned into daylight: the hours given back are the ones that piece took, never more than a day holds (`isFresh`, `undoLastBuild` in `core/yard.ts`) |
+| What the night says about a trap | counted by the simulation as it fires (`NightReport.traps`, by device id; a barrier counts what stood at it when it went up), kept with the report in the save, and read back by the day — a trap laid since has no tally, a broken one is not called silent |
 | Turning devices | a facing per device, cosmetic only: traps act in a circle and a palisade blocks its cell whichever way it faces. Traps have two sides; palisades four, so a run laid corner to corner is drawn as a straight fence (it was already sealed: nobody slips between two palisades that touch by a corner) |
 | Encounters on outings | built from [`docs/RENCONTRES_EN_VOITURE.md`](docs/RENCONTRES_EN_VOITURE.md), its first prototype and no more: two survivors, two groups, one wager (washers), one scuffle by decisions capped at three exchanges, no weapons, nobody dies. At most one encounter per outing and two per day; the first of each kind is certain, the rest are rolled |
 | Who can be fought | only survivors who never come back as bosses. The neighbours keep their own greetings: the campaign cannot yet explain a boss who was beaten up at noon |
@@ -219,6 +228,8 @@ docs/          concept, lore and art direction
 Tuning never requires touching combat logic: change `src/core/data/*`, then run `pnpm balance` to replay all seven nights against reference layouts. `pnpm balance --radio` plays night 7 with nobody at the back door, with someone holding it, and with someone holding it until he turns. `pnpm balance --arm` plays two arms against one, night by night, with an operator that watches one camera at a time through the same desk as the player; each run gets the yard its own daylight pays for, from a day-by-day model of searching and building (`yardBy` in `tests/operator.ts`, which says what it leaves out). Encounter numbers (odds, tolls, prices, daylight, how well each survivor throws) are in `src/core/data/rivals.ts`.
 
 `node tools/home-shots.mjs <dir> [url]` photographs the home phase on a running dev server: the yard by day from both sides, up close, at the edge of the world and at four hours of the day, then the night desk on each camera. `node tools/home-perf.mjs [url]` prints what that costs: the one-off painting of the ground, and the frame pace and scene work by day and at the night desk (`PS_GPU=1` to rasterise on the GPU).
+
+`node tools/yard-shots.mjs <dir> [url]` plays a night with the reference operator and shows the day after: the morning report, the yard with its silent traps marked, a trap's tally and reach, a piece laid and taken back, everything repaired in one click (`PS_LANG=en` for the English texts).
 
 `node tools/encounter-shots.mjs <dir> [url]` opens a running dev server on each kind of encounter, plays through the ways out and saves a screenshot of every step (`PS_LANG=en` for the English texts).
 
