@@ -2,7 +2,7 @@
 // One renderer serves the daytime yard and all four night cameras, so the views cannot disagree.
 
 import { BARRICADE, DEVICES } from '../core/data/devices';
-import { ENTRIES, GRID_W, HOUSE, HOUSE_CENTER, PROPS, sectorOf, type PropKind } from '../core/map';
+import { ENTRIES, GRID_W, HOUSE, HOUSE_CENTER, PROPS, propAt, sectorOf, type PropKind } from '../core/map';
 import type { DeviceRuntimeState, Enemy } from '../core/night';
 import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
@@ -32,6 +32,8 @@ export interface DeviceVisual {
   readonly highlight?: boolean;
   /** Manual trap with enough under it to be worth firing now: drawn so it cannot be missed. */
   readonly cue?: boolean;
+  /** By day: a working trap that never went off last night. Marked, so the yard says which ones to move. */
+  readonly silent?: boolean;
 }
 
 export interface Particle {
@@ -922,7 +924,11 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
     meter(ctx, p.x - barW / 2, p.y + (art.lift + 3) * z, barW, 3 * z, device.hpRatio, '#d98f3a');
   }
 
-  if (!frame.night) return;
+  if (!frame.night) {
+    // Never smaller than it reads at: the tag keeps its size when the view is pulled back.
+    if (device.silent && state !== 'broken') asleep(ctx, p.x, p.y + art.lift * z - art.h * z - 8 * z, Math.max(1, z), frame.time + device.id);
+    return;
+  }
   const mode = DEVICES[device.type].mode;
   if (mode === 'passive') return;
   const top = p.y + art.lift * z - art.h * z;
@@ -1002,6 +1008,28 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
     ctx.fillText(device.label, lx, ly + 1);
     ctx.textBaseline = 'alphabetic';
   }
+}
+
+/** "Slept through the night": a small dark tag with two z's drifting up, over a trap nobody walked into. */
+function asleep(ctx: CanvasRenderingContext2D, x: number, y: number, z: number, time: number): void {
+  const w = 22 * z;
+  const h = 13 * z;
+  ctx.fillStyle = 'rgba(12, 9, 6, 0.82)';
+  ctx.strokeStyle = 'rgba(255, 194, 74, 0.75)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x - w / 2, y - h / 2, w, h, h / 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = '#ffc24a';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const bob = Math.sin(time * 1.6) * 0.8 * z;
+  ctx.font = `italic 700 ${9 * z}px "DIN Condensed","Arial Narrow",sans-serif`;
+  ctx.fillText('z', x - 4 * z, y + 1.5 * z + bob);
+  ctx.font = `italic 700 ${11 * z}px "DIN Condensed","Arial Narrow",sans-serif`;
+  ctx.fillText('z', x + 3.5 * z, y - 0.5 * z - bob);
+  ctx.textBaseline = 'alphabetic';
 }
 
 function cross(ctx: CanvasRenderingContext2D, x: number, y: number, r: number): void {
@@ -1315,6 +1343,13 @@ export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: num
   if (best) return best;
   const g = unproject(view, sx, sy);
   return devices.find((d) => d.x === Math.floor(g.gx) && d.y === Math.floor(g.gy)) ?? null;
+}
+
+/** The piece of scenery of one of `kinds` whose footprint is under the pointer, if any. */
+export function pickProp(view: View, kinds: readonly PropKind[], sx: number, sy: number): PropKind | null {
+  if (!inView(view, sx, sy)) return null;
+  const g = unproject(view, sx, sy);
+  return propAt(g.gx, g.gy, kinds);
 }
 
 /** Which door, if any, is under the pointer (for daytime repairs). */

@@ -348,6 +348,123 @@ button:disabled {
   animation: crt-off 0.42s cubic-bezier(0.4, 0, 0.9, 0.4) forwards;
 }
 
+/* Left alone: the logo wanders the tube, and now and then lands exactly in a corner. */
+.crt-saver,
+.crt-mire {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: #050807;
+  pointer-events: none;
+}
+
+.crt.off .crt-saver,
+.crt.off .crt-mire {
+  display: none;
+}
+
+.crt-saver .saver-logo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 168px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 30px;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 10px currentColor;
+  will-change: transform;
+}
+
+.crt-saver .saver-logo b {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.crt-saver.cornered {
+  animation: saver-corner 0.9s ease-out;
+}
+
+@keyframes saver-corner {
+  0% {
+    background: #dff6ec;
+  }
+  100% {
+    background: #050807;
+  }
+}
+
+/* A test card from a channel that stopped broadcasting. */
+.crt-mire {
+  display: flex;
+  flex-direction: column;
+  animation: crt-on 0.5s ease-out;
+}
+
+.crt-mire .bars {
+  flex: 1;
+  display: flex;
+}
+
+.crt-mire .bars i,
+.crt-mire .greys i {
+  flex: 1;
+}
+
+.crt-mire .bars i:nth-child(1) { background: #c9c6b8; }
+.crt-mire .bars i:nth-child(2) { background: #c4bc3e; }
+.crt-mire .bars i:nth-child(3) { background: #3fb9b3; }
+.crt-mire .bars i:nth-child(4) { background: #46a646; }
+.crt-mire .bars i:nth-child(5) { background: #b04aa6; }
+.crt-mire .bars i:nth-child(6) { background: #b3463c; }
+.crt-mire .bars i:nth-child(7) { background: #3a47a8; }
+.crt-mire .bars i:nth-child(8) { background: #14140f; }
+
+.crt-mire .greys {
+  height: 52px;
+  display: flex;
+}
+
+.crt-mire .greys i:nth-child(1) { background: #0c0c0a; }
+.crt-mire .greys i:nth-child(2) { background: #33332e; }
+.crt-mire .greys i:nth-child(3) { background: #5d5c54; }
+.crt-mire .greys i:nth-child(4) { background: #8b897e; }
+.crt-mire .greys i:nth-child(5) { background: #b6b3a5; }
+.crt-mire .greys i:nth-child(6) { background: #e4e0d0; }
+
+.crt-mire .disc {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: 190px;
+  height: 190px;
+  margin: -95px 0 0 -95px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #e9e4d2;
+  background: #11110d;
+  border: 4px solid #e9e4d2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.crt-mire .disc b {
+  font-size: 30px;
+  font-weight: 400;
+}
+
+.crt-mire .disc span {
+  font-size: 15px;
+  opacity: 0.8;
+}
+
 .crt.waking .crt-menu {
   animation: crt-on 0.7s ease-out;
 }
@@ -730,7 +847,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   padding: 10px 10px 8px;
-  gap: 6px;
+  gap: 4px;
 }
 
 .build-panel h3 {
@@ -830,9 +947,43 @@ button:disabled {
   padding: 4px 6px 2px;
 }
 
+/* The second row: the short one keeps its width, the one with a count takes the rest. */
+.tool-row.quick .btn {
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.tool-row.quick .btn:first-child {
+  flex: 0 0 auto;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
 .btn.sel {
   border-color: var(--amber);
   color: var(--amber);
+}
+
+/* Something the night broke is waiting: the one button that asks to be pressed. */
+.btn.btn-alert {
+  border-color: #c9603f;
+  color: #ffb49c;
+}
+
+.dev-card .stock-count {
+  margin-right: 7px;
+  font-style: normal;
+  color: var(--cream);
+}
+
+/* What a trap did last night, on its card. */
+.info-card .tally {
+  margin-top: 3px;
+  color: #c8f08a;
+}
+
+.info-card .tally.silent {
+  color: #ffc24a;
 }
 
 .info-card {
@@ -895,11 +1046,18 @@ button:disabled {
   gap: 6px;
 }
 
-.door-chips {
+/* The doors, then tonight's card: stacked, so the second follows the first whatever its height. */
+.day-side {
   position: absolute;
   right: 12px;
   top: 100px;
   width: 262px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.door-chips {
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -942,11 +1100,15 @@ button:disabled {
   height: 10px;
 }
 
+/* A door's button never makes its row taller than the others. */
+.door-chips .btn.icon-btn {
+  min-height: 24px;
+  height: 24px;
+  padding: 2px 0 0;
+  font-size: 18px;
+}
+
 .tonight {
-  position: absolute;
-  right: 12px;
-  top: 250px;
-  width: 262px;
   padding: 8px 12px 6px;
   font-size: 18px;
   line-height: 1.25;
@@ -1973,6 +2135,10 @@ button:disabled {
 
 .report .bad {
   color: #a3261a;
+}
+
+.report .warn {
+  color: #94590a;
 }
 
 .report .good {

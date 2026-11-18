@@ -9,7 +9,7 @@ import type { CameraOutage } from './orchard';
 import type { Ally } from './radio';
 import { computeField, nextStep, type Field } from './pathing';
 import { createRng, type Rng } from './rng';
-import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, NeighborId, NightHighlight, NightReport, Result, SectorId, YardState } from './types';
+import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, NeighborId, NightHighlight, NightReport, Result, SectorId, TrapTally, YardState } from './types';
 import { SECTOR_IDS, err, ok } from './types';
 
 export type DeviceRuntimeState = 'passive' | 'armed' | 'active' | 'rearming' | 'broken';
@@ -213,6 +213,8 @@ export class NightSim {
   private devicesBroken = 0;
   private triggers = 0;
   private autoTriggers = 0;
+  /** What each trap of the yard did tonight, by device id. Every trap has an entry, fired or not. */
+  private readonly tallies = new Map<number, { fired: number; hits: number; kills: number }>();
   private bossDefeated: NeighborId | null = null;
   /** A camera that stopped sending. The lot goes on without it: only the desk is blind. */
   cameraLost: SectorId | null = null;
@@ -253,6 +255,7 @@ export class NightSim {
       state: d.broken ? 'broken' : isTrap(d.type) ? 'armed' : 'passive',
       timer: 0,
     }));
+    for (const d of this.devices) if (isTrap(d.type)) this.tallies.set(d.id, { fired: 0, hits: 0, kills: 0 });
     this.barricades = {
       portail: { ...yard.barricades.portail },
       grange: { ...yard.barricades.grange },
@@ -454,10 +457,18 @@ export class NightSim {
     device.state = 'active';
     device.timer = def.activeSeconds;
     const before = this.killCount;
+    // A barrier hurts nobody: what it is worth is what was standing at it when it went up.
+    const waiting = device.type === 'barrier' ? this.underTrap(device).count : 0;
     const hits = this.applyTrigger(device);
     const kills = this.killCount - before;
     if (kills > 0 && (!this.highlight || (this.highlight.kind === 'catch' && kills > this.highlight.kills))) {
       this.highlight = { kind: 'catch', deviceId: device.id, kills };
+    }
+    const tally = this.tallies.get(device.id);
+    if (tally) {
+      tally.fired++;
+      tally.hits += device.type === 'barrier' ? waiting : hits;
+      tally.kills += kills;
     }
     this.events.push({ type: 'trigger', deviceId: device.id, device: device.type, x: device.x, y: device.y, hits, kills, auto });
   }
@@ -1273,6 +1284,7 @@ export class NightSim {
       bossDefeated: this.bossDefeated,
       durationSeconds: Math.round(this.time),
       cameraLost: this.cameraLost,
+      traps: Object.fromEntries([...this.tallies].map(([id, tally]) => [id, { ...tally }])) as Record<number, TrapTally>,
     };
   }
 

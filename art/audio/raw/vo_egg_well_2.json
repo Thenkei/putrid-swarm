@@ -1,0 +1,19 @@
+{
+  "id": "vo_egg_well_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[listening, then quietly] Profond.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:41:48.208Z",
+  "bytes": 25538,
+  "sha256": "71743a21fc37211c724953f1d70a27fabb79ef38d860235f223b7df2e1fe88a9"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_egg_honk_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[amused] Pouet.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-18T02:41:46.360Z",
+  "bytes": 16343,
+  "sha256": "0a52ef20c6c6d44425bea296315c8773500629afc67153a2eef6a3ef9a625605"
+}

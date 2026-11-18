@@ -130,3 +130,7 @@ function range(from: number, to: number): number[] {
   for (let v = from; v <= to; v++) out.push(v);
   return out;
 }
+
+/** The piece of scenery of one of `kinds` whose footprint holds that point of the grid, if any. */
+export const propAt = (gx: number, gy: number, kinds: readonly PropKind[]): PropKind | null =>
+  PROPS.find((p) => kinds.includes(p.kind) && gx >= p.x && gx < p.x + p.w && gy >= p.y && gy < p.y + p.h)?.kind ?? null;

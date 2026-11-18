@@ -31,7 +31,10 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Day | `F` or right click | turn the piece in hand, or the placed device under the pointer |
 | Day | `1`–`7` | pick a device |
 | Day | `R` | look at the lot from the other side |
-| Day | `T` | show or hide the predicted walking routes |
+| Day | `T` | show or hide the predicted walking routes, and the "zz" over the traps that never went off last night |
+| Day | `Backspace`, or "Reprendre" | take back the last piece laid today: materials and daylight come back whole |
+| Day | "Tout réparer" | repair every broken device the stock and the daylight allow |
+| Day | point at a trap | what it did last night, and how far it reaches |
 | Day | wheel, drag | zoom, pan |
 | Outing | click a spot | search it; a spot with a face on it is claimed by someone: click it to talk |
 | Encounter | `1`–`6` | pick a way out (each shows what it costs before it is chosen) |
@@ -64,6 +67,8 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | The end | `←` `→` at the shed, `Tab` during the song | choose how it is played: easy (three keys, slower notes, the default) or furious (six keys) |
 | End screen | "Rejouer le morceau" | after the mower: the song again from the shed, for the record; the run stays where it ended |
 | Title | click the monitor's power button, the joint, the mug, the speaker (wheel for fine volume) | nothing useful |
+| Title | leave the desk alone for forty seconds; or type the code everyone knows | nothing useful either: a screensaver that does, once, land in the corner; a test card |
+| Day | click the break, or the well | the horn; a washer for a wish. Neither costs or changes anything |
 | Credits | `Esc`, or "Passer" | leave; they end on their own after 74 seconds, back at the title |
 
 ## The loop as built
@@ -121,6 +126,10 @@ The house falls when its integrity reaches zero; infected only get in through a 
 
 **The placement rule is visible.** Palisades block walkers and reshape their routes; the red dashed lines and the worn ground under them show where they will walk. While a trap is being placed the game says whether any predicted route comes within its reach, each door shows how many working traps stand on the way to it, and the "tonight" card names the approaches with fresh tracks. A palisade that would cut a stretch of tree line off from every door is refused, with the reason.
 
+**The night reviews the yard.** Every trap is tallied over the night: how often it went off, how many stood in it, how many it stopped. The next day a trap says so when it is pointed at, with its reach drawn on the ground; a working trap that never went off wears a "zz" for as long as the routes are shown, and the morning report counts them. A prediction says where a trap should work; the tally says whether it did.
+
+**A misplaced piece costs a click.** Anything laid today can be taken back whole until the night — its materials and the daylight it took — one piece at a time, the last first (`Backspace`). Once it has been through a night it is part of the yard: dismantling gives half back, as before. Each build card says how many of the device the stock and the daylight still pay for, and one button repairs everything the night broke, as far as the stock goes.
+
 | Device | Fires | Role |
 | --- | --- | --- |
 | Palissade | — | shapes routes; rams go through, jumpers over |
@@ -154,6 +163,8 @@ The handoff listed these as open. They are settled here so the game could be bui
 | Cameras | four, with live thumbnails and a threat alert per sector |
 | Day clock | 12 hours shared by travel, search and construction; forced return before dark |
 | Trap activation | mixed, after the first playtest: stakes and nets automatic, the rest fired by hand on a visible cue |
+| Taking a piece back | free on the day it is laid, materials and daylight, because a misclick is not a decision; from the next morning the half refund applies. It cannot be turned into daylight: the hours given back are the ones that piece took, never more than a day holds (`isFresh`, `undoLastBuild` in `core/yard.ts`) |
+| What the night says about a trap | counted by the simulation as it fires (`NightReport.traps`, by device id; a barrier counts what stood at it when it went up), kept with the report in the save, and read back by the day — a trap laid since has no tally, a broken one is not called silent |
 | Turning devices | a facing per device, cosmetic only: traps act in a circle and a palisade blocks its cell whichever way it faces. Traps have two sides; palisades four, so a run laid corner to corner is drawn as a straight fence (it was already sealed: nobody slips between two palisades that touch by a corner) |
 | Encounters on outings | built from [`docs/RENCONTRES_EN_VOITURE.md`](docs/RENCONTRES_EN_VOITURE.md), its first prototype and no more: two survivors, two groups, one wager (washers), one scuffle by decisions capped at three exchanges, no weapons, nobody dies. At most one encounter per outing and two per day; the first of each kind is certain, the rest are rolled |
 | Who can be fought | only survivors who never come back as bosses. The neighbours keep their own greetings: the campaign cannot yet explain a boss who was beaten up at noon |
@@ -220,9 +231,11 @@ Tuning never requires touching combat logic: change `src/core/data/*`, then run 
 
 `node tools/home-shots.mjs <dir> [url]` photographs the home phase on a running dev server: the yard by day from both sides, up close, at the edge of the world and at four hours of the day, then the night desk on each camera. `node tools/home-perf.mjs [url]` prints what that costs: the one-off painting of the ground, and the frame pace and scene work by day and at the night desk (`PS_GPU=1` to rasterise on the GPU).
 
+`node tools/yard-shots.mjs <dir> [url]` plays a night with the reference operator and shows the day after: the morning report, the yard with its silent traps marked, a trap's tally and reach, a piece laid and taken back, everything repaired in one click (`PS_LANG=en` for the English texts).
+
 `node tools/encounter-shots.mjs <dir> [url]` opens a running dev server on each kind of encounter, plays through the ways out and saves a screenshot of every step (`PS_LANG=en` for the English texts).
 
-Every tour drives the installed Chrome by default; `PS_BROWSER=firefox` or `PS_BROWSER=webkit` (the nearest thing to Safari) runs it in Playwright's own build of those, once `npx playwright-core install firefox webkit` has fetched them. `node tools/credits-shots.mjs <dir> [url]` opens the credits and saves a screenshot at each moment of their script (`PS_SEEN=1` as someone who has finished a run, `PS_REAL=1` at their own pace). `node tools/boot-shots.mjs <dir> [url]` shows what a visitor meets first: the content warning, the title behind it, "you need a keyboard" on a phone, and the trap keys relabelled when the keyboard gives its layout away.
+Every tour drives the installed Chrome by default; `PS_BROWSER=firefox` or `PS_BROWSER=webkit` (the nearest thing to Safari) runs it in Playwright's own build of those, once `npx playwright-core install firefox webkit` has fetched them. `node tools/credits-shots.mjs <dir> [url]` opens the credits and saves a screenshot at each moment of their script (`PS_SEEN=1` as someone who has finished a run, `PS_REAL=1` at their own pace). `node tools/boot-shots.mjs <dir> [url]` shows what a visitor meets first: the content warning, the title behind it, "you need a keyboard" on a phone, and the trap keys relabelled when the keyboard gives its layout away. `node tools/egg-shots.mjs <dir> [url]` shows the things that are of no use: the test card, the screensaver and its corner, the horn and the well.
 
 `node tools/orchard-shots.mjs <dir> [spared,maimed,throat,bled,turned,night] [url]` plays the orchard down each branch the same way, `node tools/shed-shots.mjs <dir> [freed,current,finished,emptied,bitten,onearm,chief] [url]` the shed, `node tools/radio-shots.mjs <dir> [ham,silence,baker,dealer,camper,grudge,van,hangup,onearm,night,finale,end] [url]` the radio (every kind of caller, the answers, one arm, the last day, the held door turning on night 7, the camper in the shed when the mower comes out, the end screen's line), and `node tools/finale-shots.mjs <dir> [desk,rampage,onearm,dawn,fates,title] [url]` ends runs on purpose (a lost night, a seventh night that cannot be lost) and plays what follows, chart, records, end screens and the title's count included. `node tools/arm-shots.mjs <dir> [url]` plays the screens of a one-armed run — the day, a drive and a search, the way home, the van, the morning, the evening, a night with the hand crossing between the rows — and saves a screenshot of each. `node tools/beat.mjs <track>` measures a track's tempo and first beat; with `--bars` it then describes the track bar by bar (beat one, loudness, attacks, brightness, how far a single line stands out and how far it wanders, drum fills, sections, the final chord and the silence after it). Its output is what `FINALE` and `SONG` in `src/core/finale.ts` record.
 

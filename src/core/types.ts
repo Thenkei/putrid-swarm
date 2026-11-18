@@ -70,6 +70,8 @@ export interface DeviceInstance {
   readonly facing: Facing;
   readonly hp: number;
   readonly broken: boolean;
+  /** The day it was laid. Until that day's night it can be taken back whole (see `isFresh` in yard.ts). */
+  readonly builtDay?: number;
 }
 
 export interface BarricadeState {
@@ -106,6 +108,13 @@ export type NightHighlight =
   | { readonly kind: 'broken'; readonly deviceId: number }
   | { readonly kind: 'catch'; readonly deviceId: number; readonly kills: number };
 
+/** What one trap did over a night: how often it went off, what stood in it when it did, what it put down. */
+export interface TrapTally {
+  readonly fired: number;
+  readonly hits: number;
+  readonly kills: number;
+}
+
 export interface NightReport {
   /** Absent in older saves, or on nights without a qualifying event. */
   readonly highlight?: NightHighlight;
@@ -124,6 +133,8 @@ export interface NightReport {
   readonly durationSeconds: number;
   /** A camera that stopped sending during the night, and is still dark in the morning. */
   readonly cameraLost: SectorId | null;
+  /** Every trap that stood in the yard that night, by device id — the ones that never went off included. */
+  readonly traps: Readonly<Record<number, TrapTally>>;
 }
 
 export interface LocationProgress {

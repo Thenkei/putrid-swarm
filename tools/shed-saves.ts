@@ -20,6 +20,7 @@ const report: NightReport = {
   bossDefeated: 'mechanic',
   durationSeconds: 104,
   cameraLost: null,
+  traps: {},
 };
 
 const base: GameState = { ...layout(newGame(11), 4), day: SHED.night, orchard: 'spared' };

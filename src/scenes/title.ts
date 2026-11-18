@@ -10,12 +10,24 @@ import { S, fmt, getLang, setLang } from '../engine/i18n';
 import { haze } from '../engine/haze';
 import { endingsTally } from '../engine/progress';
 import { hush, say, sayOnce } from '../engine/voice';
+import { SAVER_AFTER, SAVER_CORNER_AT, saverAt } from '../engine/saver';
 import { drawPlate } from './common';
 import { CreditsScene } from './credits';
 import { JOINT, MUG, POWER, SPEAKER, VOLUME_STEP_CLICK, VOLUME_STEP_WHEEL, desk, inside } from './desk';
 import { goDay, resumeGame } from './flow';
 
+const SAVER_TINTS = ['#d8f2e8', '#f2a531', '#9fd8e3', '#e0725c', '#c8f08a', '#d9a8e6'] as const;
+const MIRE_SECONDS = 7;
+/** Up, up, down, down, left, right, left, right, B, A — by position, so any layout types it. */
+const CODE = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'KeyB', 'KeyA'] as const;
+
 export class TitleScene implements Scene {
+  /** Scene time of the last sign of life from the player. */
+  private lastInput = 0;
+  private saver: { readonly node: HTMLElement; readonly logo: HTMLElement; readonly at: number; cornered: boolean } | null = null;
+  private mire: { readonly node: HTMLElement; readonly until: number } | null = null;
+  private typed = 0;
+  private lastPointer = { x: -1, y: -1 };
   private root!: HTMLElement;
   private view: 'main' | 'options' | 'confirm' = 'main';
   private time = 0;
@@ -71,7 +83,58 @@ export class TitleScene implements Scene {
     if (this.view === 'options') this.build();
   }
 
+  /** The player moved: the screensaver, if it was on, gives the menu back. */
+  private awake(): void {
+    this.lastInput = this.time;
+    if (!this.saver) return;
+    this.saver.node.remove();
+    this.saver = null;
+  }
+
+  private startSaver(): void {
+    const logo = el('div', { class: 'saver-logo', html: 'PUTRID<b>SWARM</b>' });
+    const node = el('div', { class: 'crt-saver' }, [logo]);
+    this.root.append(node);
+    this.saver = { node, logo, at: this.time, cornered: false };
+  }
+
+  private updateSaver(): void {
+    if (!this.saver) {
+      if (desk.powered && this.view === 'main' && !this.mire && !desk.busy && this.time - this.lastInput > SAVER_AFTER) this.startSaver();
+      return;
+    }
+    if (!desk.powered) {
+      this.awake();
+      return;
+    }
+    const t = this.time - this.saver.at;
+    const at = saverAt(t);
+    this.saver.logo.style.transform = `translate(${at.x.toFixed(1)}px, ${at.y.toFixed(1)}px)`;
+    this.saver.logo.style.color = SAVER_TINTS[at.hits % SAVER_TINTS.length] as string;
+    if (!this.saver.cornered && t >= SAVER_CORNER_AT) {
+      this.saver.cornered = true;
+      this.saver.node.classList.add('cornered');
+      audio.play('ready');
+      window.setTimeout(() => this.alive && sayOnce('egg:corner', 'vo_egg_corner'), 500);
+    }
+  }
+
+  /** The code everyone knows: the monitor finds a channel that has not broadcast for a long time. */
+  private showMire(): void {
+    if (this.mire || !desk.powered) return;
+    const node = el('div', { class: 'crt-mire' }, [
+      el('div', { class: 'bars' }, Array.from({ length: 8 }, () => el('i'))),
+      el('div', { class: 'disc' }, [el('b', { text: 'PUTRID TV' }), el('span', { text: S().title.mire })]),
+      el('div', { class: 'greys' }, Array.from({ length: 6 }, () => el('i'))),
+    ]);
+    this.root.append(node);
+    this.mire = { node, until: this.time + MIRE_SECONDS };
+    audio.play('camera');
+    window.setTimeout(() => this.alive && sayOnce('egg:mire', 'vo_egg_mire'), 1200);
+  }
+
   onPointerDown(pointer: { x: number; y: number }): void {
+    this.awake();
     if (inside(POWER, pointer.x, pointer.y)) this.togglePower();
     else if (inside(JOINT, pointer.x, pointer.y)) desk.take('joint', this.time);
     else if (inside(MUG, pointer.x, pointer.y)) desk.take('mug', this.time);
@@ -80,6 +143,11 @@ export class TitleScene implements Scene {
   }
 
   onPointerMove(pointer: { x: number; y: number }): void {
+    // The pointer is also reported when it has not moved (a scene change): only a real move wakes the screen.
+    if (Math.hypot(pointer.x - this.lastPointer.x, pointer.y - this.lastPointer.y) > 2) {
+      this.lastPointer = { x: pointer.x, y: pointer.y };
+      this.awake();
+    }
     desk.pointerAt(pointer.x, pointer.y);
     const hot = [POWER, JOINT, MUG, SPEAKER].some((spot) => inside(spot, pointer.x, pointer.y));
     this.app.canvas.style.cursor = hot ? 'pointer' : '';
@@ -87,6 +155,7 @@ export class TitleScene implements Scene {
   }
 
   onWheel(deltaY: number, pointer: { x: number; y: number }): void {
+    this.awake();
     if (!inside(SPEAKER, pointer.x, pointer.y) || deltaY === 0) return;
     this.setVolume(audio.volume + (deltaY < 0 ? VOLUME_STEP_WHEEL : -VOLUME_STEP_WHEEL));
   }
@@ -172,6 +241,9 @@ export class TitleScene implements Scene {
     const endings = endingsTally();
     const seen = endings.seen > 0 && this.view !== 'confirm' ? el('div', { class: 'crt-endings', text: fmt(s.title.endings, { n: endings.seen, total: endings.total }) }) : null;
     this.root.replaceChildren(el('div', { class: 'crt-menu' }, [logo, menu, inset, el('div', { class: 'crt-note', text: note }), seen]));
+    // Whatever was over the menu stays over it when the menu is redrawn.
+    if (this.mire) this.root.append(this.mire.node);
+    if (this.saver) this.root.append(this.saver.node);
   }
 
   private begin(): void {
@@ -181,6 +253,11 @@ export class TitleScene implements Scene {
   update(dt: number): void {
     this.time += dt;
     desk.update(this.time);
+    this.updateSaver();
+    if (this.mire && (this.time >= this.mire.until || !desk.powered)) {
+      this.mire.node.remove();
+      this.mire = null;
+    }
   }
 
   render(ctx: CanvasRenderingContext2D): void {
@@ -188,6 +265,13 @@ export class TitleScene implements Scene {
   }
 
   onKeyDown(code: string): void {
+    this.awake();
+    this.typed = code === CODE[this.typed] ? this.typed + 1 : code === CODE[0] ? 1 : 0;
+    if (this.typed === CODE.length) {
+      this.typed = 0;
+      this.showMire();
+      return;
+    }
     if (code === 'Enter' && this.view === 'main' && desk.powered) {
       const saved = this.app.loadSave();
       if (saved) resumeGame(this.app, saved);

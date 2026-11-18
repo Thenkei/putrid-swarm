@@ -19,6 +19,7 @@ const report: NightReport = {
   bossDefeated: 'mower',
   durationSeconds: 96,
   cameraLost: ORCHARD.sector,
+  traps: {},
 };
 
 const base: GameState = { ...layout(newGame(7), 3), day: ORCHARD.night };

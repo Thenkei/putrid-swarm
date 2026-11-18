@@ -21,6 +21,9 @@ export const LINES = {
   dawn: numbered('vo_dawn', 4),
   praise: ['vo_good_1', 'vo_good_2', 'vo_good_3'],
   smoke: ['vo_egg_smoke_1', 'vo_egg_smoke_2', 'vo_egg_smoke_3'],
+  /** The break's horn, honked in the yard for no reason; a washer dropped down the well. */
+  honk: ['vo_egg_honk_1', 'vo_egg_honk_2', 'vo_egg_honk_3'],
+  well: ['vo_egg_well_1', 'vo_egg_well_2', 'vo_egg_well_3'],
   /** The one hand had to go from one row of keys to the other (one-armed nights only). */
   hand: numbered('vo_hand', 4),
   // The shed: what comes back every time he drifts, comes to, is talked to, goes for you, or is lost mid-sentence.
