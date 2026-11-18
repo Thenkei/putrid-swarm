@@ -5,6 +5,10 @@ export const fr = {
   lang: 'Français',
   title: {
     mire: 'Fin des programmes',
+    taranja: {
+      title: 'Mort avant le tuto',
+      text: 'À la cinquième taffe, vous tombez raide mort, le nez sur la touche du micro. Taranja demande une minute de silence. Puis on l’entend marmonner « Quelqu’un peut mute le mort ? »',
+    },
     start: 'Commencer',
     continue: 'Continuer',
     options: 'Options',

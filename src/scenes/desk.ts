@@ -320,7 +320,7 @@ function at(gesture: Gesture, time: number, seconds: number, name: string, effec
 }
 
 /** Advances the hand and gives each moment of a gesture its sound, its smoke, its word. */
-function updateDesk(time: number): void {
+function updateDesk(time: number, onExhale?: () => void): void {
   const gesture = state.gesture;
   if (!gesture) return;
   const mouth = REACH + LIFT;
@@ -331,6 +331,7 @@ function updateDesk(time: number): void {
     at(gesture, time, mouth + STAY.joint + BACK * 0.4, 'smoke', () => {
       exhale();
       haze.puff();
+      onExhale?.();
     });
     at(gesture, time, down + 0.5, 'remark', () => {
       if (state.drags <= 3 || Math.random() < REMARK_CHANCE_LATER) sayAny('smoke');
