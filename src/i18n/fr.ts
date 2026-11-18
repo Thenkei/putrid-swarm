@@ -270,6 +270,11 @@ export const fr = {
     allyTurned: '{name} s’est retourné · porte {sector}',
   },
   morning: {
+    breach: 'La barricade a cédé.',
+    broken: 'Ce dispositif a cassé pendant la nuit.',
+    caught: '{n} {n:infecté arrêté|infectés arrêtés} en une fois.',
+    inspect: 'Voir dans le jardin',
+    back: 'Revoir le matin',
     title: 'Le lendemain',
     survived: 'Nuit {n} tenue',
     kills: 'Infectés arrêtés',

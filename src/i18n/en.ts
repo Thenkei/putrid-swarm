@@ -267,6 +267,11 @@ export const en: Strings = {
     allyTurned: '{name} has turned · {sector} door',
   },
   morning: {
+    breach: 'The barricade gave way.',
+    broken: 'This device broke during the night.',
+    caught: '{n} infected stopped in one go.',
+    inspect: 'Inspect the yard',
+    back: 'Back to the morning view',
     title: 'The morning after',
     survived: 'Night {n} held',
     kills: 'Infected stopped',

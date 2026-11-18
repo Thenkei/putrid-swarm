@@ -101,7 +101,14 @@ export interface YardState {
  */
 export type Phase = 'day' | 'night' | 'morning' | 'lost' | 'held';
 
+export type NightHighlight =
+  | { readonly kind: 'breach'; readonly sector: SectorId }
+  | { readonly kind: 'broken'; readonly deviceId: number }
+  | { readonly kind: 'catch'; readonly deviceId: number; readonly kills: number };
+
 export interface NightReport {
+  /** Absent in older saves, or on nights without a qualifying event. */
+  readonly highlight?: NightHighlight;
   readonly night: number;
   readonly survived: boolean;
   readonly kills: Readonly<Partial<Record<EnemyTypeId, number>>>;
