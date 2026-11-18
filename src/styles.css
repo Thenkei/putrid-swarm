@@ -4041,13 +4041,18 @@ button:disabled {
 }
 
 /* The names roll on the protagonist's own monitor. */
-.crt.credits-crt {
-  pointer-events: none;
+.credits-monitor {
+  position: absolute;
+  inset: 0;
   opacity: 0;
   transition: opacity 1s;
 }
 
-.crt.credits-crt.on {
+.credits-monitor .crt {
+  pointer-events: none;
+}
+
+.credits-monitor.on {
   opacity: 1;
 }
 
