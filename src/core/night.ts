@@ -9,7 +9,7 @@ import type { CameraOutage } from './orchard';
 import type { Ally } from './radio';
 import { computeField, nextStep, type Field } from './pathing';
 import { createRng, type Rng } from './rng';
-import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, NeighborId, NightReport, Result, SectorId, TrapTally, YardState } from './types';
+import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, NeighborId, NightHighlight, NightReport, Result, SectorId, TrapTally, YardState } from './types';
 import { SECTOR_IDS, err, ok } from './types';
 
 export type DeviceRuntimeState = 'passive' | 'armed' | 'active' | 'rearming' | 'broken';
@@ -207,6 +207,7 @@ export class NightSim {
 
   private readonly kills: Partial<Record<EnemyTypeId, number>> = {};
   private killCount = 0;
+  private highlight: NightHighlight | undefined;
   private breaches = 0;
   private houseDamage = 0;
   private devicesBroken = 0;
@@ -460,6 +461,9 @@ export class NightSim {
     const waiting = device.type === 'barrier' ? this.underTrap(device).count : 0;
     const hits = this.applyTrigger(device);
     const kills = this.killCount - before;
+    if (kills > 0 && (!this.highlight || (this.highlight.kind === 'catch' && kills > this.highlight.kills))) {
+      this.highlight = { kind: 'catch', deviceId: device.id, kills };
+    }
     const tally = this.tallies.get(device.id);
     if (tally) {
       tally.fired++;
@@ -908,6 +912,7 @@ export class NightSim {
     if (announce) this.events.push({ type: 'barricade_hit', sector });
     if (barricade.hp <= 0) {
       this.breaches++;
+      if (this.highlight?.kind !== 'breach') this.highlight = { kind: 'breach', sector };
       this.events.push({ type: 'breach', sector });
       this.addDecal('debris', ENTRIES[sector].x, ENTRIES[sector].y);
     }
@@ -938,6 +943,7 @@ export class NightSim {
     this.raised.delete(idx(device.x, device.y));
     this.lureFields.delete(device.id);
     this.devicesBroken++;
+    if (!this.highlight || this.highlight.kind === 'catch') this.highlight = { kind: 'broken', deviceId: device.id };
     this.events.push({ type: 'device_broken', deviceId: device.id, device: device.type, x: device.x, y: device.y });
     this.addDecal('debris', device.x, device.y);
     if (wasBlocking) this.fieldsDirty = true;
@@ -1266,6 +1272,7 @@ export class NightSim {
     for (const sector of SECTOR_IDS) barricadeDamage[sector] = Math.round(this.barricadeStart[sector] - this.barricades[sector].hp);
     return {
       night: this.night,
+      ...(this.highlight && { highlight: this.highlight }),
       survived: this.outcome === 'survived',
       kills: { ...this.kills },
       breaches: this.breaches,

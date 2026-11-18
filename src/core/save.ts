@@ -1,7 +1,7 @@
 // Save-game (de)serialisation. Parsing is defensive: a corrupt or foreign blob yields null,
 // never a half-valid GameState.
 
-import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, Fate, Fight, GameState, Intel, Inventory, OrchardChapter, Outing, Phase, RivalId, SectorId, ShedChapter, Stance, Standing, TrapTally } from './types';
+import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, Fate, Fight, GameState, Intel, Inventory, NightHighlight, OrchardChapter, Outing, Phase, RivalId, SectorId, ShedChapter, Stance, Standing, TrapTally } from './types';
 import { chapterOfFate, chapterWaiting } from './chapters';
 import { CALLERS, ENDINGS as RADIO_ENDINGS, QUIET_RADIO, optionOf, rollCall, type AnswerId, type Call, type CallerId, type Ending as RadioEnding, type RadioStage } from './radio';
 import { createRng } from './rng';
@@ -221,6 +221,12 @@ function parseFate(data: Record<string, unknown>, state: GameState): Fate | null
   return chapterWaiting({ ...state, phase: 'morning' }) === chapterOfFate(fate) ? fate : null;
 }
 
+function isNightHighlight(value: unknown): value is NightHighlight {
+  if (!isRecord(value)) return false;
+  if (value.kind === 'breach') return SECTOR_IDS.includes(value.sector as SectorId);
+  return isCount(value.deviceId) && (value.kind === 'broken' || (value.kind === 'catch' && isCount(value.kills) && value.kills > 0));
+}
+
 export function deserialize(raw: string): GameState | null {
   let data: unknown;
   try {
@@ -259,6 +265,7 @@ export function deserialize(raw: string): GameState | null {
     cameraLost: SECTOR_IDS.includes(parsed.lastNight.cameraLost as SectorId) ? parsed.lastNight.cameraLost : null,
     traps: parseTallies((parsed.lastNight as { traps?: unknown }).traps),
   };
+  if (lastNight && !isNightHighlight(lastNight.highlight)) delete lastNight.highlight;
   const shed = parseShed(data);
   const radio = parseRadio(data, parsePeople(data['people']), shed.shed, data['seed'] as number);
   const chaptered: GameState = { ...parsed, lastNight, ...parseOrchard(data), ...shed, ...radio, fate: null };

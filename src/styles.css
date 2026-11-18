@@ -2102,6 +2102,32 @@ button:disabled {
   padding: 18px 22px 16px;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+}
+
+/* What the night is remembered for: a caption on the scene, under the yard view it opens. */
+.morning-headline {
+  position: absolute;
+  left: 36px;
+  bottom: 44px;
+  max-width: 734px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 10px 14px 8px 16px;
+  font-size: 19px;
+  line-height: 1.3;
+}
+
+.morning-headline .btn {
+  flex: none;
+  font-size: 17px;
+}
+
+/* "The morning after" is half as long again as "Le lendemain": set smaller, it keeps to one line
+   and the report keeps its last 40px on a chapter morning. */
+.report h2:lang(en) {
+  font-size: 29px;
 }
 
 .report table {
@@ -2119,6 +2145,8 @@ button:disabled {
 .report td:last-child {
   text-align: right;
   font-weight: 700;
+  /* A long label wraps; a figure never does, or one long label would fold every "0 / 160 (−160)" under it. */
+  white-space: nowrap;
 }
 
 .report .bad {
@@ -2889,18 +2917,19 @@ button:disabled {
   color: #5a3d1e;
 }
 
-/* One more row and one more note than usual: the report is set a little tighter. */
+/* More rows or one more note than usual: the report is set a little tighter. Its fullest morning is
+   the orchard's with a trap that stayed silent: twelve rows and two notes, which these figures just hold. */
 .report.tight table {
   font-size: 19px;
   margin: 2px 0;
 }
 
 .report.tight td {
-  padding: 2px 0;
+  padding: 1px 0;
 }
 
 .report.tight p {
-  margin: 6px 0;
+  margin: 4px 0;
 }
 
 /* ───────────────────────────── The shed ───────────────────────────── */

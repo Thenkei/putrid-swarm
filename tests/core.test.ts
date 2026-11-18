@@ -10,7 +10,7 @@ import { deserialize, serialize } from '../src/core/save';
 import type { GameState } from '../src/core/types';
 import { RESOURCE_IDS, SECTOR_IDS } from '../src/core/types';
 import { affordableCount, build, dismantle, fenceCells, isFresh, lastFresh, placementProblem, refundOf, repairAll, repairAllCost, repairBarricade, repairDevice, silentTraps, tallyOf, turnDevice, undoLastBuild, wasSilent } from '../src/core/yard';
-import { layout, operate } from './operator';
+import { layout, operate, operateDesk } from './operator';
 
 const rich = (state: GameState): GameState => ({ ...state, inventory: { wood: 99, scrap: 99, springs: 99, wire: 99, battery: 99 }, hoursLeft: 999 });
 const unwrap = <T>(r: { ok: true; value: T } | { ok: false; error: unknown }): T => {
@@ -372,6 +372,80 @@ describe('turning a device', () => {
 });
 
 describe('night simulation', () => {
+  it.each([true, false])('keeps a real event in the morning save (desk operated: %s)', (active) => {
+    const state = unwrap(startNight(newGame(11)));
+    const sim = new NightSim(1, state.yard, 11);
+    run(sim, 900, active ? operateDesk : undefined);
+    const events = sim.drainEvents();
+    const morning = deserialize(serialize(concludeNight(state, sim)));
+    expect(morning?.phase).toBe('morning');
+    if (active) {
+      const shots = events.filter((event) => event.type === 'trigger').sort((a, b) => b.kills - a.kills);
+      expect(shots[0]?.kills).toBeGreaterThan(0);
+      expect(morning?.lastNight?.highlight).toEqual({ kind: 'catch', deviceId: shots[0]?.deviceId, kills: shots[0]?.kills });
+    } else {
+      const breach = events.find((event) => event.type === 'breach');
+      expect(breach).toBeDefined();
+      expect(morning?.lastNight?.highlight).toEqual({ kind: 'breach', sector: breach?.sector });
+    }
+  });
+
+  // A door given way outranks a device lost, which outranks the best catch; within a kind the first
+  // door, the first device and the biggest catch are the ones kept. `seen` is the order of events
+  // that makes each night a test of that rule, so a rebalance that changes the night fails here by name.
+  it.each([
+    { why: 'nothing was lost', night: 1, tier: 0, kind: 'catch', seen: ['catch'], never: ['door', 'device'] },
+    { why: 'a device was lost between two catches', night: 1, tier: 3, kind: 'broken', seen: ['catch', 'device', 'catch'], never: ['door'] },
+    { why: 'a device was lost, then a door', night: 2, tier: 2, kind: 'breach', seen: ['catch', 'device', 'door'], never: [] },
+    { why: 'two doors were lost, then a device', night: 2, tier: 0, kind: 'breach', seen: ['door', 'door', 'device'], never: [] },
+  ] as const)('remembers a night for its $kind when $why', ({ night, tier, kind, seen, never }) => {
+    const sim = new NightSim(night, layout(newGame(11), tier).yard, 11);
+    run(sim, 900, operate);
+    const events = sim.drainEvents();
+    const order = events.flatMap((event) => (event.type === 'breach' ? ['door'] : event.type === 'device_broken' ? ['device'] : event.type === 'trigger' && event.kills > 0 ? ['catch'] : []));
+    let matched = 0;
+    for (const what of order) if (what === seen[matched]) matched++;
+    expect(matched).toBe(seen.length);
+    for (const what of never) expect(order).not.toContain(what);
+
+    const door = events.find((event) => event.type === 'breach');
+    const lost = events.find((event) => event.type === 'device_broken');
+    const best = events.filter((event) => event.type === 'trigger').sort((a, b) => b.kills - a.kills)[0];
+    const expected = door ? { kind: 'breach', sector: door.sector } : lost ? { kind: 'broken', deviceId: lost.deviceId } : { kind: 'catch', deviceId: best?.deviceId, kills: best?.kills };
+    expect(expected.kind).toBe(kind);
+    expect(sim.report().highlight).toEqual(expected);
+  });
+
+  it('loads every kind of highlight, and loads the morning without one it cannot read', () => {
+    const state = unwrap(startNight(newGame(11)));
+    const sim = new NightSim(1, state.yard, 11);
+    run(sim, 900, operateDesk);
+    const saved = JSON.parse(serialize(concludeNight(state, sim))) as { lastNight: Record<string, unknown> };
+    const load = (highlight: unknown): GameState | null => deserialize(JSON.stringify({ ...saved, lastNight: { ...saved.lastNight, highlight } }));
+
+    for (const sound of [{ kind: 'breach', sector: 'verger' }, { kind: 'broken', deviceId: 3 }, { kind: 'catch', deviceId: 3, kills: 2 }]) {
+      expect(load(sound)?.lastNight?.highlight).toEqual(sound);
+    }
+    const unreadable = [
+      'breach',
+      null,
+      { kind: 'breach', sector: 'cellar' },
+      { kind: 'breach' },
+      { kind: 'broken' },
+      { kind: 'broken', deviceId: -1 },
+      { kind: 'catch', deviceId: 3 },
+      { kind: 'catch', deviceId: 3, kills: 0 },
+      { kind: 'catch', deviceId: 3, kills: 1.5 },
+      { kind: 'missed', deviceId: 3 },
+    ];
+    for (const highlight of unreadable) {
+      const loaded = load(highlight);
+      expect(loaded?.phase).toBe('morning');
+      expect(loaded?.lastNight).toMatchObject({ night: 1, survived: true });
+      expect(loaded?.lastNight).not.toHaveProperty('highlight');
+    }
+  });
+
   it('reports who fell, where, and which way they were facing', () => {
     const sim = new NightSim(1, layout(newGame(42), 2).yard, 42);
     const dead: { id: number; fx: number; fy: number }[] = [];
