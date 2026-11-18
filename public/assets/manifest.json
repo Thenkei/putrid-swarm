@@ -1468,5 +1468,20 @@
     "file": "sprites/radio_tuning_knob.webp",
     "w": 317,
     "h": 320
+  },
+  "plate_lift_raised": {
+    "file": "plates/plate_lift_raised.webp",
+    "w": 965,
+    "h": 539
+  },
+  "plate_lift_fall": {
+    "file": "plates/plate_lift_fall.webp",
+    "w": 965,
+    "h": 539
+  },
+  "plate_lift_end": {
+    "file": "plates/plate_lift_end.webp",
+    "w": 965,
+    "h": 539
   }
 }

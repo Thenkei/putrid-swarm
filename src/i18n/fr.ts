@@ -1,3 +1,4 @@
+import { scavengeFr } from './scavenge-fr';
 // French is the source language of Putrid Swarm; en.ts must mirror this shape exactly.
 
 export const fr = {
@@ -226,6 +227,7 @@ export const fr = {
     empty: 'Vidé',
     stayHome: 'Rester au refuge',
   },
+  scavenge: scavengeFr,
   loc: {
     search: 'Fouiller · {h} h',
     searched: 'Déjà fouillé',
@@ -392,6 +394,7 @@ export const fr = {
       load: 'La Brocanteuse est partie sans dette.',
     },
     fate: {
+      lift: { title: 'Fin de course', text: 'Jour {n}. Le pont a lâché. La clochette de la porte du garage tintait encore quand la voiture a touché le sol.' },
       throat: { title: 'Un lapin', text: 'Jour {n}, sept heures dix. Il était blanc, il tenait dans une main, et il a sauté plus vite que ton bras. La caméra du verger n’a rien filmé.' },
       turned: { title: 'Trop tard', text: 'Jour {n}. C’est arrivé à l’épaule avant la scie. Ce soir, tu seras dans le jardin avec les autres, à regarder la maison.' },
       bled: { title: 'Sans garrot', text: 'Jour {n}. Le bras est tombé, l’infection avec. Le reste a suivi : rien ne serrait au-dessus de la coupe. Il y avait une corde, à la clôture.' },

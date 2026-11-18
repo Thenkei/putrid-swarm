@@ -1,0 +1,69 @@
+import { circuit, padlock, pairs, riddle, scale, timing, type PuzzleBook } from '../core/scavenge';
+import type { scavengeFr } from './scavenge-fr';
+
+export const scavengeEn: typeof scavengeFr = {
+  back: 'Leave it', cost: '{h} h per attempt · paid on your first move', target: 'Wanted', loaded: 'Loaded',
+  retry: 'Retry · {h} h', spent: 'Attempt lost · {h} h spent.', routeTest: 'Test the route', routeBroken: 'The line breaks before the exit.',
+  hideLabels: 'Turn the labels face down', liftWarning: 'Fatal risk · A mistimed pull drops the car on you.',
+  scale: 'Pick exactly two tags that add up to the order. Tap a tag again to put it back.',
+  pairs: 'Study the labels, then turn them face down. Match all three pairs. One mismatch ends the attempt.', matched: '{n} / 3 pairs', label: 'Label {n}',
+  mismatch: 'Those labels were different.',
+  circuit: 'Turn the pieces to make one continuous line between the two arrows, then test it.', tile: 'Piece {n}', directions: ['up', 'right', 'down', 'left'],
+  timing: 'Catch the needle inside the striped band twice.', caught: '{n} / 2 catches', missed: 'Just missed. Watch the striped band.',
+  padlock: 'Catch each moving notch inside the brass mark at twelve o’clock. Work from the outside in.',
+  catchRing: 'Catch ring', ringCount: '{n} of 3 rings set', slipped: 'The ring slipped. The lock reset.',
+  lockOpen: 'The shackle is open.', take: 'Take supplies',
+  riddle: 'Pick an answer.', wrongSum: 'That adds up to {n}. Try another pair.',
+  spots: {
+    shed: {
+      planks: scale('Measure twice, nick once', 'The good boards are already cut. Two offcuts need to span the gap marked on the sawhorse.', 'dm'),
+      mesh: circuit('Follow the loose end', 'Three rolls have knitted themselves together. Line up the loose wire from one torn label to the other.'),
+      bench: timing('The runaway washer', 'A washer is rolling round the rim of a rusty bowl. Catch it at the chipped lip, then catch its little sister.', 'Catch'),
+      drawers: pairs('Heirloom hardware', 'The gardener filed his spares under vegetables. Each seed label has a twin on a drawer of fittings.', ['Leek', 'Turnip', 'Pea']),
+      toolwall: riddle('Employee of the month', 'A chalk outline has two jaws, one movable, and no teeth. Hang its owner back up to release the tool board.', ['Adjustable spanner', 'Handsaw', 'Garden fork'], 'One jaw slides to fit the nut.'),
+    },
+    garage: {
+      workbench: timing('The hiccuping vice', 'Every time the compressor hiccups, the vice opens a crack. Pull a part free on each of the next two good hiccups.', 'Pull free'),
+      locker: padlock('Three clicks to closing time', 'The mechanic fitted a cutaway padlock to his locker so he could show off the works. The key is inside, naturally.'),
+      storeroom: scale('Stocktake by weight', 'The mechanic wrote the order in kilos. Put two tagged cartons on the service lift.', 'kg'),
+      shelves: pairs('Separated at the factory', 'The parts man insists that nothing leaves his shop single. Reunite the labels on three pairs of spares.', ['Piston', 'Gasket', 'Hub']),
+      toolchest: circuit('Socket labyrinth', 'Loose elbows from a socket set have wedged the drawer shut. Line them up so the pull rod can pass.'),
+      wreck: timing('Going down', 'The lift shudders under the wreck. Two crates are still underneath. Pull each clear while the needle is in the striped band.', 'Pull crate'),
+    },
+    hardware: {
+      timber: scale('Sold by the metre', 'The cutting slip calls for two lengths. Find a pair that fills the order exactly and the timber is yours.', 'm'),
+      meshrolls: circuit('Chicken-wire crochet', 'Someone crocheted the fence into a chicken. Trace a continuous strand from beak to tail to unravel it.'),
+      springbin: timing('Jack in the bin', 'Each time the lid bounces, a spring sticks its head out. Catch two before they tuck themselves back in.', 'Snatch'),
+      shelves: pairs('Aisle of lost screws', 'Three bins have lost their lids. Match the stamped thread sizes before the contents end up on the floor.', ['M4', 'M6', 'M8']),
+      counter: riddle('Exact change for the end times', 'The till wants six cents in three coins. It accepts ones, twos and fives. What do you drop in?', ['2 + 2 + 2', '5 + 1', '1 + 2 + 2'], 'It counts the clinks as well as the cash.'),
+    },
+    grocery: {
+      batteries: pairs('Twins at the checkout', 'The tester has three pairs face down. Match the size labels to make the battery drawer pop.', ['AA', 'AAA', '9 V']),
+      crates: scale('The grocer’s seesaw', 'A stack of empty crates is holding the cellar hatch open. Hang two tagged crates from the other arm to balance it.', 'kg'),
+      fridge: riddle('The yoghurt knows', 'Three pots, labelled MON, TUE and WED. One still rattles with spare parts. The grocer ate the oldest. The youngest just asked for a spoon. Which do you open?', ['TUE', 'MON', 'WED'], 'The oldest pot is empty. Give the youngest some privacy.'),
+      trolley: timing('The fourth wheel', 'Three wheels obey. The fourth wants to go to the sea. Stamp the brake each time it swings into line.', 'Stamp brake'),
+      backroom: circuit('The bottle return', 'The bottle chute pays out in old batteries. Turn its elbows so the last bottle can reach the till.'),
+    },
+    post: {
+      parcels: riddle('Return to sender', 'The snails have eaten their street name. The postcode ends in an even digit, the house number is odd, and the trail goes upstairs. Which label belongs on the parcel?', ['7 · 35002 · Floor 1', '8 · 35002 · Floor 1', '7 · 35001 · Ground'], 'Check the house number and the last digit of the postcode.'),
+      string: circuit('The postman’s knot', 'The postman tied the sorting frame to his own belt. Find the unbroken run of string between the hooks.'),
+      cage: padlock('Registered lock', 'The postman sent the cage key to himself by registered mail. You can see the envelope through the bars.'),
+      sacks: scale('Last collection', 'The hook on the parcel scale holds two sacks. Make up the weight on the dispatch slip.', 'kg'),
+      bicycle: timing('One last delivery', 'The upturned bike is still pedalling. Grab a spoke at the chalk mark twice to bring it to a standstill.', 'Catch spoke'),
+    },
+    police: {
+      radios: circuit('Dispatch on hold', 'The charging rack is playing hold music through a loose lead. Connect its two sockets to eject the batteries.'),
+      barriers: scale('Crowd control for two', 'Two folding barriers fit the trailer. Their numbered lengths must cover the whole chalk line.', 'm'),
+      locker: pairs('Chain of custody', 'The evidence tags have come off. Match each exhibit to its duplicate before signing it out.', ['False tooth', 'Tin spoon', 'One sock']),
+      cell: riddle('Parole for a spoon', 'The spoon has served six months. Its file says “Release when the prisoner can pass between the bars.” What do you do?', ['Turn it sideways', 'File an appeal', 'Wait six more months'], 'The bowl is wider than the gap. Its edge is thinner.'),
+      desk: timing('The chief’s stamp', 'The automatic date stamp is still on duty. Pull a sheet clear between blows. Then rescue the carbon copy.', 'Pull sheet'),
+    },
+    townhall: {
+      boards: scale('Coalition government', 'Two campaign boards will cover the broken window. For once, the candidates must add up to something.', 'dm'),
+      pa: circuit('A minute of feedback', 'The mayor recorded a minute of silence. It has been screaming all week. Route the cable back to its dummy load.'),
+      sideboard: riddle('Dinner with the bust', 'The bronze mayor wants a place setting. “On my left lies the fork. On my right lies the knife. Who faces me and tells the truth?”', ['His reflection in the plate', 'The fork', 'The knife'], 'The plate is polished silver. Both utensils are beside him.'),
+      chairs: timing('Musical chairs, quorum of one', 'The council chairs keep folding shut on the downbeat. Pull out a hinge pin each time the seats line up.', 'Pull pin'),
+      leaflets: pairs('A recount of the dead', 'Even the dead have voted twice. Pair the identical ballot signatures to free the boxes of leaflets.', ['A. Ghost', 'I. Croaked', 'Dee Ceased']),
+    },
+  } satisfies PuzzleBook,
+};

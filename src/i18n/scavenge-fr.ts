@@ -1,0 +1,68 @@
+import { circuit, padlock, pairs, riddle, scale, timing, type PuzzleBook } from '../core/scavenge';
+
+export const scavengeFr = {
+  back: 'Laisser tomber', cost: '{h} h par tentative · dès le premier geste', target: 'Commande', loaded: 'Charge',
+  retry: 'Réessayer · {h} h', spent: 'Tentative ratée · {h} h dépensée.', routeTest: 'Tester le passage', routeBroken: 'Le passage est coupé avant la sortie.',
+  hideLabels: 'Retourner les étiquettes', liftWarning: 'Danger mortel · Si vous tirez au mauvais moment, la voiture vous tombe dessus.',
+  scale: 'Choisissez deux étiquettes dont la somme correspond à la commande. Retouchez une étiquette pour la reposer.',
+  pairs: 'Mémorisez les étiquettes, puis retournez-les. Retrouvez les trois paires. Une erreur met fin à la tentative.', matched: '{n} / 3 paires', label: 'Étiquette {n}',
+  mismatch: 'Les deux étiquettes étaient différentes.',
+  circuit: 'Tournez les pièces pour former une ligne continue entre les deux flèches, puis testez le passage.', tile: 'Pièce {n}', directions: ['haut', 'droite', 'bas', 'gauche'],
+  timing: 'Attrapez deux fois l’aiguille dans la bande hachurée.', caught: '{n} / 2 prises', missed: 'Raté de peu. Surveillez la bande hachurée.',
+  padlock: 'Bloquez chaque encoche mobile sous le repère en laiton, à midi. Commencez par la bague extérieure.',
+  catchRing: 'Bloquer la bague', ringCount: '{n} bagues sur 3 en place', slipped: 'La bague a glissé. Le cadenas s’est refermé.',
+  lockOpen: 'L’anse est ouverte.', take: 'Récupérer le matériel',
+  riddle: 'Choisissez une réponse.', wrongSum: 'Ça fait {n}. Essayez une autre paire.',
+  spots: {
+    shed: {
+      planks: scale('Mesurer deux fois, piquer une fois', 'Les bonnes planches sont déjà débitées. Deux chutes doivent couvrir l’écart marqué sur le tréteau.', 'dm'),
+      mesh: circuit('Ça ne tient qu’à un fil', 'Trois rouleaux se sont tricotés ensemble. Faites courir le brin libre d’une étiquette déchirée à l’autre.'),
+      bench: timing('La rondelle en cavale', 'Une rondelle tourne sur le bord d’une gamelle rouillée. Attrapez-la au niveau de l’éclat, puis chopez sa petite sœur.', 'Attraper'),
+      drawers: pairs('Quincaillerie potagère', 'Le jardinier classe ses pièces par légume. Chaque sachet de graines a son jumeau sur un tiroir à ferrures.', ['Poireau', 'Navet', 'Pois']),
+      toolwall: riddle('Employé du mois', 'Une silhouette à la craie a deux mâchoires, dont une mobile, et aucune dent. Raccrochez son propriétaire pour libérer le panneau.', ['Clé à molette', 'Scie égoïne', 'Fourche'], 'Une mâchoire coulisse pour s’ajuster à l’écrou.'),
+    },
+    garage: {
+      workbench: timing('L’étau a le hoquet', 'À chaque hoquet du compresseur, l’étau s’entrouvre. Sortez une pièce à chacun des deux prochains bons hoquets.', 'Tirer'),
+      locker: padlock('Trois clics avant la fermeture', 'Le mécano a monté un cadenas en coupe sur son armoire pour frimer. La clé est dedans, évidemment.'),
+      storeroom: scale('Inventaire au kilo', 'Le mécano a fait sa commande en kilos. Posez deux cartons étiquetés sur le monte-charge.', 'kg'),
+      shelves: pairs('Séparés à l’usine', 'Le magasinier refuse de laisser partir une pièce célibataire. Rassemblez les étiquettes de trois paires.', ['Piston', 'Joint', 'Moyeu']),
+      toolchest: circuit('Le dédale à douilles', 'Des coudes de clé à douille coincent le tiroir. Alignez-les pour laisser passer la tige de la poignée.'),
+      wreck: timing('Fin de course', 'Le pont tremble sous l’épave. Deux caisses sont restées dessous. Tirez-les une à une quand l’aiguille passe dans la bande hachurée.', 'Tirer la caisse'),
+    },
+    hardware: {
+      timber: scale('Vendu au mètre', 'Le bon de coupe réclame deux longueurs. Trouvez la paire qui remplit la commande au mètre près.', 'm'),
+      meshrolls: circuit('Poulet au crochet', 'Quelqu’un a crocheté un poulet avec le grillage. Retrouvez le fil continu du bec à la queue pour le détricoter.'),
+      springbin: timing('La boîte à diables', 'Chaque fois que le couvercle rebondit, un ressort passe la tête. Chopez-en deux avant qu’ils ne rentrent.', 'Choper'),
+      shelves: pairs('Rayon vis perdues', 'Trois bacs ont perdu leur couvercle. Associez les filetages gravés avant que tout finisse par terre.', ['M4', 'M6', 'M8']),
+      counter: riddle('L’appoint pour la fin du monde', 'La caisse veut six centimes en trois pièces. Elle accepte les pièces de un, deux et cinq. Que glissez-vous dedans ?', ['2 + 2 + 2', '5 + 1', '1 + 2 + 2'], 'Elle compte les tintements autant que les centimes.'),
+    },
+    grocery: {
+      batteries: pairs('Les jumelles de caisse', 'Le testeur cache trois paires face contre table. Associez les formats pour ouvrir le tiroir à piles.', ['AA', 'AAA', '9 V']),
+      crates: scale('La bascule du primeur', 'Une pile de cagettes maintient la trappe ouverte. Accrochez deux cagettes étiquetées de l’autre côté pour la mettre en équilibre.', 'kg'),
+      fridge: riddle('Le yaourt sait', 'Trois pots marqués LUN, MAR et MER. L’un ferraille encore quand on le secoue. L’épicier a mangé le plus vieux. Le plus frais réclame une cuillère. Lequel ouvrez-vous ?', ['MAR', 'LUN', 'MER'], 'Le plus vieux est vide. Laissez le plus frais déjeuner en paix.'),
+      trolley: timing('La quatrième roue', 'Trois roues obéissent. La quatrième veut voir la mer. Écrasez le frein chaque fois qu’elle rentre dans le rang.', 'Freiner'),
+      backroom: circuit('Retour de consigne', 'La consigne rend la monnaie en vieilles piles. Tournez les coudes du conduit pour guider la dernière bouteille jusqu’à la caisse.'),
+    },
+    post: {
+      parcels: riddle('Retour à l’expéditeur', 'Les escargots ont mangé le nom de leur rue. Le code postal finit par un chiffre pair, le numéro de rue est impair et la traînée monte à l’étage. Quelle étiquette coller ?', ['7 · 35002 · 1er étage', '8 · 35002 · 1er étage', '7 · 35001 · RDC'], 'Vérifiez le numéro de rue et le dernier chiffre du code postal.'),
+      string: circuit('Le nœud du facteur', 'Le facteur a ficelé le casier de tri à sa propre ceinture. Retrouvez le brin continu entre les deux crochets.'),
+      cage: padlock('Cadenas recommandé', 'Le facteur s’est envoyé la clé de la cage en recommandé. On voit l’enveloppe derrière les barreaux.'),
+      sacks: scale('Dernière levée', 'Le crochet du pèse-colis prend deux sacs. Retrouvez le poids indiqué sur le bordereau.', 'kg'),
+      bicycle: timing('Dernière tournée', 'Le vélo retourné pédale encore. Attrapez deux fois un rayon au repère de craie pour l’arrêter.', 'Saisir le rayon'),
+    },
+    police: {
+      radios: circuit('Veuillez patienter', 'Le râtelier diffuse une musique d’attente par un fil débranché. Reliez ses deux prises pour éjecter les batteries.'),
+      barriers: scale('Maintien de l’ordre à deux', 'La remorque prend deux barrières. Leurs longueurs doivent couvrir tout le trait de craie.', 'm'),
+      locker: pairs('Sous scellés', 'Les étiquettes sont tombées. Associez chaque pièce à conviction à son double avant de signer la décharge.', ['Dentier', 'Cuillère', 'Chaussette']),
+      cell: riddle('Conditionnelle pour une cuillère', 'La cuillère a purgé six mois. Son dossier dit « Libérable dès qu’elle pourra passer entre les barreaux. » Que faites-vous ?', ['La tourner de profil', 'Faire appel', 'Attendre six mois'], 'Le creux est plus large que l’écart. La tranche, elle, est plus fine.'),
+      desk: timing('Le coup de tampon', 'Le dateur automatique est toujours de service. Sauvez une feuille entre deux coups. Puis récupérez le carbone.', 'Tirer la feuille'),
+    },
+    townhall: {
+      boards: scale('Gouvernement de coalition', 'Deux panneaux de campagne couvriront la fenêtre cassée. Pour une fois, les candidats doivent tomber juste.', 'dm'),
+      pa: circuit('Une minute de larsen', 'La minute de silence enregistrée par le maire hurle depuis une semaine. Ramenez le câble à sa charge de test.'),
+      sideboard: riddle('À table avec le buste', 'Le maire en bronze exige un couvert. « À ma gauche repose la fourchette. À ma droite repose le couteau. Qui me regarde en face et me dit la vérité ? »', ['Mon reflet dans l’assiette', 'La fourchette', 'Le couteau'], 'L’assiette est en argent poli. Les couverts sont à ses côtés.'),
+      chairs: timing('Chaises musicales en conseil réduit', 'Les chaises du conseil se replient en cadence. Tirez une goupille à chaque fois que les assises s’alignent.', 'Tirer la goupille'),
+      leaflets: pairs('Recomptage des défunts', 'Même les morts ont voté deux fois. Retrouvez les signatures en double pour libérer les cartons de tracts.', ['Jean Tombe', 'Alain Térieur', 'Anne Térée']),
+    },
+  } satisfies PuzzleBook,
+};

@@ -10,6 +10,7 @@ export interface SearchSpot {
   readonly x: number;
   readonly y: number;
   readonly loot: LootTable;
+  readonly fatalMiss?: 'lift';
 }
 
 export interface LocationDef {
@@ -41,7 +42,7 @@ export const BOSS_NIGHT: Readonly<Record<NeighborId, number>> = {
   mayor: 7,
 };
 
-export const LOCATIONS: Readonly<Record<LocationId, LocationDef>> = {
+const destinations = {
   shed: {
     id: 'shed',
     travelHours: 0.25,
@@ -70,7 +71,7 @@ export const LOCATIONS: Readonly<Record<LocationId, LocationDef>> = {
       { key: 'storeroom', x: 0.77, y: 0.22, loot: { battery: [2, 3], scrap: [2, 3] } },
       { key: 'shelves', x: 0.88, y: 0.31, loot: { scrap: [4, 5], springs: [1, 1] } },
       { key: 'toolchest', x: 0.83, y: 0.44, loot: { springs: [2, 3], scrap: [3, 3] } },
-      { key: 'wreck', x: 0.6, y: 0.5, loot: { battery: [1, 1], springs: [3, 3] } },
+      { key: 'wreck', fatalMiss: 'lift', x: 0.6, y: 0.5, loot: { battery: [1, 1], springs: [3, 3] } },
     ],
   },
   hardware: {
@@ -148,4 +149,7 @@ export const LOCATIONS: Readonly<Record<LocationId, LocationDef>> = {
       { key: 'leaflets', x: 0.74, y: 0.72, loot: { wood: [3, 4], scrap: [1, 1] } },
     ],
   },
-};
+} as const satisfies Readonly<Record<LocationId, LocationDef>>;
+
+export type SpotKey<L extends LocationId> = (typeof destinations)[L]['spots'][number]['key'];
+export const LOCATIONS: Readonly<Record<LocationId, LocationDef>> = destinations;

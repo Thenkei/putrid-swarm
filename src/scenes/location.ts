@@ -2,24 +2,32 @@
 // rides in the boot until the refuge. Someone else may already be standing at the best lot.
 
 import { DAY_HOURS, LOCATIONS, SEARCH_HOURS } from '../core/data/locations';
-import { CHIEF_SEARCH_LIMIT, clockLabel, leaveLocation, neighborStatus, searchSpot, type NeighborMeeting } from '../core/game';
+import { CHIEF_SEARCH_LIMIT, clockLabel, leaveLocation, neighborStatus, prepareSearch, type NeighborMeeting, type SearchOutcome } from '../core/game';
+import { spotRng, type Puzzle } from '../core/scavenge';
 import type { Dispute, GameState, LocationId } from '../core/types';
 import { RESOURCE_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { assetUrl } from '../engine/assets';
 import { audio } from '../engine/audio';
+import { rememberEnding } from '../engine/progress';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
-import { carDeparture, costLine, drawPlate, inventoryBar, lootSfx, oneArmed, platePoint } from './common';
+import { carDeparture, heroArt, costLine, drawPlate, inventoryBar, lootSfx, oneArmed, platePoint } from './common';
 import { EncounterPanel, memoryLine, nameOf, roadPlate } from './encounter';
-import { goAmbush, goHomeStretch, goTravel } from './flow';
+import { goAmbush, goEnd, goHomeStretch, goTravel } from './flow';
+import { ScavengePanel } from './scavenge';
 
 export class LocationScene implements Scene {
   private hud!: HTMLElement;
   private overlay!: HTMLElement;
   private panel!: EncounterPanel;
-  private time = 0;
-  private escorted = false;
+  private puzzle: ScavengePanel | null = null;
+  private get escorted(): boolean {
+    const location = LOCATIONS[this.id];
+    const state = this.state;
+    const key = `searches:${this.id}:${state.day}:${state.locations[this.id].visits}`;
+    return location.neighbor === 'chief' && neighborStatus('chief', state.day) === 'alive' && (state.flags[key] ?? 0) >= CHIEF_SEARCH_LIMIT;
+  }
 
   constructor(
     private readonly app: App,
@@ -107,6 +115,7 @@ export class LocationScene implements Scene {
           class: `spot ${done ? 'done' : ''} ${blocked ? 'blocked' : ''}`,
           style: { left: `${p.x}px`, top: `${p.y}px` },
           title: done ? s.loc.searched : fmt(s.loc.search, { h: hours(SEARCH_HOURS) }),
+          data: { spot: String(index) },
           onClick: () => this.search(index, p),
         },
         [el('span', { class: 'ring', text: done ? '✓' : '?' }), el('span', { class: 'tag' }, [name, done ? null : hint])],
@@ -171,9 +180,10 @@ export class LocationScene implements Scene {
     if (hasGift) audio.play('loot');
   }
 
-  private search(index: number, at: { x: number; y: number }): void {
+  private search(index: number, at: { x: number; y: number }, retry = false): void {
+    if (this.puzzle || this.meeting || this.panel.open) return;
     const s = S();
-    const result = searchSpot(this.state, index);
+    const result = prepareSearch(this.state, index);
     if (!result.ok) {
       const code = result.error.code;
       if (code === 'already_searched') return;
@@ -183,29 +193,69 @@ export class LocationScene implements Scene {
       }
       audio.play('deny');
       if (code === 'escorted_out') {
-        this.escorted = true;
         this.app.toast(s.loc.escorted, 'error');
         this.refresh();
       } else if (code === 'no_time') this.app.toast(s.loc.noTime, 'error');
       else this.app.toast(s.err.generic, 'error');
       return;
     }
+    const location = LOCATIONS[this.id];
+    const spot = location.spots[index]!;
+    const puzzles: Readonly<Record<string, Puzzle>> = s.scavenge.spots[this.id];
+    const names: Readonly<Record<string, string>> = s.spot[this.id];
+    const close = (): void => {
+      this.puzzle?.root.remove();
+      this.puzzle = null;
+      this.hud.inert = false;
+      this.hud.querySelector<HTMLButtonElement>(`[data-spot="${index}"]`)?.focus();
+    };
+    const attempt = result.value;
+    this.puzzle = new ScavengePanel(
+      puzzles[spot.key]!, names[spot.key]!, spot, heroArt(location.plate, oneArmed(this.state)), spotRng(this.state.seed, this.id, spot.key),
+      () => {
+        close();
+        this.collect(attempt.success, at);
+      }, close,
+      () => {
+        this.app.state = attempt.paid;
+        this.app.save();
+        this.refresh();
+      },
+      message => {
+        if (attempt.failure.fate === 'lift') {
+          this.app.state = attempt.failure;
+          this.app.save();
+          this.puzzle!.root.inert = true;
+          goEnd(this.app, { firstTime: rememberEnding('town.lift'), playLiftCollapse: true });
+          return;
+        }
+        const next = prepareSearch(this.state, index);
+        if (next.ok) this.puzzle?.showFailure(message, () => {
+          close();
+          this.search(index, at, true);
+        });
+        else {
+          const reason = next.error.code === 'escorted_out' ? s.loc.escorted : s.loc.noTime;
+          this.puzzle?.showFailure(`${message} ${reason}`, null);
+        }
+      },
+    );
+    this.hud.inert = true;
+    this.overlay.append(this.puzzle.root);
+    if (retry) this.puzzle.start();
+    this.puzzle.focus();
+  }
+
+  private collect(result: SearchOutcome, at: { x: number; y: number }): void {
     audio.play('rummage');
-    const found = lootSfx(result.value.loot);
+    const found = lootSfx(result.loot);
     if (found) window.setTimeout(() => audio.play(found), 380);
-    this.app.state = result.value.state;
+    this.app.state = result.state;
     this.app.save();
     this.refresh();
-    const pop = el('div', { class: 'loot-pop', style: { left: `${at.x}px`, top: `${at.y - 34}px` } }, [costLine(result.value.loot, undefined, '+')]);
+    const pop = el('div', { class: 'loot-pop', style: { left: `${at.x}px`, top: `${at.y - 34}px` } }, [costLine(result.loot, undefined, '+')]);
     this.hud.append(pop);
     window.setTimeout(() => pop.remove(), 1900);
-
-    const location = LOCATIONS[this.id];
-    const visitKey = `searches:${this.id}:${this.state.day}:${this.state.locations[this.id].visits}`;
-    if (location.neighbor === 'chief' && neighborStatus('chief', this.state.day) === 'alive' && (this.state.flags[visitKey] ?? 0) >= CHIEF_SEARCH_LIMIT) {
-      this.escorted = true;
-      this.refresh();
-    }
   }
 
   private leave(): void {
@@ -226,7 +276,7 @@ export class LocationScene implements Scene {
   }
 
   update(dt: number): void {
-    this.time += dt;
+    this.puzzle?.update(dt);
     this.panel.update(dt);
   }
 
@@ -238,6 +288,11 @@ export class LocationScene implements Scene {
   }
 
   onKeyDown(code: string): void {
+    if (this.state.phase === 'lost') return;
+    if (this.puzzle) {
+      if (code === 'Escape') this.puzzle.cancel();
+      return;
+    }
     if (this.panel.onKeyDown(code)) return;
     if (code === 'Escape' && !this.meeting) this.leave();
   }

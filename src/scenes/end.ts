@@ -15,7 +15,7 @@ import { el } from '../engine/dom';
 import { S, fmt } from '../engine/i18n';
 import { CreditsScene } from './credits';
 import { endingsTally } from '../engine/progress';
-import { drawPlate } from './common';
+import { drawPlate, oneArmed } from './common';
 import { SWARMED } from './finale';
 import { chapterEndPlate, goChapter, goDay, goFinale, goNightfall, goTitle } from './flow';
 
@@ -25,14 +25,20 @@ export interface EndOptions {
   readonly song?: { readonly result: JamResult; readonly record: RecordOutcome };
   /** This ending had never been seen in this browser. */
   readonly firstTime?: boolean;
+  readonly playLiftCollapse?: boolean;
 }
 
 /** The swarm picture fades in from where the last scene left it: this many seconds into it. */
 const SWARM_SECONDS = 9;
+const LIFT_DROP = 0.85;
+const LIFT_IMPACT = 1.18;
+const LIFT_RECAP = 2.8;
 
 export class EndScene implements Scene {
   private time = 0;
   private left = false;
+  private collapse = false;
+  private recap!: HTMLElement;
   /** Null when the orchard ended the run. */
   private readonly kind: FinaleKind | null;
   /** The evening before the lost night, so "replay this night" restores exactly what was at stake. */
@@ -66,7 +72,7 @@ export class EndScene implements Scene {
     const night = state?.lastNight?.night ?? state?.day ?? 1;
     const totals = state?.totals ?? { kills: 0, triggers: 0, searches: 0 };
     // Nights held: all of them at the seventh dawn; up to the lost one otherwise; the orchard comes the morning after its night.
-    const held = dawn ? LAST_NIGHT : fate ? (state?.day ?? 0) : Math.max(0, night - 1);
+    const held = dawn ? LAST_NIGHT : fate === 'lift' ? Math.max(0, (state?.day ?? 1) - 1) : fate ? (state?.day ?? 0) : Math.max(0, night - 1);
 
     const buttons: HTMLElement[] = [];
     const primary = (label: string, onClick: () => void): HTMLElement => el('button', { class: `btn ${buttons.length === 0 ? 'btn-primary' : ''}`, text: label, onClick });
@@ -107,23 +113,24 @@ export class EndScene implements Scene {
 
     const title = fate ? s.end.fate[fate].title : this.kind === 'dawn' ? s.end.dawn.title : this.kind === 'rampage' ? s.end.rampage.title : s.end.lostTitle;
     const text = fate
-      ? fmt(s.end.fate[fate].text, { n: (state?.day ?? 2) + 1 })
+      ? fmt(s.end.fate[fate].text, { n: (state?.day ?? 2) + (fate === 'lift' ? 0 : 1) })
       : this.kind === 'dawn'
         ? s.end.dawn.text
         : fmt(this.kind === 'rampage' ? s.end.rampage.text : s.end.lostText, { n: night });
     const endings = endingsTally();
-    this.app.ui.append(
-      el('div', { class: `center-col end ${this.kind ?? 'fate'}` }, [
-        this.options.firstTime ? el('div', { class: 'end-new', text: s.end.newEnding }) : null,
-        el('h1', { text: title }),
-        el('p', { text }),
-        this.songCard(),
-        this.radioLine(state),
-        el('p', { class: 'muted', text: `${fmt(s.end.stats, { ...totals, held })}${state && !hasLeftArm(state) ? ` · ${s.end.oneArm}` : ''}` }),
-        el('div', { class: 'row' }, buttons),
-        el('p', { class: 'end-seen', text: fmt(s.end.seen, { n: endings.seen, total: endings.total }) }),
-      ]),
-    );
+    this.collapse = fate === 'lift' && this.options.playLiftCollapse === true && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.recap = el('div', { class: `center-col end ${fate === 'lift' ? 'lift-ending' : this.kind ?? 'fate'}` }, [
+      this.options.firstTime ? el('div', { class: 'end-new', text: s.end.newEnding }) : null,
+      el('h1', { text: title }),
+      el('p', { text }),
+      this.songCard(),
+      this.radioLine(state),
+      el('p', { class: 'muted', text: `${fmt(s.end.stats, { ...totals, held })}${state && !hasLeftArm(state) ? ` · ${s.end.oneArm}` : ''}` }),
+      el('div', { class: 'row' }, buttons),
+      el('p', { class: 'end-seen', text: fmt(s.end.seen, { n: endings.seen, total: endings.total }) }),
+    ]);
+    this.recap.hidden = this.collapse;
+    this.app.ui.append(this.recap);
     if (this.options.song?.record.beaten) window.setTimeout(() => !this.left && audio.play('blast'), 900);
   }
 
@@ -163,11 +170,27 @@ export class EndScene implements Scene {
   }
 
   update(dt: number): void {
+    const previous = this.time;
     this.time += dt;
+    if (this.collapse) {
+      if (previous < LIFT_IMPACT && this.time >= LIFT_IMPACT) audio.play('thud');
+      if (this.time >= LIFT_RECAP) {
+        this.collapse = false;
+        this.recap.hidden = false;
+      }
+    }
   }
 
   render(ctx: CanvasRenderingContext2D): void {
     const state = this.app.state;
+    if (state?.fate === 'lift') {
+      if (this.collapse && this.time < LIFT_DROP) drawPlate(ctx, 'plate_lift_raised');
+      else if (this.collapse && this.time < LIFT_IMPACT) {
+        // Punch in on the falling car for a run where the survivor has already lost an arm.
+        drawPlate(ctx, 'plate_lift_fall', oneArmed(state) ? { zoom: 1.8, focusX: 1, focusY: 0 } : {});
+      } else drawPlate(ctx, 'plate_lift_end');
+      return;
+    }
     if (state?.fate) {
       drawPlate(ctx, chapterEndPlate(chapterOfFate(state.fate)), { zoom: 1.02 + this.time * 0.003, focusY: 0.45 });
       return;

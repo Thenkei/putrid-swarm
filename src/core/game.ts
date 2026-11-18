@@ -191,7 +191,14 @@ export interface SearchOutcome {
 /** While the chief still keeps order, he walks you out after two rummages per visit. */
 export const CHIEF_SEARCH_LIMIT = 2;
 
-export function searchSpot(state: GameState, spotIndex: number): Result<SearchOutcome, DayError> {
+/** Immutable outcomes of one eligible attempt, all based on the same daylight payment. */
+export interface SearchAttempt {
+  readonly paid: GameState;
+  readonly failure: GameState;
+  readonly success: SearchOutcome;
+}
+
+export function prepareSearch(state: GameState, spotIndex: number): Result<SearchAttempt, DayError> {
   if (state.phase !== 'day') return err({ code: 'wrong_phase' });
   if (state.where === 'home' || state.where === 'road') return err({ code: 'not_there' });
   const location = LOCATIONS[state.where];
@@ -221,19 +228,31 @@ export function searchSpot(state: GameState, spotIndex: number): Result<SearchOu
     const range = spot.loot[id];
     if (range) loot[id] = rng.int(range[0], range[1]);
   }
+  const paid: GameState = {
+    ...state,
+    hoursLeft: state.hoursLeft - SEARCH_HOURS,
+    flags: { ...state.flags, [visitKey]: searchesThisVisit + 1 },
+  };
   return ok({
-    loot,
-    state: {
-      ...state,
-      rng: rng.state(),
-      hoursLeft: state.hoursLeft - SEARCH_HOURS,
-      // Found is not brought home: it rides in the boot until the refuge.
-      outing: { ...outing, trunk: gain(outing.trunk, loot) },
-      locations: { ...state.locations, [location.id]: { ...progress, searched: [...progress.searched, spotIndex] } },
-      flags: { ...state.flags, [visitKey]: searchesThisVisit + 1 },
-      totals: { ...state.totals, searches: state.totals.searches + 1 },
+    paid,
+    failure: spot.fatalMiss ? { ...paid, phase: 'lost', fate: spot.fatalMiss, outing: null, encounter: null } : paid,
+    success: {
+      loot,
+      state: {
+        ...paid,
+        rng: rng.state(),
+        outing: { ...outing, trunk: gain(outing.trunk, loot) },
+        locations: { ...state.locations, [location.id]: { ...progress, searched: [...progress.searched, spotIndex] } },
+        totals: { ...state.totals, searches: state.totals.searches + 1 },
+      },
     },
   });
+}
+
+/** Resolve a successful search in one step for headless campaign callers. */
+export function searchSpot(state: GameState, spotIndex: number): Result<SearchOutcome, DayError> {
+  const attempt = prepareSearch(state, spotIndex);
+  return attempt.ok ? ok(attempt.value.success) : attempt;
 }
 
 export interface Departure {
@@ -351,7 +370,7 @@ export function settleOrchard(state: GameState, ending: Ending): Result<GameStat
 
 /** A run a chapter ended goes back to that morning, the night before still won, the chapter waiting again. */
 export function retryChapter(state: GameState): Result<{ state: GameState; chapter: ChapterId }, OrchardError> {
-  if (state.phase !== 'lost' || state.fate === null) return err({ code: 'no_fate' });
+  if (state.phase !== 'lost' || state.fate === null || state.fate === 'lift') return err({ code: 'no_fate' });
   const morning: GameState = { ...state, phase: 'morning', fate: null };
   const chapter = chapterWaiting(morning);
   if (chapter === null) return err({ code: 'no_fate' });

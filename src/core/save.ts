@@ -1,7 +1,7 @@
 // Save-game (de)serialisation. Parsing is defensive: a corrupt or foreign blob yields null,
 // never a half-valid GameState.
 
-import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, Fate, Fight, GameState, Intel, Inventory, NightHighlight, OrchardChapter, Outing, Phase, RivalId, SectorId, ShedChapter, Stance, Standing, TrapTally } from './types';
+import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, ChapterFate, Fate, Fight, GameState, Intel, Inventory, NightHighlight, OrchardChapter, Outing, Phase, RivalId, SectorId, ShedChapter, Stance, Standing, TrapTally } from './types';
 import { chapterOfFate, chapterWaiting } from './chapters';
 import { CALLERS, ENDINGS as RADIO_ENDINGS, QUIET_RADIO, optionOf, rollCall, type AnswerId, type Call, type CallerId, type Ending as RadioEnding, type RadioStage } from './radio';
 import { createRng } from './rng';
@@ -163,7 +163,7 @@ function parseTrip(data: Record<string, unknown>, where: GameState['where']): Pi
 // run, if it is over, was lost to the house.
 
 const CHAPTERS: readonly OrchardChapter[] = ['quiet', 'cut', 'spared', 'maimed'];
-const FATES: readonly Fate[] = ['throat', 'turned', 'bled', 'bitten'];
+const FATES: readonly ChapterFate[] = ['throat', 'turned', 'bled', 'bitten'];
 
 function parseOrchard(data: Record<string, unknown>): Pick<GameState, 'orchard'> {
   return { orchard: CHAPTERS.includes(data['orchard'] as OrchardChapter) ? (data['orchard'] as OrchardChapter) : 'quiet' };
@@ -216,7 +216,8 @@ function parseRadio(data: Record<string, unknown>, people: GameState['people'], 
 
 /** A fate only means something on a run a chapter ended, on the morning that chapter was waiting. */
 function parseFate(data: Record<string, unknown>, state: GameState): Fate | null {
-  const fate = FATES.includes(data['fate'] as Fate) ? (data['fate'] as Fate) : null;
+  if (data['fate'] === 'lift') return state.phase === 'lost' && state.where === 'garage' ? 'lift' : null;
+  const fate = FATES.includes(data['fate'] as ChapterFate) ? (data['fate'] as ChapterFate) : null;
   if (fate === null || state.phase !== 'lost') return null;
   return chapterWaiting({ ...state, phase: 'morning' }) === chapterOfFate(fate) ? fate : null;
 }
@@ -271,7 +272,7 @@ export function deserialize(raw: string): GameState | null {
   const chaptered: GameState = { ...parsed, lastNight, ...parseOrchard(data), ...shed, ...radio, fate: null };
   const reported: GameState = { ...chaptered, fate: parseFate(data, chaptered) };
   // Outside the day nobody is out: the trip, if a save still carries one, is over.
-  const trip = parseTrip(data, parsed.phase === 'day' ? parsed.where : 'home');
+  const trip = reported.fate === 'lift' ? { where: 'garage' as const, outing: null, encounter: null, people: parsePeople(data['people']) } : parseTrip(data, parsed.phase === 'day' ? parsed.where : 'home');
   const state: GameState = { ...reported, ...trip, yard: { ...reported.yard, devices: withBuiltDay(withFacing(reported.yard.devices)) } };
   return state.phase === 'night' ? { ...state, phase: 'day', where: 'home', hoursLeft: 0 } : state;
 }

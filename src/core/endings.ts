@@ -25,6 +25,7 @@ export const ENDINGS = {
    * mower after the seventh dawn; and, whichever night it was, the song played to its last chord.
    */
   finale: ['desk', 'rampage', 'dawn', 'chord'],
+  town: ['lift'],
 } as const;
 
 export type Chapter = keyof typeof ENDINGS;
