@@ -2635,7 +2635,13 @@ button:disabled {
   background: linear-gradient(90deg, var(--amber) calc(var(--p) * 100%), rgba(255, 255, 255, 0.22) 0);
 }
 
-.qte.held kbd {
+.qte-tune kbd {
+  transition: transform 65ms ease-out, background-color 65ms ease-out;
+}
+
+.qte.held kbd,
+.qte-tune.turn-left .key-left,
+.qte-tune.turn-right .key-right {
   transform: translateY(2px) scale(0.95);
   background: var(--amber);
 }

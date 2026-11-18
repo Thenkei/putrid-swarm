@@ -4,6 +4,7 @@
 import { ENCOUNTER, WASHERS } from '../core/data/rivals';
 import { washerScore } from '../core/encounters';
 import { sprite } from '../engine/assets';
+import { calmMotion } from '../render/lighting';
 
 export const BOARD_W = 860;
 export const BOARD_H = 252;
@@ -21,6 +22,7 @@ const TRACK_Y = BOARD_H - 14;
 const SWEEP = { from: 0.3, to: 0.93 } as const;
 const SWEEP_SPEED = [0.85, 1.05, 1.3] as const;
 const FLIGHT_SECONDS = 0.55;
+const LANDING_SECONDS = 0.22;
 const PAUSE_SECONDS = 0.55;
 const SETTLE_SECONDS = 0.9;
 const WASHER_R = 13;
@@ -62,7 +64,7 @@ export class WashersBoard {
   readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly landed: Washer[] = [];
-  private flying: { readonly washer: Washer; t: number } | null = null;
+  private flying: { readonly washer: Washer; age: number } | null = null;
   private phase: 'pause' | 'flight' | 'aim' | 'settle' | 'over' = 'pause';
   private timer = PAUSE_SECONDS;
   private round: number;
@@ -98,6 +100,20 @@ export class WashersBoard {
     return { side, position, drift: driftOf(side, index, position) };
   }
 
+  private restingPoint(washer: Washer): { x: number; y: number } {
+    const dx = xOf(washer.position) - TIN_X;
+    const radius = Math.hypot(dx, washer.drift);
+    // The score is along one axis. Keep the cosmetic scatter on the painted scoring surface.
+    const tinR = ART.tinR * ART.scale;
+    let distance = radius;
+    switch (landingOf(washer.position)) {
+      case 'tin': distance = Math.min(radius, tinR - WASHER_R - 3); break;
+      case 'ring': distance = Math.max(tinR + 7, Math.min(radius, WASHERS.ringHalf * UNIT - 5)); break;
+    }
+    const scale = radius > 0 ? distance / radius : 1;
+    return { x: TIN_X + dx * scale, y: MID_Y + washer.drift * scale };
+  }
+
   /** True while the cursor is running and a throw is expected. */
   get aiming(): boolean {
     return this.phase === 'aim';
@@ -116,7 +132,7 @@ export class WashersBoard {
   }
 
   private launch(washer: Washer): void {
-    this.flying = { washer, t: 0 };
+    this.flying = { washer, age: 0 };
     this.phase = 'flight';
   }
 
@@ -133,11 +149,14 @@ export class WashersBoard {
       case 'flight': {
         const flying = this.flying;
         if (!flying) break;
-        flying.t += dt / FLIGHT_SECONDS;
-        if (flying.t < 1) break;
+        const before = flying.age;
+        flying.age += dt;
+        if (before < FLIGHT_SECONDS && flying.age >= FLIGHT_SECONDS) {
+          this.callbacks.onLanded(flying.washer.side, landingOf(flying.washer.position));
+        }
+        if (flying.age < FLIGHT_SECONDS + LANDING_SECONDS) break;
         this.flying = null;
         this.landed.push(flying.washer);
-        this.callbacks.onLanded(flying.washer.side, landingOf(flying.washer.position));
         if (flying.washer.side === 'theirs') {
           this.phase = 'aim';
           this.cursor = SWEEP.from;
@@ -188,25 +207,45 @@ export class WashersBoard {
       const landing = landingOf(washer.position);
       if (landing === 'off') continue;
       // In the tin a washer lies lower and in its shadow.
-      this.drawWasher(ctx, xOf(washer.position), MID_Y + washer.drift, landing === 'tin' ? 0.86 : 1, washer.side, landing === 'tin' ? 0.82 : 1);
+      const { x, y } = this.restingPoint(washer);
+      this.drawWasher(ctx, x, y, landing === 'tin' ? 0.86 : 1, washer.side, landing === 'tin' ? 0.82 : 1);
     }
 
     if (this.phase === 'aim') this.drawCursor(ctx);
 
     const flying = this.flying;
-    if (flying) {
-      const t = Math.min(1, flying.t);
-      const fromX = LINE_X - 46;
-      const toX = xOf(flying.washer.position);
-      const x = fromX + (toX - fromX) * t;
-      const y = MID_Y + flying.washer.drift * t;
-      const lift = Math.sin(Math.PI * t) * 54;
-      ctx.fillStyle = `rgba(20, 12, 4, ${0.28 * (1 - lift / 90)})`;
-      ctx.beginPath();
-      ctx.ellipse(x, y + 4, WASHER_R, WASHER_R * 0.55, 0, 0, Math.PI * 2);
-      ctx.fill();
-      this.drawWasher(ctx, x, y - lift, 1 + lift / 130, flying.washer.side, 1);
+    if (flying) this.drawThrow(ctx, flying.washer, flying.age);
+  }
+
+  private drawThrow(ctx: CanvasRenderingContext2D, washer: Washer, age: number): void {
+    const landing = landingOf(washer.position);
+    const rest = this.restingPoint(washer);
+    const t = Math.min(1, age / FLIGHT_SECONDS);
+    const settle = Math.max(0, Math.min(1, (age - FLIGHT_SECONDS) / LANDING_SECONDS));
+    const still = calmMotion();
+    const arc = 4 * t * (1 - t);
+    const skid = landing === 'tin' ? 5 : 14;
+    const fromX = LINE_X - 46;
+    const x = fromX + (rest.x - skid - fromX) * t + skid * (1 - (1 - settle) ** 2);
+    const y = MID_Y + (rest.y - MID_Y) * t;
+    const rebound = still || landing === 'off' ? 0 : Math.sin(Math.PI * settle) * (1 - settle);
+    const lift = arc * (still ? 10 : 54) + rebound * (landing === 'tin' ? 8 : 16);
+    const depthScale = landing === 'tin' ? 1 - 0.14 * settle : 1;
+    ctx.save();
+    if (landing === 'off') ctx.globalAlpha *= 1 - settle;
+    const shadowR = WASHER_R * depthScale * (1 + arc * 0.16);
+    ctx.strokeStyle = `rgba(25, 16, 7, ${(0.26 - 0.16 * arc) * (1 - settle)})`;
+    ctx.lineWidth = shadowR * 0.54;
+    ctx.beginPath();
+    ctx.ellipse(x, y + 2, shadowR * 0.72, shadowR * 0.52, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.translate(x, y - lift + (landing === 'off' ? 26 * settle * settle : 0));
+    if (!still) {
+      ctx.rotate((washer.side === 'yours' ? 1 : -1) * (arc * 0.45 + rebound * 0.24));
+      ctx.scale(1, 1 - arc * (0.38 + 0.4 * Math.sin(t * Math.PI * 2) ** 2) - rebound * 0.32);
     }
+    this.drawWasher(ctx, 0, 0, depthScale + arc * 0.12, washer.side, landing === 'tin' ? 1 - 0.18 * settle : 1);
+    ctx.restore();
   }
 
   private drawPlank(ctx: CanvasRenderingContext2D): void {
@@ -242,13 +281,12 @@ export class WashersBoard {
     fill.addColorStop(0, bright);
     fill.addColorStop(1, dark);
     ctx.save();
-    ctx.globalAlpha = light;
+    ctx.globalAlpha *= light;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.arc(x, y, r * 0.42, 0, Math.PI * 2, true);
     ctx.fillStyle = fill;
     ctx.fill('evenodd');
-    ctx.globalAlpha = 1;
     ctx.lineWidth = 1.6;
     ctx.strokeStyle = '#1f150a';
     ctx.beginPath();
@@ -268,11 +306,11 @@ export class WashersBoard {
   /** Where the washer would land if it were let go now: a ghost on the plank and a marker under it. */
   private drawCursor(ctx: CanvasRenderingContext2D): void {
     const x = xOf(this.cursor);
-    const pulse = 0.55 + 0.2 * Math.sin(this.time * 9);
+    const pulse = calmMotion() ? 0.55 : 0.55 + 0.2 * Math.sin(this.time * 9);
     ctx.save();
     ctx.globalAlpha = pulse;
     this.drawWasher(ctx, x, MID_Y, 1.15, 'yours', 1);
-    ctx.restore();
+    ctx.globalAlpha = 1;
 
     ctx.strokeStyle = 'rgba(20, 12, 4, 0.55)';
     ctx.lineWidth = 6;
@@ -303,5 +341,6 @@ export class WashersBoard {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.restore();
   }
 }

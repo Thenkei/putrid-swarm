@@ -1458,5 +1458,15 @@
     "file": "plates/credits_photo.webp",
     "w": 720,
     "h": 385
+  },
+  "orchard_clap": {
+    "file": "sprites/orchard_clap.webp",
+    "w": 111,
+    "h": 640
+  },
+  "radio_tuning_knob": {
+    "file": "sprites/radio_tuning_knob.webp",
+    "w": 317,
+    "h": 320
   }
 }

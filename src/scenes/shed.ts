@@ -884,8 +884,14 @@ export class ShedScene implements Scene {
     } else if (this.lastDoing === 'current') {
       wanted = { tip: { x: 150 + Math.sin(this.time * 40) * 3, y: 640 }, lean: 0.35, art: art('leads'), reach: 0.5 };
     }
-    if (wanted) this.hand = { tip: wanted.tip, lean: wanted.lean, art: wanted.art };
     const k = 1 - Math.exp(-dt * (wanted ? 9 : 16));
+    if (wanted) {
+      this.hand = {
+        tip: { x: lerp(this.hand.tip.x, wanted.tip.x, k), y: lerp(this.hand.tip.y, wanted.tip.y, k) },
+        lean: lerp(this.hand.lean, wanted.lean, k),
+        art: wanted.art,
+      };
+    }
     this.handReach = lerp(this.handReach, wanted ? wanted.reach : 0, k);
     if (this.handReach < 0.004) this.handReach = 0;
     this.support = lerp(this.support, support, k);
@@ -1286,11 +1292,11 @@ export class ShedScene implements Scene {
   private drawBody(ctx: CanvasRenderingContext2D): void {
     if (this.handReach > 0 && this.away < 1) {
       const art = sprite(this.hand.art) ?? sprite('desk_hand_open');
-      drawArm(ctx, art, this.hand.tip, { height: 620, lean: this.hand.lean, reach: this.handReach, alpha: 1 - this.away });
-      if (this.support > 0.02) {
-        // The other hand under the bowl.
-        drawArm(ctx, sprite('desk_hand_open'), { x: this.hand.tip.x - 150, y: this.hand.tip.y + 40 }, { height: 620, lean: 0.55, reach: this.support * this.handReach, mirror: true, alpha: 1 - this.away });
+      if (this.support > 0.02 && this.hand.art === 'shed_hands_bowl') {
+        // The left fingers tuck behind the near edge of the bowl as it comes up.
+        drawArm(ctx, sprite('desk_hand_open'), { x: this.hand.tip.x - 48, y: this.hand.tip.y + 66 }, { height: 620, lean: 0.55, reach: this.support * this.handReach, mirror: true, alpha: 1 - this.away });
       }
+      drawArm(ctx, art, this.hand.tip, { height: 620, lean: this.hand.lean, reach: this.handReach, alpha: 1 - this.away });
     }
   }
 

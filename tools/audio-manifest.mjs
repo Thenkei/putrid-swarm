@@ -133,7 +133,7 @@ export const AUDIO = [
   sfx('chew_1', 1.0, 'A small rabbit gnawing on a plastic cable: quick tiny crunching nibbles, teeth clicking on copper. Very close, quiet, dry.', { gain: 0.7 }),
   sfx('chew_2', 1.1, 'A small rodent chewing something rubbery: a fast run of little crunches, a pause, two more. Very close, quiet, dry.', { gain: 0.7 }),
   sfx('chew_3', 0.9, 'Tiny animal teeth nibbling through plastic insulation: soft rapid scraping and one small snap. Very close, quiet, dry.', { gain: 0.7 }),
-  sfx('clap', 0.8, 'Two loud sharp hand claps in quick succession, outdoors in a quiet orchard. Close, dry.', { gain: 0.9 }),
+  sfx('clap', 0.8, 'One loud sharp hand clap, outdoors in a quiet orchard. Close, dry.', { gain: 0.9 }),
   sfx('rabbit_bolt', 1.3, 'A small rabbit bolting away through tall grass: three quick thumps of hind legs and a fast rustle fading into the distance. Dry.', { gain: 0.8, tail: 0.4 }),
   sfx('rabbit_sting', 2.6, 'A horror jump-scare sting: a sudden sharp dissonant violin screech over a deep sub boom, decaying into a low uneasy rumble. Cinematic, no melody.', { gain: 0.9, tail: 0.6 }),
   sfx('rabbit_screech', 1.1, 'A small rabid animal shrieking as it attacks: a high-pitched rasping, gurgling squeal, vicious and wet. Very close, dry.', { gain: 0.85 }),

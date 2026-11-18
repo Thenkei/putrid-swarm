@@ -68,7 +68,7 @@ interface Anchor {
   readonly fy: number;
 }
 
-const PALM_OPEN: Anchor = { fx: 0.51, fy: 0.19 };
+const PALM_OPEN: Anchor = { fx: 0.49, fy: 0.19 };
 
 interface Holding {
   readonly key: string;

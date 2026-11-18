@@ -74,10 +74,10 @@ const WALK_CYCLE = ['a', 'p', 'b', 'p'] as const;
 interface Walker {
   readonly kind: (typeof WALKERS)[number];
   x: number;
-  y: number;
+  readonly groundY: number;
   phase: number;
   /** Null while on its feet; once hit it is a thing in the air. */
-  thrown: { vx: number; vy: number; spin: number; angle: number } | null;
+  thrown: { y: number; vx: number; vy: number; spin: number; angle: number } | null;
 }
 
 interface Ring {
@@ -425,11 +425,11 @@ export class FinaleScene implements Scene {
     const total = WALKERS.reduce((sum, w) => sum + w.weight, 0);
     let pick = Math.random() * total;
     const kind = WALKERS.find((w) => (pick -= w.weight) < 0) ?? WALKERS[0];
-    this.walkers.push({ kind, x, y: GROUND - 40 + Math.random() * 112, phase: Math.random() * 4, thrown: null });
+    this.walkers.push({ kind, x, groundY: GROUND - 40 + Math.random() * 112, phase: Math.random() * 4, thrown: null });
   }
 
   private throwWalker(walker: Walker, power: number): void {
-    walker.thrown = { vx: 160 + Math.random() * 420 * power, vy: -(420 + Math.random() * 520) * power, spin: (Math.random() * 2 - 1) * 14, angle: 0 };
+    walker.thrown = { y: walker.groundY, vx: 160 + Math.random() * 420 * power, vy: -(420 + Math.random() * 520) * power, spin: (Math.random() * 2 - 1) * 14, angle: 0 };
   }
 
   private hitStrings(): void {
@@ -494,11 +494,11 @@ export class FinaleScene implements Scene {
     for (let i = this.walkers.length - 1; i >= 0; i--) {
       const walker = this.walkers[i] as Walker;
       if (walker.thrown) {
+        walker.thrown.y += walker.thrown.vy * dt + 0.5 * GRAVITY * dt * dt;
         walker.thrown.vy += GRAVITY * dt;
         walker.x += walker.thrown.vx * dt;
-        walker.y += walker.thrown.vy * dt;
         walker.thrown.angle += walker.thrown.spin * dt;
-        if (walker.y > STAGE_H + 220 || walker.x > STAGE_W + 300) this.walkers.splice(i, 1);
+        if (walker.thrown.y > STAGE_H + 220 || walker.x > STAGE_W + 300) this.walkers.splice(i, 1);
         continue;
       }
       walker.x -= (walker.kind.speed + SCROLL * 0.45) * dt;
@@ -508,8 +508,8 @@ export class FinaleScene implements Scene {
         this.throwWalker(walker, 0.8);
         this.passive++;
         audio.play('kill', 0.5);
-        this.atmo.spray(BLADE_X + 8, walker.y - 34, 5, '#55702a', { angle: -0.7, spread: 1.3, speed: 460, size: 3.4 });
-        if (Math.random() < 0.4) this.atmo.spray(BLADE_X, walker.y - 10, 4, '#ffd27a', { angle: -0.4, spread: 1.6, speed: 620, size: 2, gravity: 800, life: 0.4 });
+        this.atmo.spray(BLADE_X + 8, walker.groundY - 34, 5, '#55702a', { angle: -0.7, spread: 1.3, speed: 460, size: 3.4 });
+        if (Math.random() < 0.4) this.atmo.spray(BLADE_X, walker.groundY - 10, 4, '#ffd27a', { angle: -0.4, spread: 1.6, speed: 620, size: 2, gravity: 800, life: 0.4 });
       }
     }
     // Exhaust behind, earth off the back wheel.
@@ -731,27 +731,31 @@ export class FinaleScene implements Scene {
     // Everything standing on the lane, the furthest first.
     const walking = (walker: Walker): void => {
       const frame = WALK_CYCLE[Math.floor(walker.phase) % WALK_CYCLE.length] as string;
-      const pose = sprite(`${walker.kind.key}_front_${frame}`) ?? sprite(`${walker.kind.key}_front`);
+      const base = `${walker.kind.key}_front`;
+      const stride = sprite(`${base}_a`);
+      const pose = sprite(`${base}_${frame}`) ?? stride ?? sprite(base);
       if (!pose) return;
-      const h = walker.kind.height * (0.9 + (walker.y - GROUND) / 500);
-      const w = (pose.w / pose.h) * h;
+      // Perspective is set by the lane. The pose sheet has one pixel scale, even in a tucked stride or in flight.
+      const standing = walker.kind.height * (0.9 + (walker.groundY - GROUND) / 500);
+      const scale = standing / (stride ?? pose).h;
+      const h = pose.h * scale;
+      const w = pose.w * scale;
+      const lift = Math.max(0, standing - h) * 0.6 + Math.abs(Math.sin(walker.phase * Math.PI)) * 3;
       ctx.save();
-      ctx.translate(walker.x, walker.y);
-      if (walker.thrown) {
-        ctx.translate(0, -h / 2);
-        ctx.rotate(walker.thrown.angle);
-        ctx.drawImage(pose.img, -w / 2, -h / 2, w, h);
-      } else {
+      ctx.translate(walker.x, walker.thrown?.y ?? walker.groundY);
+      if (!walker.thrown) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.32)';
         ctx.beginPath();
         ctx.ellipse(0, 0, w * 0.34, 7, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.drawImage(pose.img, -w / 2, -h + Math.abs(Math.sin(walker.phase * Math.PI)) * -3, w, h);
       }
+      ctx.translate(0, -lift - h / 2);
+      if (walker.thrown) ctx.rotate(walker.thrown.angle);
+      ctx.drawImage(pose.img, -w / 2, -h / 2, w, h);
       ctx.restore();
     };
-    const behind = this.walkers.filter((w) => !w.thrown && w.y <= GROUND + 6).sort((a, b) => a.y - b.y);
-    const ahead = this.walkers.filter((w) => !w.thrown && w.y > GROUND + 6).sort((a, b) => a.y - b.y);
+    const behind = this.walkers.filter((w) => !w.thrown && w.groundY <= GROUND + 6).sort((a, b) => a.groundY - b.groundY);
+    const ahead = this.walkers.filter((w) => !w.thrown && w.groundY > GROUND + 6).sort((a, b) => a.groundY - b.groundY);
     behind.forEach(walking);
 
     // The mower: shaking with its engine, nodding with the beat, kicked forward by a good chord.

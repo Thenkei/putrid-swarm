@@ -152,7 +152,9 @@ const KEY_OF: Readonly<Record<string, keyof Held | 'down'>> = {
 
 const INTRO_SECONDS = 2.6;
 const BOLT_SECONDS = 0.85;
-const CLAP_SECONDS = 0.6;
+const CLAP_READY = 0.19;
+const CLAP_CONTACT = 0.30;
+const CLAP_SECONDS = 0.76;
 const TAKE_SECONDS = 0.5;
 const FLING_SECONDS = 0.7;
 const OUTRO: Readonly<Record<Ending, number>> = { spared: 2.8, maimed: 5.4, throat: 2.4, turned: 3.2, bled: 2.2 };
@@ -210,8 +212,8 @@ export class OrchardScene implements Scene {
   private white = 0;
   private red = 0;
   private pulse = 0;
-  /** Seconds since it bolted / was flung / the arm came up; null before. */
-  private bolt: number | null = null;
+  /** Seconds since the player started the clap. The rabbit bolts at palm contact. */
+  private clap: number | null = null;
   private fling: number | null = null;
   private armUp = 0;
   private kick = 0;
@@ -232,8 +234,6 @@ export class OrchardScene implements Scene {
   /** The right hand, when it comes into view: where its fingers are going and how far it has got. */
   private hand: { tip: Point; lean: number } = { tip: { x: 820, y: 640 }, lean: -0.42 };
   private handReach = 0;
-  /** Seconds since the hands clapped / since something was reached for; null otherwise. */
-  private clap: number | null = null;
   private take: { what: 'saw' | 'rope'; t: number } | null = null;
   private twitch = 0;
   private nextBreath = 1.5;
@@ -323,13 +323,14 @@ export class OrchardScene implements Scene {
         this.line(cue.at === 'saw' ? 'vo_orchard_saw' : 'vo_orchard_rope');
         break;
       case 'clapped':
-        audio.play('clap');
         this.line('vo_orchard_clap', true);
-        this.shake = 6;
-        this.bolt = 0;
         this.clap = 0;
-        this.atmo.gust(1.4);
-        this.after(0.12, () => audio.play('rabbit_bolt'));
+        this.after(CLAP_CONTACT, () => {
+          audio.play('clap');
+          this.shake = 6;
+          this.atmo.gust(1.4);
+        });
+        this.after(CLAP_CONTACT + 0.08, () => audio.play('rabbit_bolt'));
         this.after(1.9, () => this.line('vo_orchard_clapped'));
         break;
       case 'turned':
@@ -592,9 +593,8 @@ export class OrchardScene implements Scene {
     this.kick = Math.max(0, this.kick - dt * 7);
     this.sawSwing = Math.max(0, this.sawSwing - dt * 6);
     this.chewing = Math.max(0, this.chewing - dt);
-    if (this.bolt !== null) this.bolt += dt;
+    if (this.clap !== null) this.clap += dt;
     if (this.fling !== null) this.fling += dt;
-    if (this.clap !== null && (this.clap += dt) >= CLAP_SECONDS) this.clap = null;
     if (this.take && (this.take.t += dt) >= TAKE_SECONDS) this.take = null;
     this.twitch = Math.max(0, this.twitch - dt);
     this.atmo.update(dt);
@@ -869,8 +869,8 @@ export class OrchardScene implements Scene {
   private drawRabbit(ctx: CanvasRenderingContext2D): void {
     const o = this.orchard;
     const { x, y } = SPOT.rabbit;
-    if (this.bolt !== null) {
-      const t = this.bolt / BOLT_SECONDS;
+    if (this.clap !== null && this.clap >= CLAP_CONTACT) {
+      const t = (this.clap - CLAP_CONTACT) / BOLT_SECONDS;
       if (t >= 1) return;
       // Three bounds into the mist, smaller each time.
       const hop = Math.abs(Math.sin(t * Math.PI * 3)) * 34 * (1 - t);
@@ -878,7 +878,7 @@ export class OrchardScene implements Scene {
       this.drawSprite(ctx, 'orchard_rabbit_bolt', x + 330 * t, y - 150 * t - hop, lerp(150, 62, t), { alpha: 1 - t * t * t });
       return;
     }
-    if (o.beat === 'arrive' || o.beat === 'watch') {
+    if (o.beat === 'arrive' || o.beat === 'watch' || (this.clap !== null && this.clap < CLAP_CONTACT)) {
       this.shadow(ctx, x, y - 3, 56, 11, 0.36);
       const chew = this.chewing > 0 ? Math.sin(this.time * 46) : 0;
       // Close up, it has stopped chewing. That should have been a warning.
@@ -1131,32 +1131,10 @@ export class OrchardScene implements Scene {
     }
 
     // The right hand: offered, reaching, pulling, twisting.
-    const hand = sprite('desk_hand_open');
-    if (this.handReach > 0 && this.canopy < 1) drawArm(ctx, hand, this.hand.tip, { height: 610, lean: this.hand.lean, reach: this.handReach, alpha: 1 - this.canopy });
-    if (this.clap !== null) {
-      // Both hands up from below, together once, hard, and away.
-      const t = this.clap / CLAP_SECONDS;
-      const close = t < 0.26 ? smooth(t / 0.26) : t < 0.48 ? 1 : 1 - smooth((t - 0.48) / 0.52);
-      const gap = lerp(250, 34, close);
-      const y = lerp(760, 452, close);
-      drawArm(ctx, hand, { x: CX + gap, y }, { height: 610, lean: -0.5 });
-      drawArm(ctx, hand, { x: CX - gap, y }, { height: 610, lean: 0.5, mirror: true });
-      const bang = clamp01((t - 0.24) / 0.2);
-      if (bang > 0 && bang < 1) {
-        ctx.save();
-        ctx.globalAlpha = 1 - bang;
-        ctx.strokeStyle = '#fff6e0';
-        ctx.lineWidth = 5;
-        ctx.lineCap = 'round';
-        for (let i = 0; i < 9; i++) {
-          const angle = -Math.PI + (i / 8) * Math.PI;
-          ctx.beginPath();
-          ctx.moveTo(CX + Math.cos(angle) * (46 + bang * 60), 440 + Math.sin(angle) * (46 + bang * 60));
-          ctx.lineTo(CX + Math.cos(angle) * (80 + bang * 120), 440 + Math.sin(angle) * (80 + bang * 120));
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
+    if (this.clap !== null && this.clap < CLAP_SECONDS) {
+      this.drawClap(ctx, this.clap);
+    } else if (this.handReach > 0 && this.canopy < 1) {
+      drawArm(ctx, sprite('desk_hand_open'), this.hand.tip, { height: 610, lean: this.hand.lean, reach: this.handReach, alpha: 1 - this.canopy });
     }
 
     if (o.beat === 'sawing' || (this.phase === 'outro' && this.ending === 'maimed' && this.phaseTime < 0.5)) {
@@ -1168,6 +1146,20 @@ export class OrchardScene implements Scene {
       this.drawSprite(ctx, 'orchard_items_saw', CX + 60 + swing, STAGE_H + 214 + this.sawSwing * 12, 520, { ax: 0.5, ay: 1, rot: -1.15 + side * 0.03 });
       ctx.restore();
     }
+  }
+
+  private drawClap(ctx: CanvasRenderingContext2D, t: number): void {
+    const hand = sprite('orchard_clap');
+    const lift = smooth(t / CLAP_READY);
+    const strike = smooth((t - CLAP_READY) / (CLAP_CONTACT - CLAP_READY));
+    // Hold palm contact for a frame even at 20 fps, then let the wrists spring apart.
+    const rebound = smooth((t - CLAP_CONTACT - 0.05) / 0.12);
+    const lower = smooth((t - CLAP_CONTACT - 0.08) / (CLAP_SECONDS - CLAP_CONTACT - 0.08));
+    const gap = 175 + 32 * lift - 184 * strike + 74 * rebound + 90 * lower;
+    const y = 738 - 278 * lift - 38 * strike + 12 * rebound + 312 * lower;
+    const lean = 0.38 - 0.35 * strike + 0.28 * rebound;
+    drawArm(ctx, hand, { x: CX - gap, y: y + 4 }, { height: 590, lean, mirror: true });
+    drawArm(ctx, hand, { x: CX + gap, y }, { height: 590, lean: -lean });
   }
 
   private drawVeil(ctx: CanvasRenderingContext2D): void {

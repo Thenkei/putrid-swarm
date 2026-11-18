@@ -223,6 +223,8 @@ export const ART = [
     cols: 5,
     rows: 1,
     names: ['mug', 'joint', 'hand_open', 'hand_joint', 'hand_mug'],
+    // The open pose on the source sheet is left-handed. The desk gestures use the right hand.
+    mirrorSprites: ['desk_hand_open'],
     // Two small objects and three tall arms: cut at the gaps between them, not on an even grid.
     cut: 'gaps',
     h: 640,
@@ -823,6 +825,14 @@ export const ART = [
       `${KEY} ${STYLE}`,
   },
   {
+    id: 'orchard_clap',
+    kind: 'sprite',
+    h: 640,
+    refs: [REF_STORYBOARD],
+    sheet: 'art/raw/desk.png',
+    prompt: 'Single first-person right hand poised to clap, nearly edge-on, palm facing left, fingers extended together. Long vertical mustard work-jacket sleeve with a brown knitted cuff and a flat cut at the bottom. ' + KEY + ' ' + STYLE,
+  },
+  {
     // The left arm, seen by its owner: raised against the rabbit, bitten, then tied off.
     id: 'orchard_arm',
     kind: 'split',
@@ -1055,7 +1065,7 @@ export const ART = [
     prompt: plate(
       'First-person view from the wooden chair of the improvised surveillance room in the first attached picture (same room, same desk, same boarded window, same salvaged monitors, same desk lamp, same warm brown wood), looking down at the desk on a grey early morning. No person, no hands, no arms in the frame. ' +
         'Pale cold daylight comes through the gaps between the planks nailed over the window on the LEFT; the desk lamp is still on and throws a warm pool of light; dust hangs in the light. ' +
-        'In the CENTRE of the desk, pulled to the front edge and filling the lower middle of the picture, an old 1970s CB radio transceiver: a wide, low box in a dented grey-green metal case with wood-grain side panels. On its front panel, from left to right: a round analog signal meter with a plain cream dial face behind a small glass window, with NO needle and NO markings on it; a dark empty rectangular readout window; one very big round black bakelite tuning knob; a row of small chrome toggle switches along the bottom edge. ' +
+        'In the CENTRE of the desk, pulled to the front edge and filling the lower middle of the picture, an old 1970s CB radio transceiver: a wide, low box in a dented grey-green metal case with wood-grain side panels. On its front panel, from left to right: a round analog signal meter with a plain cream dial face behind a small glass window, with NO needle and NO markings on it; a dark empty rectangular readout window; a thumb-and-finger-sized scalloped black bakelite tuning knob; a row of small chrome toggle switches along the bottom edge. ' +
         'On the right side of the set, an empty bent-wire hook where a hand microphone should hang, and a curly black coiled cable coming out of the set. A thin antenna wire runs from the back of the set up to the window frame, taped with grey tape. ' +
         'Around it on the desk: a chipped enamel mug of coffee, an ashtray with old butts, a notepad with illegible pencil scribbles, a screwdriver, two cassette tapes, a pencil, a battery. Behind the set, the stack of salvaged CCTV monitors on their wooden shelf, every screen showing grey snow. ' +
         'Quiet, lonely, a little absurd.',
@@ -1068,17 +1078,23 @@ export const ART = [
     refs: ['art/raw/plate_radio.png', C('12-surveillance-room.png')],
     prompt: plate(
       'The first attached picture shows an old CB radio transceiver on a wooden desk in a dim room at dawn: this new picture is a much closer first-person view of the FRONT PANEL of that same transceiver, same set, same colours, same light, seen straight on from the chair, slightly from above. No person, no hands, no microphone in the frame. ' +
-        'The front panel fills most of the picture: on the LEFT third, a large round analog signal meter behind a glass window, its cream dial face completely plain and empty — NO needle, NO scale, NO markings at all — with a faint warm backlight; in the CENTRE, a wide dark rectangular readout window, plain black glass, empty; on the RIGHT third, one very big round black bakelite tuning knob with a knurled rim; along the bottom edge, a row of small chrome toggle switches and a small round speaker grille. ' +
+        'The front panel fills most of the picture: on the LEFT third, a large round analog signal meter behind a glass window, its cream dial face completely plain and empty — NO needle, NO scale, NO markings at all — with a faint warm backlight; in the CENTRE, a wide dark rectangular readout window, plain black glass, empty; on the RIGHT third, uninterrupted worn metal where the separate tuning knob sprite will go; along the bottom edge, a row of small chrome toggle switches and a small round speaker grille. ' +
         'The dented grey-green metal case, scratched, with wood-grain side panels; on the right edge of the set, an empty bent-wire hook where a hand microphone hangs. Around the set, the edge of the wooden desk, a mug, a pencil, cigarette ash, cassette tapes; the lamp light warm from the upper left, cold daylight from a boarded window. Dust in the air.',
     ),
   },
   {
-    // What the scene moves on the set: the knob turns, the microphone hangs and is picked up.
+    id: 'radio_tuning_knob',
+    kind: 'sprite',
+    h: 320,
+    refs: ['art/raw/radio_parts.png'],
+    prompt: 'One perfectly round black bakelite tuning knob seen straight along its shaft. Scalloped grip, worn finish, thin ivory pointer at twelve and one recessed finger dimple. No mount, side view or cast shadow. ' + KEY + ' ' + STYLE,
+  },
+  {
     id: 'radio_parts',
     kind: 'split',
     cols: 2,
     rows: 1,
-    // The knob came out in perspective, as on the plates: the scene marks its turning on the plate's own knob.
+    // The hand microphone is the second cell of the original parts sheet.
     names: [null, 'mic'],
     cut: 'gaps',
     h: 420,
@@ -1096,6 +1112,8 @@ export const ART = [
     cols: 2,
     rows: 1,
     names: ['dial', 'mic'],
+    // The dial pose on this sheet shows the back of a left hand.
+    mirrorSprites: ['radio_hands_dial'],
     cut: 'gaps',
     h: 640,
     refs: [REF_STORYBOARD, 'art/raw/plate_radio.png'],

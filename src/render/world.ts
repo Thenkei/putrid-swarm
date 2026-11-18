@@ -70,10 +70,17 @@ export interface Ghost {
   readonly idle?: boolean;
 }
 
+export const WELL_CLINK_AT = 0.9;
+export interface SceneryAction {
+  readonly kind: 'car' | 'well';
+  readonly startedAt: number;
+}
+
 export interface WorldFrame {
   readonly time: number;
   readonly night: boolean;
   readonly carPresent: boolean;
+  readonly sceneryAction?: SceneryAction | null;
   readonly devices: readonly DeviceVisual[];
   readonly barricades: Readonly<Record<SectorId, { hp: number; level: 0 | 1 }>>;
   readonly decals: readonly Decal[];
@@ -313,6 +320,63 @@ function drawPicture(ctx: CanvasRenderingContext2D, art: Picture, x: number, y: 
 function drawSprite(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, height: number, flip = false, alpha = 1, lean = 0): { w: number; h: number } | null {
   const art = sprite(key);
   return art ? drawPicture(ctx, art, x, y, height, flip, alpha, lean) : null;
+}
+
+/** Coordinates are relative to the top left of the painted prop, before camera zoom. */
+function drawSceneryAction(ctx: CanvasRenderingContext2D, kind: SceneryAction['kind'], w: number, h: number, age: number, rot: Rot): void {
+  const still = calmMotion();
+  ctx.lineCap = 'round';
+  if (kind === 'car') {
+    if (age >= 0.75) return;
+    // The bonnet faces the opposite corner in the reverse painting.
+    ctx.translate(w * (rot === 0 ? 0.13 : 0.92), h * (rot === 0 ? 0.79 : 0.32));
+    ctx.rotate(rot === 0 ? 2.85 : -0.38);
+    for (let i = 0; i < 2; i++) {
+      const t = (age - i * 0.13) / 0.62;
+      if (t < 0 || t >= 1) continue;
+      const radius = 7 + (still ? 7 + 6 * i : 23 * t);
+      ctx.globalAlpha = (1 - t) * 0.9;
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, -0.56, 0.56);
+      ctx.lineWidth = 3.8;
+      ctx.strokeStyle = '#392d23';
+      ctx.stroke();
+      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = '#f3d898';
+      ctx.stroke();
+    }
+    return;
+  }
+
+  const mouthX = w * 0.47;
+  const mouthY = h * 0.65;
+  if (age < 0.48) {
+    const t = age / 0.48;
+    // The washer comes in under the roof and passes behind the near lip of the masonry.
+    ctx.beginPath();
+    ctx.rect(-w, -h, 3 * w, h + mouthY + h * 0.036);
+    ctx.clip();
+    ctx.translate(mouthX - (1 - t) ** 2 * w * (still ? 0.13 : 0.69), mouthY + h * (0.12 * t * t - (still ? 0.09 : 0.25) * 4 * t * (1 - t)));
+    ctx.rotate(still ? 0 : t * 3.8);
+    ctx.scale(1, still ? 0.8 : 0.5 + 0.5 * Math.abs(Math.cos(t * 5)));
+    ctx.beginPath();
+    ctx.arc(0, 0, 3.1, 0, Math.PI * 2);
+    ctx.lineWidth = 3.1;
+    ctx.strokeStyle = '#382a1e';
+    ctx.stroke();
+    ctx.lineWidth = 1.65;
+    ctx.strokeStyle = '#efdba9';
+    ctx.stroke();
+  } else if (age >= WELL_CLINK_AT && age < WELL_CLINK_AT + 0.36) {
+    const t = (age - WELL_CLINK_AT) / 0.36;
+    const r = still ? 6 : 3 + 8 * t;
+    ctx.globalAlpha = 0.85 * (1 - t);
+    ctx.strokeStyle = '#e7d7b2';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.ellipse(mouthX, mouthY, r, r * 0.34, 0, 0.1, Math.PI * 1.84);
+    ctx.stroke();
+  }
 }
 
 const recessed = new Map<string, Picture>();
@@ -564,6 +628,14 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       draw: () => {
         const drawn = drawSprite(ctx, key, p.x, p.y + art.lift * z, art.h * z, false, 1, lean);
         if (!drawn) placeholder(ctx, p.x, p.y, 40 * z, 40 * z, '#5a6a4a', prop.kind);
+        const action = frame.sceneryAction;
+        if (drawn && action?.kind === prop.kind) {
+          ctx.save();
+          ctx.translate(p.x - drawn.w / 2, p.y + art.lift * z - drawn.h);
+          ctx.scale(z, z);
+          drawSceneryAction(ctx, action.kind, drawn.w / z, art.h, frame.time - action.startedAt, view.rot);
+          ctx.restore();
+        }
       },
     });
     // The car comes and goes; everything else that is fixed has its shadow in the ground already.
