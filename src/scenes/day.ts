@@ -44,6 +44,7 @@ import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { sayAny, sayOnce } from '../engine/voice';
 import { applyDaylight, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, unproject, WELL_CLINK_AT, type DeviceVisual, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
+import { deviceArt } from '../render/defenses';
 import { costLine, describeCost, inventoryBar } from './common';
 import { goMap, goNightfall, goTitle } from './flow';
 
@@ -154,7 +155,7 @@ export class DayScene implements Scene {
     audio.setAmbience('day');
     audio.setMusic('day');
     // Painted while the screen is still dark from the scene change, not during the first frame.
-    prepareWorld();
+    prepareWorld({ ...this.view, rot: this.rot === 0 ? 1 : 0 }, this.view);
     this.root = el('div');
     this.app.ui.append(this.root);
     this.refresh();
@@ -189,10 +190,12 @@ export class DayScene implements Scene {
     // Build menu.
     const cards = DEVICE_TYPE_IDS.map((type, i) => {
       const def = DEVICES[type];
-      const url = assetUrl(`dev_${type}_${type === 'fence' ? 'resting' : 'armed'}`);
+      const selected = this.mode.kind === 'build' && this.mode.type === type;
+      const art = deviceArt(type, selected ? this.facing : 0, type === 'fence' ? 'resting' : 'armed', this.rot);
+      const url = assetUrl(art.key);
       const img = el('img');
       if (url) img.src = url;
-      const selected = this.mode.kind === 'build' && this.mode.type === type;
+      if (art.flip) img.style.transform = 'scaleX(-1)';
       const count = affordableCount(state.inventory, type, state.hoursLeft);
       const affordable = count > 0;
       const tag = def.mode === 'auto' ? s.day.tagAuto : def.mode === 'manual' ? s.day.tagManual : s.day.tagPassive;
@@ -484,6 +487,7 @@ export class DayScene implements Scene {
       audio.play('click');
       this.facing = turned(this.mode.type, this.facing);
       this.ghostCache = null;
+      this.refresh();
       return;
     }
     if (this.hoverDevice) this.apply(turnDevice(this.state, this.hoverDevice.id), '', 'click');

@@ -1512,32 +1512,38 @@
   "yard_scatter_straw": {
     "file": "sprites/yard_scatter_straw.webp",
     "w": 128,
-    "h": 64
+    "h": 64,
+    "footX": 0.4319
   },
   "yard_scatter_fern": {
     "file": "sprites/yard_scatter_fern.webp",
     "w": 128,
-    "h": 57
+    "h": 57,
+    "footX": 0.4893
   },
   "yard_scatter_stones": {
     "file": "sprites/yard_scatter_stones.webp",
     "w": 128,
-    "h": 48
+    "h": 48,
+    "footX": 0.5857
   },
   "yard_scatter_leaves": {
     "file": "sprites/yard_scatter_leaves.webp",
     "w": 128,
-    "h": 55
+    "h": 55,
+    "footX": 0.5391
   },
   "yard_scatter_yarrow": {
     "file": "sprites/yard_scatter_yarrow.webp",
     "w": 128,
-    "h": 56
+    "h": 56,
+    "footX": 0.4853
   },
   "yard_scatter_dock": {
     "file": "sprites/yard_scatter_dock.webp",
     "w": 128,
-    "h": 53
+    "h": 53,
+    "footX": 0.4155
   },
   "yard_masonry_barn": {
     "file": "sprites/yard_masonry_barn.webp",
@@ -1562,47 +1568,56 @@
   "yard_flora_foxtail": {
     "file": "sprites/yard_flora_foxtail.webp",
     "w": 168,
-    "h": 143
+    "h": 143,
+    "footX": 0.4634
   },
   "yard_flora_knapweed": {
     "file": "sprites/yard_flora_knapweed.webp",
     "w": 168,
-    "h": 160
+    "h": 160,
+    "footX": 0.5271
   },
   "yard_flora_clover": {
     "file": "sprites/yard_flora_clover.webp",
     "w": 168,
-    "h": 115
+    "h": 115,
+    "footX": 0.4874
   },
   "yard_flora_bramble": {
     "file": "sprites/yard_flora_bramble.webp",
     "w": 168,
-    "h": 128
+    "h": 128,
+    "footX": 0.4086
   },
   "yard_flora_hazel": {
     "file": "sprites/yard_flora_hazel.webp",
     "w": 168,
-    "h": 131
+    "h": 131,
+    "footX": 0.3823
   },
   "yard_flora_nettle": {
     "file": "sprites/yard_flora_nettle.webp",
     "w": 168,
-    "h": 156
+    "h": 156,
+    "footX": 0.476
   },
   "yard_flora_cabbage": {
     "file": "sprites/yard_flora_cabbage.webp",
     "w": 168,
-    "h": 109
+    "h": 109,
+    "footX": 0.4416
   },
   "yard_flora_leeks": {
     "file": "sprites/yard_flora_leeks.webp",
     "w": 168,
-    "h": 150
+    "h": 150,
+    "footX": 0.5357
   },
   "yard_flora_chicory": {
     "file": "sprites/yard_flora_chicory.webp",
     "w": 168,
-    "h": 146
+    "h": 146,
+    "footX": 0.4935
   },
   "defense_crawl": {
     "file": "sprites/defense_crawl.webp",
@@ -1638,5 +1653,387 @@
     "file": "sprites/obj_house_back_ruin.webp",
     "w": 760,
     "h": 739
+  },
+  "forest_stands_fir": {
+    "file": "sprites/forest_stands_fir.webp",
+    "w": 320,
+    "h": 430,
+    "footX": 0.511
+  },
+  "forest_stands_firpair": {
+    "file": "sprites/forest_stands_firpair.webp",
+    "w": 271,
+    "h": 430,
+    "footX": 0.4963
+  },
+  "forest_stands_beech": {
+    "file": "sprites/forest_stands_beech.webp",
+    "w": 456,
+    "h": 430,
+    "footX": 0.4168
+  },
+  "forest_stands_birch": {
+    "file": "sprites/forest_stands_birch.webp",
+    "w": 345,
+    "h": 430,
+    "footX": 0.4826
+  },
+  "forest_stands_oak": {
+    "file": "sprites/forest_stands_oak.webp",
+    "w": 525,
+    "h": 430,
+    "footX": 0.5106
+  },
+  "forest_stands_coppice": {
+    "file": "sprites/forest_stands_coppice.webp",
+    "w": 487,
+    "h": 430,
+    "footX": 0.431
+  },
+  "yard_rear_mailbox": {
+    "file": "sprites/yard_rear_mailbox.webp",
+    "w": 142,
+    "h": 320
+  },
+  "yard_rear_well": {
+    "file": "sprites/yard_rear_well.webp",
+    "w": 238,
+    "h": 320
+  },
+  "yard_rear_woodpile": {
+    "file": "sprites/yard_rear_woodpile.webp",
+    "w": 316,
+    "h": 320
+  },
+  "yard_rear_veg": {
+    "file": "sprites/yard_rear_veg.webp",
+    "w": 342,
+    "h": 320
+  },
+  "yard_rear_barrel": {
+    "file": "sprites/yard_rear_barrel.webp",
+    "w": 235,
+    "h": 320
+  },
+  "yard_rear_rock": {
+    "file": "sprites/yard_rear_rock.webp",
+    "w": 385,
+    "h": 284
+  },
+  "yard_rear_apple": {
+    "file": "sprites/yard_rear_apple.webp",
+    "w": 286,
+    "h": 320
+  },
+  "yard_rear_oak": {
+    "file": "sprites/yard_rear_oak.webp",
+    "w": 325,
+    "h": 320
+  },
+  "yard_rear_bush": {
+    "file": "sprites/yard_rear_bush.webp",
+    "w": 381,
+    "h": 320
+  },
+  "forest_stands_back_fir": {
+    "file": "sprites/forest_stands_back_fir.webp",
+    "w": 304,
+    "h": 420,
+    "footX": 0.4875
+  },
+  "forest_stands_back_firpair": {
+    "file": "sprites/forest_stands_back_firpair.webp",
+    "w": 282,
+    "h": 420,
+    "footX": 0.4504
+  },
+  "forest_stands_back_beech": {
+    "file": "sprites/forest_stands_back_beech.webp",
+    "w": 460,
+    "h": 417,
+    "footX": 0.5295
+  },
+  "forest_stands_back_birch": {
+    "file": "sprites/forest_stands_back_birch.webp",
+    "w": 332,
+    "h": 430,
+    "footX": 0.5312
+  },
+  "forest_stands_back_oak": {
+    "file": "sprites/forest_stands_back_oak.webp",
+    "w": 513,
+    "h": 424,
+    "footX": 0.4791
+  },
+  "forest_stands_back_coppice": {
+    "file": "sprites/forest_stands_back_coppice.webp",
+    "w": 405,
+    "h": 407,
+    "footX": 0.4783
+  },
+  "yard_flora_back_foxtail": {
+    "file": "sprites/yard_flora_back_foxtail.webp",
+    "w": 168,
+    "h": 140,
+    "footX": 0.5445
+  },
+  "yard_flora_back_knapweed": {
+    "file": "sprites/yard_flora_back_knapweed.webp",
+    "w": 168,
+    "h": 159,
+    "footX": 0.4973
+  },
+  "yard_flora_back_clover": {
+    "file": "sprites/yard_flora_back_clover.webp",
+    "w": 168,
+    "h": 120,
+    "footX": 0.5272
+  },
+  "yard_flora_back_bramble": {
+    "file": "sprites/yard_flora_back_bramble.webp",
+    "w": 168,
+    "h": 132,
+    "footX": 0.626
+  },
+  "yard_flora_back_hazel": {
+    "file": "sprites/yard_flora_back_hazel.webp",
+    "w": 168,
+    "h": 134,
+    "footX": 0.6392
+  },
+  "yard_flora_back_nettle": {
+    "file": "sprites/yard_flora_back_nettle.webp",
+    "w": 168,
+    "h": 152,
+    "footX": 0.5026
+  },
+  "yard_flora_back_cabbage": {
+    "file": "sprites/yard_flora_back_cabbage.webp",
+    "w": 168,
+    "h": 119,
+    "footX": 0.3664
+  },
+  "yard_flora_back_leeks": {
+    "file": "sprites/yard_flora_back_leeks.webp",
+    "w": 168,
+    "h": 161,
+    "footX": 0.4539
+  },
+  "yard_flora_back_chicory": {
+    "file": "sprites/yard_flora_back_chicory.webp",
+    "w": 168,
+    "h": 141,
+    "footX": 0.5034
+  },
+  "yard_scatter_back_straw": {
+    "file": "sprites/yard_scatter_back_straw.webp",
+    "w": 128,
+    "h": 67,
+    "footX": 0.5227
+  },
+  "yard_scatter_back_fern": {
+    "file": "sprites/yard_scatter_back_fern.webp",
+    "w": 128,
+    "h": 65,
+    "footX": 0.4981
+  },
+  "yard_scatter_back_stones": {
+    "file": "sprites/yard_scatter_back_stones.webp",
+    "w": 128,
+    "h": 47,
+    "footX": 0.6478
+  },
+  "yard_scatter_back_leaves": {
+    "file": "sprites/yard_scatter_back_leaves.webp",
+    "w": 128,
+    "h": 54,
+    "footX": 0.3834
+  },
+  "yard_scatter_back_yarrow": {
+    "file": "sprites/yard_scatter_back_yarrow.webp",
+    "w": 128,
+    "h": 63,
+    "footX": 0.5131
+  },
+  "yard_scatter_back_dock": {
+    "file": "sprites/yard_scatter_back_dock.webp",
+    "w": 128,
+    "h": 60,
+    "footX": 0.5273
+  },
+  "dev_back_fence_resting": {
+    "file": "sprites/dev_back_fence_resting.webp",
+    "w": 169,
+    "h": 150
+  },
+  "dev_back_fence_armed": {
+    "file": "sprites/dev_back_fence_armed.webp",
+    "w": 169,
+    "h": 150
+  },
+  "dev_back_fence_triggered": {
+    "file": "sprites/dev_back_fence_triggered.webp",
+    "w": 169,
+    "h": 150
+  },
+  "dev_back_fence_broken": {
+    "file": "sprites/dev_back_fence_broken.webp",
+    "w": 169,
+    "h": 150
+  },
+  "dev_back_flat_resting": {
+    "file": "sprites/dev_back_flat_resting.webp",
+    "w": 219,
+    "h": 150
+  },
+  "dev_back_flat_armed": {
+    "file": "sprites/dev_back_flat_armed.webp",
+    "w": 219,
+    "h": 150
+  },
+  "dev_back_flat_triggered": {
+    "file": "sprites/dev_back_flat_triggered.webp",
+    "w": 219,
+    "h": 150
+  },
+  "dev_back_flat_broken": {
+    "file": "sprites/dev_back_flat_broken.webp",
+    "w": 219,
+    "h": 150
+  },
+  "dev_back_deep_resting": {
+    "file": "sprites/dev_back_deep_resting.webp",
+    "w": 36,
+    "h": 150
+  },
+  "dev_back_deep_triggered": {
+    "file": "sprites/dev_back_deep_triggered.webp",
+    "w": 36,
+    "h": 150
+  },
+  "dev_back_deep_broken": {
+    "file": "sprites/dev_back_deep_broken.webp",
+    "w": 36,
+    "h": 150
+  },
+  "dev_back_spikes_resting": {
+    "file": "sprites/dev_back_spikes_resting.webp",
+    "w": 121,
+    "h": 130
+  },
+  "dev_back_spikes_armed": {
+    "file": "sprites/dev_back_spikes_armed.webp",
+    "w": 121,
+    "h": 130
+  },
+  "dev_back_spikes_triggered": {
+    "file": "sprites/dev_back_spikes_triggered.webp",
+    "w": 121,
+    "h": 130
+  },
+  "dev_back_spikes_broken": {
+    "file": "sprites/dev_back_spikes_broken.webp",
+    "w": 121,
+    "h": 130
+  },
+  "dev_back_log_resting": {
+    "file": "sprites/dev_back_log_resting.webp",
+    "w": 233,
+    "h": 230
+  },
+  "dev_back_log_armed": {
+    "file": "sprites/dev_back_log_armed.webp",
+    "w": 233,
+    "h": 230
+  },
+  "dev_back_log_triggered": {
+    "file": "sprites/dev_back_log_triggered.webp",
+    "w": 233,
+    "h": 230
+  },
+  "dev_back_log_broken": {
+    "file": "sprites/dev_back_log_broken.webp",
+    "w": 233,
+    "h": 230
+  },
+  "dev_back_net_resting": {
+    "file": "sprites/dev_back_net_resting.webp",
+    "w": 184,
+    "h": 190
+  },
+  "dev_back_net_armed": {
+    "file": "sprites/dev_back_net_armed.webp",
+    "w": 184,
+    "h": 190
+  },
+  "dev_back_net_triggered": {
+    "file": "sprites/dev_back_net_triggered.webp",
+    "w": 184,
+    "h": 190
+  },
+  "dev_back_net_broken": {
+    "file": "sprites/dev_back_net_broken.webp",
+    "w": 184,
+    "h": 190
+  },
+  "dev_back_barrier_resting": {
+    "file": "sprites/dev_back_barrier_resting.webp",
+    "w": 187,
+    "h": 170
+  },
+  "dev_back_barrier_armed": {
+    "file": "sprites/dev_back_barrier_armed.webp",
+    "w": 187,
+    "h": 170
+  },
+  "dev_back_barrier_triggered": {
+    "file": "sprites/dev_back_barrier_triggered.webp",
+    "w": 187,
+    "h": 170
+  },
+  "dev_back_barrier_broken": {
+    "file": "sprites/dev_back_barrier_broken.webp",
+    "w": 187,
+    "h": 170
+  },
+  "dev_back_horn_resting": {
+    "file": "sprites/dev_back_horn_resting.webp",
+    "w": 192,
+    "h": 180
+  },
+  "dev_back_horn_armed": {
+    "file": "sprites/dev_back_horn_armed.webp",
+    "w": 192,
+    "h": 180
+  },
+  "dev_back_horn_triggered": {
+    "file": "sprites/dev_back_horn_triggered.webp",
+    "w": 192,
+    "h": 180
+  },
+  "dev_back_horn_broken": {
+    "file": "sprites/dev_back_horn_broken.webp",
+    "w": 192,
+    "h": 180
+  },
+  "dev_back_floodlight_resting": {
+    "file": "sprites/dev_back_floodlight_resting.webp",
+    "w": 191,
+    "h": 230
+  },
+  "dev_back_floodlight_armed": {
+    "file": "sprites/dev_back_floodlight_armed.webp",
+    "w": 191,
+    "h": 230
+  },
+  "dev_back_floodlight_triggered": {
+    "file": "sprites/dev_back_floodlight_triggered.webp",
+    "w": 191,
+    "h": 230
+  },
+  "dev_back_floodlight_broken": {
+    "file": "sprites/dev_back_floodlight_broken.webp",
+    "w": 191,
+    "h": 230
   }
 }

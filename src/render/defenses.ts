@@ -3,28 +3,34 @@ import type { DeviceRuntimeState, NightSim } from '../core/night';
 import { SECTOR_IDS, type DeviceTypeId, type Facing, type SectorId } from '../core/types';
 import { sprite, type Sprite } from '../engine/assets';
 import { calmMotion } from './lighting';
+import type { Rot } from './projection';
+import { castShadow, castSilhouette, SHADOW_RGB } from './shadows';
 
 type Kind = DeviceTypeId | 'barricade';
 type Pose = 'resting' | 'armed' | 'triggered' | 'broken';
 
-export interface DefenseArt { key: string; h: number; lift: number; flip: boolean }
+export interface DefenseArt { key: string; h: number; lift: number; flip: boolean; rear?: boolean }
 
 const dimensions: Record<DeviceTypeId, readonly [height: number, lift: number]> = {
   fence: [42, 11], spikes: [50, 14], log: [74, 12], net: [64, 12],
   barrier: [54, 12], horn: [54, 11], floodlight: [78, 9],
 };
 
-export function deviceArt(type: DeviceTypeId, facing: Facing | undefined, pose: Pose): DefenseArt {
+export function deviceArt(type: DeviceTypeId, facing: Facing | undefined, pose: Pose, rot: Rot): DefenseArt {
+  // Turning the camera through 180° keeps the slope of a fence line. It swaps ends and
+  // exposes the opposite side of the apparatus; only changing the installed axis mirrors it.
   if (type === 'fence' && (facing === 2 || facing === 3)) {
     const flat = facing === 2;
     const suffix = pose === 'broken' ? '_broken' : pose === 'triggered' ? '_hurt' : '';
+    const angle = flat ? 'flat' : 'deep';
+    const backPose = !flat && pose === 'armed' ? 'resting' : pose;
     return {
-      key: `fence_diag_${flat ? 'flat' : 'deep'}${suffix}`,
-      h: flat ? 40 : 60, lift: flat ? 6 : 17, flip: false,
+      key: rot === 1 ? `dev_back_${angle}_${backPose}` : `fence_diag_${angle}${suffix}`,
+      h: flat ? 40 : 60, lift: flat ? 6 : 17, flip: false, rear: rot === 1,
     };
   }
   const [h, lift] = dimensions[type];
-  return { key: `dev_${type}_${pose}`, h, lift, flip: facing === 1 };
+  return { key: `dev_${rot === 1 ? 'back_' : ''}${type}_${pose}`, h, lift, flip: facing === 1, rear: rot === 1 };
 }
 
 export function devicePose(d: { type: DeviceTypeId; state: DeviceRuntimeState | 'idle'; hpRatio: number }): Pose {
@@ -108,6 +114,10 @@ const scars: Record<Kind, readonly [number, number]> = {
   fence: [89, 87], spikes: [91, 113], barrier: [85, 111], net: [32, 125],
   log: [132, 80], horn: [107, 103], floodlight: [119, 101], barricade: [93, 119],
 };
+const rearScars: Partial<typeof scars> = {
+  spikes: [76, 125], barrier: [101, 126], net: [161, 113],
+  log: [140, 87], horn: [99, 98], floodlight: [116, 105],
+};
 
 const worn = new Map<string, CanvasImageSource>();
 
@@ -125,7 +135,7 @@ function finish(art: Sprite, key: string, type: Kind, ratio: number): CanvasImag
   c.drawImage(art.img, 0, 0);
   c.scale(art.w / 200, art.h / 200);
   c.globalCompositeOperation = 'source-atop';
-  const [x, y] = scars[type];
+  const [x, y] = (key.startsWith('dev_back_') && rearScars[type]) || scars[type];
   const grime = c.createRadialGradient(x, y, 4, x, y, 55 + 15 * level);
   grime.addColorStop(0, `rgba(39,29,24,${0.16 + 0.12 * level})`);
   grime.addColorStop(1, 'rgba(39,29,24,0)');
@@ -151,9 +161,16 @@ const movingParts: Partial<Record<Kind, readonly number[]>> = {
   barrier: [39,147, 39,16, 120,0, 164,0, 167,131, 59,155],
   net: [53,76, 60,82, 70,123, 78,139, 108,125, 132,115, 139,52, 146,53, 143,110, 145,121, 155,136, 165,144, 185,151, 200,151, 200,179, 105,197, 39,192, 43,172, 60,166, 61,142, 61,122],
 };
+const backParts: Partial<typeof movingParts> = {
+  spikes: [13,0, 167,0, 174,74, 165,98, 130,147, 117,158, 29,125, 21,114],
+  barrier: [19,128, 19,0, 153,0, 157,80, 175,143, 44,166, 29,158],
+  net: [72,88, 79,90, 126,105, 141,101, 161,53, 165,52, 160,66, 154,83, 148,108,
+    149,121, 150,161, 83,174, 82,147, 73,144],
+};
+const backNetLeft = [0,123, 44,122, 46,144, 38,148, 38,170, 0,170];
 
-function trace(ctx: CanvasRenderingContext2D, points: readonly number[]): void {
-  ctx.beginPath();
+function trace(ctx: CanvasRenderingContext2D, points: readonly number[], append = false): void {
+  if (!append) ctx.beginPath();
   ctx.moveTo(points[0]!, points[1]!);
   for (let i = 2; i < points.length; i += 2) ctx.lineTo(points[i]!, points[i + 1]!);
   ctx.closePath();
@@ -162,7 +179,7 @@ function trace(ctx: CanvasRenderingContext2D, points: readonly number[]): void {
 interface Layers { base: HTMLCanvasElement; moving: HTMLCanvasElement }
 const layers = new WeakMap<CanvasImageSource, Layers>();
 
-function cut(art: Sprite, image: CanvasImageSource, outline: readonly number[]): Layers | null {
+function cut(art: Sprite, image: CanvasImageSource, outline: readonly number[], extra?: readonly number[]): Layers | null {
   const cached = layers.get(image);
   if (cached) return cached;
   const pair = { base: document.createElement('canvas'), moving: document.createElement('canvas') };
@@ -174,6 +191,7 @@ function cut(art: Sprite, image: CanvasImageSource, outline: readonly number[]):
     ctx.scale(art.w / 200, art.h / 200);
     ctx.globalCompositeOperation = key === 'base' ? 'destination-out' : 'destination-in';
     trace(ctx, outline);
+    if (extra) trace(ctx, extra, true);
     ctx.fill();
   }
   layers.set(image, pair);
@@ -209,39 +227,98 @@ function drawLog(ctx: CanvasRenderingContext2D, ratio: number, release: number):
   return true;
 }
 
-function drawMechanism(ctx: CanvasRenderingContext2D, type: Kind, art: Sprite, image: CanvasImageSource, age: number): void {
-  const shift = type === 'barricade' ? undefined : firedShift[type];
+// Looking through the far gallows, the near A-frame passes in front of the moving load.
+// Its feet and the back winch remain stationary throughout the swing.
+const backLoadHole = [47,51, 62,47, 70,44, 76,29, 89,32, 81,49, 97,54, 108,55,
+  113,42, 125,45, 114,63, 140,72, 146,79, 142,105, 124,102, 48,76, 43,68];
+const nearLeg = [104,188, 105,180, 112,175, 136,69, 152,68, 153,75, 130,178, 134,180, 133,188, 118,199];
+interface BackRig { base: HTMLCanvasElement; foreground: HTMLCanvasElement }
+const backRigs = new WeakMap<CanvasImageSource, BackRig>();
+function backRig(ready: Sprite, resting: Sprite, image: CanvasImageSource): BackRig | undefined {
+  const cached = backRigs.get(image);
+  if (cached) return cached;
+  const base = document.createElement('canvas'), foreground = document.createElement('canvas');
+  for (const surface of [base, foreground]) { surface.width = ready.w; surface.height = ready.h; }
+  const c = base.getContext('2d'), front = foreground.getContext('2d');
+  if (!c || !front) return;
+  c.scale(ready.w / 200, ready.h / 200); c.drawImage(image, 0, 0, 200, 200);
+  c.save(); trace(c, backLoadHole); c.clip(); c.clearRect(0, 0, 200, 200);
+  // Restore the leg where the hoisted load covered it using the unloaded part of the neutral painting.
+  trace(c, [47,23, 58,23, 90,144, 73,144]); c.clip();
+  c.drawImage(resting.img, 0, 0, 200, 200); c.restore();
+  front.scale(ready.w / 200, ready.h / 200);
+  trace(front, nearLeg);
+  trace(front, [152,70, 160,72, 185,158, 190,156, 197,160, 197,168, 174,174, 170,164], true);
+  front.clip(); front.drawImage(image, 0, 0, 200, 200);
+  const result = { base, foreground };
+  backRigs.set(image, result);
+  return result;
+}
+
+function drawBackLog(ctx: CanvasRenderingContext2D, ratio: number, release: number): boolean {
+  const ready = sprite('dev_back_log_armed'), resting = sprite('dev_back_log_resting'), trunkArt = sprite('dev_log_armed');
+  if (!ready || !resting || !trunkArt) return false;
+  const rig = backRig(ready, resting, finish(ready, 'dev_back_log_armed', 'log', ratio));
+  const trunk = cut(trunkArt, finish(trunkArt, 'dev_log_armed', 'log', ratio), load);
+  if (!rig || !trunk) return false;
+  ctx.drawImage(rig.base, 0, 0, 200, 200);
+  // Both cameras follow the same swing. In this view the trunk moves away and to the right.
+  const x = 19 + 17 * release, y = -2 + 52 * release;
+  ctx.lineCap = 'round';
+  for (const [color, width] of [['#432b19', 4.6], ['#c69a58', 2]] as const) {
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath();
+    ctx.moveTo(85, 32); ctx.lineTo(x + 56, y + 62);
+    ctx.moveTo(119, 45); ctx.lineTo(x + 91, y + 76); ctx.stroke();
+  }
+  ctx.drawImage(trunk.moving, x, y, 200, 200);
+  ctx.drawImage(rig.foreground, 0, 0, 200, 200);
+  return true;
+}
+
+function drawMechanism(ctx: CanvasRenderingContext2D, type: Kind, art: Sprite, image: CanvasImageSource, age: number, rear: boolean): void {
+  const shift = rear || type === 'barricade' ? undefined : firedShift[type];
   if (shift) ctx.translate(...shift);
-  const outline = movingParts[type];
-  const pair = outline && age < 0.55 ? cut(art, image, outline) : null;
+  const outline = (rear ? backParts : movingParts)[type];
+  const backNet = rear && type === 'net';
+  const pair = outline && age < 0.55 ? cut(art, image, outline, backNet ? backNetLeft : undefined) : null;
   if (pair) {
-    ctx.drawImage(pair.base, 0, 0, 200, 200);
+    if (!backNet) ctx.drawImage(pair.base, 0, 0, 200, 200);
     const t = clamp(age / (type === 'net' ? 0.45 : 0.29));
     const open = type === 'net' ? t * t : 1 - (1 - t) ** 3;
     const settle = Math.sin(t * Math.PI * 2) * Math.sin(Math.PI * t);
+    ctx.save();
     if (type === 'net') {
-      ctx.translate(94, 80);
+      const anchor = rear ? 108 : 94;
+      ctx.translate(anchor, 80);
       ctx.scale(0.8 + 0.2 * open, 0.4 + 0.6 * open);
-      ctx.translate(-94, -80 - 16 * (1 - open));
+      ctx.translate(-anchor, -80 - 16 * (1 - open));
     } else {
-      const pivot = type === 'barrier' ? 150 : 95;
+      const pivot = type === 'barrier' ? 150 : rear ? 139 : 95;
       ctx.translate(0, pivot);
-      ctx.transform(1, 0, -0.12 * (1 - open), 0.18 + open * 0.82 + 0.06 * settle, 0, 0);
+      ctx.transform(1, 0, (rear ? 0.12 : -0.12) * (1 - open), 0.18 + open * 0.82 + 0.06 * settle, 0, 0);
       ctx.translate(0, -pivot);
     }
     ctx.drawImage(pair.moving, 0, 0, 200, 200);
+    ctx.restore();
+    if (backNet) {
+      // The net drops onto the far side of the frame. Keep the near post in front.
+      ctx.drawImage(pair.base, 0, 0, 200, 200);
+    }
     return;
   }
   ctx.drawImage(image, 0, 0, 200, 200);
   if (type === 'horn') {
     const pulse = (age * 2.5) % 1;
+    if (rear) { ctx.translate(201, -6); ctx.scale(-1, 1); }
     ctx.strokeStyle = `rgba(255,214,133,${0.72 * (1 - pulse)})`; ctx.lineWidth = 2.4;
     ctx.beginPath(); ctx.ellipse(155, 50, 15 + 28 * pulse, 9 + 24 * pulse, -0.18, -0.94, 1.02); ctx.stroke();
   }
   if (type === 'floodlight') {
-    const glow = ctx.createRadialGradient(73, 50, 2, 73, 50, 48);
-    glow.addColorStop(0, 'rgba(255,248,203,0.62)'); glow.addColorStop(0.4, 'rgba(255,211,123,0.18)'); glow.addColorStop(1, 'rgba(255,200,125,0)');
-    ctx.fillStyle = glow; ctx.fillRect(25, 2, 96, 96);
+    const x = rear ? 178 : 73, y = rear ? 31 : 50, radius = rear ? 20 : 48;
+    const glow = ctx.createRadialGradient(x, y, 2, x, y, radius);
+    glow.addColorStop(0, rear ? 'rgba(255,237,174,0.26)' : 'rgba(255,248,203,0.62)');
+    glow.addColorStop(0.4, 'rgba(255,211,123,0.18)'); glow.addColorStop(1, 'rgba(255,200,125,0)');
+    ctx.fillStyle = glow; ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
   }
 }
 
@@ -292,11 +369,12 @@ interface DefenseDrawing {
 
 // A trap can be destroyed halfway through a swing or while winching back. Freeze that
 // exact mechanism once; each camera then draws the same fragments from the same pose.
-const fractureFrames = new WeakMap<Readonly<Wear>, CanvasImageSource>();
+const fractureFrames = new WeakMap<Readonly<Wear>, Map<string, CanvasImageSource>>();
 function fractureFrame(d: DefenseDrawing, w: Readonly<Wear>, art: Sprite, key: string, ratio: number): CanvasImageSource {
   const image = finish(art, key, d.kind, ratio);
   if (d.kind === 'barricade' || (w.beforeState !== 'active' && w.beforeState !== 'rearming')) return image;
-  const cached = fractureFrames.get(w);
+  let views = fractureFrames.get(w);
+  const cached = views?.get(key);
   if (cached) return cached;
   const c = document.createElement('canvas');
   c.width = art.w; c.height = art.h;
@@ -305,7 +383,8 @@ function fractureFrame(d: DefenseDrawing, w: Readonly<Wear>, art: Sprite, key: s
   const def = DEVICES[d.kind];
   ctx.scale(art.w / 200, art.h / 200);
   drawOperation(ctx, { ...d, state: w.beforeState, hpRatio: ratio, activeAge: def.activeSeconds - w.beforeTimer, rearm: 1 - w.beforeTimer / def.rearmSeconds }, art, image, false);
-  fractureFrames.set(w, c);
+  if (!views) { views = new Map(); fractureFrames.set(w, views); }
+  views.set(key, c);
   return c;
 }
 
@@ -319,7 +398,8 @@ export function drawDefense(ctx: CanvasRenderingContext2D, x: number, y: number,
   const breakAge = w ? d.time - w.brokeAt : Infinity;
   const h = d.art.h * zoom;
   const width = h * art.w / art.h;
-  const direction = (w?.strikes ?? 0) % 2 ? 1 : -1;
+  const side = d.art.rear ? -1 : 1;
+  const direction = ((w?.strikes ?? 0) % 2 ? 1 : -1) * side;
   const still = calmMotion();
   ctx.save(); ctx.translate(x, y + d.art.lift * zoom);
   if (d.art.flip) ctx.scale(-1, 1);
@@ -327,7 +407,7 @@ export function drawDefense(ctx: CanvasRenderingContext2D, x: number, y: number,
   const beforeRatio = w ? w.beforeBreakHp / capacity : 1;
   // Weight shifts towards the cracked brace as a device wears down.
   const sag = 0.105 * clamp((0.64 - (d.hpRatio > 0 ? d.hpRatio : beforeRatio)) / 0.64);
-  if (d.hpRatio > 0 && d.kind !== 'barricade' && d.kind !== 'fence') ctx.transform(1, 0, sag, 1 - 0.15 * sag, 0, 0);
+  if (d.hpRatio > 0 && d.kind !== 'barricade' && d.kind !== 'fence') ctx.transform(1, 0, side * sag, 1 - 0.15 * sag, 0, 0);
   if (!still && hitAge < 0.36 && d.hpRatio > 0) {
     const swing = Math.sin(hitAge * 42 + 0.26) * Math.exp(-hitAge * 10);
     ctx.transform(1, 0, direction * swing * 0.13, 1 - Math.abs(swing) * 0.045, 0, 0);
@@ -339,7 +419,7 @@ export function drawDefense(ctx: CanvasRenderingContext2D, x: number, y: number,
     const former = sprite(beforeKey);
     if (former && breakAge < 0.63) {
       ctx.save(); ctx.translate(100, 200);
-      if (d.kind !== 'barricade' && d.kind !== 'fence') ctx.transform(1, 0, sag * h / width, 1 - 0.15 * sag, 0, 0);
+      if (d.kind !== 'barricade' && d.kind !== 'fence') ctx.transform(1, 0, side * sag * h / width, 1 - 0.15 * sag, 0, 0);
       ctx.scale((former.w / former.h) / (art.w / art.h), 1); ctx.translate(-100, -200);
       collapse(ctx, fractureFrame(d, w, former, beforeKey, beforeRatio), breakAge, direction); ctx.restore();
     }
@@ -351,24 +431,26 @@ export function drawDefense(ctx: CanvasRenderingContext2D, x: number, y: number,
 }
 
 function drawOperation(ctx: CanvasRenderingContext2D, d: DefenseDrawing, art: Sprite, image: CanvasImageSource, still: boolean): void {
+  const rear = d.art.rear === true;
+  const logRig = rear ? drawBackLog : drawLog;
   if (d.state === 'active') {
     const age = still ? 1 : (d.activeAge ?? 1);
     if (d.kind === 'log' && !still) {
       const drop = ease(age / 0.29) + 0.31 * Math.sin(Math.max(0, age - 0.29) * 10) * Math.exp(-Math.max(0, age - 0.29) * 2.1);
-      if (!drawLog(ctx, d.hpRatio, drop)) ctx.drawImage(image, 0, 0, 200, 200);
+      if (!logRig(ctx, d.hpRatio, drop)) ctx.drawImage(image, 0, 0, 200, 200);
     } else {
-      ctx.save(); drawMechanism(ctx, d.kind, art, image, age); ctx.restore();
+      ctx.save(); drawMechanism(ctx, d.kind, art, image, age, rear); ctx.restore();
     }
   } else if (d.state === 'rearming' && d.kind !== 'barricade' && !still) {
     const progress = d.rearm ?? 0;
     const age = progress * DEVICES[d.kind].rearmSeconds;
     const fired = sprite(d.previous('triggered').key);
     // The winch takes the full re-arm to lift the trunk back into its cradle.
-    if (d.kind !== 'log' || !drawLog(ctx, d.hpRatio, 1 - ease(progress))) {
+    if (d.kind !== 'log' || !logRig(ctx, d.hpRatio, 1 - ease(progress))) {
       ctx.drawImage(image, 0, 0, 200, 200);
       if (fired && movingParts[d.kind] && age < 0.55) {
         ctx.save(); ctx.globalAlpha *= 1 - ease((age - 0.16) / 0.39);
-        drawMechanism(ctx, d.kind, fired, finish(fired, d.previous('triggered').key, d.kind, d.hpRatio), (0.55 - age) * 0.7); ctx.restore();
+        drawMechanism(ctx, d.kind, fired, finish(fired, d.previous('triggered').key, d.kind, d.hpRatio), (0.55 - age) * 0.7, rear); ctx.restore();
       }
       if (progress > 0.94) {
         const ready = sprite(d.previous('armed').key);
@@ -379,4 +461,39 @@ function drawOperation(ctx: CanvasRenderingContext2D, d: DefenseDrawing, art: Sp
       }
     }
   } else ctx.drawImage(image, 0, 0, 200, 200);
+}
+
+// Operating mechanisms change their silhouette. Quantize the brief release stroke and winch
+// return to small shared masks; devices, thumbnails and both cameras can reuse each sample.
+const castPoses = new Map<string, HTMLCanvasElement>();
+export function drawDeviceCast(ctx: CanvasRenderingContext2D, x: number, y: number, zoom: number, type: DeviceTypeId,
+  art: DefenseArt, state: DeviceRuntimeState | 'idle', activeAge: number, rearm: number, alpha: number): void {
+  const foot = y + (art.lift - 6) * zoom, h = art.h * zoom;
+  const moving = type === 'log' || movingParts[type];
+  const resetting = state === 'rearming';
+  const resetAge = rearm * DEVICES[type].rearmSeconds;
+  if (!moving || calmMotion() || (state !== 'active' && !resetting) || (resetting && type !== 'log' && resetAge >= 0.55)) {
+    castShadow(ctx, art.key, x, foot, h, art.flip, alpha, 0.85);
+    return;
+  }
+  const duration = resetting ? (type === 'log' ? DEVICES.log.rearmSeconds : 0.55) : (type === 'log' ? DEVICES.log.activeSeconds : 0.55);
+  const phase = Math.round(clamp((resetting ? resetAge : activeAge) / duration) * 12);
+  const key = `${art.key}/${state}/${phase}`;
+  let shape = castPoses.get(key);
+  if (!shape) {
+    const source = sprite(art.key);
+    if (!source) return;
+    shape = document.createElement('canvas');
+    shape.height = 40; shape.width = Math.max(1, Math.round(shape.height * source.w / source.h));
+    const c = shape.getContext('2d');
+    if (!c) return;
+    const seconds = duration * phase / 12;
+    c.scale(shape.width / 200, shape.height / 200);
+    const previous = (pose: Pose) => deviceArt(type, art.flip ? 1 : 0, pose, art.rear ? 1 : 0);
+    drawOperation(c, { kind: type, art, previous, state, hpRatio: 1, id: 0, motion: undefined, time: 0,
+      activeAge: seconds, rearm: seconds / DEVICES[type].rearmSeconds }, source, source.img, false);
+    c.globalCompositeOperation = 'source-in'; c.fillStyle = `rgb(${SHADOW_RGB})`; c.fillRect(0, 0, 200, 200);
+    castPoses.set(key, shape);
+  }
+  castSilhouette(ctx, shape, x, foot, h, art.flip, alpha, 0.85);
 }

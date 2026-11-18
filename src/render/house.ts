@@ -106,7 +106,7 @@ function wornFacade(rot: Rot, intact: Sprite, damage: Sprite): HTMLCanvasElement
 }
 
 /** Corners inside the painted door jambs, in pixels on the 760-wide facade. */
-const OPENINGS: Record<SectorId, { x: number; y: number; w: number; h: number; rise: number }> = {
+export const DOOR_OPENINGS: Readonly<Record<SectorId, { x: number; y: number; w: number; h: number; rise: number }>> = {
   portail: { x: 200, y: 501, w: 89, h: 156, rise: 19 },
   grange: { x: 526, y: 519, w: 201, h: 201, rise: -61 },
   arriere: { x: 198, y: 503, w: 72, h: 145, rise: 17 },
@@ -114,7 +114,7 @@ const OPENINGS: Record<SectorId, { x: number; y: number; w: number; h: number; r
 };
 
 function breachedDoor(ctx: CanvasRenderingContext2D, sector: SectorId): void {
-  const { x, y, w, h, rise } = OPENINGS[sector];
+  const { x, y, w, h, rise } = DOOR_OPENINGS[sector];
   ctx.save();
   ctx.transform(1, rise / w, 0, 1, x, y);
   // The opening is a view into the building; the barn reads as deep timber bays and the other
@@ -161,10 +161,11 @@ export function paintHouse(ctx: CanvasRenderingContext2D, rot: Rot, key: string,
   ctx.translate(left, top);
   ctx.scale(width / intact.w, width / intact.w);
   ctx.drawImage(image, 0, 0, intact.w, intact.h);
-  const visible = rot === 0 ? FRONT : BACK;
+  const visible = VISIBLE_DOORS[rot];
   for (const sector of visible) if (barricades[sector].hp <= 0) breachedDoor(ctx, sector);
   ctx.restore();
 }
 
-const FRONT = ['portail', 'grange'] as const;
-const BACK = ['arriere', 'verger'] as const;
+export const VISIBLE_DOORS: Readonly<Record<Rot, readonly SectorId[]>> = {
+  0: ['portail', 'grange'], 1: ['arriere', 'verger'],
+};

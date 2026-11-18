@@ -151,7 +151,7 @@ async function writeSprite(img, box, entry, name) {
   const resize = entry.h ? { height: Math.min(entry.h, height) } : { width: Math.min(entry.w ?? width, width) };
   pipeline = pipeline.resize({ ...resize, kernel: 'lanczos3' });
   if (entry.mirrorSprites?.includes(name)) pipeline = pipeline.flop();
-  if (entry.id === 'yard_flora') {
+  if (entry.id === 'yard_flora' || entry.id === 'yard_flora_back') {
     // Keep the underside of leaves and canes legible when a 168px botanical plate is
     // painted only 25px wide. The upper edge keeps its original rim light.
     const { data, info } = await pipeline.sharpen({ sigma: 1.1, m1: 1.3, m2: 2.5 }).raw().toBuffer({ resolveWithObject: true });
@@ -200,6 +200,22 @@ async function writeSprite(img, box, entry, name) {
   const file = `sprites/${name}.webp`;
   const info = await pipeline.webp({ quality: 90, alphaQuality: 95, effort: 5 }).toFile(join(OUT_DIR, file));
   manifest[name] = { file, w: info.width, h: info.height };
+  if (/^(forest_stands|yard_flora|yard_scatter)(_back)?$/.test(entry.id)) {
+    // A leaning seed head or asymmetric crown puts the stem well off the centre of the
+    // trimmed picture. Register both paintings by the opaque feet near the soil line.
+    const { data, info: rgba } = await sharp(join(OUT_DIR, file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const footBand = entry.id.startsWith('forest_stands') ? 0.93 : 0.82;
+    let mass = 0;
+    let weightedX = 0;
+    for (let y = Math.floor(rgba.height * footBand); y < rgba.height; y++) {
+      for (let x = 0; x < rgba.width; x++) {
+        const alpha = data[(y * rgba.width + x) * 4 + 3];
+        mass += alpha;
+        weightedX += (x + 0.5) * alpha;
+      }
+    }
+    manifest[name].footX = mass ? Number((weightedX / mass / rgba.width).toFixed(4)) : 0.5;
+  }
   if (name === 'dev_fence_broken') await fallenPalisades(join(OUT_DIR, file));
 }
 

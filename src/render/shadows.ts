@@ -17,7 +17,7 @@ const OUTLINE_HEIGHT = 40;
 const outlines = new Map<string, HTMLCanvasElement | null>();
 
 /** The outline of a sprite, small and filled with shadow ink. */
-function outline(key: string): HTMLCanvasElement | null {
+export function shadowOutline(key: string): HTMLCanvasElement | null {
   const known = outlines.get(key);
   if (known !== undefined) return known;
   const art = sprite(key);
@@ -44,8 +44,13 @@ function outline(key: string): HTMLCanvasElement | null {
  * `length` scales how far it reaches (1 = as far as the thing is tall, along the light).
  */
 export function castShadow(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, height: number, flip: boolean, alpha: number, length = 1): void {
-  const shape = outline(key);
+  const shape = shadowOutline(key);
   if (!shape || alpha <= 0) return;
+  castSilhouette(ctx, shape, x, y, height, flip, alpha, length);
+}
+
+/** Project a silhouette made from an articulated pose using the same light as the scenery. */
+export function castSilhouette(ctx: CanvasRenderingContext2D, shape: HTMLCanvasElement, x: number, y: number, height: number, flip: boolean, alpha: number, length: number): void {
   const width = (shape.width / shape.height) * height;
   ctx.save();
   ctx.globalAlpha *= alpha;

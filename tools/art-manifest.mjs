@@ -476,6 +476,18 @@ export const ART = [
       `Each tree complete from the base of the trunk to the top, with no ground. ${ISO} ${KEY} ${STYLE}`,
   },
   {
+    id: 'forest_stands',
+    kind: 'split', cols: 3, rows: 2, h: 430,
+    names: ['fir', 'firpair', 'beech', 'birch', 'oak', 'coppice'],
+    refs: [REF_PROJECTION, REF_MORNING],
+    prompt:
+      'Six distinct woodland cutouts from a French farm in late autumn, in a three-column, two-row sheet. ' +
+      'Top row: a tall windswept silver fir, paired young spruces, a copper beech with an open crown. ' +
+      'Bottom row: three silver birches with flecked white trunks, a broad gnarled russet oak, low multi-stem hazel coppice. ' +
+      'Each stands upright under upper-left light with its own irregular silhouette, generous transparent gutters and no ground or cast shadows. ' +
+      `${ISO} ${STYLE}`,
+  },
+  {
     id: 'obj_props',
     kind: 'split',
     cols: 2,
@@ -502,6 +514,19 @@ export const ART = [
       'Top-left: a round autumn bush with red leaves. Top-right: a mossy grey boulder. ' +
       'Bottom-left: a weathered oak rain barrel. Bottom-right: a small red French letter box on a wooden post. ' +
       `${ISO} ${KEY} ${STYLE}`,
+  },
+  {
+    id: 'yard_rear', kind: 'split', cols: 3, rows: 3, h: 320,
+    names: ['mailbox', 'well', 'woodpile', 'veg', 'barrel', 'rock', 'apple', 'oak', 'bush'],
+    // Both long sides of the shed occupy the same diagonal in the ground plane.
+    mirrorSprites: ['yard_rear_woodpile'],
+    refs: ['art/raw/obj_props.png', 'art/raw/obj_props2.png', 'art/raw/obj_trees.png'],
+    prompt:
+      'True reverse views of the nine fixed homestead props after the isometric camera turns 180 degrees. ' +
+      'Row one: the plain mounting plate and bolts on the back of the red mailbox, the reverse well with bucket on the left, ' +
+      'the boarded rear of the firewood shelter. Row two: the near tomato trellis and far cabbages in the raised bed, ' +
+      'the reverse of the lidded barrel, the opposite ledge of the mossy boulder. Row three: the backs of the apple tree, red oak and rust-red shrub. ' +
+      `Preserve original material, footprint and height, separated by transparent gutters. ${ISO} ${STYLE}`,
   },
   {
     id: 'logo',
@@ -1695,10 +1720,26 @@ const ANIMATED = [
   },
 ];
 
+// Counterviews use each sheet's original cell ordering and runtime scale.
+for (const id of ['forest_stands', 'yard_flora', 'yard_scatter']) {
+  const front = ART.find(entry => entry.id === id);
+  ART.push({
+    ...front, id: `${id}_back`, edit: `art/raw/${id}.png`,
+    prompt: 'Paint the same individual in every cell from the opposite side, turning the camera half a circle around the vertical axis. ' +
+      'Reverse the order of near and far trunks, heads, twigs or stones; preserve species, size and root. Retain the diffuse key light from screen upper left, empty transparent gutters and cell ordering. ' + STYLE,
+  });
+}
+
 // Paired front / back cels for each motion, with one foot-registered row per character.
 ART.push({ id: 'defense_mob_poses', kind: 'atlas', w: 2688, source: { concept: 'art/raw/defense_mob_poses.png' } });
 // A lowering pose and three elbow/paw contacts for each crawling species, from both cameras.
 ART.push({ id: 'defense_crawl', kind: 'atlas', w: 864, source: { concept: 'art/raw/defense_crawl.png' } });
+
+// Registered reverse-angle paintings. The winch, hinges, nets and lamps are seen from behind.
+for (const [type, h] of Object.entries({ fence: 150, flat: 150, deep: 150, spikes: 130, log: 230, net: 190, barrier: 170, horn: 180, floodlight: 230 })) {
+  const names = type === 'deep' ? ['resting', 'triggered', 'broken'] : ['resting', 'armed', 'triggered', 'broken'];
+  ART.push({ id: `dev_back_${type}`, kind: 'split', cols: names.length, rows: 1, names, h, source: { concept: `art/raw/dev_back_${type}.png` } });
+}
 
 for (const character of ANIMATED) {
   for (const view of ['front', 'back']) {

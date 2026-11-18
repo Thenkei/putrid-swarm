@@ -15,7 +15,7 @@ import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
-import { DefenseMotion } from '../render/defenses';
+import { DefenseMotion, deviceArt } from '../render/defenses';
 import { houseDamageStage } from '../render/house';
 import { HOUSE_BREAK_SECONDS, type HouseBreak } from '../render/house-debris';
 import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
@@ -166,7 +166,7 @@ export class NightScene implements Scene {
     audio.setAmbience('night');
     audio.setMusic('night');
     // Both sides of the house are on the monitors at once: painted now, while the screen is dark.
-    prepareWorld();
+    prepareWorld(...SECTOR_IDS.map(sector => this.viewFor(sector, MAIN, MAIN_ZOOM)));
     const s = S();
     this.waveEl = el('span', { class: 'label-strong' });
     this.energyEl = el('span');
@@ -383,10 +383,13 @@ export class NightScene implements Scene {
     const labels = trapKeyLabels();
     this.trapButtons.clear();
     const traps = this.camTraps();
+    const rot = this.viewFor(this.cam, MAIN, MAIN_ZOOM).rot;
     const children: HTMLElement[] = traps.map((device, index) => {
-      const url = assetUrl(`dev_${device.type}_armed`);
+      const art = deviceArt(device.type, device.facing, 'armed', rot);
+      const url = assetUrl(art.key);
       const img = el('img');
       if (url) img.src = url;
+      if (art.flip) img.style.transform = 'scaleX(-1)';
       const status = el('span', { class: 'status' });
       const fill = el('span', { class: 'fill' });
       const root = el(

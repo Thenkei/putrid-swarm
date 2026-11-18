@@ -1,9 +1,11 @@
 import { ENTRIES, LANES, PROPS, inGrid, isStaticBlocked } from '../core/map';
-import { sprite } from '../engine/assets';
-import { seeded } from './noise';
-import { depthOf, groundMatrix, project, type View } from './projection';
+import type { Sprite } from '../engine/assets';
+import { hash2, seeded } from './noise';
+import { depthOf, groundMatrix, project, world, type View } from './projection';
 import { castShadow, contactShadow, groundPatch } from './shadows';
 import { weightAt, type TerrainField } from './terrainfield';
+import { windAt } from './wind';
+import { vegetationView } from './vegetation';
 
 type Plant = 'foxtail' | 'knapweed' | 'clover' | 'bramble' | 'hazel' | 'nettle' | 'cabbage' | 'leeks' | 'chicory';
 type Habitat = 'meadow' | 'hedge' | 'verge';
@@ -45,6 +47,26 @@ const sills = Object.values(ENTRIES);
 
 interface Planting { gx: number; gy: number; kind: Plant; scale: number; flip: boolean }
 
+interface MovingPlant {
+  art: Sprite;
+  gx: number;
+  gy: number;
+  wx: number;
+  wy: number;
+  width: number;
+  height: number;
+  root: number;
+  trait: number;
+  compliance: number;
+  flip: boolean;
+}
+
+const crowns: [MovingPlant[], MovingPlant[]] = [[], []];
+const compliance: Record<Plant, number> = {
+  foxtail: 0.24, knapweed: 0.18, clover: 0.08, bramble: 0.11, hazel: 0.14,
+  nettle: 0.2, cabbage: 0.065, leeks: 0.22, chicory: 0.2,
+};
+
 function plantings(field: TerrainField): Planting[] {
   const rand = seeded(78431);
   const plants: Planting[] = [];
@@ -85,6 +107,8 @@ function plantings(field: TerrainField): Planting[] {
 /** Depth-sort on each side before baking. All cameras share the same species at the same world positions. */
 export function drawYardPlants(ctx: CanvasRenderingContext2D, view: View, field: TerrainField): void {
   const plants = plantings(field).sort((a, b) => depthOf(view.rot, a.gx, a.gy) - depthOf(view.rot, b.gx, b.gy));
+  const moving = crowns[view.rot];
+  moving.length = 0;
   // Leaf mould joins the bases of the hedge plants; the meadow remains broken turf.
   ctx.save();
   ctx.transform(...groundMatrix(view));
@@ -93,13 +117,15 @@ export function drawYardPlants(ctx: CanvasRenderingContext2D, view: View, field:
   }
   ctx.restore();
   const stamps = plants.flatMap(plant => {
-    const key = `yard_flora_${plant.kind}`;
-    const art = sprite(key);
-    if (!art) return [];
+    const face = vegetationView('yard_flora', plant.kind, plant.flip, view.rot);
+    if (!face) return [];
+    const { art, key } = face;
     const [targetWidth, maxHeight] = size[plant.kind];
     const scale = plant.scale * view.zoom * Math.min(targetWidth / art.w, maxHeight / art.h);
     const p = project(view, plant.gx, plant.gy);
-    return [{ key, art, ...p, w: art.w * scale, h: art.h * scale, flip: plant.flip !== (view.rot === 1) }];
+    const w = art.w * scale;
+    const dx = (0.5 - face.foot) * w;
+    return [{ plant, key, art, x: p.x + dx, y: p.y, dx, w, h: art.h * scale, flip: face.mirror }];
   });
   // First project every canopy onto the ground. Plant silhouettes are drawn on a separate
   // pass so a leaf cannot cast a flat ground shadow over its neighbour's crown.
@@ -107,11 +133,43 @@ export function drawYardPlants(ctx: CanvasRenderingContext2D, view: View, field:
     contactShadow(ctx, x, y, w * 0.48, Math.max(2.7, w * 0.16), 0.62);
     if (h > 14 * view.zoom) castShadow(ctx, key, x, y + 0.05 * h, h, flip, 0.34, 0.9);
   }
-  for (const { art, x, y, w, h, flip } of stamps) {
+  for (const { plant, art, x, y, dx, w, h, flip } of stamps) {
+    const trait = hash2(Math.floor(plant.gx * 53), Math.floor(plant.gy * 71), 87);
+    const plantedRow = plant.kind === 'leeks' || plant.kind === 'cabbage';
+    // A representative set of stems catches the wind. Distant hedges stay in the terrain
+    // bake behind the standing trees. Shadows and the foot of every plant stay there too.
+    const live = plantedRow || (trait < 0.52 && inGrid(plant.gx, plant.gy));
     ctx.save();
     ctx.translate(x, y);
     if (flip) ctx.scale(-1, 1);
-    ctx.drawImage(art.img, -w / 2, -h * 0.88, w, h);
+    if (live) {
+      const root = Math.round(art.h * 0.84);
+      const cut = h * root / art.h;
+      ctx.drawImage(art.img, 0, root, art.w, art.h - root, -w / 2, cut - h * 0.88, w, h - cut);
+      const stage = world(view.rot, plant.gx, plant.gy);
+      moving.push({ art, gx: plant.gx, gy: plant.gy, wx: stage.x + dx / view.zoom, wy: stage.y, width: w / view.zoom, height: h / view.zoom, root, trait, compliance: compliance[plant.kind], flip });
+    } else ctx.drawImage(art.img, -w / 2, -h * 0.88, w, h);
+    ctx.restore();
+  }
+}
+
+/** The cut at the root is fixed in screen space: only the stem and crown bend. The same
+ * lightweight visible subset serves the large feed and the three camera thumbnails. */
+export function drawWindPlants(ctx: CanvasRenderingContext2D, view: View, time: number): void {
+  const centre = world(view.rot, view.cx, view.cy);
+  const ox = view.x + view.w / 2 - centre.x * view.zoom;
+  const oy = view.y + view.h / 2 - centre.y * view.zoom;
+  for (const plant of crowns[view.rot]) {
+    const x = ox + plant.wx * view.zoom;
+    const y = oy + plant.wy * view.zoom;
+    const w = plant.width * view.zoom;
+    const h = plant.height * view.zoom;
+    if (x < view.x - w || x > view.x + view.w + w || y < view.y - h || y > view.y + view.h + h) continue;
+    const cap = h * plant.root / plant.art.h;
+    const bend = plant.compliance * windAt(time, plant.gx, plant.gy, plant.trait, view.rot);
+    ctx.save();
+    ctx.transform(plant.flip ? -1 : 1, 0, -bend, 1, x, y - h * 0.88 + cap);
+    ctx.drawImage(plant.art.img, 0, 0, plant.art.w, plant.root, -w / 2, -cap, w, cap);
     ctx.restore();
   }
 }

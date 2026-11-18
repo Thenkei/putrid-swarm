@@ -5,6 +5,7 @@ import { sprite } from '../engine/assets';
 import { fbm, seeded } from './noise';
 import { groundMatrix, project, type View } from './projection';
 import { weightAt, type TerrainField } from './terrainfield';
+import { vegetationView } from './vegetation';
 
 /** The stones are painted from directly overhead, so they turn with the lot. */
 function paving(ctx: CanvasRenderingContext2D, view: View): void {
@@ -39,13 +40,14 @@ function paving(ctx: CanvasRenderingContext2D, view: View): void {
 type Scatter = 'fern' | 'straw' | 'dock' | 'leaves' | 'yarrow' | 'stones';
 
 function scatter(ctx: CanvasRenderingContext2D, view: View, gx: number, gy: number, kind: Scatter, width: number, flip: boolean): void {
-  const art = sprite(`yard_scatter_${kind}`);
-  if (!art) return;
+  const face = vegetationView('yard_scatter', kind, flip, view.rot);
+  if (!face) return;
+  const { art } = face;
   const p = project(view, gx, gy);
   const h = width * art.h / art.w;
   ctx.save();
-  ctx.translate(p.x, p.y);
-  if (flip !== (view.rot === 1)) ctx.scale(-1, 1);
+  ctx.translate(p.x + (0.5 - face.foot) * width, p.y);
+  if (face.mirror) ctx.scale(-1, 1);
   ctx.drawImage(art.img, -width / 2, -h * 0.9, width, h);
   ctx.restore();
 }

@@ -3,11 +3,13 @@
 
 import { describe, expect, it } from 'vitest';
 import { GRID_H, GRID_W, HOUSE, PROPS, SPAWN_CELLS } from '../src/core/map';
-import { SECTOR_IDS } from '../src/core/types';
+import { DEVICE_TYPE_IDS, SECTOR_IDS } from '../src/core/types';
+import { deviceArt } from '../src/render/defenses';
 import { fbm, hash2, periodicFbm, seeded, smoothstep, valueNoise } from '../src/render/noise';
 import { cameraView, depthOf, groundMatrix, project, unproject, viewBounds, type Rot, type View } from '../src/render/projection';
-import { TREES, TREE_ROWS } from '../src/render/scenery';
+import { TREES, TREE_ROWS, treesIn } from '../src/render/scenery';
 import { FIELD_MARGIN, GROUND_TERRAINS, buildTerrainField, groundTerrainAt, layerAlpha, onTrack, weightAt } from '../src/render/terrainfield';
+import { propSpriteKey } from '../src/render/world';
 
 const view = (rot: Rot, zoom = 1, cx = 11, cy = 11): View => ({ rot, zoom, cx, cy, x: 292, y: 56, w: 976, h: 652 });
 
@@ -140,6 +142,26 @@ describe('projection', () => {
       expect(house.y).toBeGreaterThan(rect.y - rect.h / 2);
     }
   });
+
+  it('has distinct, shipped front and rear artwork for each yard prop and defense pose', () => {
+    const [manifest] = Object.values(import.meta.glob<Record<string, { file: string }>>('../public/assets/manifest.json', { eager: true, import: 'default' }));
+    const checkPair = (front: string, rear: string) => {
+      const frontFile = manifest?.[front]?.file;
+      const rearFile = manifest?.[rear]?.file;
+      expect(frontFile, front).toBeTruthy();
+      expect(rearFile, rear).toBeTruthy();
+      expect(rearFile).not.toBe(frontFile);
+    };
+    for (const { kind } of PROPS) checkPair(propSpriteKey(kind, 0), propSpriteKey(kind, 1));
+    for (const type of DEVICE_TYPE_IDS) {
+      const facings = type === 'fence' ? [0, 1, 2, 3] as const : [0, 1] as const;
+      for (const facing of facings) {
+        for (const pose of ['resting', 'armed', 'triggered', 'broken'] as const) {
+          checkPair(deviceArt(type, facing, pose, 0).key, deviceArt(type, facing, pose, 1).key);
+        }
+      }
+    }
+  });
 });
 
 describe('terrain field', () => {
@@ -237,6 +259,17 @@ describe('tree line', () => {
     expect(TREES.some((tree) => tree.gy > GRID_H)).toBe(true);
     expect(TREES.some((tree) => tree.gx < 0)).toBe(true);
     expect(TREES.some((tree) => tree.gx > GRID_W)).toBe(true);
+  });
+
+  it('continues beyond every edge and paints the same trees on overlapping tiles', () => {
+    for (const [x, y] of [[-25, 5], [GRID_W + 12, 5], [5, -25], [5, GRID_H + 12]] as const) {
+      const full = treesIn(x, y, x + 14, y + 14);
+      const overlap = treesIn(x + 3, y + 3, x + 11, y + 11);
+      expect(overlap.length).toBeGreaterThan(0);
+      expect(overlap).toEqual(full.filter(tree =>
+        tree.gx >= x + 3 && tree.gx <= x + 11 && tree.gy >= y + 3 && tree.gy <= y + 11,
+      ));
+    }
   });
 
   it('leaves the two ways out clear', () => {

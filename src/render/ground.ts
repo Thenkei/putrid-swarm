@@ -10,8 +10,9 @@ import { sprite, type Sprite } from '../engine/assets';
 import { fbm, smoothstep } from './noise';
 import { TH, TW, groundMatrix, project, viewBounds, viewX, viewY, world, type Rot, type View } from './projection';
 import { SHADOW_RGB } from './shadows';
-import { FIELD_MARGIN, GROUND_TERRAINS, TRACKS, layerAlpha, terrainField, type GroundTerrain, type TerrainField } from './terrainfield';
+import { FIELD_MARGIN, GROUND_TERRAINS, TRACKS, layerAlpha, roadCentre, terrainField, type GroundTerrain, type TerrainField } from './terrainfield';
 import { dressYardFloor } from './yard-floor';
+import { drawForest } from './forest';
 import { drawYardPlants } from './yard-plants';
 
 const MARGIN = FIELD_MARGIN;
@@ -199,7 +200,7 @@ function shadeCanvas(field: TerrainField): HTMLCanvasElement {
       const gx = field.origin + (px + 0.5) / SHADE_PX;
       // Distance past the border row of the lot, in cells; the two ways out stay a little lighter.
       const out = Math.max(1 - gx, gx - (GRID_W - 1), 1 - gy, gy - (GRID_H - 1));
-      const lane = Math.min(Math.abs(gx - (TRACKS.gate.x0 + TRACKS.gate.x1) / 2), Math.abs(gy - (TRACKS.barn.y0 + TRACKS.barn.y1) / 2));
+      const lane = Math.min(Math.abs(gx - roadCentre('gate', gy)), Math.abs(gy - roadCentre('barn', gx)));
       const open = out > 0 && (gy > GRID_H - 1 || gx > GRID_W - 1) ? 1 - smoothstep(0.6, 2.2, lane) : 0;
       const ragged = out + (fbm(gx * 0.7, gy * 0.7, 77, 2) - 0.5) * 1.4;
       values[py * size + px] = smoothstep(-0.4, 4.4, ragged) * SHADE_DEPTH * (1 - open * 0.45);
@@ -276,7 +277,6 @@ function paintRuts(ctx: CanvasRenderingContext2D, rot: Rot): void {
   toGrid(ctx, rot);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  const centre = (TRACKS.barn.y0 + TRACKS.barn.y1) / 2;
   for (const side of [-1, 1]) {
     for (const [width, alpha] of [
       [0.3, 0.1],
@@ -284,7 +284,7 @@ function paintRuts(ctx: CanvasRenderingContext2D, rot: Rot): void {
     ] as const) {
       ctx.beginPath();
       for (let x = 13.9; x <= GRID_W + MARGIN; x += 0.25) {
-        const y = centre + side * 0.44 + (fbm(x * 0.6, side * 3.1, 91, 2) - 0.5) * 0.22;
+        const y = roadCentre('barn', x) + side * 0.44 + (fbm(x * 0.6, side * 3.1, 91, 2) - 0.5) * 0.22;
         if (x === 13.9) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
@@ -453,8 +453,38 @@ export function prepareGround(): void {
 /** Radius, in stage units at zoom 1, inside which the clearing is in full light. */
 const CLEARING = 560;
 
+function outerRoad(ctx: CanvasRenderingContext2D, road: keyof typeof TRACKS, from: number, to: number): void {
+  const gate = road === 'gate';
+  const first = Math.max((gate ? GRID_H : GRID_W) - 1, Math.floor(from));
+  const last = Math.ceil(to);
+  if (last <= first) return;
+  ctx.beginPath();
+  for (const side of [-1, 1]) {
+    const start = side < 0 ? first : last;
+    const end = side < 0 ? last : first;
+    for (let d = start; side < 0 ? d <= end : d >= end; d -= side * 0.5) {
+      const ragged = (fbm(d * 0.65, side, gate ? 101 : 191, 2) - 0.5) * 0.45;
+      const across = roadCentre(road, d) + side * (1 + ragged);
+      const x = gate ? across : d;
+      const y = gate ? d : across;
+      if (d === first && side < 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+  }
+  ctx.closePath();
+  const soil = swatchFill(ctx, gate ? 'path' : 'gravel');
+  ctx.save();
+  // A shoulder of loose stones or trodden soil grades into the leaf litter at the edge.
+  ctx.strokeStyle = soil;
+  ctx.lineJoin = 'round';
+  ctx.globalAlpha *= 0.30; ctx.lineWidth = 0.40; ctx.stroke();
+  ctx.lineWidth = 0.20; ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = soil; ctx.fill();
+  ctx.fillStyle = `rgba(${SHADOW_RGB}, ${SHADE_DEPTH * 0.55})`; ctx.fill();
+}
+
 /** Draws the ground for a view. The context is expected to be clipped to the view already. */
-export function drawGround(ctx: CanvasRenderingContext2D, view: View): void {
+export function drawGround(ctx: CanvasRenderingContext2D, view: View, time = 0): void {
   const z = view.zoom;
   const bounds = viewBounds(view);
 
@@ -467,15 +497,18 @@ export function drawGround(ctx: CanvasRenderingContext2D, view: View): void {
     ctx.transform(...groundMatrix(view));
     ctx.fillStyle = swatchFill(ctx, 'forest');
     ctx.fillRect(bounds.x, bounds.y, bounds.w, bounds.h);
-    ctx.restore();
     ctx.fillStyle = `rgba(${SHADOW_RGB}, ${SHADE_DEPTH})`;
-    ctx.fillRect(view.x, view.y, view.w, view.h);
+    ctx.fillRect(bounds.x, bounds.y, bounds.w, bounds.h);
+    outerRoad(ctx, 'gate', bounds.y, bounds.y + bounds.h);
+    outerRoad(ctx, 'barn', bounds.x, bounds.x + bounds.w);
+    ctx.restore();
   }
 
   const c = world(view.rot, view.cx, view.cy);
   const gx0 = view.x + view.w / 2 + (GROUND_X0 - c.x) * z;
   const gy0 = view.y + view.h / 2 + (GROUND_Y0 - c.y) * z;
   ctx.drawImage(ground(view.rot), gx0, gy0, GROUND_W * z, GROUND_H * z);
+  drawForest(ctx, view, time);
 
   // The lot reads as a clearing: the further into the wood, the less light gets down.
   const centre = project(view, GRID_W / 2, GRID_H / 2);

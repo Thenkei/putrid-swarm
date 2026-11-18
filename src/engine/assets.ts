@@ -5,12 +5,15 @@ export interface Sprite {
   readonly img: HTMLImageElement;
   readonly w: number;
   readonly h: number;
+  /** Horizontal position of the planted foot as a fraction of sprite width. */
+  readonly footX?: number;
 }
 
 interface ManifestEntry {
   readonly file: string;
   readonly w: number;
   readonly h: number;
+  readonly footX?: number;
 }
 
 const sprites = new Map<string, Sprite>();
@@ -48,7 +51,7 @@ export async function loadAssets(onProgress: (done: number, total: number) => vo
     entries.map(async ([key, entry]) => {
       try {
         const img = await loadImage(BASE + entry.file);
-        sprites.set(key, { img, w: entry.w, h: entry.h });
+        sprites.set(key, { img, w: entry.w, h: entry.h, footX: entry.footX ?? 0.5 });
       } catch (error) {
         failed.push(key);
         console.warn(`[assets] ${key}`, error);

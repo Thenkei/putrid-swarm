@@ -7,17 +7,20 @@ import type { DeviceRuntimeState, Enemy } from '../core/night';
 import type { Cell, Decal, DeviceTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { sprite } from '../engine/assets';
-import { deviceArt, devicePose, doorPose, drawDefense, type DefenseMotion } from './defenses';
+import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, type DefenseMotion } from './defenses';
 import { drawDecals } from './aftermath';
 import { drawEnemy, drawFallen, type Fallen } from './infected';
 import { drawGround, prepareGround, setGroundDresser } from './ground';
-import { houseDamageStage, paintHouse } from './house';
+import { DOOR_OPENINGS, VISIBLE_DOORS, houseDamageStage, paintHouse } from './house';
 import { drawHouseDebris, type HouseBreak } from './house-debris';
 import { calmMotion, drawCloudShadows, drawMist, type Light } from './lighting';
 import { hash2, smoothstep } from './noise';
 import { TH, TW, depthOf, groundMatrix, inView, project, unproject, viewX, viewY, type Rot, type View } from './projection';
-import { TREES, type Tree } from './scenery';
-import { castShadow, contactShadow, groundPatch } from './shadows';
+import { WIND_TREES } from './scenery';
+import { drawStand, prepareForest, projectStand } from './forest';
+import { windAt } from './wind';
+import { drawWindPlants } from './yard-plants';
+import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
 export { applyCctv, applyDaylight, applyNight, type Light } from './lighting';
@@ -114,6 +117,12 @@ const PROP_ART: Readonly<Record<PropKind, { key: string; h: number; lift: number
   bush: { key: 'obj_props2_bush', h: 54, lift: 14 },
 };
 
+/** The barn and gate share a side of the lot, as do the orchard and rear cameras. */
+export function propSpriteKey(kind: PropKind, rot: Rot): string {
+  if (kind === 'car') return rot === 0 ? 'obj_car_front' : 'obj_car_back';
+  return rot === 0 ? PROP_ART[kind].key : `yard_rear_${kind}`;
+}
+
 const HOUSE_DRAW_WIDTH = 300;
 const HOUSE_LIFT = 10;
 /** Width of the house paintings, in their own pixels: lamp and chimney positions below are given in them. */
@@ -202,7 +211,9 @@ const PROP_SHADOW: Readonly<Record<PropKind, { readonly rx: number; readonly ry:
 };
 
 /** Devices tall enough to throw a shadow of their own. */
-const DEVICE_CAST: Readonly<Partial<Record<DeviceTypeId, number>>> = { log: 0.2, net: 0.18, floodlight: 0.24, horn: 0.16 };
+const DEVICE_CAST: Readonly<Record<DeviceTypeId, number>> = {
+  fence: 0.11, spikes: 0.10, barrier: 0.14, log: 0.20, net: 0.18, floodlight: 0.24, horn: 0.16,
+};
 
 /** Things with leaves, which the wind moves. */
 const SWAYS: ReadonlySet<PropKind> = new Set<PropKind>(['apple', 'oak', 'bush']);
@@ -266,15 +277,16 @@ function drawSceneryAction(ctx: CanvasRenderingContext2D, kind: SceneryAction['k
     return;
   }
 
-  const mouthX = w * 0.47;
-  const mouthY = h * 0.65;
+  const mouthX = w * (rot === 0 ? 0.47 : 0.50);
+  const mouthY = h * (rot === 0 ? 0.65 : 0.67);
   if (age < 0.48) {
     const t = age / 0.48;
     // The washer comes in under the roof and passes behind the near lip of the masonry.
     ctx.beginPath();
     ctx.rect(-w, -h, 3 * w, h + mouthY + h * 0.036);
     ctx.clip();
-    ctx.translate(mouthX - (1 - t) ** 2 * w * (still ? 0.13 : 0.69), mouthY + h * (0.12 * t * t - (still ? 0.09 : 0.25) * 4 * t * (1 - t)));
+    const approach = (rot === 0 ? -1 : 1) * (1 - t) ** 2 * w * (still ? 0.13 : 0.69);
+    ctx.translate(mouthX + approach, mouthY + h * (0.12 * t * t - (still ? 0.09 : 0.25) * 4 * t * (1 - t)));
     ctx.rotate(still ? 0 : t * 3.8);
     ctx.scale(1, still ? 0.8 : 0.5 + 0.5 * Math.abs(Math.cos(t * 5)));
     ctx.beginPath();
@@ -295,44 +307,6 @@ function drawSceneryAction(ctx: CanvasRenderingContext2D, kind: SceneryAction['k
     ctx.ellipse(mouthX, mouthY, r, r * 0.34, 0, 0.1, Math.PI * 1.84);
     ctx.stroke();
   }
-}
-
-const recessed = new Map<string, Picture>();
-/** How much of the wood's darkness each row of trees has taken on. */
-const ROW_DIM = [0, 0.15, 0.29, 0.42] as const;
-
-/**
- * A tree as it looks from the lot when it stands `row` rows back: the same painting with the
- * shade of the wood over it. The rows behind the first sink into the dark instead of standing
- * out as a wall of equally bright trees.
- */
-function recessedSprite(key: string, row: number): Picture | undefined {
-  const art = sprite(key);
-  const dim = ROW_DIM[Math.min(row, ROW_DIM.length - 1)] ?? 0;
-  if (!art || dim <= 0) return art;
-  const id = `${key}:${row}`;
-  const known = recessed.get(id);
-  if (known) return known;
-  const canvas = document.createElement('canvas');
-  canvas.width = art.w;
-  canvas.height = art.h;
-  const cctx = canvas.getContext('2d');
-  if (!cctx) return art;
-  cctx.drawImage(art.img, 0, 0, art.w, art.h);
-  cctx.globalCompositeOperation = 'source-atop';
-  cctx.fillStyle = `rgba(14, 18, 26, ${dim})`;
-  cctx.fillRect(0, 0, art.w, art.h);
-  const picture: Picture = { img: canvas, w: art.w, h: art.h };
-  recessed.set(id, picture);
-  return picture;
-}
-
-/** How far the wind leans something with leaves, right now. Each thing has its own beat. */
-function swayOf(time: number, beat: number): number {
-  if (calmMotion()) return 0;
-  // A slow swell that comes and goes, with a quicker shiver on top.
-  const swell = 0.55 + 0.45 * Math.sin(time * 0.23 + beat * 2.1);
-  return (Math.sin(time * 0.9 + beat * 6.283) * 0.011 + Math.sin(time * 2.3 + beat * 11.7) * 0.004) * swell;
 }
 
 function placeholder(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, color: string, label: string): void {
@@ -393,33 +367,11 @@ function groundRing(ctx: CanvasRenderingContext2D, view: View, gx: number, gy: n
 
 // ───────────────────────────── Fixed scenery ─────────────────────────────
 
-/** On a side of the lot the view looks across to: its trees stand behind everything. */
-const standsFar = (rot: Rot, tree: Tree): boolean => viewX(rot, tree.gx) < 0 || viewY(rot, tree.gy) < 0;
-
-/** On the near sides only some of the trees are shown, and as something low. */
-const isUndergrowth = (tree: Tree): boolean => tree.trait < 0.27;
-
-function undergrowthOf(tree: Tree): { key: string; h: number; flip: boolean; sways: boolean } {
-  const bush = tree.flip;
-  return { key: bush ? 'obj_props2_bush' : 'obj_props2_rock', h: bush ? 40 : 30, flip: tree.trait < 0.12, sways: bush };
-}
-
-/**
- * Painted into the ground once, per side of the house: the shadow of everything that never moves,
- * and the rows of trees behind the first. Those rows are behind anything that can happen on the
- * lot, so nothing is lost by not sorting them every frame, and a camera has a third as much to draw.
- */
+// Fixed prop shadows are shared by the ground cache of each view.
 function dressGround(ctx: CanvasRenderingContext2D, view: View): void {
   const z = view.zoom;
-  const trees = TREES.filter((tree) => standsFar(view.rot, tree) || isUndergrowth(tree));
-
   ctx.save();
   ctx.transform(...groundMatrix(view));
-  for (const tree of trees) {
-    if (standsFar(view.rot, tree)) {
-      if (tree.row === 0) contactShadow(ctx, tree.gx, tree.gy, 0.6, 0.6, 0.4);
-    } else contactShadow(ctx, tree.gx, tree.gy, 0.5, 0.5, 0.36);
-  }
   for (const prop of PROPS) {
     if (prop.kind === 'car') continue;
     const ground = PROP_SHADOW[prop.kind];
@@ -427,25 +379,12 @@ function dressGround(ctx: CanvasRenderingContext2D, view: View): void {
   }
   ctx.restore();
 
-  for (const tree of trees) {
-    if (!standsFar(view.rot, tree) || tree.row !== 0) continue;
-    const p = project(view, tree.gx, tree.gy);
-    castShadow(ctx, tree.key, p.x, p.y + 2 * z, tree.h * z, tree.flip, 0.2, 0.8);
-  }
   for (const prop of PROPS) {
     const ground = PROP_SHADOW[prop.kind];
     if (ground.cast <= 0) continue;
     const art = PROP_ART[prop.kind];
     const p = project(view, view.rot === 0 ? prop.x + prop.w : prop.x, view.rot === 0 ? prop.y + prop.h : prop.y);
-    castShadow(ctx, art.key, p.x, p.y + (art.lift - 6) * z, art.h * z, false, ground.cast);
-  }
-
-  // The wood behind the first row, furthest first.
-  const back = trees.filter((tree) => standsFar(view.rot, tree) && tree.row > 0).sort((a, b) => depthOf(view.rot, a.gx, a.gy) - depthOf(view.rot, b.gx, b.gy));
-  for (const tree of back) {
-    const art = recessedSprite(tree.key, tree.row);
-    const p = project(view, tree.gx, tree.gy);
-    if (art) drawPicture(ctx, art, p.x, p.y + 6 * z, tree.h * z, tree.flip);
+    castShadow(ctx, propSpriteKey(prop.kind, view.rot), p.x, p.y + (art.lift - 6) * z, art.h * z, false, ground.cast);
   }
 }
 
@@ -454,8 +393,9 @@ setGroundDresser(dressGround);
 // ───────────────────────────── Main entry ─────────────────────────────
 
 /** Paints whatever is painted once (the ground of both sides of the house), ahead of the first frame. */
-export function prepareWorld(): void {
+export function prepareWorld(...views: View[]): void {
   prepareGround();
+  for (const view of views) prepareForest(view);
 }
 
 export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): void {
@@ -469,7 +409,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   // Preserve ink lines at camera scale without doing the terrain bake's expensive filtering every frame.
   ctx.imageSmoothingQuality = 'medium';
 
-  drawGround(ctx, view);
+  drawGround(ctx, view, frame.time);
+  drawWindPlants(ctx, view, frame.time);
 
   const drawables: Drawable[] = [];
   /** Shadows go down before anything stands on them; they are collected as the scene is. */
@@ -497,25 +438,16 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   }
   const onScreen = (p: { x: number; y: number }, reach: number): boolean => p.x > view.x - reach * z && p.x < view.x + view.w + reach * z && p.y > view.y - 40 * z && p.y < view.y + view.h + reach * 1.9 * z;
 
-  // Tree line: only the far sides, so the forest never hides the action. The row that borders the
-  // lot is drawn here, where the wind can move it and the infected can walk out from behind it; the
-  // rows behind it are part of the ground.
-  for (const tree of TREES) {
-    const far = standsFar(view.rot, tree);
-    if (far ? tree.row > 0 : !isUndergrowth(tree)) continue;
-    const p = project(view, tree.gx, tree.gy);
-    if (!onScreen(p, 120)) continue;
+  // The first stems are sorted with actors so infected can emerge between them. Beyond
+  // this fringe the wood is baked into continuous canopy tiles to the limits of the view.
+  for (const tree of WIND_TREES) {
+    const stand = projectStand(view, tree);
+    if (!stand || !onScreen(stand, Math.max(100, stand.h / z))) continue;
     const depth = depthOf(view.rot, tree.gx, tree.gy);
-    if (far) {
-      const lean = swayOf(frame.time, tree.trait) * (tree.key === 'obj_trees_pine' ? 0.7 : 1);
-      drawables.push({ depth, draw: () => void drawSprite(ctx, tree.key, p.x, p.y + 6 * z, tree.h * z, tree.flip, 1, lean) });
-    } else {
-      // Near side: undergrowth only, low enough to hide nothing.
-      const growth = undergrowthOf(tree);
-      const art = recessedSprite(growth.key, tree.row);
-      const lean = growth.sways ? swayOf(frame.time, tree.trait) * 1.4 : 0;
-      if (art) drawables.push({ depth, draw: () => void drawPicture(ctx, art, p.x, p.y + 8 * z, growth.h * z, growth.flip, 1, lean) });
-    }
+    const wind = windAt(frame.time, tree.gx, tree.gy, tree.trait, view.rot);
+    const lean = wind * (stand.key.includes('fir') ? 0.024 : 0.034);
+    const obscures = sightlines.some(target => target.depth < depth && Math.abs(target.x - stand.x) < stand.w * 0.42 && target.y > stand.y - stand.h && target.y < stand.y);
+    drawables.push({ depth, draw: () => drawStand(ctx, stand, lean, obscures ? 0.27 : 1) });
   }
 
   // House.
@@ -551,9 +483,9 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const nearX = view.rot === 0 ? prop.x + prop.w : prop.x;
     const nearY = view.rot === 0 ? prop.y + prop.h : prop.y;
     const p = project(view, nearX, nearY);
-    const key = prop.kind === 'car' ? `${art.key}_${view.rot === 0 ? 'front' : 'back'}` : art.key;
+    const key = propSpriteKey(prop.kind, view.rot);
     const centreDepth = depthOf(view.rot, prop.x + prop.w / 2, prop.y + prop.h / 2) + 0.4;
-    const lean = SWAYS.has(prop.kind) ? swayOf(frame.time, hash2(prop.x, prop.y, 3)) : 0;
+    const lean = SWAYS.has(prop.kind) ? windAt(frame.time, prop.x, prop.y, hash2(prop.x, prop.y, 3), view.rot) * (prop.kind === 'bush' ? 0.092 : 0.035) : 0;
     let opacity = 1;
     if (SWAYS.has(prop.kind) && sightlines.length) {
       const height = art.h * z;
@@ -595,10 +527,14 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     contacts.push({ gx: device.x + 0.5, gy: device.y + 0.5, rx: 0.56, ry: 0.56, alpha: device.type === 'fence' ? 0.3 : broken ? 0.3 : 0.42 });
     const wear = broken ? frame.defenseMotion?.at(device.id) : undefined;
     const remaining = wear && !calmMotion() ? Math.max(0, 1 - (frame.time - wear.brokeAt) / 0.52) : 0;
-    const cast = (DEVICE_CAST[device.type] ?? 0) * (broken ? remaining : 1);
+    const cast = DEVICE_CAST[device.type] * (broken ? remaining : 1);
     if (cast > 0) {
-      const art = deviceArt(device.type, device.facing, wear?.beforeBreak ?? devicePose(device));
-      casts.push(() => castShadow(ctx, art.key, p.x, p.y + (art.lift - 6) * z, art.h * z, art.flip, cast * shade, 0.85));
+      const art = deviceArt(device.type, device.facing, wear?.beforeBreak ?? devicePose(device), view.rot);
+      const def = DEVICES[device.type];
+      const state = wear?.beforeState ?? device.state;
+      const activeAge = wear && state === 'active' ? def.activeSeconds - wear.beforeTimer : device.activeAge ?? 0;
+      const rearm = wear && state === 'rearming' ? 1 - wear.beforeTimer / def.rearmSeconds : device.rearm ?? 0;
+      casts.push(() => drawDeviceCast(ctx, p.x, p.y, z, device.type, art, state, activeAge, rearm, cast * shade));
     }
   }
 
@@ -609,7 +545,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     drawables.push({
       depth: depthOf(view.rot, ghost.x + 0.5, ghost.y + 0.5) + 0.31,
       draw: () => {
-        const art = deviceArt(ghost.type, ghost.facing, 'resting');
+        const art = deviceArt(ghost.type, ghost.facing, 'resting', view.rot);
         drawSprite(ctx, art.key, p.x, p.y + art.lift * z, art.h * z, art.flip, ghost.ok ? 0.75 : 0.4);
       },
     });
@@ -844,17 +780,11 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
   }
 }
 
-// Door sill centres measured on the two original 760px paintings.
-const DOOR_SILLS: Record<SectorId, readonly [x: number, y: number, height: number]> = {
-  portail: [235, 680, 65], grange: [620, 694, 76], arriere: [227, 669, 64], verger: [566, 657, 73],
-};
-const VISIBLE_DOORS: Record<Rot, readonly SectorId[]> = { 0: ['portail', 'grange'], 1: ['arriere', 'verger'] };
-
 function doorSill(view: View, sector: SectorId): { x: number; y: number } {
   const corner = houseCorner(view.rot);
   const p = project(view, corner.x, corner.y);
-  const [x, y] = DOOR_SILLS[sector];
-  const offset = housePoint(view.rot, x, y);
+  const door = DOOR_OPENINGS[sector];
+  const offset = housePoint(view.rot, door.x + door.w / 2, door.y + door.h + door.rise / 2);
   return { x: p.x + offset.dx * view.zoom, y: p.y - offset.lift * view.zoom };
 }
 
@@ -864,26 +794,41 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
   const max = BARRICADE.maxHp[barricade.level];
   const ratio = barricade.hp / max;
   const state = doorPose(ratio, barricade.level);
-  const onLeftFace = sector === 'portail' || sector === 'arriere';
+  const door = DOOR_OPENINGS[sector];
+  const onLeftFace = door.rise > 0;
   const p = doorSill(view, sector);
-  const h = DOOR_SILLS[sector][2];
+  // The attached board occupies 121 × 162 px around its centre in the 200px-high painting.
+  // Fit those actual corners to the same jamb that exposes the interior on a breach.
+  const k = HOUSE_DRAW_WIDTH / HOUSE_ART_WIDTH;
+  const h = (door.h + 5) * k * 200 / 162;
+  const boardWidth = h * 121 / 200;
+  const width = (door.w + 10) * k;
+  const scaleX = width / boardWidth;
+  const slope = door.rise * k / boardWidth - (onLeftFace ? 0.34 : -0.34);
   const z = view.zoom;
   return [
     {
       depth,
       draw: () => {
-        const previous = (pose: ReturnType<typeof doorPose>) => ({ key: `dev_barricade_${pose}`, h, lift: h * 0.09, flip: onLeftFace });
+        const previous = (pose: ReturnType<typeof doorPose>) => ({ key: `dev_barricade_${pose}`, h, lift: h * 0.095, flip: onLeftFace });
         ctx.save();
-        // The brace spans the two barn leaves; the three single doors use the narrower panel.
-        if (sector === 'grange') { ctx.translate(p.x, 0); ctx.scale(1.48, 1); ctx.translate(-p.x, 0); }
-        const drawn = drawDefense(ctx, p.x, p.y, z, { kind: 'barricade', art: previous(state), previous, hpRatio: ratio, maxHp: max, id: sector, time: frame.time, motion: frame.defenseMotion });
+        ctx.transform(scaleX, slope, 0, 1, p.x, p.y);
+        const art = previous(state);
+        // Planks fixed to masonry cast a close shadow against the jamb. Its angle follows the wall.
+        const shade = shadowOutline(art.key);
+        if (shade) {
+          const sh = h * z, sw = sh * shade.width / shade.height;
+          ctx.save(); ctx.translate(2 * z, z); ctx.scale(art.flip ? -1 : 1, 1); ctx.globalAlpha *= 0.43;
+          ctx.drawImage(shade, -sw / 2, art.lift * z - sh, sw, sh); ctx.restore();
+        }
+        const drawn = drawDefense(ctx, 0, 0, z, { kind: 'barricade', art, previous, hpRatio: ratio, maxHp: max, id: sector, time: frame.time, motion: frame.defenseMotion });
         ctx.restore();
         if (!drawn) placeholder(ctx, p.x, p.y, 30 * z, 50 * z, '#7a5a35', 'door');
         if (frame.doorHighlight === sector) {
           ctx.strokeStyle = '#f2a531';
           ctx.lineWidth = 2;
-          const width = sector === 'grange' ? 76 : 46;
-          ctx.strokeRect(p.x - width * z / 2, p.y - (h - 4) * z, width * z, h * z);
+          ctx.save(); ctx.translate(p.x, p.y); ctx.transform(1, door.rise * k / width, 0, 1, 0, 0);
+          ctx.strokeRect(-width * z / 2, -(door.h + 6) * k * z, width * z, (door.h + 8) * k * z); ctx.restore();
         }
         // Door health: always in sight by night, it is the thing being defended. By day a sound
         // door needs no bar; the panel has the figures.
@@ -899,7 +844,7 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
 function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame, device: DeviceVisual, p: { x: number; y: number }): void {
   const z = view.zoom;
   const state = devicePose(device);
-  const art = deviceArt(device.type, device.facing, state);
+  const art = deviceArt(device.type, device.facing, state, view.rot);
 
   if (device.highlight) {
     diamond(ctx, view, device.x, device.y, 0.02);
@@ -911,7 +856,7 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   }
 
   const drawn = drawDefense(ctx, p.x, p.y, z, {
-    kind: device.type, art, previous: (pose) => deviceArt(device.type, device.facing, pose), id: device.id,
+    kind: device.type, art, previous: (pose) => deviceArt(device.type, device.facing, pose, view.rot), id: device.id,
     hpRatio: device.hpRatio, state: device.state, activeAge: device.activeAge ?? 0, rearm: device.rearm ?? 0,
     time: frame.time, motion: frame.defenseMotion,
   });
@@ -1129,10 +1074,11 @@ export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: num
   let best: DeviceVisual | null = null;
   let bestDepth = -Infinity;
   for (const device of devices) {
-    const art = deviceArt(device.type, device.facing, devicePose(device));
+    const art = deviceArt(device.type, device.facing, devicePose(device), view.rot);
     const p = project(view, device.x + 0.5, device.y + 0.5);
     const h = art.h * view.zoom;
-    const w = h * 0.95;
+    const image = sprite(art.key);
+    const w = image ? h * image.w / image.h : h * 0.95;
     const bottom = p.y + art.lift * view.zoom;
     if (sx < p.x - w / 2 || sx > p.x + w / 2 || sy < bottom - h - 14 * view.zoom || sy > bottom + 4) continue;
     const depth = depthOf(view.rot, device.x, device.y);
@@ -1158,8 +1104,9 @@ export function pickDoor(view: View, sx: number, sy: number): SectorId | null {
   const g = unproject(view, sx, sy);
   for (const sector of VISIBLE_DOORS[view.rot]) {
     const p = doorSill(view, sector);
-    const halfWidth = (sector === 'grange' ? 39 : 24) * view.zoom;
-    if (Math.abs(sx - p.x) < halfWidth && sy > p.y - DOOR_SILLS[sector][2] * view.zoom && sy < p.y + 5 * view.zoom) return sector;
+    const door = DOOR_OPENINGS[sector], scale = HOUSE_DRAW_WIDTH / HOUSE_ART_WIDTH * view.zoom;
+    const dx = sx - p.x, localY = sy - p.y - dx * door.rise / door.w;
+    if (Math.abs(dx) < (door.w / 2 + 6) * scale && localY > -(door.h + 5) * scale && localY < 10 * scale) return sector;
     const entry = ENTRIES[sector];
     if (Math.hypot(g.gx - (entry.x + 0.5), g.gy - (entry.y + 0.5)) < 1.1) return sector;
   }
