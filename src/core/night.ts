@@ -24,12 +24,16 @@ export interface DeviceRuntime {
   state: DeviceRuntimeState;
   /** Seconds left in `active` or `rearming`. */
   timer: number;
+  /** The nearest shoulder caught by this release, recorded before any victim is shoved. */
+  logTarget?: LogTarget;
 }
 
 export type EnemyAction = 'walk' | 'crawl' | 'attack' | 'windup' | 'charge' | 'rev' | 'jam' | 'speech' | 'idle';
 
 export const HIT_REACTION_SECONDS = 0.36;
 export const BLOW_RECOVERY_SECONDS = 0.32;
+/** Time from releasing the rope to the bottom of the timber's swing. */
+export const LOG_CONTACT_SECONDS = 0.20;
 
 interface BossRuntime {
   phase: string;
@@ -63,6 +67,8 @@ export interface Enemy {
   moveSpeed: number;
   actionSeconds: number;
   blowRecovery: number;
+  /** The door or device actually being gripped, including the recovery from a single blow. */
+  gripTarget: SectorId | number | null;
   nettedFor: number;
   stunnedFor: number;
   hasteFor: number;
@@ -73,6 +79,8 @@ export interface Enemy {
   windup: number;
   cooldown: number;
   hitFlash: number;
+  /** Posture when a hit landed, even if a stun interrupts the crawl on the next tick. */
+  hitCrawlDepth?: number;
   readonly offsetX: number;
   readonly offsetY: number;
   readonly trampled: Set<number>;
@@ -83,22 +91,39 @@ export interface Enemy {
 export type TelegraphKind = 'mower' | 'ram' | 'speech' | 'whistle' | 'boar';
 
 /** Position and approach at the instant of impact, before a shove or the end-of-step sweep. */
-export type EnemyImpact = Pick<Enemy, 'x' | 'y' | 'fx' | 'fy' | 'type' | 'def' | 'target' | 'action' | 'offsetX' | 'offsetY' | 'lureDevice' | 'crawlDepth'>;
+export type EnemyImpact = Pick<Enemy, 'x' | 'y' | 'fx' | 'fy' | 'type' | 'def' | 'target' | 'action' | 'offsetX' | 'offsetY' | 'lureDevice' | 'crawlDepth'> & { readonly crawlLog?: Cell | null };
 
 const clearsLog = (e: Enemy, log: DeviceRuntime): boolean =>
   e.action === 'crawl' && e.crawlLog === log && e.crawlDepth >= 1 && e.nettedFor <= 0 && e.stunnedFor <= 0;
 
-export type SimEvent =
+export interface LogSweep {
+  readonly before: Enemy;
+  readonly landingX: number;
+  readonly landingY: number;
+}
+
+export type LogTarget = EnemyImpact & Pick<Enemy, 'id'>;
+
+function impactPose(enemy: Enemy): EnemyImpact {
+  const { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth, crawlLog } = enemy;
+  const target = type === 'mower' && enemy.boss ? enemy.boss.sector : enemy.target;
+  return { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth, target,
+    crawlLog: crawlLog ? { x: crawlLog.x, y: crawlLog.y } : null };
+}
+
+export type SimEvent = (
   | { readonly type: 'wave'; readonly index: number; readonly total: number }
   | { readonly type: 'spawn'; readonly enemy: EnemyTypeId; readonly sector: SectorId }
   | { readonly type: 'boss_spawn'; readonly boss: NeighborId; readonly sector: SectorId }
   | { readonly type: 'boss_dead'; readonly boss: NeighborId; readonly x: number; readonly y: number }
   | { readonly type: 'trigger'; readonly deviceId: number; readonly device: DeviceTypeId; readonly x: number; readonly y: number; readonly hits: number; readonly kills: number; readonly auto: boolean }
+  | { readonly type: 'log_release'; readonly contactAt: number; readonly sweeps: readonly LogSweep[] }
+  | { readonly type: 'log_contact'; readonly x: number; readonly y: number; readonly target?: LogTarget }
   | { readonly type: 'trigger_denied'; readonly deviceId: number; readonly reason: TriggerError }
   | { readonly type: 'device_ready'; readonly deviceId: number; readonly device: DeviceTypeId; readonly x: number; readonly y: number }
   | { readonly type: 'device_broken'; readonly deviceId: number; readonly device: DeviceTypeId; readonly x: number; readonly y: number }
   | { readonly type: 'enemy_hit'; readonly x: number; readonly y: number; readonly amount: number; readonly pose: EnemyImpact }
-  | { readonly type: 'enemy_dead'; readonly id: number; readonly enemy: EnemyTypeId; readonly x: number; readonly y: number; readonly fx: number; readonly fy: number; readonly pose: EnemyImpact }
+  | { readonly type: 'enemy_dead'; readonly id: number; readonly enemy: EnemyTypeId; readonly x: number; readonly y: number; readonly fx: number; readonly fy: number; readonly pose: EnemyImpact; readonly stain?: Decal }
   | { readonly type: 'barricade_hit'; readonly sector: SectorId }
   | { readonly type: 'breach'; readonly sector: SectorId }
   | { readonly type: 'entered'; readonly sector: SectorId; readonly enemy: EnemyTypeId; readonly damage: number }
@@ -115,7 +140,8 @@ export type SimEvent =
   | { readonly type: 'hand_wait'; readonly row: HandRow; readonly seconds: number }
   /** A press the hand had no room left for. */
   | { readonly type: 'hand_full' }
-  | { readonly type: 'outcome'; readonly survived: boolean };
+  | { readonly type: 'outcome'; readonly survived: boolean }
+) & { /** A log captures its victims on release. Its impact is shown when the timber reaches them. */ readonly showAt?: number };
 
 export type TriggerError = 'unknown' | 'passive' | 'automatic' | 'broken' | 'busy' | 'rearming' | 'no_energy' | 'over';
 
@@ -542,13 +568,29 @@ export class NightSim {
         return inRange.length;
       case 'log': {
         const swept = inRange.filter((e) => !clearsLog(e, device));
+        const sweeps: LogSweep[] = [];
+        delete device.logTarget;
+        let nearest = Infinity;
+        const contactAt = this.time + LOG_CONTACT_SECONDS;
+        const feedbackStart = this.events.length;
         for (const e of swept) {
+          const before = { ...e, boss: e.boss && { ...e.boss } };
+          const distance = Math.hypot(e.x - cx, e.y - cy);
+          if (distance < nearest) {
+            nearest = distance;
+            device.logTarget = { id: before.id, ...impactPose(before) };
+          }
           this.interrupt(e);
           const control = e.def.boss ? COMBAT.bossControlFactor : 1;
           e.stunnedFor = Math.max(e.stunnedFor, COMBAT.logStunSeconds * control);
           this.knockback(e, cx, cy, COMBAT.logKnockbackCells * control);
-          this.damage(e, def.damage);
+          sweeps.push({ before, landingX: e.x, landingY: e.y });
+          this.damage(e, def.damage, before);
         }
+        const feedback = this.events.splice(feedbackStart);
+        this.events.push({ type: 'log_release', contactAt, sweeps },
+          { type: 'log_contact', x: cx, y: cy, showAt: contactAt, ...(device.logTarget && { target: device.logTarget }) });
+        for (const event of feedback) this.events.push({ ...event, showAt: contactAt });
         return swept.length;
       }
       case 'net':
@@ -592,7 +634,7 @@ export class NightSim {
       enemy.actionSeconds = previous === enemy.action ? enemy.actionSeconds + dt : 0;
       if (enemy.action === 'crawl') {
         enemy.crawlDepth = Math.min(1, enemy.crawlDepth + dt / COMBAT.logCrawlLowerSeconds);
-      } else if (enemy.crawlDepth > 0) {
+      } else if (enemy.crawlDepth > 0 && enemy.nettedFor <= 0 && enemy.stunnedFor <= 0) {
         enemy.crawlDepth = Math.max(0, enemy.crawlDepth - dt / COMBAT.logCrawlLowerSeconds);
         enemy.crawlLog = null;
       }
@@ -642,6 +684,7 @@ export class NightSim {
       moveSpeed: def.speed,
       actionSeconds: 0,
       blowRecovery: 0,
+      gripTarget: null,
       nettedFor: 0,
       stunnedFor: 0,
       hasteFor: 0,
@@ -771,7 +814,9 @@ export class NightSim {
 
   private updateEnemy(e: Enemy, dt: number): void {
     e.hitFlash = Math.max(0, e.hitFlash - dt);
+    if (e.hitCrawlDepth && e.hitFlash === 0 && e.nettedFor <= 0 && e.stunnedFor <= 0) e.hitCrawlDepth = 0;
     e.blowRecovery = Math.max(0, e.blowRecovery - dt);
+    if (e.blowRecovery === 0) e.gripTarget = null;
     e.hasteFor = Math.max(0, e.hasteFor - dt);
     e.lureFor = Math.max(0, e.lureFor - dt);
     e.cooldown = Math.max(0, e.cooldown - dt);
@@ -930,6 +975,7 @@ export class NightSim {
     if (barricade.hp > 0) {
       const continuous = e.def.windupSeconds <= 0;
       if (!this.strike(e, dt, sector, this.telegraphKind(e), e.type === 'mechanic' ? BOSS.mechanic.blowInterval : 1.2)) return;
+      e.gripTarget = sector;
       this.hitBarricade(sector, continuous ? e.def.barricadeDamage * dt : e.def.barricadeDamage, !continuous);
       return;
     }
@@ -986,6 +1032,7 @@ export class NightSim {
     this.face(e, device.x + 0.5, device.y + 0.5);
     const continuous = e.def.windupSeconds <= 0;
     if (!this.strike(e, dt, sectorOf(device.x, device.y), this.telegraphKind(e), 0.7)) return;
+    e.gripTarget = device.id;
     const amount = continuous ? Math.max(6, e.def.barricadeDamage * 1.5) * dt : e.def.barricadeDamage * FENCE_BLOW_FACTOR;
     this.damageDevice(device, amount);
   }
@@ -1097,8 +1144,11 @@ export class NightSim {
         }
         if (boss.laneIndex >= lane.length - 1) {
           const barricade = this.barricades[boss.sector];
-          if (barricade.hp > 0) this.hitBarricade(boss.sector, e.def.barricadeDamage, true);
-          else {
+          if (barricade.hp > 0) {
+            e.gripTarget = boss.sector;
+            e.blowRecovery = BLOW_RECOVERY_SECONDS;
+            this.hitBarricade(boss.sector, e.def.barricadeDamage, true);
+          } else {
             this.loseHouse(e.def.houseDamage);
             this.events.push({ type: 'entered', sector: boss.sector, enemy: e.type, damage: e.def.houseDamage });
           }
@@ -1151,8 +1201,10 @@ export class NightSim {
     e.cooldown = BOSS.mail.knockInterval;
     e.blowRecovery = BLOW_RECOVERY_SECONDS;
     const barricade = this.barricades[boss.sector];
-    if (barricade.hp > 0) this.hitBarricade(boss.sector, e.def.barricadeDamage, true);
-    else {
+    if (barricade.hp > 0) {
+      e.gripTarget = boss.sector;
+      this.hitBarricade(boss.sector, e.def.barricadeDamage, true);
+    } else {
       this.loseHouse(e.def.houseDamage);
       this.events.push({ type: 'entered', sector: boss.sector, enemy: e.type, damage: e.def.houseDamage });
     }
@@ -1227,7 +1279,7 @@ export class NightSim {
     }
   }
 
-  private damage(e: Enemy, amount: number): void {
+  private damage(e: Enemy, amount: number, contact?: EnemyImpact): void {
     if (!e.alive) return;
     let dealt = amount;
     if (e.nettedFor > 0) dealt *= COMBAT.nettedDamageMultiplier;
@@ -1237,16 +1289,17 @@ export class NightSim {
     if (e.type === 'mower' && e.boss?.phase === 'jam') dealt *= 1.5;
     e.hp -= dealt;
     e.hitFlash = HIT_REACTION_SECONDS;
-    const { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth } = e;
-    const pose = { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth, target: type === 'mower' && e.boss ? e.boss.sector : e.target };
-    this.events.push({ type: 'enemy_hit', x, y, amount: Math.round(dealt), pose });
+    e.hitCrawlDepth = e.crawlDepth;
+    const pose = impactPose(e);
+    const { x, y, fx, fy, type } = pose;
+    this.events.push({ type: 'enemy_hit', x: contact?.x ?? x, y: contact?.y ?? y, amount: Math.round(dealt), pose: contact ?? pose });
     if (e.hp > 0) return;
     e.hp = 0;
     e.alive = false;
     this.kills[e.type] = (this.kills[e.type] ?? 0) + 1;
     this.killCount++;
-    this.addDecal('splat', Math.floor(e.x), Math.floor(e.y));
-    this.events.push({ type: 'enemy_dead', id: e.id, enemy: type, x, y, fx, fy, pose });
+    const stain = this.addDecal('splat', Math.floor(e.x), Math.floor(e.y));
+    this.events.push({ type: 'enemy_dead', id: e.id, enemy: type, x, y, fx, fy, pose, ...(stain && { stain }) });
     if (e.def.boss) {
       this.bossDefeated = e.def.boss;
       this.events.push({ type: 'boss_dead', boss: e.def.boss, x: e.x, y: e.y });
@@ -1308,14 +1361,16 @@ export class NightSim {
     e.y = ny;
   }
 
-  private addDecal(kind: Decal['kind'], x: number, y: number): void {
+  private addDecal(kind: Decal['kind'], x: number, y: number): Decal | undefined {
     if (this.decals.some((d) => d.kind === kind && d.x === x && d.y === y)) return;
-    this.decals.push({ kind, x, y });
+    const decal = { kind, x, y };
+    this.decals.push(decal);
     // Mown strips are the joke: they outlive the stains.
     while (this.decals.length > MAX_DECALS) {
       const drop = this.decals.findIndex((d) => d.kind !== 'mown');
       this.decals.splice(drop >= 0 ? drop : 0, 1);
     }
+    return decal;
   }
 
   private resolveOutcome(dt: number): void {

@@ -1,11 +1,12 @@
-import { ENTRIES, LANES, PROPS, inGrid, isStaticBlocked } from '../core/map';
+import { ENTRIES, PROPS, inGrid, isStaticBlocked } from '../core/map';
 import type { Sprite } from '../engine/assets';
 import { hash2, seeded } from './noise';
 import { depthOf, groundMatrix, project, world, type View } from './projection';
 import { spriteRect } from './registration';
 import { castShadow, contactShadow, groundPatch } from './shadows';
-import { weightAt, type TerrainField } from './terrainfield';
+import { vergeCover, weightAt, type TerrainField } from './terrainfield';
 import { windAt } from './wind';
+import type { BrushPassage } from './brush';
 import { vegetationView } from './vegetation';
 
 type Plant = 'foxtail' | 'knapweed' | 'clover' | 'bramble' | 'hazel' | 'nettle' | 'cabbage' | 'leeks' | 'chicory';
@@ -44,7 +45,6 @@ const patches: Record<Habitat, readonly (readonly [gx: number, gy: number, rx: n
 const companions: Record<Habitat, readonly Plant[]> = {
   meadow: ['foxtail', 'knapweed', 'clover'], hedge: ['bramble', 'hazel', 'nettle'], verge: ['chicory', 'clover', 'foxtail'],
 };
-const approaches = Object.values(LANES).flat();
 const sills = Object.values(ENTRIES);
 
 interface Planting { gx: number; gy: number; kind: Plant; scale: number; flip: boolean }
@@ -82,16 +82,21 @@ function plantings(field: TerrainField): Planting[] {
       for (let i = 0; i < count * 3 && plants.length - start < count; i++) {
         const angle = rand() * Math.PI * 2;
         const r = Math.sqrt(rand());
-        const gx = cx + Math.cos(angle) * rx * r;
-        const gy = cy + Math.sin(angle) * ry * r;
+        // Meadow plants spread from a mature tuft into a smaller satellite. Leave a strip
+        // of open grass between the two; hedges and trackside plants follow their borders.
+        const tuft = habitat === 'meadow' ? (rand() < 0.72 ? -0.42 : 0.67) : 0;
+        const spread = tuft < 0 ? 0.65 : tuft > 0 ? 0.34 : 1;
+        const gx = cx + (tuft + Math.cos(angle) * r * spread) * rx;
+        const gy = cy + (tuft * 0.26 + Math.sin(angle) * r * spread) * ry;
         // Doorsteps, charge lanes and the road bed stay clear, even where they cross plain lawn.
         if (inGrid(gx, gy) && isStaticBlocked(Math.floor(gx), Math.floor(gy))) continue;
         if (sills.some(c => Math.hypot(gx - c.x - 0.5, gy - c.y - 0.5) < 1.45)) continue;
-        if (approaches.some(c => Math.hypot(gx - c.x - 0.5, gy - c.y - 0.5) < 0.74)) continue;
+        if (rand() >= vergeCover(gx, gy)) continue;
         if (weightAt(field, 'path', gx, gy) + weightAt(field, 'gravel', gx, gy) > 0.58) continue;
         if (plants.slice(start).some(p => Math.hypot(p.gx - gx, p.gy - gy) < 0.39)) continue;
         const kind = rand() < 0.51 ? dominant : palette[Math.floor(rand() * palette.length)]!;
-        add(gx, gy, kind, (0.96 - 0.20 * r) * (0.85 + 0.37 * rand()));
+        const size = habitat === 'meadow' ? (tuft < 0 ? 1.15 : 0.82) * (1 - 0.38 * r) : 0.96 - 0.20 * r;
+        add(gx, gy, kind, size * (0.85 + 0.37 * rand()));
       }
     }
   }
@@ -140,9 +145,9 @@ export function drawYardPlants(ctx: CanvasRenderingContext2D, view: View, field:
   for (const { plant, art, p, x, top, w, h, foot, flip } of stamps) {
     const trait = hash2(Math.floor(plant.gx * 53), Math.floor(plant.gy * 71), 87);
     const plantedRow = plant.kind === 'leeks' || plant.kind === 'cabbage';
-    // A representative set of stems catches the wind. Distant hedges stay in the terrain
-    // bake behind the standing trees. Shadows and the foot of every plant stay there too.
-    const live = plantedRow || (trait < 0.52 && inGrid(plant.gx, plant.gy));
+    // The scrub just outside the first walkable cell can be brushed aside on arrival.
+    // Roots and shadows stay in the terrain, including those of stems that can move.
+    const live = plantedRow || trait < 0.52;
     ctx.save();
     ctx.translate(x, p.y - top);
     if (flip) ctx.scale(-1, 1);
@@ -159,7 +164,7 @@ export function drawYardPlants(ctx: CanvasRenderingContext2D, view: View, field:
 
 /** The cut at the root is fixed in screen space: only the stem and crown bend. The same
  * lightweight visible subset serves the large feed and the three camera thumbnails. */
-export function drawWindPlants(ctx: CanvasRenderingContext2D, view: View, time: number): void {
+export function drawWindPlants(ctx: CanvasRenderingContext2D, view: View, time: number, passage?: BrushPassage): void {
   const centre = world(view.rot, view.cx, view.cy);
   const ox = view.x + view.w / 2 - centre.x * view.zoom;
   const oy = view.y + view.h / 2 - centre.y * view.zoom;
@@ -170,7 +175,8 @@ export function drawWindPlants(ctx: CanvasRenderingContext2D, view: View, time: 
     const h = plant.height * view.zoom;
     if (x < view.x - w || x > view.x + view.w + w || y + h < view.y || y > view.y + view.h) continue;
     const cap = h * plant.root / plant.art.h;
-    const bend = plant.compliance * windAt(time, plant.gx, plant.gy, plant.trait, view.rot);
+    const rustle = passage?.bend(plant.gx, plant.gy, view.rot, time) ?? 0;
+    const bend = plant.compliance * (windAt(time, plant.gx, plant.gy, plant.trait, view.rot) + 2.3 * rustle);
     ctx.save();
     ctx.transform(plant.flip ? -1 : 1, 0, -bend, 1, x, y + cap);
     ctx.drawImage(plant.art.img, 0, 0, plant.art.w, plant.root, -w / 2, -cap, w, cap);

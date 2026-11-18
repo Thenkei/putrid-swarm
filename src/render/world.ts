@@ -3,13 +3,13 @@
 
 import { BARRICADE, DEVICES } from '../core/data/devices';
 import { ENTRIES, GRID_H, GRID_W, HOUSE_CENTER, PROPS, propAt, sectorOf, type PropKind } from '../core/map';
-import type { DeviceRuntimeState, Enemy } from '../core/night';
+import type { DeviceRuntimeState, Enemy, LogTarget } from '../core/night';
 import type { Cell, Decal, DeviceTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { sprite } from '../engine/assets';
-import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, type DefenseMotion } from './defenses';
+import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseMotion } from './defenses';
 import { drawDecals } from './aftermath';
-import { drawEnemy, drawFallen, type Fallen } from './infected';
+import { drawEnemy, drawFallen, FALL_SECONDS, type Fallen } from './infected';
 import { drawGround, prepareGround, setGroundDresser } from './ground';
 import { DOOR_OPENINGS, VISIBLE_DOORS, doorStance, houseDamageStage, paintHouse } from './house';
 import { drawHouseDebris, type HouseBreak } from './house-debris';
@@ -20,7 +20,7 @@ import { BOTTOM_CENTRE, HOUSE_PAINT_SCALE, PROP_FEET, houseOffset, propRoot, spr
 import { WIND_TREES } from './scenery';
 import { drawStand, prepareForest, projectStand } from './forest';
 import { windAt } from './wind';
-import { drawWindPlants } from './yard-plants';
+import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
@@ -36,6 +36,7 @@ export interface DeviceVisual {
   readonly state: DeviceRuntimeState | 'idle';
   readonly hpRatio: number;
   readonly activeAge?: number;
+  readonly logTarget?: LogTarget;
   /** 0..1 progress of the re-arm, when rearming. */
   readonly rearm?: number;
   readonly label?: string;
@@ -87,6 +88,7 @@ export interface WorldFrame {
   readonly barricades: Readonly<Record<SectorId, { hp: number; level: 0 | 1 }>>;
   readonly decals: readonly Decal[];
   readonly enemies: readonly Enemy[];
+  readonly brushPassage?: BrushPassage;
   /** Infected that have just been put down, kept a moment so they are seen to fall. */
   readonly fallen?: readonly Fallen[];
   readonly particles: readonly Particle[];
@@ -398,8 +400,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   // Preserve ink lines at camera scale without doing the terrain bake's expensive filtering every frame.
   ctx.imageSmoothingQuality = 'medium';
 
-  drawGround(ctx, view, frame.time);
-  drawWindPlants(ctx, view, frame.time);
+  const passage = calmMotion() ? undefined : frame.brushPassage;
+  drawGround(ctx, view, frame.time, passage);
 
   const drawables: Drawable[] = [];
   /** Shadows go down before anything stands on them; they are collected as the scene is. */
@@ -409,23 +411,37 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   const shade = frame.night ? 0.6 : 1;
   // Thin foreground foliage where it would conceal a fighting figure or one of this side's
   // doorways. The overlap is measured in the current projection, including painter's depth.
-  const sightlines: { x: number; y: number; depth: number }[] = [];
+  const sightlines: { x: number; y: number; depth: number; presence: number }[] = [];
   const actors = frame.enemies.filter(e => e.alive).map(doorStance);
   if (frame.night) {
     for (const sector of VISIBLE_DOORS[view.rot]) {
       const sill = doorSill(view, sector);
-      sightlines.push({ x: sill.x, y: sill.y - 25 * z, depth: depthOf(view.rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.3 });
+      sightlines.push({ x: sill.x, y: sill.y - 25 * z, depth: depthOf(view.rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.3, presence: 1 });
     }
     for (const enemy of actors) {
       const p = project(view, enemy.x, enemy.y);
-      sightlines.push({ x: p.x, y: p.y - 27 * z * enemy.def.size, depth: depthOf(view.rot, enemy.x, enemy.y) });
+      const presence = frame.brushPassage?.presence(enemy, frame.time) ?? 1;
+      sightlines.push({ x: p.x, y: p.y - 27 * z * enemy.def.size, depth: depthOf(view.rot, enemy.x, enemy.y), presence });
     }
     for (const body of frame.fallen ?? []) {
       const p = project(view, body.x, body.y);
-      sightlines.push({ x: p.x, y: p.y - 8 * z, depth: depthOf(view.rot, body.x, body.y) });
+      const height = 27 - 19 * smoothstep(0, 0.43, body.age);
+      const presence = 1 - smoothstep(FALL_SECONDS - 0.62, FALL_SECONDS, body.age);
+      sightlines.push({ x: p.x, y: p.y - height * z, depth: depthOf(view.rot, body.x, body.y), presence });
     }
   }
   const onScreen = (p: { x: number; y: number }, reach: number): boolean => p.x > view.x - reach * z && p.x < view.x + view.w + reach * z && p.y > view.y - 40 * z && p.y < view.y + view.h + reach * 1.9 * z;
+  const canopyOpacity = (x: number, y: number, rx: number, ry: number, depth: number): number => {
+    let reveal = 0;
+    for (const target of sightlines) {
+      const behind = depth - target.depth;
+      if (behind <= 0) continue;
+      const dx = (target.x - x) / rx, dy = (target.y - y) / ry;
+      const coverage = 1 - smoothstep(0.20, 1.23, dx * dx + dy * dy);
+      reveal = Math.max(reveal, coverage * smoothstep(0, 0.62, behind) * target.presence);
+    }
+    return 1 - 0.75 * reveal;
+  };
 
   // The first stems are sorted with actors so infected can emerge between them. Beyond
   // this fringe the wood is baked into continuous canopy tiles to the limits of the view.
@@ -435,8 +451,9 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const depth = depthOf(view.rot, tree.gx, tree.gy);
     const wind = windAt(frame.time, tree.gx, tree.gy, tree.trait, view.rot);
     const lean = wind * (stand.key.includes('fir') ? 0.024 : 0.034);
-    const obscures = sightlines.some(target => target.depth < depth && Math.abs(target.x - stand.x) < stand.w * 0.42 && target.y > stand.y - stand.h && target.y < stand.y);
-    drawables.push({ depth, draw: () => drawStand(ctx, stand, lean, obscures ? 0.27 : 1) });
+    const part = (passage?.bend(tree.gx, tree.gy, view.rot, frame.time) ?? 0) * 0.24;
+    const opacity = canopyOpacity(stand.x, stand.y - stand.h * 0.54, stand.w * 0.57, stand.h * 0.56, depth);
+    drawables.push({ depth, draw: () => drawStand(ctx, stand, lean, opacity, part) });
   }
 
   // House.
@@ -478,11 +495,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     if (SWAYS.has(prop.kind) && sightlines.length) {
       const height = art.h * z;
       const canopyY = p.y + height * (0.38 - foot[1]);
-      for (const target of sightlines) {
-        if (centreDepth < target.depth) continue;
-        const distance = Math.hypot((target.x - p.x) / (height * 0.53), (target.y - canopyY) / (height * 0.45));
-        opacity = Math.min(opacity, 0.31 + 0.69 * smoothstep(0.22, 1.15, distance));
-      }
+      opacity = canopyOpacity(p.x, canopyY, height * 0.53, height * 0.45, centreDepth);
     }
     drawables.push({
       depth: centreDepth,
@@ -522,7 +535,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       const state = wear?.beforeState ?? device.state;
       const activeAge = wear && state === 'active' ? def.activeSeconds - wear.beforeTimer : device.activeAge ?? 0;
       const rearm = wear && state === 'rearming' ? 1 - wear.beforeTimer / def.rearmSeconds : device.rearm ?? 0;
-      casts.push(() => drawDeviceCast(ctx, p.x, p.y, z, device.type, art, state, activeAge, rearm, cast * shade));
+      const aim = device.logTarget && state === 'active' ? logAim(view, p, art, device.logTarget, true) : undefined;
+      casts.push(() => drawDeviceCast(ctx, p.x, p.y, z, device.type, art, state, activeAge, rearm, cast * shade, aim));
     }
   }
 
@@ -554,6 +568,10 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   for (const fallen of frame.fallen ?? []) {
     let depth = depthOf(view.rot, fallen.x, fallen.y) - 0.05;
     if (fallen.threshold && VISIBLE_DOORS[view.rot].includes(fallen.threshold)) depth = Math.max(depth, outsideWall);
+    const log = fallen.crawlLog;
+    if (log && (fallen.crawlDepth ?? 0) > 0.6 && Math.floor(fallen.x) === log.x && Math.floor(fallen.y) === log.y) {
+      depth = Math.min(depth, depthOf(view.rot, log.x + 0.5, log.y + 0.5));
+    }
     drawables.push({ depth, draw: () => drawFallen(ctx, view, frame, fallen) });
   }
 
@@ -814,7 +832,7 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
           ctx.save(); ctx.translate(2 * z, z); ctx.scale(art.flip ? -1 : 1, 1); ctx.globalAlpha *= 0.43;
           ctx.drawImage(shade, -sw / 2, art.lift * z - sh, sw, sh); ctx.restore();
         }
-        const drawn = drawDefense(ctx, 0, 0, z, { kind: 'barricade', art, previous, hpRatio: ratio, maxHp: max, id: sector, time: frame.time, motion: frame.defenseMotion });
+        const drawn = drawDefense(ctx, 0, 0, z, { kind: 'barricade', art, rot: view.rot, previous, hpRatio: ratio, maxHp: max, id: sector, time: frame.time, motion: frame.defenseMotion });
         ctx.restore();
         if (!drawn) placeholder(ctx, p.x, p.y, 30 * z, 50 * z, '#7a5a35', 'door');
         if (frame.doorHighlight === sector) {
@@ -862,9 +880,10 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   }
 
   const drawn = drawDefense(ctx, p.x, p.y, z, {
-    kind: device.type, art, previous: (pose) => deviceArt(device.type, device.facing, pose, view.rot), id: device.id,
+    kind: device.type, art, rot: view.rot, previous: (pose) => deviceArt(device.type, device.facing, pose, view.rot), id: device.id,
     hpRatio: device.hpRatio, state: device.state, activeAge: device.activeAge ?? 0, rearm: device.rearm ?? 0,
     time: frame.time, motion: frame.defenseMotion,
+    ...(device.logTarget && { aim: logAim(view, p, art, device.logTarget, false, device.hpRatio) }),
   });
   if (!drawn) placeholder(ctx, p.x, p.y, 34 * z, 34 * z, state === 'broken' ? '#4a3a2a' : '#b98a3a', device.type);
 

@@ -2,8 +2,8 @@
 // owns travel and action time, so a paused, obstructed or restrained character cannot tread air.
 
 import { BOSS } from '../core/data/enemies';
-import { BLOW_RECOVERY_SECONDS, HIT_REACTION_SECONDS, type Enemy } from '../core/night';
-import type { EnemyTypeId, SectorId } from '../core/types';
+import { BLOW_RECOVERY_SECONDS, HIT_REACTION_SECONDS, type Enemy, type LogTarget } from '../core/night';
+import type { Cell, EnemyTypeId, SectorId } from '../core/types';
 import { sprite, type Sprite } from '../engine/assets';
 import { calmMotion } from './lighting';
 import { smoothstep } from './noise';
@@ -18,6 +18,8 @@ export interface Fallen {
   readonly y: number;
   readonly fx: number;
   readonly fy: number;
+  readonly crawlDepth?: number;
+  readonly crawlLog?: Cell | null;
   age: number;
 }
 
@@ -110,6 +112,23 @@ const trait = (id: number): number => {
 };
 const stature = (art: CharacterArt, id: number): number => art.row >= 6 ? 1 : 0.965 + 0.07 * trait(id);
 
+/** One clock for the shoulder or jaw and the timber it holds. Positive load pulls
+ * toward the attacker; a ram first drives the board into its fixings. */
+export function attackBeat(e: Enemy) {
+  if (e.blowRecovery > 0) {
+    const recovery = 1 - e.blowRecovery / BLOW_RECOVERY_SECONDS;
+    const impact = 1 - smoothstep(0.06, 0.75, recovery);
+    const rebound = Math.sin(Math.PI * smoothstep(0.45, 1, recovery)) * 0.21;
+    return { phase: 0.3 + recovery * 0.68, reach: impact, load: rebound - impact };
+  }
+  const cycle = ART[e.type].animal ? 0.71 : 0.92;
+  const phase = (e.actionSeconds / (cycle * (0.94 + 0.12 * trait(e.id)))) % 1;
+  const reach = smoothstep(0.08, 0.29, phase) * (1 - smoothstep(0.72, 0.96, phase));
+  const tug = smoothstep(0.29, 0.57, phase) * (1 - smoothstep(0.66, 0.81, phase));
+  const spring = Math.sin(Math.PI * smoothstep(0.78, 0.97, phase)) * 0.14;
+  return { phase, reach: reach - 0.72 * tug, load: tug - spring };
+}
+
 function facing(view: View, fx: number, fy: number) {
   const sign = view.rot === 0 ? 1 : -1;
   const dx = (fx - fy) * sign;
@@ -130,6 +149,18 @@ interface Movement {
   step: number;
 }
 
+/** Ground projection and shoulder height of the actor held in the release frame. */
+export function shoulderAt(view: View, target: LogTarget) {
+  const art = ART[target.type];
+  const h = art.height * view.zoom * stature(art, target.id);
+  const { dir, depth } = facing(view, target.fx, target.fy);
+  const low = target.crawlDepth >= 0.6;
+  const p = project(view, target.x, target.y);
+  const forward = low ? 0.28 : art.animal ? 0.25 : 0.08;
+  const lift = h * (low ? 0.30 : target.crawlDepth > 0 ? 0.52 : art.animal ? 0.57 : 0.73);
+  return { x: p.x + h * dir * forward, y: p.y + h * depth * forward, lift };
+}
+
 const grounded: Movement = { pose: 'p', forward: 0, up: 0, lean: 0, squash: 1, flash: 0, step: 1 };
 
 function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
@@ -142,8 +173,18 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
     m.lean = -0.09 * recoil;
     m.squash = 1 - 0.045 * recoil;
     m.flash = 0.4 * (1 - smoothstep(0, 0.3, t));
+    const low = e.hitCrawlDepth ?? e.crawlDepth;
+    if (low > 0) {
+      // The forearm folds under the runner. The hound pulls its forepaws under its
+      // muzzle before stretching back out. Both keep the shoulder below the rig.
+      m.pose = low < 0.6 ? 'kneel' : art.animal && t > 0.64 ? 'crawlRight' : 'crawlGather';
+      m.forward = -(art.animal ? 0.07 : 0.035) * recoil;
+      m.lean = (art.animal ? -0.025 : 0.10) * recoil;
+      m.squash = 1 - (art.animal ? 0.20 : 0.24) * recoil;
+    }
   } else if (e.nettedFor > 0 || e.stunnedFor > 0 || e.action === 'jam') {
-    m.pose = e.crawlDepth > 0.5 ? 'crawlGather' : 'p';
+    const low = Math.max(e.crawlDepth, e.hitCrawlDepth ?? 0);
+    m.pose = low > 0.5 ? 'crawlGather' : low > 0 ? 'kneel' : 'p';
     m.squash = 0.96;
   } else if (e.action === 'crawl' || (e.action === 'walk' && e.crawlDepth > 0)) {
     const phase = (e.travel / (art.animal ? 0.83 : 0.68) + trait(e.id)) % 1;
@@ -151,12 +192,9 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
     m.squash = e.crawlDepth < 0.6 ? 1 - 0.14 * e.crawlDepth : 1 - 0.025 * Math.sin(TAU * phase);
     m.forward = 0.023 * Math.sin(TAU * phase);
     m.lean = 0.022 * Math.cos(TAU * phase);
-  } else if (e.blowRecovery > 0 || e.action === 'attack') {
+  } else if (e.blowRecovery > 0 || (e.action === 'attack' && (e.type !== 'mail' || e.cooldown <= 0))) {
     // A discrete blow starts at contact. Continuous attackers reach, keep their grip, tug and release.
-    const impact = e.blowRecovery > 0;
-    const cycle = art.animal ? 0.71 : 0.92;
-    const t = impact ? 0.29 + (1 - e.blowRecovery / BLOW_RECOVERY_SECONDS) * 0.68 : (e.actionSeconds / (cycle * (0.94 + 0.12 * trait(e.id)))) % 1;
-    const reach = smoothstep(0.1, 0.3, t) * (1 - smoothstep(0.7, 1, t));
+    const { phase: t, reach } = attackBeat(e);
     const raisedFists = e.type === 'shambler' || e.type === 'brute';
     m.pose = t < 0.1 || t > 0.94 ? 'p' : t < 0.23 && raisedFists ? 'x' : 'grip';
     m.forward = 0.095 * reach;
@@ -235,7 +273,7 @@ function netOverlay(f: Figure): HTMLCanvasElement {
 
 // The infrared exposure is fixed for a live or fallen character. Bake the small source
 // rectangle once, so each camera can blit the figure with one ordinary source-over draw.
-type Exposure = 'live' | 'net' | 'fallen';
+type Exposure = 'live' | 'door' | 'net' | 'fallen';
 const cameraCels = new WeakMap<Figure, Partial<Record<Exposure, HTMLCanvasElement>>>();
 function cameraCel(f: Figure, exposure: Exposure): HTMLCanvasElement | undefined {
   let cels = cameraCels.get(f);
@@ -249,7 +287,7 @@ function cameraCel(f: Figure, exposure: Exposure): HTMLCanvasElement | undefined
   canvas.height = f.sh;
   const ctx = canvas.getContext('2d');
   if (!ctx) return undefined;
-  const lift = exposure === 'fallen' ? NIGHT_LIFT * 0.55 : NIGHT_LIFT;
+  const lift = exposure === 'fallen' ? NIGHT_LIFT * 0.55 : exposure === 'door' ? 0.09 : NIGHT_LIFT;
   if (typeof ctx.filter === 'string') {
     ctx.filter = `brightness(${1 + lift})`;
     paintCel(ctx, f, 0, 0, canvas.width, canvas.height);
@@ -263,6 +301,24 @@ function cameraCel(f: Figure, exposure: Exposure): HTMLCanvasElement | undefined
     ctx.globalCompositeOperation = 'source-over';
   }
   if (exposure === 'net') ctx.drawImage(netOverlay(f), 0, 0, canvas.width, canvas.height);
+  if (exposure === 'door') {
+    // The lamp and the villager's coat share the wood's ochre. Keep the wrist
+    // and shoulder legible against the grain with a narrow warm ink contour.
+    const ink = document.createElement('canvas');
+    ink.width = canvas.width;
+    ink.height = canvas.height;
+    const outline = ink.getContext('2d');
+    if (outline) {
+      outline.drawImage(canvas, 0, 0);
+      outline.globalCompositeOperation = 'source-in';
+      outline.fillStyle = '#33271f';
+      outline.fillRect(0, 0, ink.width, ink.height);
+      ctx.globalCompositeOperation = 'destination-over';
+      const radius = f.sw / (64 * f.width) * 1.45;
+      for (const [x, y] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) ctx.drawImage(ink, x * radius, y * radius);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  }
   cels[exposure] = canvas;
   return canvas;
 }
@@ -288,7 +344,7 @@ function drawFigure(ctx: CanvasRenderingContext2D, f: Figure, height: number, ex
 
 interface Moment { readonly time: number; readonly night: boolean }
 
-export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Moment, enemy: Enemy): void {
+export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Moment, enemy: Enemy & { threshold?: SectorId }): void {
   const z = view.zoom;
   const art = ART[enemy.type];
   const p = project(view, enemy.x, enemy.y);
@@ -317,7 +373,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
   ctx.translate(p.x + dir * movement.forward * h, p.y + 3 * z + h * (movement.forward * depth - movement.up));
   ctx.rotate(dir * movement.lean);
   ctx.scale(flip ? -1 : 1, movement.squash);
-  if (f) drawFigure(ctx, f, h, enemy.nettedFor > 0 ? 'net' : 'live', frame.night, movement.flash);
+  if (f) drawFigure(ctx, f, h, enemy.nettedFor > 0 ? 'net' : enemy.threshold ? 'door' : 'live', frame.night, movement.flash);
   else {
     ctx.fillStyle = enemy.def.boss ? '#a8433a' : '#7d9a58';
     ctx.beginPath();
@@ -326,7 +382,8 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
   }
   ctx.restore();
 
-  const top = p.y - h;
+  const crouching = CRAWL_CLIPS.includes(movement.pose as CrawlClip);
+  const top = p.y - h * (crouching ? movement.pose === 'kneel' ? 0.78 : 0.51 : 1);
   if (enemy.stunnedFor > 0) {
     for (let i = 0; i < 3; i++) {
       const a = (reduced ? 0 : frame.time * 6) + (i * Math.PI * 2) / 3;
@@ -395,24 +452,29 @@ export function drawFallen(ctx: CanvasRenderingContext2D, view: View, frame: Mom
   const opacity = 1 - smoothstep(FALL_SECONDS - 0.62, FALL_SECONDS, age);
   if (opacity <= 0) return;
   const { front, flip, dir, depth } = facing(view, body.fx, body.fy);
-  const pose: Pose = age < 0.12 ? 'hit' : age < 0.39 ? 'fall' : 'dead';
+  const low = (body.crawlDepth ?? 0) > 0;
+  const rollEnd = low ? 0.24 : 0.39;
+  const pose: Pose = low && age < rollEnd ? 'crawlGather' : age < 0.12 ? 'hit' : age < rollEnd ? 'fall' : 'dead';
   const cel = figureFor(art, front, pose);
   if (!cel) return;
   const p = project(view, body.x, body.y);
   const reduced = calmMotion();
-  const collapse = smoothstep(0.04, 0.45, age);
-  const buckle = smoothstep(0.12, 0.39, age);
-  const settle = age >= 0.39 && age < 0.55 ? Math.sin((age - 0.39) / 0.16 * Math.PI) : 0;
-  const x = p.x - dir * h * collapse * (reduced ? 0.03 : 0.115);
+  const collapse = smoothstep(0.04, low ? rollEnd : 0.45, age);
+  const buckle = smoothstep(low ? 0 : 0.12, rollEnd, age);
+  const settle = age >= rollEnd && age < rollEnd + 0.16 ? Math.sin((age - rollEnd) / 0.16 * Math.PI) : 0;
+  const x = p.x - dir * h * collapse * (reduced ? 0.03 : low ? 0.075 : 0.115);
   const y = p.y + view.zoom * 3 - depth * h * collapse * 0.07;
   contactShadow(ctx, x, y - h * collapse * 0.075, h * (0.22 + 0.15 * collapse), h * (0.075 + 0.03 * collapse), 0.51 * opacity);
   ctx.save();
   ctx.globalAlpha *= opacity;
   ctx.translate(x, y);
-  if (!sprite('defense_mob_poses')) ctx.rotate(-dir * collapse * 1.35);
+  if (low) {
+    const tilt = art.animal ? -0.06 : 0.14;
+    ctx.rotate(reduced ? 0 : dir * tilt * (pose === 'dead' ? 1 - settle * 0.3 : buckle));
+  } else if (!sprite('defense_mob_poses')) ctx.rotate(-dir * collapse * 1.35);
   else if (!reduced && pose !== 'dead') ctx.rotate(dir * (pose === 'hit' ? -0.08 : -buckle * 0.13));
-  const squash = pose === 'fall' ? 1 - 0.22 * buckle : 1 - 0.045 * settle;
-  ctx.scale(flip ? -1 : 1, reduced ? 1 : squash);
+  const squash = pose === 'crawlGather' ? 1 - 0.28 * buckle : pose === 'fall' ? 1 - 0.22 * buckle : 1 - 0.045 * settle;
+  ctx.scale(flip ? -1 : 1, (low && pose === 'dead' ? 0.80 : 1) * (reduced ? 1 : squash));
   drawFigure(ctx, cel, h, 'fallen', frame.night);
   ctx.restore();
 }

@@ -16,7 +16,7 @@ const shade: readonly number[] = [0, 0.08, 0.16, 0.26];
 const tinted = new Map<string, HTMLCanvasElement>();
 
 export interface Stand {
-  key: string; image: CanvasImageSource; x: number; y: number; w: number; h: number; mirror: boolean;
+  key: string; image: HTMLImageElement | HTMLCanvasElement; x: number; y: number; w: number; h: number; mirror: boolean;
   rootX: number; rootY: number; foot: Foot;
 }
 interface Stamp { tree: Tree; s: Stand }
@@ -35,7 +35,7 @@ export function projectStand(view: View, tree: Tree): Stand | undefined {
   const h = tree.h * view.zoom / foot[1];
   const p = project(view, tree.gx, tree.gy);
   const layer = shade[tree.row] ?? 0;
-  let image: CanvasImageSource = art.img;
+  let image: Stand['image'] = art.img;
   if (layer > 0) {
     const id = `${key}:${tree.row}`;
     let canvas = tinted.get(id);
@@ -62,10 +62,23 @@ export function projectStand(view: View, tree: Tree): Stand | undefined {
   };
 }
 
-export function drawStand(ctx: CanvasRenderingContext2D, stand: Stand, lean = 0, alpha = 1): void {
+export function drawStand(ctx: CanvasRenderingContext2D, stand: Stand, lean = 0, alpha = 1, part = 0): void {
   ctx.save(); ctx.globalAlpha *= alpha;
-  ctx.transform(stand.mirror ? -1 : 1, 0, -lean, 1, stand.x - lean * (stand.y - stand.rootY), stand.y);
-  ctx.drawImage(stand.image, -stand.w / 2, -stand.h, stand.w, stand.h);
+  const sign = stand.mirror ? -1 : 1;
+  ctx.transform(sign, 0, -lean, 1, stand.x - lean * (stand.y - stand.rootY), stand.y);
+  if (part === 0) ctx.drawImage(stand.image, -stand.w / 2, -stand.h, stand.w, stand.h);
+  else {
+    // A brushed sapling yields above the lower trunk. Both pieces share the same
+    // hinge and the lower bark keeps exactly the ambient sway of its neighbours.
+    const img = stand.image;
+    const cut = Math.round(img.height * stand.foot[1] * 0.78);
+    const crown = stand.h * cut / img.height;
+    const trunk = stand.h - crown;
+    ctx.translate(0, -trunk);
+    ctx.drawImage(img, 0, cut, img.width, img.height - cut, -stand.w / 2, 0, stand.w, trunk);
+    ctx.transform(1, 0, -part * sign, 1, 0, 0);
+    ctx.drawImage(img, 0, 0, img.width, cut, -stand.w / 2, -crown, stand.w, crown);
+  }
   ctx.restore();
 }
 

@@ -5,13 +5,13 @@ import { describe, expect, it } from 'vitest';
 import sharp from 'sharp';
 import { newGame } from '../src/core/game';
 import { NightSim } from '../src/core/night';
-import { GRID_H, GRID_W, HOUSE, HOUSE_CENTER, PROPS, SPAWN_CELLS } from '../src/core/map';
+import { GRID_H, GRID_W, HOUSE, HOUSE_CENTER, LANES, PROPS, SPAWN_CELLS } from '../src/core/map';
 import { DEVICE_TYPE_IDS, SECTOR_IDS } from '../src/core/types';
 import { deviceArt, floodlightEmitter } from '../src/render/defenses';
 import { fbm, hash2, periodicFbm, seeded, smoothstep, valueNoise } from '../src/render/noise';
 import { cameraView, depthOf, groundMatrix, project, unproject, viewBounds, type Rot, type View } from '../src/render/projection';
 import { TREES, TREE_ROWS, treesIn } from '../src/render/scenery';
-import { FIELD_MARGIN, GROUND_TERRAINS, buildTerrainField, groundTerrainAt, layerAlpha, onTrack, weightAt } from '../src/render/terrainfield';
+import { FIELD_MARGIN, GROUND_TERRAINS, buildTerrainField, groundTerrainAt, layerAlpha, onTrack, vergeCover, weightAt } from '../src/render/terrainfield';
 import { pickDoor, propSpriteKey } from '../src/render/world';
 import { DOOR_OPENINGS, VISIBLE_DOORS, THRESHOLDS, doorStance } from '../src/render/house';
 import { HOUSE_PAINT_SCALE, PROP_FEET, houseOffset, propRoot, spriteRect } from '../src/render/registration';
@@ -258,6 +258,16 @@ describe('sprite registration through a camera change', () => {
 });
 
 describe('terrain field', () => {
+  it('keeps every approach clear and lets leaf litter build up toward the orchard trees', () => {
+    for (const lane of Object.values(LANES)) {
+      for (const cell of lane) expect(vergeCover(cell.x + 0.5, cell.y + 0.5)).toBe(0);
+    }
+    const shoulder = vergeCover(4.5, 9.5);
+    expect(shoulder).toBeGreaterThan(0);
+    expect(shoulder).toBeLessThan(1);
+    for (const tree of PROPS.filter(p => p.kind === 'apple')) expect(vergeCover(tree.x + 0.5, tree.y + 0.5)).toBe(1);
+  });
+
   // Coarser than the game's: the properties below do not depend on the resolution.
   const field = buildTerrainField(8);
 
