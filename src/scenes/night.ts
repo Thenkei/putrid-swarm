@@ -20,7 +20,8 @@ import { BrushPassage } from '../render/brush';
 import { DefenseMotion, deviceArt, floodlightEmitter } from '../render/defenses';
 import { THRESHOLDS, doorStance, houseDamageStage } from '../render/house';
 import { HOUSE_BREAK_SECONDS, type HouseBreak } from '../render/house-debris';
-import { drawRetune } from '../render/lighting';
+import { calmMotion, drawRetune } from '../render/lighting';
+import { smoothstep } from '../render/noise';
 import { LogReactions } from '../render/log-sweep';
 import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
 import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
@@ -1008,9 +1009,14 @@ export class NightScene implements Scene {
     for (const device of this.sim.devices) {
       if (device.state === 'broken') continue;
       if (device.type === 'floodlight' && device.state === 'active') {
-        // The pool it throws on the ground, and the lamp itself at the top of its pole.
-        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: DEVICES.floodlight.radius, color: 'rgba(255,244,214,1)' });
-        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.2, color: 'rgba(255,244,214,0.6)',
+        // A warm pool spreads as the lamp comes up. The simulation already counts the light as on.
+        const def = DEVICES.floodlight;
+        const rise = calmMotion() ? 1 : smoothstep(0, 0.42, def.activeSeconds - device.timer);
+        const intensity = 0.38 + 0.62 * rise;
+        const color = (alpha: number): string =>
+          `rgba(255,${Math.round(171 + 73 * rise)},${Math.round(103 + 111 * rise)},${alpha})`;
+        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: def.radius * (0.78 + 0.22 * rise), color: color(1), intensity });
+        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.2, color: color(0.6), intensity,
           ...floodlightEmitter(device.facing, rot), glow: 1, round: true });
       }
       else if (device.state === 'active') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.6, color: 'rgba(255,180,90,0.6)' });
