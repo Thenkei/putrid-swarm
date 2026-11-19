@@ -4651,6 +4651,20 @@ button:disabled {
 .board-riddle { display: grid; gap: 8px; }
 .board-riddle button { text-align: left; padding-left: 18px; }
 .board-riddle button:disabled { text-decoration: line-through; }
+.directory-screen {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 3px ridge #5f6252;
+  border-radius: 8px;
+  background: repeating-linear-gradient(0deg, #080d0c 0 3px, #101811 3px 4px);
+  box-shadow: inset 0 0 20px #000b;
+  color: #c6f4a2;
+  font: 17px/1.3 'Courier New', monospace;
+}
+.directory-screen p { margin: 4px 0; }
+.directory-screen .salvage-piece { background: #16241b; border-color: #61765b; color: inherit; font: inherit; }
+.map-card .map-cache, .pin .tag .map-cache { color: #ffd58c; }
 .records-photo { background-size: cover; }
 .record-albums, .record-targets {
   display: grid;

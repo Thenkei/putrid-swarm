@@ -53,6 +53,7 @@ export class ScavengePanel {
       case 'padlock': this.padlock(rng); break;
       case 'timing': this.timing(puzzle.action, rng); break;
       case 'records': this.records(puzzle, rng); break;
+      case 'directory': this.directory(puzzle.entries, rng); break;
       case 'riddle':
         for (const index of shuffled([0, 1, 2], rng)) {
           const button = this.button(puzzle.answers[index]!, () => {
@@ -119,6 +120,27 @@ export class ScavengePanel {
       albums.append(button);
     }
     this.board.append(albums);
+  }
+
+  private directory(entries: readonly string[], rng: Rng): void {
+    const s = S().scavenge;
+    const screen = el('div', { class: 'directory-screen' });
+    const open = this.button(s.directoryOpen, () => {
+      audio.play('radio_squelch', 0.6);
+      screen.replaceChildren(...shuffled([0, 1, 2], rng).map(index => this.button(entries[index]!, () => {
+        if (index !== 0) {
+          this.miss(s.directoryMiss);
+          return;
+        }
+        audio.play('ready');
+        const mark = this.button(s.directoryMark, this.solved);
+        screen.replaceChildren(el('p', { text: s.directoryCache }), mark);
+        mark.focus();
+      })));
+      this.focus();
+    });
+    screen.append(open);
+    this.board.append(screen);
   }
 
   private chooseRecordTarget(puzzle: Extract<Puzzle, { kind: 'records' }>, album: string, rng: Rng): void {

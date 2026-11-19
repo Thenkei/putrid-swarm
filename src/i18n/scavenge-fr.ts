@@ -1,4 +1,4 @@
-import { circuit, padlock, pairs, records, riddle, scale, timing, type PuzzleBook } from '../core/scavenge';
+import { circuit, directory, padlock, pairs, records, riddle, scale, timing, type PuzzleBook } from '../core/scavenge';
 
 export const scavengeFr = {
   back: 'Laisser tomber', cost: '{h} h par tentative · dès le premier geste', target: 'Commande', loaded: 'Charge',
@@ -19,6 +19,11 @@ export const scavengeFr = {
   catchRing: 'Bloquer la bague', ringCount: '{n} bagues sur 3 en place', slipped: 'La bague a glissé. Le cadenas s’est refermé.',
   lockOpen: 'L’anse est ouverte.', take: 'Récupérer le matériel',
   riddle: 'Choisissez une réponse.', wrongSum: 'Ça fait {n}. Essayez une autre paire.',
+  directory: 'Retrouvez le point de livraison dans l’annuaire local.',
+  directoryOpen: 'Ouvrir l’annuaire',
+  directoryMiss: 'Cette livraison ne correspond pas à l’avis de passage.',
+  directoryCache: 'Colis en souffrance au cabanon du Tondeur, sous le récupérateur d’eau.',
+  directoryMark: 'Marquer le cabanon sur la carte',
   records: 'Choisissez un disque que vous êtes prêt à sacrifier.',
   recordAim: 'Où lancer « {album} » ?',
   recordClear: 'Les paniers s’entrechoquent. Il file vers la porte et libère le rayon.',
@@ -29,6 +34,7 @@ export const scavengeFr = {
       bench: timing('La rondelle en cavale', 'Une rondelle tourne sur le bord d’une gamelle rouillée. Attrapez-la au niveau de l’éclat, puis chopez sa petite sœur.', 'Attraper'),
       drawers: pairs('Quincaillerie potagère', 'Le jardinier classe ses pièces par légume. Chaque sachet de graines a son jumeau sur un tiroir à ferrures.', ['Poireau', 'Navet', 'Pois']),
       toolwall: riddle('Employé du mois', 'Une silhouette à la craie a deux mâchoires, dont une mobile, et aucune dent. Raccrochez son propriétaire pour libérer le panneau.', ['Clé à molette', 'Scie égoïne', 'Fourche'], 'Une mâchoire coulisse pour s’ajuster à l’écrou.'),
+      'parcel-cache': riddle('Désolé de vous avoir manqué', 'L’annuaire indiquait le dessous du récupérateur d’eau. Trois paquets y sont coincés. Lequel était sur la tournée B, à l’arrêt 12 ?', ['B / 12', 'B / 17', 'D / 12'], 'Vérifiez la tournée et le numéro d’arrêt.'),
     },
     garage: {
       workbench: timing('L’étau a le hoquet', 'À chaque hoquet du compresseur, l’étau s’entrouvre. Sortez une pièce à chacun des deux prochains bons hoquets.', 'Tirer'),
@@ -65,6 +71,7 @@ export const scavengeFr = {
       cage: padlock('Cadenas recommandé', 'Le facteur s’est envoyé la clé de la cage en recommandé. On voit l’enveloppe derrière les barreaux.'),
       sacks: scale('Dernière levée', 'Le crochet du pèse-colis prend deux sacs. Retrouvez le poids indiqué sur le bordereau.', 'kg'),
       bicycle: timing('Dernière tournée', 'Le vélo retourné pédale encore. Attrapez deux fois un rayon au repère de craie pour l’arrêter.', 'Saisir le rayon'),
+      minitel: directory('3615 PLANQUE', 'Un vieil avis de passage dépasse du terminal. Tournée B, arrêt 12. Le facteur a gardé une copie locale de son annuaire de livraison.', ['B / 12', 'B / 17', 'D / 12']),
     },
     police: {
       radios: circuit('Veuillez patienter', 'Le râtelier diffuse une musique d’attente par un fil débranché. Reliez ses deux prises pour éjecter les batteries.'),

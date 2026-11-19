@@ -4,6 +4,7 @@
 import { DAY_HOURS, LOCATIONS, SEARCH_HOURS } from '../core/data/locations';
 import { clockLabel, leaveLocation, neighborStatus, prepareSearch, visitSearchLimit, type NeighborMeeting, type SearchOutcome } from '../core/game';
 import { spotRng, type Puzzle } from '../core/scavenge';
+import { spotRevealed } from '../core/planque';
 import type { Dispute, GameState, LocationId } from '../core/types';
 import { RESOURCE_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
@@ -112,6 +113,7 @@ export class LocationScene implements Scene {
 
     const canStillSearch = state.hoursLeft + 1e-9 >= SEARCH_HOURS + location.travelHours;
     const spots = location.spots.map((spot, index) => {
+      if (!spotRevealed(state, spot)) return null;
       const p = platePoint(location.plate, spot.x, spot.y);
       const name = spotNames[spot.key] ?? spot.key;
       if (dispute?.spot === index) {
@@ -177,7 +179,7 @@ export class LocationScene implements Scene {
       s.loc.leave, el('small', { text: leaveNote }), dusk ? el('small', { class: 'road-warning', text: s.crossbowRoad.warning }) : null,
     ])]);
 
-    this.hud.replaceChildren(topbar, stash, ...spots, title, leave);
+    this.hud.replaceChildren(topbar, stash, ...spots.filter(spot => spot !== null), title, leave);
   }
 
   private showMeeting(meeting: NeighborMeeting): void {
@@ -299,9 +301,11 @@ export class LocationScene implements Scene {
       this.revealCrossbow();
       return;
     }
-    const pop = el('div', { class: 'loot-pop', style: { left: `${at.x}px`, top: `${at.y - 34}px` } }, [costLine(result.loot, undefined, '+')]);
-    this.hud.append(pop);
-    window.setTimeout(() => pop.remove(), 1900);
+    const pop = found && el('div', { class: 'loot-pop', style: { left: `${at.x}px`, top: `${at.y - 34}px` } }, [costLine(result.loot, undefined, '+')]);
+    if (pop) {
+      this.hud.append(pop);
+      window.setTimeout(() => pop.remove(), 1900);
+    }
   }
 
   private revealCrossbow(): void {

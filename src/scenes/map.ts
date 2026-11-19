@@ -1,7 +1,8 @@
 // The village map: pick a destination for the break, or stay home.
 
-import { DAY_HOURS, HOME_PIN, LOCATIONS, type LocationDef } from '../core/data/locations';
-import { clockLabel, isUnlocked, neighborStatus, planVisit, roundTripHours, travelTo } from '../core/game';
+import { DAY_HOURS, HOME_PIN, LOCATIONS } from '../core/data/locations';
+import { clockLabel, isUnlocked, neighborStatus, planVisit, remainingSearches, roundTripHours, travelTo } from '../core/game';
+import { hasUnclaimedPlanque } from '../core/planque';
 import type { GameState, LocationId } from '../core/types';
 import { LOCATION_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
@@ -34,10 +35,6 @@ export class MapScene implements Scene {
     this.refresh();
   }
 
-  private remaining(location: LocationDef): number {
-    return location.spots.length - this.state.locations[location.id].searched.length;
-  }
-
   private refresh(): void {
     const s = S();
     const state = this.state;
@@ -56,8 +53,9 @@ export class MapScene implements Scene {
       const location = LOCATIONS[id];
       const p = platePoint(MAP_PLATE, location.pin.x, location.pin.y, MAP_FOCUS_Y);
       const unlocked = isUnlocked(location, state.day);
-      const left = this.remaining(location);
+      const left = remainingSearches(state, location);
       const sub = !unlocked ? fmt(s.map.locked, { n: location.unlockDay }) : left > 0 ? fmt(s.map.left, { n: left }) : s.map.empty;
+      const cache = id === 'shed' && hasUnclaimedPlanque(state);
       const pin = el(
         'button',
         {
@@ -71,7 +69,10 @@ export class MapScene implements Scene {
             this.root.querySelector<HTMLButtonElement>(`[data-pin="${id}"]`)?.focus({ preventScroll: true });
           },
         },
-        [el('span', { class: 'tag' }, [s.location[id].name, el('small', { text: sub })]), el('span', { class: 'stem' }), el('span', { class: 'dot' })],
+        [
+          el('span', { class: 'tag' }, [s.location[id].name, el('small', { text: sub }), cache ? el('small', { class: 'map-cache', text: s.spot.shed['parcel-cache'] }) : null]),
+          el('span', { class: 'stem' }), el('span', { class: 'dot' }),
+        ],
       );
       pin.setAttribute('aria-pressed', String(this.selected === id));
       return pin;
@@ -108,6 +109,7 @@ export class MapScene implements Scene {
       ]),
     ];
     if (neighbor && unlocked && neighborStatus(neighbor, state.day) === 'gone') lines.push(el('p', { class: 'muted', text: s.neighbor[neighbor].gone }));
+    if (id === 'shed' && hasUnclaimedPlanque(state)) lines.push(el('p', { class: 'map-cache', text: s.scavenge.directoryCache }));
     const reason = !unlocked ? fmt(s.map.locked, { n: location.unlockDay }) : !enough ? s.map.noTime : '';
     if (reason) lines.push(el('p', { style: { color: '#ff8a78' }, text: reason }));
     else {

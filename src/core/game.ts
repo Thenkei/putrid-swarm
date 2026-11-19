@@ -13,6 +13,7 @@ import { SHED, awaitsShed, isShedFate, type ShedResult } from './shed';
 import { QUIET_RADIO, aftermathOf, awaitsRadio, rivalOf, stockAfter, type RadioResult } from './radio';
 import { acquaintance } from './encounters';
 import { createRng, type Rng } from './rng';
+import { spotRevealed } from './planque';
 import type { Cost, DeviceInstance, GameState, Inventory, LocationId, LocationProgress, NeighborId, NightReport, OutingMark, ResourceId, Result } from './types';
 import { LOCATION_IDS, RESOURCE_IDS, err, ok } from './types';
 import { DEVICES } from './data/devices';
@@ -128,10 +129,15 @@ export function visitSearchLimit(location: LocationDef, day: number): number {
   return location.neighbor === 'chief' && neighborStatus('chief', day) === 'alive' ? CHIEF_SEARCH_LIMIT : Infinity;
 }
 
+export function remainingSearches(state: GameState, location: LocationDef): number {
+  const { searched } = state.locations[location.id];
+  return location.spots.filter((spot, index) => spotRevealed(state, spot) && !searched.includes(index)).length;
+}
+
 /** Search limit and yard daylight after a trip at that limit, before any encounters. */
 export function planVisit(state: GameState, location: LocationDef): { searches: number; hoursAfterReturn: number } {
   const time = state.hoursLeft - roundTripHours(location) - greetingHours(state, location);
-  const remaining = location.spots.length - state.locations[location.id].searched.length;
+  const remaining = remainingSearches(state, location);
   const searches = Math.max(0, Math.min(Math.floor((time + 1e-9) / SEARCH_HOURS), remaining, visitSearchLimit(location, state.day)));
   return { searches, hoursAfterReturn: Math.max(0, time - searches * SEARCH_HOURS) };
 }
@@ -144,7 +150,7 @@ function rollLooting(state: GameState, location: LocationDef, rng: Rng): number 
   const daysExposed = state.day - Math.max(lootCheckedDay, guardedThrough);
   if (daysExposed <= 0) return;
   // Equipment puzzles such as the crossbow case have no material lot to steal.
-  const lots = location.spots.flatMap((spot, index) => Object.keys(spot.loot).length > 0 && !searched.includes(index) ? [index] : []);
+  const lots = location.spots.flatMap((spot, index) => !spot.requiresDirectory && Object.keys(spot.loot).length > 0 && !searched.includes(index) ? [index] : []);
   if (lots.length === 0 || !rng.chance(1 - (1 - DAILY_LOOT_CHANCE) ** daysExposed)) return;
   return rng.pick(lots);
 }
@@ -245,7 +251,7 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
   if (state.where === 'home' || state.where === 'road') return err({ code: 'not_there' });
   const location = LOCATIONS[state.where];
   const spot = location.spots[spotIndex];
-  if (!spot) return err({ code: 'unknown_spot' });
+  if (!spot || !spotRevealed(state, spot)) return err({ code: 'unknown_spot' });
   const progress = state.locations[location.id];
   if (progress.searched.includes(spotIndex)) return err({ code: 'already_searched' });
   const { encounter, outing } = state;
