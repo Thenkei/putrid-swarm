@@ -1,6 +1,7 @@
 // The night: a desk, four cameras, and traps fired by hand.
 // The simulation runs on its own clock; this scene only chooses which part of it to look at.
 
+import { cameraPriority, type CameraPriority } from '../core/camera-priority';
 import { BARRICADE, COMBAT, DEVICES, HOUSE_MAX_HP, isAuto, isManual } from '../core/data/devices';
 import { concludeNight } from '../core/game';
 import { HOUSE, sectorOf } from '../core/map';
@@ -128,6 +129,8 @@ export class NightScene implements Scene {
   private camLabel!: HTMLElement;
   private camClock!: HTMLElement;
   private trapBar!: HTMLElement;
+  private alertButton!: HTMLButtonElement;
+  private alertTarget: CameraPriority | null = null;
   private banners!: HTMLElement;
   private overlay!: HTMLElement;
   private pauseMenu!: PauseMenu;
@@ -227,6 +230,7 @@ export class NightScene implements Scene {
       this.minis.set(sector, canvas);
     }
 
+    this.alertButton = el('button', { class: 'night-alert', onClick: () => this.jumpToAlert() });
     this.trapBar = el('div', { class: 'trap-bar' });
     this.banners = el('div', { class: 'banner' });
     this.overlay = el('div');
@@ -357,20 +361,8 @@ export class NightScene implements Scene {
     this.syncHud(true);
   }
 
-  private mostThreatened(): SectorId {
-    let best = this.cam;
-    let bestScore = -1;
-    for (const sector of SECTOR_IDS) {
-      const threat = this.sim.threat(sector);
-      const cue = this.sectorCue(sector) ? 8 : 0;
-      // A dark camera only has its door to go by: the planks are heard, not seen.
-      const score = this.isDark(sector) ? threat.atDoor * 3 : threat.atDoor * 3 + threat.count + (threat.boss ? 6 : 0) + (threat.breached && threat.count > 0 ? 4 : 0) + cue;
-      if (score > bestScore) {
-        bestScore = score;
-        best = sector;
-      }
-    }
-    return best;
+  private jumpToAlert(): void {
+    if (this.alertTarget) this.switchCam(this.alertTarget.sector);
   }
 
   /** True when a manual trap watched by that camera has enough under it to be worth firing. */
@@ -417,7 +409,7 @@ export class NightScene implements Scene {
     const autoLines = autos.size > 0 ? [...autos].map(([type, n]) => el('span', { text: `${s.device[type].name} ×${n}` })) : [el('span', { text: s.night.autoNone })];
     children.push(el('div', { class: 'trap-auto' }, [el('b', { text: s.night.autoTraps }), ...autoLines]));
     if (this.hand) children.push(this.hand.root);
-    children.push(el('div', { class: 'trap-hint' }, [el('span', { text: s.night.cameras }), el('span', { text: getSpaceHint() })]));
+    children.push(el('div', { class: 'trap-hint' }, [el('span', { text: s.night.cameras }), this.alertButton]));
     this.trapBar.replaceChildren(...children);
   }
 
@@ -449,13 +441,29 @@ export class NightScene implements Scene {
     if (this.hand && handView) this.hand.sync(handView, sim);
     const lookAwaited = cameraAwaitingHand(handView);
     const fireAwaited = trapsAwaitingHand(handView, sim);
-    for (const [sector, mini] of this.miniEls) {
-      const threat = sim.threat(sector);
+    const cameras = SECTOR_IDS.map(sector => {
       const barricade = sim.barricades[sector];
-      const ratio = Math.max(0, barricade.hp / BARRICADE.maxHp[barricade.level]);
-      const dark = this.isDark(sector);
+      return {
+        sector,
+        threat: sim.threat(sector),
+        doorRatio: Math.max(0, barricade.hp / BARRICADE.maxHp[barricade.level]),
+        dark: this.isDark(sector),
+        cue: this.sectorCue(sector),
+      };
+    });
+    this.alertTarget = this.coach?.kind === 'switch'
+      ? { sector: this.coach.sector, reason: 'movement' }
+      : cameraPriority(cameras, this.cam);
+    const alert = this.alertTarget;
+    this.alertButton.disabled = !alert || alert.sector === this.cam;
+    this.alertButton.classList.toggle('urgent', !!alert && alert.reason !== 'movement');
+    const alertText = alert ? fmt(s.night.alert[alert.reason], { sector: s.sector[alert.sector] }) : s.night.alert.quiet;
+    setText(this.alertButton, `${s.night.space} · ${alertText}`);
+
+    for (const { sector, threat, doorRatio: ratio, dark, cue } of cameras) {
+      const mini = this.miniEls.get(sector)!;
       const danger = dark ? threat.atDoor > 0 : threat.atDoor > 0 || threat.boss !== null || (threat.breached && threat.count > 0);
-      const cls = `mini ${danger ? 'danger' : !dark && threat.count > 0 ? 'alert' : ''}${this.sectorCue(sector) ? ' cue' : ''}${dark ? ' dark' : ''}${lookAwaited === sector ? ' queued' : ''}`;
+      const cls = `mini ${danger ? 'danger' : !dark && threat.count > 0 ? 'alert' : ''}${cue ? ' cue' : ''}${alert?.sector === sector ? ' priority' : ''}${dark ? ' dark' : ''}${lookAwaited === sector ? ' queued' : ''}`;
       if (mini.root.className !== cls) mini.root.className = cls;
       setText(mini.count, dark ? '' : threat.count > 0 ? `${threat.count}${threat.boss ? ` · ${s.enemy[threat.boss]}` : ''}` : '');
       mini.door.style.width = `${ratio * 100}%`;
@@ -617,7 +625,7 @@ export class NightScene implements Scene {
     }
     if (code === 'Space') {
       event.preventDefault();
-      this.switchCam(this.mostThreatened());
+      this.jumpToAlert();
       return;
     }
     const trapIndex = (TRAP_KEY_CODES as readonly string[]).indexOf(code);
@@ -892,8 +900,8 @@ export class NightScene implements Scene {
     this.defenseMotion.update(this.sim);
     this.advanceImpacts();
     this.consume(this.sim.drainEvents());
-    this.syncHud();
     this.maybeCoach();
+    this.syncHud();
   }
 
   /** The lot is never silent while something is walking on it. */
@@ -1122,8 +1130,4 @@ function coachSeen(): boolean {
   } catch {
     return false;
   }
-}
-
-function getSpaceHint(): string {
-  return document.documentElement.lang === 'fr' ? 'Espace · Alerte' : 'Space · Alert';
 }
