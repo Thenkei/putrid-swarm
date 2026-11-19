@@ -126,6 +126,10 @@ export class NightScene implements Scene {
   private waveEl!: HTMLElement;
   private energyEl!: HTMLElement;
   private energyFill!: HTMLElement;
+  private energyTrace!: HTMLElement;
+  private energyShown: number | null = null;
+  private tracePeak = 0;
+  private trace: Animation | null = null;
   private clockEl!: HTMLElement;
   private pipsEl!: HTMLElement;
   private camLabel!: HTMLElement;
@@ -183,6 +187,9 @@ export class NightScene implements Scene {
     this.waveEl = el('span', { class: 'label-strong' });
     this.energyEl = el('span');
     this.energyFill = el('i');
+    this.energyTrace = el('i', { class: 'power-trace' });
+    const powerMeter = el('span', { class: 'meter night-power' }, [this.energyFill, this.energyTrace]);
+    powerMeter.setAttribute('aria-hidden', 'true');
     this.clockEl = el('span');
     this.pipsEl = el('span', { class: 'pips' });
     const pauseButton = el('button', { class: 'btn icon-btn', text: 'II', title: s.night.paused, onClick: () => this.togglePause() });
@@ -191,7 +198,7 @@ export class NightScene implements Scene {
       el('span', { class: 'sep' }),
       el('span', { class: 'cell' }, [this.waveEl]),
       el('span', { class: 'sep' }),
-      el('span', { class: 'cell' }, [this.energyEl, el('span', { class: 'meter', style: { width: '110px' } }, [this.energyFill])]),
+      el('span', { class: 'cell' }, [this.energyEl, powerMeter]),
       el('span', { class: 'sep' }),
       el('span', { class: 'cell' }, [this.clockEl]),
       el('span', { class: 'sep' }),
@@ -259,6 +266,7 @@ export class NightScene implements Scene {
   }
 
   exit(): void {
+    this.trace?.cancel();
     hush();
   }
 
@@ -415,13 +423,31 @@ export class NightScene implements Scene {
     this.trapBar.replaceChildren(...children);
   }
 
+  private syncPower(energy: number): void {
+    const previous = this.energyShown;
+    if (previous === energy) return;
+    this.energyShown = energy;
+    const percent = (amount: number): number => amount / COMBAT.nightEnergy * 100;
+    const remaining = percent(energy);
+    this.energyFill.style.width = `${remaining}%`;
+    if (previous === null || energy >= previous) return;
+
+    // Keep adjacent draws visible when the player fires more than one trap in quick succession.
+    const peak = this.trace?.playState === 'running' ? Math.max(previous, this.tracePeak) : previous;
+    this.tracePeak = peak;
+    this.trace?.cancel();
+    this.energyTrace.style.left = `${remaining}%`;
+    this.energyTrace.style.width = `${percent(peak) - remaining}%`;
+    this.trace = this.energyTrace.animate([{ opacity: 0.85 }, { opacity: 0 }], { duration: 360, easing: 'ease-out' });
+  }
+
   private syncHud(force = false): void {
     const s = S();
     const sim = this.sim;
 
     setText(this.waveEl, fmt(s.night.wave, { i: Math.max(1, sim.waveIndex), n: sim.waveCount }));
     setText(this.energyEl, fmt(s.night.energy, { p: Math.round(sim.energy) }));
-    this.energyFill.style.width = `${(sim.energy / COMBAT.nightEnergy) * 100}%`;
+    this.syncPower(sim.energy);
 
     // 21:00 at dusk, 06:00 at dawn.
     const minutes = Math.round(21 * 60 + sim.progress() * 9 * 60) % (24 * 60);
