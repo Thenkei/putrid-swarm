@@ -115,6 +115,7 @@ export interface WorldFrame {
   readonly particles: readonly Particle[];
   readonly ghost?: Ghost | null;
   readonly routes?: readonly (readonly Cell[])[];
+  readonly hornTurn?: readonly Cell[];
   /** Predicted footfall per cell (grid index → number of routes), painted as worn ground under the routes. */
   readonly traffic?: ReadonlyMap<number, number>;
   readonly lanes?: readonly { readonly cells: readonly Cell[]; readonly seconds: number }[];
@@ -893,6 +894,7 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
     }
     ctx.setLineDash([]);
   }
+  if (frame.hornTurn?.length) drawHornTurn(ctx, view, frame.hornTurn);
 
   // Mower lanes: telegraphed before the charge.
   for (const lane of frame.lanes ?? []) {
@@ -930,6 +932,32 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
       ctx.globalAlpha = 1;
     }
   }
+}
+
+function drawHornTurn(ctx: CanvasRenderingContext2D, view: View, cells: readonly Cell[]): void {
+  const points = cells.map(cell => project(view, cell.x + 0.5, cell.y + 0.5));
+  const from = points.at(-2);
+  const tip = points.at(-1);
+  if (!from || !tip) return;
+  const length = Math.hypot(tip.x - from.x, tip.y - from.y);
+  const dx = (tip.x - from.x) / length;
+  const dy = (tip.y - from.y) / length;
+  const z = view.zoom;
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  for (const point of points) ctx.lineTo(point.x, point.y);
+  ctx.moveTo(tip.x - (dx * 10 - dy * 5) * z, tip.y - (dy * 10 + dx * 5) * z);
+  ctx.lineTo(tip.x, tip.y);
+  ctx.lineTo(tip.x - (dx * 10 + dy * 5) * z, tip.y - (dy * 10 - dx * 5) * z);
+  ctx.strokeStyle = 'rgba(21, 34, 41, 0.80)';
+  ctx.lineWidth = 6 * z;
+  ctx.stroke();
+  ctx.strokeStyle = '#a8d9f2';
+  ctx.lineWidth = 3 * z;
+  ctx.stroke();
+  ctx.restore();
 }
 
 function doorSill(view: View, sector: SectorId): { x: number; y: number } {
