@@ -334,6 +334,14 @@ export const fr = {
     postmark: 'Le cachet de la poste date de la semaine avant les premiers cas.',
     complaint: 'Monsieur, dimanche à 7 h 12, vous avez de nouveau passé la tondeuse sous ma fenêtre. Je vous prie de considérer ce courrier comme ma troisième et dernière réclamation. Votre voisin.',
   },
+  rattle: {
+    title: 'Boîte à grelots',
+    pick: 'Choisissez une haie. La boîte tinte au passage du premier infecté.',
+    approach: 'Haie à équiper',
+    arm: 'Attacher le fil',
+    armed: 'Boîte à grelots · {sector}',
+    heard: 'Un bruit de ferraille près de la haie · {sector}.',
+  },
   siren: {
     title: 'L’essai du mercredi',
     found: 'Boîtier de sirène récupéré. Choisissez le passage au refuge.',

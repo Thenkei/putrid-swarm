@@ -1186,6 +1186,39 @@ button:disabled {
   color: var(--cream-dim);
 }
 
+.rattle-plan, .rattle-rigged {
+  margin-top: 6px;
+}
+.rattle-plan summary {
+  cursor: pointer;
+  color: var(--cream);
+}
+.rattle-plan p {
+  margin: 5px 0;
+}
+.rattle-price {
+  margin-bottom: 5px;
+  color: var(--cream-dim);
+}
+.rattle-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.rattle-controls select, .rattle-controls .btn {
+  padding: 3px 6px;
+  min-height: 30px;
+  font-size: 15px;
+}
+.rattle-controls select {
+  font-family: inherit;
+  color: var(--cream);
+  background: #252116;
+  border: 1px solid #806141;
+  border-radius: 4px;
+}
+
 .siren-forecast {
   display: grid;
   gap: 6px;
@@ -1637,6 +1670,20 @@ button:disabled {
   50% {
     opacity: 0.25;
   }
+}
+
+.rattle-caption {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  pointer-events: none;
+  font-size: 18px;
+  color: var(--cream);
+}
+.rattle-caption:not(:empty) {
+  padding: 4px 9px;
+  border-radius: 3px;
+  background: rgba(14, 10, 7, 0.88);
 }
 
 .cam-clock {

@@ -332,6 +332,14 @@ export const en: Strings = {
     postmark: 'The postmark is from the week before it all started.',
     complaint: 'Dear Sir, at 7:12 on Sunday morning you once again mowed the lawn beneath my window. Please consider this my third and final complaint. Your neighbour.',
   },
+  rattle: {
+    title: 'Tin rattle',
+    pick: 'Choose a hedge. It rattles once, when the first infected comes through.',
+    approach: 'Hedge to wire',
+    arm: 'Tie the wire',
+    armed: 'Tin rattle · {sector}',
+    heard: 'Tin rattling at the {sector} hedge.',
+  },
   siren: {
     title: 'The Wednesday Test',
     found: 'Siren controller recovered. Set a route from the refuge.',

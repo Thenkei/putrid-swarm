@@ -24,6 +24,7 @@ import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
 import { drawDepartingCar, drawHeadlightPools, type DepartingCar } from './car-departure';
 import { approachDepth, drawApproachOpening, drawApproachingHero, type ApproachingHero } from './hero-approach';
+import { drawRattle, rattlePoint, type RattleVisual } from './rattle';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
 export { applyCctv, applyDaylight, applyNight, type Light } from './lighting';
@@ -108,6 +109,7 @@ export interface WorldFrame {
   readonly decals: readonly Decal[];
   readonly enemies: readonly Enemy[];
   readonly brushPassage?: BrushPassage;
+  readonly rattle?: RattleVisual;
   /** Infected that have just been put down, kept a moment so they are seen to fall. */
   readonly fallen?: readonly Fallen[];
   readonly particles: readonly Particle[];
@@ -631,6 +633,12 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
         drawSprite(ctx, art.key, p.x, p.y, art.h * z, art.flip, ghost.ok ? 0.75 : 0.4, 0, art.foot);
       },
     });
+  }
+
+  const rattle = frame.rattle;
+  if (rattle) {
+    const point = rattlePoint(rattle.sector);
+    drawables.push({ depth: depthOf(view.rot, point.x, point.y), draw: () => drawRattle(ctx, view, rattle, frame.time) });
   }
 
   // Infected.
