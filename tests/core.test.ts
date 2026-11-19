@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { COMBAT, DEVICES } from '../src/core/data/devices';
-import { LOCATIONS } from '../src/core/data/locations';
+import { CONCEAL_HOURS, LOCATIONS } from '../src/core/data/locations';
+import { GARAGE_WORKBENCH, hasViceLeftovers } from '../src/core/garage-vice';
 import { NIGHTS } from '../src/core/data/waves';
-import { arriveHome, concludeNight, leaveLocation, newGame, planVisit, prepareSearch, retryChapter, searchSpot, startNextDay, startNight, travelTo } from '../src/core/game';
+import { arriveHome, concealSpot, concludeNight, leaveLocation, newGame, planVisit, prepareSearch, retryChapter, searchSpot, startNextDay, startNight, travelTo } from '../src/core/game';
 import { ENTRIES, SPAWN_CELLS, idx, isBuildable } from '../src/core/map';
 import { NightSim, type Enemy } from '../src/core/night';
 import { auditRoutes, computeField } from '../src/core/pathing';
@@ -913,7 +914,7 @@ describe('campaign', () => {
     const base = newGame(7);
     const save = { ...base, day: 2, locations: { ...base.locations, hardware: { visits: 1, searched: [0] } } };
     const upgraded = deserialize(JSON.stringify(save))!;
-    expect(upgraded.locations.hardware).toEqual({ visits: 1, searched: [0], looted: [], lootCheckedDay: 2 });
+    expect(upgraded.locations.hardware).toEqual({ visits: 1, searched: [0], looted: [], covered: [], lootCheckedDay: 2 });
     expect(unwrap(travelTo(upgraded, 'hardware')).state.outing?.lootNotice).toBeUndefined();
     const nextDay = startNextDay({ ...upgraded, phase: 'morning' });
     expect(unwrap(travelTo(nextDay, 'hardware')).state.outing?.lootNotice).toBe(1);
@@ -928,6 +929,61 @@ describe('campaign', () => {
     expect(state.outing?.lootNotice).toBeUndefined();
     expect(state.locations.garage.searched).not.toContain(caseIndex);
     expect(prepareSearch(state, caseIndex).ok).toBe(true);
+  });
+
+  it('covers one lot within the daylight reserve and saves whether it held or was pulled aside', () => {
+    const destination = LOCATIONS.grocery;
+    const target = destination.spots.findIndex((spot) => spot.key === 'backroom');
+    const there = unwrap(travelTo({ ...newGame(7), day: 2 }, 'grocery')).state;
+    const searched = destination.spots.flatMap((_, index) => index === target ? [] : [index]);
+    const progress = { ...there.locations.grocery, searched, lootCheckedDay: 2 };
+    const short = { ...there, locations: { ...there.locations, grocery: progress }, hoursLeft: destination.travelHours };
+    expect(concealSpot(short, target)).toBe(short);
+    const enough = { ...short, hoursLeft: short.hoursLeft + CONCEAL_HOURS };
+    const covered = concealSpot(enough, target);
+    expect(covered.hoursLeft).toBe(destination.travelHours);
+    expect(covered.locations.grocery.covered).toEqual([target]);
+    expect(covered.outing).toBe(enough.outing);
+    expect(concealSpot({ ...covered, hoursLeft: 12 }, target).locations.grocery.covered).toEqual([target]);
+
+    const home = unwrap(arriveHome(unwrap(leaveLocation(covered)).state)).state;
+    const dayThree = startNextDay({ ...home, phase: 'morning', rng: 7, totals: { ...home.totals, searches: 1 } });
+    const reload = deserialize(serialize(dayThree))!;
+    const exposed = { ...reload, locations: { ...reload.locations, grocery: progress } };
+    expect(unwrap(travelTo(exposed, 'grocery')).state.locations.grocery.looted).toEqual([target]);
+    const intact = unwrap(travelTo(reload, 'grocery')).state;
+    expect(intact.locations.grocery).toMatchObject({ covered: [target], looted: [] });
+    expect(intact.encounter).toBeNull();
+    expect(unwrap(searchSpot(intact, target)).state.locations.grocery.covered).toEqual([]);
+
+    // Seed 9 succeeds both at looting and at finding the covered lot.
+    const torn = unwrap(travelTo({ ...reload, rng: 9 }, 'grocery')).state;
+    expect(deserialize(serialize(torn))?.locations.grocery).toMatchObject({ covered: [target], looted: [target] });
+    expect(prepareSearch(torn, target)).toMatchObject({ ok: false, error: { code: 'already_searched' } });
+  });
+
+  it('leaves only springs in a vice abandoned after a paid attempt and opened on a later day', () => {
+    const there = unwrap(travelTo(newGame(7), 'garage')).state;
+    const preview = unwrap(prepareSearch(there, GARAGE_WORKBENCH));
+    expect(preview.success.loot.battery).toBe(1);
+    const homeFrom = (at: GameState) => unwrap(arriveHome(unwrap(leaveLocation(at)).state)).state;
+    const tomorrowFrom = (at: GameState) => startNextDay({ ...homeFrom(at), phase: 'morning' });
+    const hasLeftovers = (state: GameState) => hasViceLeftovers(state, 'garage', GARAGE_WORKBENCH);
+    expect(hasLeftovers(unwrap(travelTo(tomorrowFrom(there), 'garage')).state)).toBe(false);
+    expect(hasLeftovers(unwrap(travelTo(homeFrom(preview.failure), 'garage')).state)).toBe(false);
+    expect(hasLeftovers(unwrap(travelTo(tomorrowFrom(concealSpot(preview.failure, GARAGE_WORKBENCH)), 'garage')).state)).toBe(false);
+
+    const next = deserialize(serialize(tomorrowFrom(preview.failure)))!;
+    const back = unwrap(travelTo({ ...next, hoursLeft: 2 * LOCATIONS.garage.travelHours }, 'garage')).state;
+    expect(hasLeftovers(back)).toBe(true);
+    const reloaded = deserialize(serialize(back))!;
+    const collected = unwrap(searchSpot(reloaded, GARAGE_WORKBENCH));
+    expect(collected.loot).toEqual({ springs: expect.any(Number) });
+    expect(collected.loot.springs).toBeGreaterThanOrEqual(3);
+    expect(collected.state.hoursLeft).toBe(reloaded.hoursLeft);
+    expect(collected.state.outing?.trunk.battery).toBe(reloaded.outing?.trunk.battery);
+    expect(prepareSearch(collected.state, GARAGE_WORKBENCH)).toMatchObject({ ok: false, error: { code: 'already_searched' } });
+    expect(planVisit({ ...homeFrom(back), hoursLeft: 2 * LOCATIONS.garage.travelHours }, LOCATIONS.garage)).toEqual({ searches: 1, hoursAfterReturn: 0 });
   });
 
   it('keeps the price of a miss across reload and charges the next attempt once', () => {

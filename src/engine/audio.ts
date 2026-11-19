@@ -19,6 +19,7 @@ export type Sfx =
   | 'floodlight'
   | 'ready'
   | 'tracker_ping'
+  | 'siren_test'
   | 'hit'
   | 'kill'
   | 'door'
@@ -846,6 +847,10 @@ class AudioEngine {
         break;
       case 'tracker_ping':
         this.tone('triangle', 940, 760, 0.12, 0.1);
+        break;
+      case 'siren_test':
+        this.tone('triangle', 165, 275, 0.65, 0.15);
+        this.tone('sine', 280, 135, 0.8, 0.12, 0.62);
         break;
       case 'hit':
         this.tone('sine', 150, 60, 0.09, 0.3);

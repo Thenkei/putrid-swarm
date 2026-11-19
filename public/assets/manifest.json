@@ -74,6 +74,11 @@
     "w": 640,
     "h": 960
   },
+  "plate_appraisal_radio": {
+    "file": "plates/plate_appraisal_radio.webp",
+    "w": 640,
+    "h": 960
+  },
   "plate_loc_post": {
     "file": "plates/plate_loc_post.webp",
     "w": 1280,
@@ -2137,5 +2142,20 @@
     "file": "plates/plate_drive_radio.webp",
     "w": 1280,
     "h": 720
+  },
+  "hero_departure": {
+    "file": "sprites/hero_departure.webp",
+    "w": 1328,
+    "h": 759
+  },
+  "hero_departure_one_arm": {
+    "file": "sprites/hero_departure_one_arm.webp",
+    "w": 1328,
+    "h": 759
+  },
+  "hero_departure_left": {
+    "file": "sprites/hero_departure_left.webp",
+    "w": 1328,
+    "h": 757
   }
 }

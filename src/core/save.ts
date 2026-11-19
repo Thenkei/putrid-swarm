@@ -76,10 +76,16 @@ function parseLocations(v: unknown, day: number): GameState['locations'] | null 
     const searched = [...new Set(progress['searched'].filter((index) => isCount(index) && index < LOCATIONS[id].spots.length))];
     const rawLooted = progress['looted'];
     const looted = Array.isArray(rawLooted) ? searched.filter((index) => rawLooted.includes(index)) : [];
+    const rawCovered = progress['covered'];
+    const covers = Array.isArray(rawCovered)
+      ? [...new Set(rawCovered.filter((index) => isCount(index) && index < LOCATIONS[id].spots.length))]
+      : [];
+    const unopenedCover = covers.find((index) => !searched.includes(index));
+    const covered = covers.filter((index) => index === unopenedCover || looted.includes(index));
     const checked = progress['lootCheckedDay'];
     // Older saves know what was emptied, but not when. Start counting from the saved day.
     const lootCheckedDay = checked === undefined && searched.length > 0 ? day : isCount(checked) && checked >= 1 && checked <= day ? checked : null;
-    locations[id] = { searched, looted, lootCheckedDay, visits: isCount(progress['visits']) ? progress['visits'] : 0 };
+    locations[id] = { searched, looted, covered, lootCheckedDay, visits: isCount(progress['visits']) ? progress['visits'] : 0 };
   }
   return locations;
 }
@@ -106,7 +112,8 @@ function parseDispute(v: Record<string, unknown>): Dispute | null {
     typeof v['yields'] === 'boolean' &&
     typeof v['plays'] === 'boolean' &&
     (v['receiptAnswered'] === undefined || (v['receiptAnswered'] === true && v['rival'] === 'dealer')) &&
-    ['open', 'refused', 'game', 'fight'].includes(v['stage'] as string) &&
+    ['open', 'refused', 'game', 'price', 'fight'].includes(v['stage'] as string) &&
+    (v['stage'] !== 'price' || v['rival'] === 'dealer') &&
     isRecord(game) &&
     Array.isArray(game['theirs']) &&
     game['theirs'].length === ENCOUNTER.throws &&

@@ -1186,6 +1186,23 @@ button:disabled {
   color: var(--cream-dim);
 }
 
+.siren-forecast {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px;
+  border: 1px solid #806141;
+  border-radius: 4px;
+  background: #252116;
+  color: #ebd1a0;
+}
+.siren-forecast strong { font-size: 19px; }
+.siren-forecast .btn { min-height: 30px; padding: 3px 8px; font-size: 15px; }
+.siren-controls { display: flex; gap: 5px; }
+.siren-controls .btn { flex: 1; }
+.siren-controls [aria-pressed='true'] { border-color: #e3b365; color: #ffdfa0; }
+.siren-armed { color: #d5e6a3; }
+
 .hint {
   position: absolute;
   left: 304px;
@@ -1373,16 +1390,40 @@ button:disabled {
   color: #ffd58c;
 }
 
-.spring-receipt {
+.spot.covered:not(.looted) .ring,
+.spot.cover-target .ring {
+  border-color: #b1d486;
+}
+
+.spot.covered:not(.looted) .tag small,
+.spot.cover-target .tag small,
+.spot.vice-leftovers .tag small {
+  display: block;
+  margin-top: 3px;
+  color: #d7edb0;
+}
+
+.spot:disabled .ring {
+  opacity: 0.45;
+  animation: none;
+}
+
+.loc-title .conceal-button {
+  margin-top: 8px;
+  min-height: 32px;
+  font-size: 18px;
+}
+
+.stash-note {
   width: 560px;
   padding: 18px 22px;
 }
 
-.spring-receipt h2 {
+.stash-note h2 {
   font-size: 30px;
 }
 
-.spring-receipt blockquote {
+.stash-note blockquote {
   margin: 12px 0;
   padding: 14px 16px;
   background: #ede0bf;
@@ -2539,6 +2580,37 @@ button:disabled {
 .encounter.wide {
   width: 940px;
 }
+
+.appraisal-table {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  overflow: hidden;
+  border: 2px solid #7d6241;
+  border-radius: 6px;
+  background: #e8d3aa;
+  box-shadow: inset 0 1px #fff2cf, 0 8px 25px #3e2d2666;
+}
+.appraisal-radio {
+  min-height: 370px;
+  background: #4d3926 center / cover no-repeat;
+  border-right: 2px solid #936f47;
+}
+.appraisal-form { padding: 22px 24px; }
+.appraisal-form .stake { margin-block: 18px; }
+.appraisal-tags, .appraisal-bids { display: flex; gap: 10px; }
+.appraisal-tags { margin-top: 16px; }
+.appraisal-tags span {
+  flex: 1;
+  padding: 7px 13px;
+  border: 1px solid #ae9066;
+  background: #f5e4bc;
+  font-size: 17px;
+}
+.appraisal-tags b { display: block; margin-top: 5px; font: bold 29px/1.15 var(--slab-font); }
+.appraisal-tags span:last-child b { color: #7d392e; font-style: italic; }
+.appraisal-bids .btn { flex: 1; min-height: 48px; font-size: 20px; }
+.appraisal-bids kbd { color: #ffd996; font-size: 15px; }
+.appraisal-bids .btn:focus-visible { outline: 3px solid #bc660e; outline-offset: 2px; }
 
 .encounter img.portrait {
   width: 210px;

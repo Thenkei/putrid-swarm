@@ -6,11 +6,12 @@ import { DAY_HOURS } from '../core/data/locations';
 import { ORCHARD, hasLeftArm } from '../core/orchard';
 import { SHED, briefingFor, type Briefing } from '../core/shed';
 import { allyFor, guestOf, lookoutFor } from '../core/radio';
-import { LAST_NIGHT, planForNight } from '../core/data/waves';
+import { LAST_NIGHT, planForNight, SIREN_SECTORS, sirenPackFor, type SirenSector } from '../core/data/waves';
+import { canPlanSiren, scheduleSiren, SIREN_COST, sirenForNight } from '../core/siren';
 import { bossOfNight, clockLabel, startNight } from '../core/game';
 import { ENTRIES, GRID_H, GRID_W, SPAWN_CELLS, idx } from '../core/map';
 import { computeField, traceRoute } from '../core/pathing';
-import type { Cell, DeviceInstance, DeviceTypeId, Facing, GameState, Result, SectorId } from '../core/types';
+import type { Cell, Cost, DeviceInstance, DeviceTypeId, Facing, GameState, Result, SectorId } from '../core/types';
 import { DEVICE_TYPE_IDS, RESOURCE_IDS, SECTOR_IDS, ok } from '../core/types';
 import {
   affordableCount,
@@ -134,8 +135,10 @@ export class DayScene implements Scene {
   private panelDoor: SectorId | null = null;
   private previewHp: number | undefined;
   private reinforcementPreview: SectorId | null = null;
+  private repairPreview: { readonly devices: ReadonlyMap<number, DeviceInstance>; readonly bill: Cost; readonly elapsed: number; readonly left: number } | null = null;
   private readonly reinforceButtons = new Map<SectorId, HTMLButtonElement>();
   private showRoutes = true;
+  private sirenPreview: SirenSector | null = null;
   private sceneryAction: SceneryAction | null = null;
   private time = 0;
   private reveal: number;
@@ -213,6 +216,7 @@ export class DayScene implements Scene {
     const s = S();
     const state = this.state;
     const yard = state.yard;
+    this.repairPreview = null;
 
     const daylight = el('span', { class: 'meter' }, [el('i', { style: { width: `${(state.hoursLeft / DAY_HOURS) * 100}%` } })]);
     const houseMeter = el('span', { class: `meter house ${yard.houseHp <= 35 ? 'low' : ''}` }, [el('i', { style: { width: `${(yard.houseHp / HOUSE_MAX_HP) * 100}%` } })]);
@@ -275,11 +279,31 @@ export class DayScene implements Scene {
     // The two chores that come back every day, each in one click: take back the piece just laid, and put
     // everything the night broke back on its feet.
     const fresh = lastFresh(state);
-    const wrecks = brokenDevices(yard).length;
+    const broken = brokenDevices(yard);
+    const wrecks = broken.length;
     const repairs = repairAll(state);
     const count = repairs.ok ? repairs.value.repaired : 0;
     const after = repairs.ok ? repairs.value.state : state;
     const bill = Object.fromEntries(RESOURCE_IDS.map((id) => [id, state.inventory[id] - after.inventory[id]]));
+    const elapsed = state.hoursLeft - after.hoursLeft;
+    const repairAllButton = el('button', {
+      class: `btn ${count > 0 ? 'btn-alert' : ''}`,
+      text: wrecks === 0 ? s.day.repairAllNone : fmt(count === wrecks ? s.day.repairAll : s.day.repairPart, { n: count, total: wrecks }),
+      disabled: count === 0,
+      title: repairs.ok ? `${describeCost(bill)} · ${fmt(s.day.time, { h: hours(elapsed) })}` : wrecks ? yardErrorText(repairs.error) : s.day.repairAllNoneTitle,
+      onClick: () => this.repairEverything(),
+    });
+    if (repairs.ok) {
+      const brokenIds = new Set(broken.map(d => d.id));
+      const devices = new Map(after.yard.devices.filter(d => brokenIds.has(d.id) && !d.broken).map(d => [d.id, d]));
+      const preview = { devices, bill, elapsed, left: repairs.value.left };
+      for (const event of ['mouseenter', 'mouseleave', 'focus', 'blur']) {
+        repairAllButton.addEventListener(event, () => {
+          this.repairPreview = repairAllButton.matches(':hover, :focus') ? preview : null;
+          this.updateInfo();
+        });
+      }
+    }
     const quick = el('div', { class: 'tool-row quick' }, [
       el('button', {
         class: 'btn',
@@ -288,13 +312,7 @@ export class DayScene implements Scene {
         title: fresh ? fmt(s.day.undoTitle, { name: s.device[fresh.type].name }) : s.day.undoNone,
         onClick: () => this.undo(),
       }),
-      el('button', {
-        class: `btn ${count > 0 ? 'btn-alert' : ''}`,
-        text: wrecks === 0 ? s.day.repairAllNone : fmt(count === wrecks ? s.day.repairAll : s.day.repairPart, { n: count, total: wrecks }),
-        disabled: count === 0,
-        title: repairs.ok ? `${describeCost(bill)} · ${fmt(s.day.time, { h: hours(state.hoursLeft - after.hoursLeft) })}` : wrecks ? yardErrorText(repairs.error) : s.day.repairAllNoneTitle,
-        onClick: () => this.repairEverything(),
-      }),
+      repairAllButton,
     ]);
     const panel = el('div', { class: 'panel build-panel' }, [
       el('h3', { text: s.day.build }),
@@ -363,6 +381,7 @@ export class DayScene implements Scene {
       el('b', { text: `${s.day.tonight} · ${fmt(s.night.night, { n: state.day })}` }),
       el('div', { text: fmt(s.day.tonightFrom, { sectors: expected.map((sector) => s.sector[sector]).join(', ') }) }),
       el('div', { class: 'muted', text: boss ? fmt(s.day.tonightBoss, { name: s.neighbor[boss].name }) : s.day.tonightUnknown }),
+      this.sirenPanel(),
       this.briefing(briefingFor(state)),
       this.radioBriefing(),
     ]);
@@ -389,6 +408,48 @@ export class DayScene implements Scene {
     this.panelDoor = SECTOR_IDS.find((_, index) => doorRows[index]?.matches(':hover')) ?? null;
     this.updateHover(this.app.pointer, true);
     this.maybeHint();
+  }
+
+  private sirenPanel(): HTMLElement | null {
+    const state = this.state;
+    const armed = sirenForNight(state);
+    const pack = sirenPackFor(state.day);
+    if (!pack || (!armed && !canPlanSiren(state))) return null;
+    const { siren: s, sector } = S();
+    const selected = armed ?? this.sirenPreview;
+    const detail = selected ? fmt(s.moved, { wave: pack.wave, n: pack.pack.count, from: sector[pack.pack.sector], to: sector[selected] }) : s.pick;
+    const afford = state.inventory.battery >= SIREN_COST.battery;
+    const controls = armed
+      ? [el('button', { class: 'btn', text: s.inspect, onClick: () => this.previewSiren(armed) })]
+      : SIREN_SECTORS.map(id => {
+          const button = el('button', { class: `btn ${selected === id ? 'sel' : ''}`, data: { sirenRoute: id }, text: sector[id], onClick: () => this.previewSiren(id) });
+          button.setAttribute('aria-pressed', String(selected === id));
+          return button;
+        });
+    return el('section', { class: 'siren-forecast' }, [
+      el('strong', { text: s.title }),
+      el('span', { class: 'siren-route', text: detail }),
+      el('div', { class: 'siren-controls' }, controls),
+      armed ? el('span', { class: 'siren-armed', text: s.armed }) : el('button', {
+        class: 'btn btn-primary',
+        text: afford ? s.arm : s.empty,
+        disabled: !selected || !afford,
+        onClick: () => {
+          if (!selected) return;
+          const next = scheduleSiren(this.state, selected);
+          if (next) this.apply(ok(next), s.armed, 'click');
+        },
+      }),
+    ]);
+  }
+
+  private previewSiren(sector: SirenSector): void {
+    this.sirenPreview = sector;
+    this.mode = { kind: 'idle' };
+    this.showRoutes = true;
+    this.showDoor(sector);
+    this.refresh();
+    this.root.querySelector<HTMLButtonElement>(`[data-siren-route="${sector}"]`)?.focus();
   }
 
   /** What the morning on the radio left for tonight: someone at a door, someone in the shed, where they will come from. */
@@ -530,6 +591,15 @@ export class DayScene implements Scene {
     this.refundTag.hidden = true;
     this.previewHp = undefined;
     this.reinforcementPreview = null;
+    if (this.repairPreview) {
+      const { bill, elapsed, left } = this.repairPreview;
+      this.info.replaceChildren(
+        el('b', { text: s.day.repairPreview }),
+        el('div', {}, [costLine(bill, this.state.inventory), ` · ${fmt(s.day.time, { h: hours(elapsed) })}`]),
+      );
+      if (left > 0) this.info.append(el('div', { class: 'muted', text: fmt(s.day.repairPreviewLeft, { n: left }) }));
+      return;
+    }
     const sector = this.inspectedDoor;
     if (sector) {
       const door = this.state.yard.barricades[sector];
@@ -834,7 +904,7 @@ export class DayScene implements Scene {
 
   /** The approaches tonight's infected come from: the tracks the protagonist found this morning. */
   private expectedSectors(): SectorId[] {
-    const seen = new Set(planForNight(this.state.day).waves.flatMap((wave) => wave.groups.map((group) => group.sector)));
+    const seen = new Set(planForNight(this.state.day, sirenForNight(this.state) ?? this.sirenPreview).waves.flatMap((wave) => wave.groups.map((group) => group.sector)));
     return SECTOR_IDS.filter((sector) => seen.has(sector));
   }
 
@@ -873,17 +943,21 @@ export class DayScene implements Scene {
     const removing = this.mode.kind === 'dismantle' && this.hoverDevice && !this.hoverDevice.broken && DEVICES[this.hoverDevice.type].blocks
       ? this.hoverDevice
       : null;
-    const focus = this.mode.kind === 'build' ? null : this.inspectedDoor;
+    const focus = this.mode.kind === 'build' ? null : this.inspectedDoor ?? this.sirenPreview;
     const forecast = this.showRoutes || this.mode.kind === 'build' ? this.forecast(removing) : null;
     const overlay = focus ? forecast?.byDoor[focus] : forecast;
     const placing = this.currentGhost().ghost;
     const ghost = placing ? { ...placing, idle: this.ghostIdle() } : null;
     const hoverId = this.mode.kind === 'repair' || this.mode.kind === 'dismantle' ? this.hoverDevice?.id : undefined;
     const marksSilent = this.showRoutes && this.mode.kind !== 'build';
-    const devices = state.yard.devices.map(d => ({
-      ...dayDeviceVisual(d, d.id === hoverId, marksSilent && wasSilent(state, d)),
-      placementLift: this.placementLift(d.id),
-    }));
+    const devices = state.yard.devices.map(d => {
+      const repaired = this.repairPreview?.devices.get(d.id);
+      return {
+        ...dayDeviceVisual(repaired ?? d, d.id === hoverId, marksSilent && wasSilent(state, d)),
+        placementLift: this.placementLift(d.id),
+        repairPreview: repaired !== undefined,
+      };
+    });
     const def = this.mode.kind === 'build' ? DEVICES[this.mode.type] : null;
     // Out of build mode, the trap under the pointer shows how far it reaches.
     const reaching = !def && this.hoverDevice && isTrap(this.hoverDevice.type) && !this.hoverDevice.broken ? this.hoverDevice : null;

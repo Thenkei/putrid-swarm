@@ -11,6 +11,8 @@
 
 import { ENCOUNTER, GROUPS, RESOURCE_VALUE, RIVALS, WASHERS, type StanceWeights } from './data/rivals';
 import { LOCATIONS, type LocationDef, type SearchSpot } from './data/locations';
+import { APPRAISAL_FLAG, radioAppraisal } from './appraisal';
+import { hasViceLeftovers } from './garage-vice';
 import type { Rng } from './rng';
 import type {
   Acquaintance,
@@ -208,8 +210,10 @@ export function rollDispute(state: GameState, location: LocationDef, neighborAtH
   if ((flags[majorsKey(day)] ?? 0) >= ENCOUNTER.majorsPerDay) return null;
   if (flags[flagToday('dispute', location.id, day)]) return null;
 
-  const searched = state.locations[location.id].searched;
-  const open = location.spots.map((spot, index) => ({ spot, index })).filter(({ spot, index }) => !spot.requiresDirectory && !searched.includes(index) && expectedWorth(spot) > 0);
+  const { searched, covered } = state.locations[location.id];
+  const open = location.spots.map((spot, index) => ({ spot, index })).filter(({ spot, index }) =>
+    !spot.requiresDirectory && !searched.includes(index) && !covered.includes(index)
+    && !hasViceLeftovers(state, location.id, index) && expectedWorth(spot) > 0);
   if (open.length === 0) return null;
 
   const candidates = RIVAL_IDS.filter((id) => RIVALS[id].fromDay <= day && !flags[flagToday('rival', id, day)]);
@@ -309,7 +313,7 @@ export function rollAmbush(state: GameState, rng: Rng): Meeting<Ambush> | null {
 
 // ───────────────────────────── Choices ─────────────────────────────
 
-export type ChoiceId = 'share' | 'trade' | 'favor' | 'play' | 'threaten' | 'concede' | 'fight' | 'pay' | 'bargain' | 'detour' | 'defend' | 'showReceipt' | FightMove;
+export type ChoiceId = 'share' | 'trade' | 'favor' | 'play' | 'appraise' | 'threaten' | 'concede' | 'fight' | 'pay' | 'bargain' | 'detour' | 'defend' | 'showReceipt' | FightMove;
 
 export interface Choice {
   readonly id: ChoiceId;
@@ -367,6 +371,7 @@ export function choicesOf(state: GameState): readonly Choice[] {
         list.push(choice('share', H.share, { gains: splitLot(lot).yours }));
         list.push(choice('trade', H.trade, { gains: lot, gives: encounter.price }));
         if (encounter.plays) list.push(choice('play', H.game));
+        if (encounter.rival === 'dealer' && !state.flags[APPRAISAL_FLAG]) list.push(choice('appraise', H.game));
         list.push(choice('threaten', 0, { maxHours: H.threat }));
         list.push(choice('concede', 0));
         return list;
@@ -374,6 +379,7 @@ export function choicesOf(state: GameState): readonly Choice[] {
       case 'refused':
         return [scuffle('fight'), choice('concede', 0)];
       case 'game':
+      case 'price':
         return [];
       case 'fight':
         return moves(encounter.fight);
@@ -402,7 +408,14 @@ export type EncounterError =
 export type Action =
   | { readonly type: Exclude<ChoiceId, 'pay'> }
   | { readonly type: 'pay'; readonly payment: Cost }
-  | { readonly type: 'throw'; readonly aim: number };
+  | { readonly type: 'throw'; readonly aim: number }
+  | { readonly type: 'estimate'; readonly francs: number };
+
+interface AppraisalResult {
+  readonly correct: number;
+  readonly yours: number;
+  readonly dealer: number;
+}
 
 /** How an encounter ended, for the player to read and for the outing's report. */
 export interface Resolution {
@@ -415,6 +428,7 @@ export interface Resolution {
   /** What the other side kept of a disputed lot. */
   readonly theirs: Cost;
   readonly hours: number;
+  readonly appraisal?: AppraisalResult;
   /** How the survivor concerned stood before and stands now; null when nobody the player knows was involved. */
   readonly standing: { readonly rival: RivalId; readonly before: Standing; readonly after: Standing } | null;
 }
@@ -446,6 +460,7 @@ interface Closing {
   readonly standing?: Standing;
   readonly fought?: boolean;
   readonly exchange?: Exchange | null;
+  readonly appraisal?: AppraisalResult;
 }
 
 function close(state: GameState, outing: Outing, encounter: Encounter, closing: Closing): Result<Step, EncounterError> {
@@ -495,6 +510,7 @@ function close(state: GameState, outing: Outing, encounter: Encounter, closing: 
       lost,
       theirs: dispute ? without(dispute.lot, gained) : {},
       hours,
+      ...(closing.appraisal ? { appraisal: closing.appraisal } : {}),
       standing: rival && before && after ? { rival, before: before.standing, after: after.standing } : null,
     },
     exchange: closing.exchange ?? null,
@@ -535,6 +551,20 @@ function actOnDispute(state: GameState, outing: Outing, dispute: Dispute, action
     });
   }
 
+  if (dispute.stage === 'price') {
+    if (action.type !== 'estimate') return err({ code: 'not_offered' });
+    const round = radioAppraisal(state, dispute);
+    if (!round.bids.includes(action.francs)) return err({ code: 'not_offered' });
+    const wins = action.francs === round.correct;
+    const ties = action.francs === round.dealer;
+    return close(state, outing, dispute, {
+      outcome: wins ? 'game_won' : ties ? 'game_tied' : 'game_lost',
+      gained: wins ? dispute.lot : ties ? split.yours : {},
+      hours: H.game,
+      appraisal: { correct: round.correct, yours: action.francs, dealer: round.dealer },
+    });
+  }
+
   if (dispute.stage === 'fight') {
     if (action.type === 'throw' || action.type === 'pay') return err({ code: 'not_offered' });
     const played = playExchange(dispute.fight, action.type as FightMove);
@@ -566,6 +596,8 @@ function actOnDispute(state: GameState, outing: Outing, dispute: Dispute, action
       return close(state, outing, dispute, { outcome: 'favor', gained: dispute.lot, hours: H.favor, standing: 'stranger' });
     case 'play':
       return going({ ...state, encounter: { ...dispute, stage: 'game' } });
+    case 'appraise':
+      return going({ ...state, flags: { ...state.flags, [APPRAISAL_FLAG]: 1 }, encounter: { ...dispute, stage: 'price' } });
     case 'threaten':
       if (dispute.yields) return close(state, outing, dispute, { outcome: 'scared', gained: dispute.lot, hours: H.threat, standing: 'grudge' });
       // The threat was made whether or not it worked: it is remembered from now on.
@@ -651,6 +683,6 @@ export function act(state: GameState, action: Action): Result<Step, EncounterErr
 export function walkAway(state: GameState): Result<Step, EncounterError> {
   const { encounter, outing } = state;
   if (!encounter || !outing || encounter.kind !== 'dispute') return err({ code: 'no_encounter' });
-  if (encounter.stage === 'game') return close(state, outing, encounter, { outcome: 'game_lost', hours: ENCOUNTER.hours.game });
+  if (encounter.stage === 'game' || encounter.stage === 'price') return close(state, outing, encounter, { outcome: 'game_lost', hours: ENCOUNTER.hours.game });
   return act(state, { type: encounter.stage === 'fight' ? 'yield' : 'concede' });
 }

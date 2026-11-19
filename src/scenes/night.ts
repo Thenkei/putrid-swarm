@@ -3,6 +3,8 @@
 
 import { cameraPriority, type CameraPriority } from '../core/camera-priority';
 import { BARRICADE, COMBAT, DEVICES, HOUSE_MAX_HP, isAuto, isManual } from '../core/data/devices';
+import { sirenPackFor, type SirenSector } from '../core/data/waves';
+import { sirenForNight } from '../core/siren';
 import { detectContact, hasDetector, SCAN_RANGE, SCAN_SECONDS } from '../core/dead-channel';
 import { concludeNight } from '../core/game';
 import { HOUSE, sectorOf } from '../core/map';
@@ -104,6 +106,7 @@ interface TrapButton {
 
 export class NightScene implements Scene {
   private readonly sim: NightSim;
+  private readonly siren: SirenSector | null;
   private readonly brushPassage = new BrushPassage();
   private readonly defenseMotion = new DefenseMotion();
   private cam: SectorId = 'portail';
@@ -179,8 +182,9 @@ export class NightScene implements Scene {
 
   constructor(private readonly app: App) {
     const state = this.state;
+    this.siren = sirenForNight(state);
     this.detectorFound = hasDetector(state);
-    this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state), deskFor(state), allyFor(state));
+    this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state), deskFor(state), allyFor(state), this.siren);
     this.defenseMotion.update(this.sim);
     try {
       // The evening as it stood, so a lost night can be replayed with the same yard.
@@ -837,6 +841,10 @@ export class NightScene implements Scene {
       switch (event.type) {
         case 'wave':
           this.banner(fmt(s.night.wave, { i: event.index, n: event.total }));
+          if (this.siren && sirenPackFor(this.sim.night)?.wave === event.index) {
+            audio.play('siren_test');
+            this.banner(fmt(s.siren.firing, { sector: s.sector[this.siren] }));
+          }
           break;
         case 'boss_spawn':
           audio.play('boss');

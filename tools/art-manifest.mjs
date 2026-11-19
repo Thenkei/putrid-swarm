@@ -85,6 +85,27 @@ const REF_HOMESTEAD = C('01-day-night-homestead.png');
 const REF_PROJECTION = C('03-2d-projection-comparison.png');
 const YARD_STYLE_REFS = ['art/raw/obj_trees.png', 'art/raw/obj_house_front.png'];
 const CAR_SPRITE_REF = 'public/assets/sprites/obj_car_front.webp';
+const HERO_APPROACH_BRIEF =
+  'Use case: stylized-concept. Original game sprite atlas for Putrid Swarm. Draw exactly EIGHT isolated full-body animation ' +
+  'cels in a regular FOUR-column, TWO-row grid, wide landscape 1792×1024 or wider. The first reference depicts the exact ' +
+  'protagonist: scruffy dark-haired adult man with short stubble, worn mustard yellow hooded field jacket with hood down, ' +
+  'dark charcoal cargo trousers and brown work boots. Keep his clothing, realistic body proportions, muted ink texture, and ' +
+  'fine dark brown contours identical. True transparent RGBA background. NO car, house, terrain, objects, cast shadows, ' +
+  'dividers, scenery, borders, letters or numbers. Strict empty padding on every edge of EVERY cel, never cross a cell ' +
+  'boundary. Same physical character scale throughout, upright walking figures roughly 70% of one cel height. High isometric ' +
+  'three-quarter fixed camera, looking down about 25 degrees. Top row left to right: a four-frame walk cycle with the man ' +
+  'headed DOWN-RIGHT, chest and face seen in three-quarter, walking with intent. Frame one: right boot leads on heel, left ' +
+  'trails and hand naturally swings. Frame two: mid-crossing with body upright, left boot passes under him as right supports. ' +
+  'Frame three: left boot leads on heel, right trails. Frame four: reverse passing stride, right boot passes under him while ' +
+  'left supports. Maintain facing, scale and body centre across the walk cycle. Bottom row left to right comprises four ' +
+  'distinctly different climbing cels from the FRONT, facing the viewer and slightly to the right, on the same isometric ' +
+  'camera. Frame one: seated on an invisible upper window sill, one knee comes over, boots forward and below, one hand ' +
+  'pushing down against the invisible sill. Frame two: low squat balancing with both boots planted, torso leans forward as he ' +
+  'moves along an invisible sloping porch roof. Frame three: a straight hanging pose with hand or hands above his head ' +
+  'gripping the edge of an invisible roof, feet completely off the ground, both boots pointed down, coat drapes vertically. ' +
+  'Frame four: soft landing on both feet, knees deeply bent, head down, one hand forward for balance and a visibly distinct ' +
+  'lower body silhouette. All figures fully in frame including overhead grips and boots. No furniture or props may be drawn; ' +
+  'the game will provide the house.';
 const DRIVE_PLATE_BRIEF =
   'Use case: illustration-story. An original full-bleed landscape 16:9 in-game travel illustration for Putrid Swarm. Match ' +
   'the linked game\'s detailed hand-inked drawing, fine dark contours, distressed painterly colours, dusty old France and ' +
@@ -246,6 +267,10 @@ export const ART = [
   })),
 
   // ───────────────────────────── Generated plates ─────────────────────────────
+  {
+    id: 'plate_appraisal_radio', kind: 'plate', w: 640, refs: [REF_TOWN],
+    prompt: `Portrait 2:3 still life of an ordinary black portable radio half out of its faded cardboard box on a French flea-market table. Two blank paper tags and checked red cloth. No lettering or branding. ${STYLE}`,
+  },
   {
     id: 'plate_crossbow', kind: 'plate', w: 1280, refs: [REF_GARAGE],
     prompt: `Wide 16:9 garage close-up. A closed olive canvas case on a teal workbench, two feathered wings embroidered on its cream shoulder strap, a worn motorcycle glove and a swallow-shaped key tag. Leave the lower edge in shadow for the caption. ${STYLE}`,
@@ -636,6 +661,44 @@ export const ART = [
       'or the red door. Same stationery rack, closed doors, round treaded tyres, no shadows or floors, no background, genuinely ' +
       'transparent RGBA, no text, no frame, no guides or marks. The nose faces the viewer in every view, DO NOT draw any rear ' +
       'view.',
+  },
+  // Shared walk cycles and the four poses used on the upper-window route.
+  {
+    id: 'hero_departure', kind: 'atlas', w: 1328, source: { concept: 'art/raw/hero_departure.png' },
+    refs: ['art/raw/car_boarding.png', REF_TRUNK],
+    prompt: HERO_APPROACH_BRIEF + ' ' +
+      'The protagonist has two ordinary arms. Keep both arms anatomically correct. In the hanging pose both hands are up, two ' +
+      'boots below.',
+  },
+  {
+    id: 'hero_departure_one_arm', kind: 'atlas', w: 1328, source: { concept: 'art/raw/hero_departure_one_arm.png' },
+    refs: ['art/raw/car_boarding_one_arm.png', REF_TRUNK],
+    prompt: HERO_APPROACH_BRIEF + ' ' +
+      'The protagonist has lost his anatomical LEFT arm at the shoulder. He has exactly one RIGHT arm ending in exactly ONE hand ' +
+      'in every drawing. The visible empty ochre LEFT sleeve is a very short folded and tied sleeve ending at his shoulder. The ' +
+      'right arm always starts on the screen-LEFT side of his chest when facing the viewer. In the hanging pose his single RIGHT ' +
+      'arm reaches above his head from that shoulder, and the short empty LEFT sleeve is obvious on the screen-RIGHT shoulder. ' +
+      'For poses that angle his body, keep the anatomical same side and don\'t mirror. He balances with planted boots and his ' +
+      'right arm. No blood, no injury detail.',
+  },
+  {
+    id: 'hero_departure_left', kind: 'atlas', w: 1328, source: { concept: 'art/raw/hero_departure_left.png' },
+    refs: ['art/raw/car_boarding.png', 'art/raw/car_boarding_one_arm.png'],
+    prompt:
+      'Use case: stylized-concept. One original transparent game sprite atlas for Putrid Swarm, exact regular FOUR columns by TWO ' +
+      'rows of fully isolated animation cels on a wide roughly 1664×948 canvas. Each row is a four-frame walk cycle of the exact ' +
+      'same male protagonist in the reference artwork, at identical camera, body scale, and physical location in each cell. ' +
+      'Camera high three-quarter isometric, seeing his face and the front of his jacket. He walks toward SCREEN LOWER LEFT, ' +
+      'diagonally toward the camera. Rusty ochre hooded jacket hood down, dark charcoal cargo pants, brown boots, scruffy dark ' +
+      'hair and short stubble, detailed hand-inked 2D game art. In BOTH rows left to right: first right boot leading to the lower ' +
+      'left with naturally swinging arms, then a passing pose with one boot beneath the body, then left boot leading to the same ' +
+      'lower left, then opposite passing pose. TOP ROW is healthy with both arms. BOTTOM ROW is the same man after his left arm ' +
+      'has been removed at the shoulder, with a visible short tied empty anatomical LEFT sleeve on the screen-right side of his ' +
+      'chest, and only one anatomical RIGHT arm on the screen-left side of his chest. Preserve this asymmetry through all four ' +
+      'poses in that row. Never mirror the character. The references show each arm state and the outfit. Leave generous actual ' +
+      'transparent gutters, especially the row boundary. All head, boots, sleeves and hands must be wholly in their own cells. ' +
+      'All upright walking figures are approximately 75 percent of their cell height. True RGBA: no background, cast shadow, ' +
+      'floor, scenery, text, letters, borders, guides, props or effects.',
   },
   {
     id: 'obj_trees',

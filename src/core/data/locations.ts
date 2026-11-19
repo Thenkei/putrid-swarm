@@ -33,7 +33,9 @@ export const HOME_PIN = { x: 0.22, y: 0.72 } as const;
 export const DAY_HOURS = 12;
 export const DAY_START_HOUR = 7;
 export const SEARCH_HOURS = 0.5;
+export const CONCEAL_HOURS = 0.25;
 export const DAILY_LOOT_CHANCE = 0.25;
+export const COVER_FIND_CHANCE = 0.25;
 
 /** The night each neighbour comes back as a boss. They are met alive on every day up to and including that one. */
 export const BOSS_NIGHT: Readonly<Record<NeighborId, number>> = {
@@ -154,6 +156,7 @@ const destinations = {
       { key: 'sideboard', x: 0.62, y: 0.36, loot: { wire: [4, 5] } },
       { key: 'chairs', x: 0.47, y: 0.55, loot: { scrap: [4, 5], springs: [2, 3] } },
       { key: 'leaflets', x: 0.74, y: 0.72, loot: { wood: [3, 4], scrap: [1, 1] } },
+      { key: 'siren', x: 0.33, y: 0.56, loot: {} },
     ],
   },
 } as const satisfies Readonly<Record<LocationId, LocationDef>>;

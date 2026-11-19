@@ -142,6 +142,8 @@ export interface LocationProgress {
   readonly searched: readonly number[];
   /** Which of those spots were emptied while the player was away. */
   readonly looted: readonly number[];
+  /** At most one unopened cover, plus the covers found pulled aside over stolen lots. */
+  readonly covered: readonly number[];
   /** Last visit after collecting loot here, or null before taking any. */
   readonly lootCheckedDay: number | null;
   readonly visits: number;
@@ -203,7 +205,7 @@ export interface Dispute {
   readonly plays: boolean;
   readonly receiptAnswered?: true;
   /** `refused`: a threat was made and did not work. */
-  readonly stage: 'open' | 'refused' | 'game' | 'fight';
+  readonly stage: 'open' | 'refused' | 'game' | 'price' | 'fight';
   readonly game: WasherGame;
   readonly fight: Fight;
 }

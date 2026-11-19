@@ -86,6 +86,7 @@ export const scavengeFr = {
       sideboard: riddle('À table avec le buste', 'Le maire en bronze exige un couvert. « À ma gauche repose la fourchette. À ma droite repose le couteau. Qui me regarde en face et me dit la vérité ? »', ['Mon reflet dans l’assiette', 'La fourchette', 'Le couteau'], 'L’assiette est en argent poli. Les couverts sont à ses côtés.'),
       chairs: timing('Chaises musicales en conseil réduit', 'Les chaises du conseil se replient en cadence. Tirez une goupille à chaque fois que les assises s’alignent.', 'Tirer la goupille'),
       leaflets: pairs('Recomptage des défunts', 'Même les morts ont voté deux fois. Retrouvez les signatures en double pour libérer les cartons de tracts.', ['Jean Tombe', 'Alain Térieur', 'Anne Térée']),
+      siren: circuit('L’essai du mercredi', 'Le calendrier des essais est encore collé au boîtier. Reliez les deux contacts en laiton sur le circuit endommagé pour le récupérer.'),
     },
   } satisfies PuzzleBook,
 };

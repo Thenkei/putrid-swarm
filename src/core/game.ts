@@ -2,8 +2,9 @@
 // Every transition is a pure function; scenes never mutate GameState.
 
 import { BARRICADE, HOUSE_MAX_HP } from './data/devices';
-import { BOSS_NIGHT, DAILY_LOOT_CHANCE, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER, type LocationDef } from './data/locations';
+import { BOSS_NIGHT, CONCEAL_HOURS, COVER_FIND_CHANCE, DAILY_LOOT_CHANCE, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER, type LocationDef } from './data/locations';
 import { shouldStopAtDusk } from './crossbow-road';
+import { GARAGE_WORKBENCH, VICE_ATTEMPT_DAY, hasViceLeftovers, isGarageVice, openViceOnReturn } from './garage-vice';
 import { LAST_NIGHT } from './data/waves';
 import type { NightSim } from './night';
 import { NO_STOCK, rollAmbush, rollDispute, walkAway, type Resolution } from './encounters';
@@ -51,7 +52,7 @@ const STARTING_DEVICES: readonly Omit<DeviceInstance, 'id' | 'hp' | 'broken' | '
 ];
 
 export function newGame(seed: number): GameState {
-  const emptyProgress: LocationProgress = { searched: [], looted: [], lootCheckedDay: null, visits: 0 };
+  const emptyProgress: LocationProgress = { searched: [], looted: [], covered: [], lootCheckedDay: null, visits: 0 };
   const locations = Object.fromEntries(LOCATION_IDS.map((id) => [id, emptyProgress])) as Record<LocationId, LocationProgress>;
   const devices = STARTING_DEVICES.map((d, i) => ({ ...d, id: i + 1, facing: 0 as const, hp: DEVICES[d.type].maxHp, broken: false }));
   const barricade = { hp: BARRICADE.maxHp[0], level: 0 } as const;
@@ -139,22 +140,57 @@ export function remainingSearches(state: GameState, location: LocationDef): numb
 export function planVisit(state: GameState, location: LocationDef): { searches: number; hoursAfterReturn: number } {
   const time = state.hoursLeft - roundTripHours(location) - greetingHours(state, location);
   const remaining = remainingSearches(state, location);
-  const searches = Math.max(0, Math.min(Math.floor((time + 1e-9) / SEARCH_HOURS), remaining, visitSearchLimit(location, state.day)));
-  return { searches, hoursAfterReturn: Math.max(0, time - searches * SEARCH_HOURS) };
+  const free = time >= -1e-9 && hasViceLeftovers(state, location.id, GARAGE_WORKBENCH) && !state.locations.garage.searched.includes(GARAGE_WORKBENCH) ? 1 : 0;
+  const timed = Math.max(0, Math.min(Math.floor((time + 1e-9) / SEARCH_HOURS), remaining - free, visitSearchLimit(location, state.day)));
+  return { searches: free + timed, hoursAfterReturn: Math.max(0, time - timed * SEARCH_HOURS) };
+}
+
+export function concealableSpots(state: GameState): readonly number[] {
+  const { where, outing, encounter } = state;
+  if (state.phase !== 'day' || where === 'home' || where === 'road' || outing?.to !== where) return [];
+  const location = LOCATIONS[where];
+  if (state.hoursLeft + 1e-9 < CONCEAL_HOURS + location.travelHours) return [];
+  if (encounter?.kind === 'dispute' && encounter.stage !== 'open' && encounter.stage !== 'refused') return [];
+  const { covered, searched, visits } = state.locations[where];
+  const visitKey = `${flagKey('searches', where, state.day)}:${visits}`;
+  if ((state.flags[visitKey] ?? 0) >= visitSearchLimit(location, state.day)) return [];
+  if (covered.some((index) => !searched.includes(index))) return [];
+  return location.spots.flatMap((spot, index) => {
+    const claimed = encounter?.kind === 'dispute' && encounter.spot === index;
+    const open = !spot.requiresDirectory && Object.keys(spot.loot).length > 0 && !searched.includes(index);
+    return open && !claimed && !hasViceLeftovers(state, where, index) ? [index] : [];
+  });
+}
+
+/** Cover one remaining lot, keeping enough daylight to drive home. */
+export function concealSpot(state: GameState, index: number): GameState {
+  const id = state.outing?.to;
+  if (!id || !concealableSpots(state).includes(index)) return state;
+  const progress = state.locations[id];
+  return {
+    ...state,
+    hoursLeft: state.hoursLeft - CONCEAL_HOURS,
+    locations: { ...state.locations, [id]: { ...progress, covered: [...progress.covered, index] } },
+  };
 }
 
 /** Discover at most one missing lot per visit. A resident keeps watch until their night. */
 function rollLooting(state: GameState, location: LocationDef, rng: Rng): number | undefined {
-  const { lootCheckedDay, searched } = state.locations[location.id];
+  const { lootCheckedDay, searched, covered } = state.locations[location.id];
   if (lootCheckedDay === null || searched.length >= location.spots.length) return;
   const guardedThrough = location.neighbor ? BOSS_NIGHT[location.neighbor] : 0;
   const daysExposed = state.day - Math.max(lootCheckedDay, guardedThrough);
   if (daysExposed <= 0) return;
   // Equipment puzzles such as the crossbow case have no material lot to steal.
-  const lots = location.spots.flatMap((spot, index) => !spot.requiresDirectory && Object.keys(spot.loot).length > 0 && !searched.includes(index) ? [index] : []);
+  const lots = location.spots.flatMap((spot, index) => {
+    const unattended = !spot.requiresDirectory && !hasViceLeftovers(state, location.id, index);
+    return unattended && Object.keys(spot.loot).length > 0 && !searched.includes(index) ? [index] : [];
+  });
   if (lots.length === 0 || !rng.chance(1 - (1 - DAILY_LOOT_CHANCE) ** daysExposed)) return;
-  const leavesReceipt = location.id === 'hardware' && state.springReceipt === 'none' && lots.includes(HARDWARE_SPRING_BIN);
-  return rng.pick(leavesReceipt ? [HARDWARE_SPRING_BIN] : lots);
+  const leavesReceipt = location.id === 'hardware' && state.springReceipt === 'none'
+    && lots.includes(HARDWARE_SPRING_BIN) && !covered.includes(HARDWARE_SPRING_BIN);
+  const target = rng.pick(leavesReceipt ? [HARDWARE_SPRING_BIN] : lots);
+  return !covered.includes(target) || rng.chance(COVER_FIND_CHANCE) ? target : undefined;
 }
 
 export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome, DayError> {
@@ -167,11 +203,12 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
 
   const progress = state.locations[id];
   const rng = createRng(state.rng);
-  const looted = rollLooting(state, location, rng);
+  const arrival = openViceOnReturn(state, id);
+  const looted = rollLooting(arrival, location, rng);
   const outing = { to: id, trunk: NO_STOCK, parted: NO_STOCK, major: false, marks: [] };
   const visit = { ...progress, visits: progress.visits + 1, lootCheckedDay: progress.lootCheckedDay === null ? null : state.day };
   let next: GameState = {
-    ...state,
+    ...arrival,
     where: id,
     hoursLeft: state.hoursLeft - location.travelHours,
     outing,
@@ -185,7 +222,7 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
       state: {
         ...next,
         rng: rng.state(),
-        flags: { ...state.flags, looting: lootNotice },
+        flags: { ...next.flags, looting: lootNotice },
         outing: { ...outing, lootNotice },
         locations: { ...next.locations, [id]: { ...visit, searched: [...visit.searched, looted], looted: [...visit.looted, looted] } },
         springReceipt: id === 'hardware' && looted === HARDWARE_SPRING_BIN && next.springReceipt === 'none' ? 'left' : next.springReceipt,
@@ -267,11 +304,13 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
   const { encounter, outing } = state;
   if (!outing) return err({ code: 'not_there' });
   if (encounter?.kind === 'dispute') {
-    if (encounter.stage === 'game' || encounter.stage === 'fight') return err({ code: 'busy' });
+    if (encounter.stage === 'game' || encounter.stage === 'price' || encounter.stage === 'fight') return err({ code: 'busy' });
     if (encounter.spot === spotIndex) return err({ code: 'disputed' });
   }
   // The drive home must still fit after the search.
-  const needed = SEARCH_HOURS + location.travelHours;
+  const opened = hasViceLeftovers(state, location.id, spotIndex);
+  const searchHours = opened ? 0 : SEARCH_HOURS;
+  const needed = searchHours + location.travelHours;
   if (state.hoursLeft + 1e-9 < needed) return err({ code: 'no_time', needed });
 
   const visitKey = flagKey('searches', location.id, state.day) + `:${progress.visits}`;
@@ -283,13 +322,18 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
   const rng = createRng(state.rng);
   const loot: Partial<Record<ResourceId, number>> = {};
   for (const id of RESOURCE_IDS) {
+    if (opened && id === 'battery') continue;
     const range = spot.loot[id];
     if (range) loot[id] = rng.int(range[0], range[1]);
   }
   const paid: GameState = {
     ...state,
-    hoursLeft: state.hoursLeft - SEARCH_HOURS,
-    flags: { ...state.flags, [visitKey]: searchesThisVisit + 1 },
+    hoursLeft: state.hoursLeft - searchHours,
+    flags: {
+      ...state.flags,
+      [visitKey]: searchesThisVisit + 1,
+      ...(!opened && isGarageVice(location.id, spotIndex) ? { [VICE_ATTEMPT_DAY]: state.day } : {}),
+    },
   };
   return ok({
     paid,
@@ -300,7 +344,10 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
         ...paid,
         rng: rng.state(),
         outing: { ...outing, trunk: gain(outing.trunk, loot) },
-        locations: { ...state.locations, [location.id]: { ...progress, searched: [...progress.searched, spotIndex], lootCheckedDay: state.day } },
+        locations: {
+          ...state.locations,
+          [location.id]: { ...progress, searched: [...progress.searched, spotIndex], covered: progress.covered.filter((index) => index !== spotIndex), lootCheckedDay: state.day },
+        },
         totals: { ...state.totals, searches: state.totals.searches + 1 },
       },
     },

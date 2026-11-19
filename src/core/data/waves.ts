@@ -115,8 +115,27 @@ export const NIGHTS: readonly NightPlan[] = [
   },
 ];
 
-export const planForNight = (night: number): NightPlan => {
+export const SIREN_SECTORS = ['portail', 'verger'] as const;
+export type SirenSector = (typeof SIREN_SECTORS)[number];
+
+function divertiblePack(plan: NightPlan): { wave: number; group: number; pack: SpawnGroup } | null {
+  for (const [index, wave] of plan.waves.entries()) {
+    const group = wave.groups.findIndex(pack => pack.type === 'shambler' && pack.sector !== 'portail' && pack.sector !== 'verger');
+    if (group >= 0) return { wave: index + 1, group, pack: wave.groups[group]! };
+  }
+  return null;
+}
+
+export const planForNight = (night: number, siren: SirenSector | null = null): NightPlan => {
   const plan = NIGHTS[Math.min(Math.max(night, 1), NIGHTS.length) - 1];
   if (!plan) throw new Error(`No plan for night ${night}`);
-  return plan;
+  const moved = siren ? divertiblePack(plan) : null;
+  if (!siren || !moved) return plan;
+  return {
+    waves: plan.waves.map((wave, index) => index + 1 === moved.wave
+      ? { ...wave, groups: wave.groups.map((pack, group) => group === moved.group ? { ...pack, sector: siren } : pack) }
+      : wave),
+  };
 };
+
+export const sirenPackFor = (night: number) => divertiblePack(planForNight(night));

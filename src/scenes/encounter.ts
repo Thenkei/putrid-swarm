@@ -2,6 +2,7 @@
 // costs, and how it ended. The rules live in core/encounters; nothing here decides an outcome.
 
 import { DAY_HOURS, LOCATIONS } from '../core/data/locations';
+import { radioAppraisal } from '../core/appraisal';
 import { ENCOUNTER, RESOURCE_VALUE } from '../core/data/rivals';
 import {
   acquaintance,
@@ -198,6 +199,11 @@ export class EncounterPanel {
       if (encounter.stage === 'game') {
         // The table keeps its own animation: it is built once and left alone.
         if (!this.board) this.mount(encounter.rival, this.gameView(encounter), 'wide');
+        return;
+      }
+      if (encounter.stage === 'price') {
+        this.mount(encounter.rival, this.appraisalView(encounter), 'wide');
+        this.modal?.querySelector<HTMLButtonElement>('button')?.focus();
         return;
       }
       if (encounter.stage === 'fight') return this.mount(encounter.rival, this.fightView(encounter.rival, encounter.fight, 'dispute'));
@@ -417,6 +423,45 @@ export class EncounterPanel {
     ];
   }
 
+  private appraisalView(dispute: Dispute): HTMLElement[] {
+    const s = S().encounter;
+    const round = radioAppraisal(this.state, dispute);
+    const art = assetUrl('plate_appraisal_radio');
+    this.keys = [];
+    const buttons = round.bids.map((francs, index) => {
+      const choose = (): void => {
+        const result = this.apply({ type: 'estimate', francs });
+        if (!result?.resolution) return;
+        this.resolution = result.resolution;
+        audio.play(result.resolution.outcome === 'game_won' ? 'loot' : 'tin');
+        this.render();
+      };
+      this.keys[index] = choose;
+      const label = fmt(s.appraisal.francs, { n: francs });
+      const button = el('button', { class: 'btn', onClick: choose }, [
+        el('kbd', { text: String(index + 1) }),
+        label,
+      ]);
+      button.setAttribute('aria-label', label);
+      return button;
+    });
+    return [
+      el('div', { class: 'appraisal-table' }, [
+        el('div', { class: 'appraisal-radio', style: art ? { backgroundImage: `url("${art}")` } : {} }),
+        el('section', { class: 'appraisal-form' }, [
+          el('h2', { text: s.appraisal.title }),
+          el('p', { text: s.appraisal.rules }),
+          el('div', { class: 'appraisal-tags' }, [
+            el('span', { text: s.appraisal.sticker }, [el('b', { text: fmt(s.appraisal.francs, { n: round.sticker }) })]),
+            el('span', { text: s.appraisal.markdown }, [el('b', { text: `− ${fmt(s.appraisal.francs, { n: round.markdown })}` })]),
+          ]),
+          el('p', { class: 'stake' }, [el('b', { text: s.lot }), costLine(dispute.lot)]),
+          el('div', { class: 'appraisal-bids' }, buttons),
+        ]),
+      ]),
+    ];
+  }
+
   private gameView(dispute: Dispute): (HTMLElement | null)[] {
     const s = S().encounter;
     const name = s.rival[dispute.rival].name;
@@ -491,7 +536,7 @@ export class EncounterPanel {
     this.keys = [close];
     return [
       el('h2', { text: s.outcome[resolution.outcome] }),
-      text ? el('p', { text }) : null,
+      resolution.appraisal ? el('p', { text: fmt(s.appraisal.reveal, { ...resolution.appraisal }) }) : text ? el('p', { text }) : null,
       row(s.result.gained, resolution.gained, '+'),
       row(s.result.lost, resolution.lost, '−'),
       row(fmt(s.result.theirs, { name }), resolution.theirs, ''),

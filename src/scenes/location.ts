@@ -1,11 +1,12 @@
 // A searchable interior. Each hotspot costs daylight and is emptied for good; what is found
 // rides in the boot until the refuge. Someone else may already be standing at the best lot.
 
-import { DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER } from '../core/data/locations';
-import { clockLabel, leaveLocation, neighborStatus, prepareSearch, takeSpringReceipt, visitSearchLimit, type NeighborMeeting, type SearchOutcome } from '../core/game';
+import { CONCEAL_HOURS, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER } from '../core/data/locations';
+import { clockLabel, concealableSpots, concealSpot, leaveLocation, neighborStatus, prepareSearch, takeSpringReceipt, visitSearchLimit, type NeighborMeeting, type SearchOutcome } from '../core/game';
+import { hasViceLeftovers } from '../core/garage-vice';
 import { spotRng, type Puzzle } from '../core/scavenge';
 import { spotRevealed } from '../core/planque';
-import type { Dispute, GameState, LocationId } from '../core/types';
+import type { Cost, Dispute, GameState, LocationId } from '../core/types';
 import { RESOURCE_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { assetUrl, sprite } from '../engine/assets';
@@ -22,6 +23,7 @@ import { goAmbush, goEnd, goHomeStretch, goTravel } from './flow';
 import { ScavengePanel } from './scavenge';
 import { hasCrossbow } from '../core/crossbow';
 import { hasDetector } from '../core/dead-channel';
+import { hasSiren } from '../core/siren';
 import { shouldStopAtDusk } from '../core/crossbow-road';
 
 const SEARCH_DUST_SECONDS = 0.78;
@@ -33,6 +35,7 @@ export class LocationScene implements Scene {
   private overlay!: HTMLElement;
   private panel!: EncounterPanel;
   private puzzle: ScavengePanel | null = null;
+  private concealing = false;
   private searchDust: { readonly x: number; readonly y: number; age: number } | null = null;
   private get escorted(): boolean {
     const location = LOCATIONS[this.id];
@@ -96,6 +99,7 @@ export class LocationScene implements Scene {
     const progress = state.locations[this.id];
     const spotNames = s.spot[this.id] as Readonly<Record<string, string>>;
     const dispute = this.dispute;
+    const coverTargets = concealableSpots(state);
 
     const topbar = el('div', { class: 'topbar' }, [
       el('span', { class: 'label-strong', text: s.location[this.id].name }),
@@ -120,15 +124,23 @@ export class LocationScene implements Scene {
         const url = assetUrl(`por_rival_${dispute.rival}`);
         const face = el('img', {});
         if (url) face.src = url;
-        return el('button', { class: 'spot claimed', style: { left: `${p.x}px`, top: `${p.y}px` }, title: s.encounter.claimed, onClick: () => this.panel.show() }, [
+        return el('button', { class: 'spot claimed', style: { left: `${p.x}px`, top: `${p.y}px` }, title: s.encounter.claimed, disabled: this.concealing, onClick: () => this.panel.show() }, [
           el('span', { class: 'ring' }, [url ? face : '!']),
           el('span', { class: 'tag' }, [name, el('small', { text: nameOf(dispute.rival) })]),
         ]);
       }
       const done = progress.searched.includes(index);
       const looted = progress.looted.includes(index);
+      const covered = progress.covered.includes(index);
+      const opened = !done && hasViceLeftovers(state, this.id, index);
+      const coverTarget = this.concealing && coverTargets.includes(index);
       const receipt = looted && this.id === 'hardware' && index === HARDWARE_SPRING_BIN && state.springReceipt === 'left';
-      const blocked = !done && (!canStillSearch || this.escorted);
+      const blocked = !done && !opened && !this.concealing && (!canStillSearch || this.escorted);
+      const status = coverTarget ? s.stashCover.target
+        : receipt ? covered ? s.stashCover.tornReceipt : s.springReceipt.found
+        : covered ? looted ? s.stashCover.torn : s.stashCover.intact
+        : looted ? s.loc.looted
+        : opened ? s.viceLeftovers.found : null;
       const hint = el(
         'span',
         { class: 'cost' },
@@ -142,15 +154,20 @@ export class LocationScene implements Scene {
       return el(
         'button',
         {
-          class: `spot ${done ? 'done' : ''} ${looted ? 'looted' : ''} ${blocked ? 'blocked' : ''} ${receipt ? 'has-receipt' : ''}`,
+          class: `spot ${done ? 'done' : ''} ${looted ? 'looted' : ''} ${blocked ? 'blocked' : ''} ${receipt ? 'has-receipt' : ''} ${covered ? 'covered' : ''} ${coverTarget ? 'cover-target' : ''} ${opened ? 'vice-leftovers' : ''}`,
           style: { left: `${p.x}px`, top: `${p.y}px` },
-          title: receipt ? s.springReceipt.found : looted ? s.loc.looted : done ? s.loc.searched : fmt(s.loc.search, { h: hours(SEARCH_HOURS) }),
+          title: status ?? (done ? s.loc.searched : fmt(s.loc.search, { h: hours(SEARCH_HOURS) })),
+          disabled: this.concealing && !coverTarget,
           data: { spot: String(index) },
-          onClick: () => receipt ? this.showSpringReceipt() : this.search(index, p),
+          onClick: () => {
+            if (this.concealing) this.hideStash(index);
+            else if (receipt) this.showSpringReceipt();
+            else this.search(index, p);
+          },
         },
         [
-          el('span', { class: 'ring', text: looted ? '×' : done ? '✓' : '?' }),
-          el('span', { class: 'tag' }, [name, looted ? el('small', { text: receipt ? s.springReceipt.found : s.loc.looted }) : done ? null : hint]),
+          el('span', { class: 'ring', text: looted ? '×' : done ? '✓' : covered ? '▰' : '?' }),
+          el('span', { class: 'tag' }, [name, status ? el('small', { text: status }) : null, done || opened || this.concealing ? null : hint]),
         ],
       );
     });
@@ -163,11 +180,11 @@ export class LocationScene implements Scene {
     const lastSearchBeforeDusk =
       !dusk && canStillSearch && !this.escorted &&
       shouldStopAtDusk(state, hoursOnReturn - SEARCH_HOURS) &&
-      spots.some((spot, index) => spot !== null && index !== dispute?.spot && !progress.searched.includes(index));
+      spots.some((spot, index) => spot !== null && index !== dispute?.spot && !progress.searched.includes(index) && !hasViceLeftovers(state, this.id, index));
     const title = el('div', { class: 'panel loc-title' }, [
       el('h3', { text: s.location[this.id].name }),
       el('p', {
-        text: dispute
+        text: this.concealing ? s.stashCover.choose : dispute
           ? fmt(s.encounter.spotted, { spot: claimedSpot })
           : gone && neighbor
             ? s.neighbor[neighbor].gone
@@ -177,6 +194,11 @@ export class LocationScene implements Scene {
                 ? s.loc.noTime
                 : fmt(s.loc.search, { h: hours(SEARCH_HOURS) }),
       }),
+      coverTargets.length > 0 || this.concealing ? el('button', {
+        class: 'btn conceal-button',
+        text: this.concealing ? s.stashCover.cancel : fmt(s.stashCover.start, { n: CONCEAL_HOURS * 60 }),
+        onClick: () => this.toggleConceal(),
+      }) : null,
     ]);
     // Driving off leaves the lot to whoever is standing on it: said on the button, not after the fact.
     const drive = fmt(s.loc.leaveCost, { h: hours(location.travelHours) });
@@ -191,34 +213,64 @@ export class LocationScene implements Scene {
   }
 
   private showSpringReceipt(): void {
+    this.showStashNote(HARDWARE_SPRING_BIN, S().springReceipt, SPRING_RECEIPT_OFFER, () => {
+      const state = this.state;
+      const next = takeSpringReceipt(state);
+      if (next === state) return;
+      this.app.state = next;
+      this.app.save();
+      this.refresh();
+      audio.play('loot');
+    });
+  }
+
+  private toggleConceal(): void {
+    if (this.meeting || this.panel.open || this.hud.inert) return;
+    this.concealing = !this.concealing;
+    this.refresh();
+    this.hud.querySelector<HTMLButtonElement>(this.concealing ? '.cover-target' : '.conceal-button')?.focus();
+  }
+
+  private hideStash(index: number): void {
+    this.concealing = false;
+    const state = this.state;
+    const next = concealSpot(state, index);
+    if (next !== state) {
+      this.app.state = next;
+      this.app.save();
+      audio.play('rummage');
+    }
+    this.refresh();
+    this.hud.querySelector<HTMLButtonElement>(`[data-spot="${index}"]`)?.focus();
+  }
+
+  private showStashNote(
+    index: number,
+    copy: { readonly title: string; readonly note: string; readonly reaction?: string; readonly take: string; readonly leave: string },
+    loot: Cost,
+    collect: () => void,
+  ): void {
     if (this.panel.open || this.hud.inert) return;
-    const s = S().springReceipt;
     const close = (): void => {
       modal.remove();
       this.hud.inert = false;
-      this.hud.querySelector<HTMLButtonElement>(`[data-spot="${HARDWARE_SPRING_BIN}"]`)?.focus();
+      this.hud.querySelector<HTMLButtonElement>(`[data-spot="${index}"]`)?.focus();
     };
-    const leave = el('button', { class: 'btn', text: s.leave, onClick: close });
+    const leave = el('button', { class: 'btn', text: copy.leave, onClick: close });
     const take = el('button', { class: 'btn btn-primary', onClick: () => {
-      const state = this.state;
-      const next = takeSpringReceipt(state);
-      if (next !== state) {
-        this.app.state = next;
-        this.app.save();
-        this.refresh();
-        audio.play('loot');
-      }
+      if (!modal.isConnected) return;
+      collect();
       close();
-    } }, [s.take, el('small', {}, [costLine(SPRING_RECEIPT_OFFER, undefined, '+')])]);
-    const card = el('div', { class: 'card spring-receipt' }, [
-      el('h2', { text: s.title }),
-      el('blockquote', { text: s.note }),
-      el('p', { class: 'note', text: s.reaction }),
+    } }, [copy.take, el('small', {}, [costLine(loot, undefined, '+')])]);
+    const card = el('div', { class: 'card stash-note' }, [
+      el('h2', { text: copy.title }),
+      el('blockquote', { text: copy.note }),
+      copy.reaction ? el('p', { class: 'note', text: copy.reaction }) : null,
       el('div', { class: 'actions' }, [leave, take]),
     ]);
     card.setAttribute('role', 'dialog');
     card.setAttribute('aria-modal', 'true');
-    card.setAttribute('aria-label', s.title);
+    card.setAttribute('aria-label', copy.title);
     card.addEventListener('keydown', (event) => {
       if (event.code === 'Escape') close();
       if (event.code === 'Tab') {
@@ -285,6 +337,13 @@ export class LocationScene implements Scene {
       else this.app.toast(s.err.generic, 'error');
       return;
     }
+    if (hasViceLeftovers(this.state, this.id, index)) {
+      this.showStashNote(index, s.viceLeftovers, result.value.success.loot, () => {
+        const current = prepareSearch(this.state, index);
+        if (current.ok) this.collect(current.value.success, at);
+      });
+      return;
+    }
     const location = LOCATIONS[this.id];
     const spot = location.spots[index]!;
     const puzzles: Readonly<Record<string, Puzzle>> = s.scavenge.spots[this.id];
@@ -335,6 +394,7 @@ export class LocationScene implements Scene {
   private collect(result: SearchOutcome, at: { x: number; y: number }): void {
     const foundCrossbow = !hasCrossbow(this.state) && hasCrossbow(result.state);
     const foundDetector = !hasDetector(this.state) && hasDetector(result.state);
+    const foundSiren = !hasSiren(this.state) && hasSiren(result.state);
     audio.play('rummage');
     const found = lootSfx(result.loot);
     if (found) window.setTimeout(() => audio.play(found), 380);
@@ -345,6 +405,11 @@ export class LocationScene implements Scene {
     if (foundDetector) {
       audio.play('tracker_ping');
       this.app.toast(S().night.detector.found, 'good');
+      return;
+    }
+    if (foundSiren) {
+      audio.play('ready');
+      this.app.toast(S().siren.found, 'good');
       return;
     }
     if (foundCrossbow) {
@@ -457,6 +522,7 @@ export class LocationScene implements Scene {
       if (code === 'Escape') this.puzzle.cancel();
       return;
     }
+    if (this.concealing && code === 'Escape') this.toggleConceal();
     this.panel.onKeyDown(code);
   }
 }

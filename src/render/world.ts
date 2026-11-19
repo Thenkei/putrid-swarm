@@ -23,6 +23,7 @@ import { windAt } from './wind';
 import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
 import { drawDepartingCar, type DepartingCar } from './car-departure';
+import { approachDepth, drawApproachOpening, drawApproachingHero, type ApproachingHero } from './hero-approach';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
 export { applyCctv, applyDaylight, applyNight, type Light } from './lighting';
@@ -44,6 +45,8 @@ export interface DeviceVisual {
   readonly rearm?: number;
   readonly label?: string;
   readonly highlight?: boolean;
+  /** Daytime repair forecast. Restored art without committing the repair. */
+  readonly repairPreview?: boolean;
   /** Manual trap with enough under it to be worth firing now: drawn so it cannot be missed. */
   readonly cue?: boolean;
   /** By day: a working trap that never went off last night. Marked, so the yard says which ones to move. */
@@ -92,6 +95,7 @@ export interface WorldFrame {
   readonly houseHpRatio: number;
   readonly houseBreaks?: readonly HouseBreak[];
   readonly carPresent: boolean;
+  readonly approachingHero?: ApproachingHero;
   readonly departingCar?: DepartingCar;
   /** Seconds since the car shut off after returning from an outing. */
   readonly exhaustAge?: number;
@@ -493,6 +497,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           const left = root.x + origin.dx * z;
           const top = root.y - origin.lift * z;
           paintHouse(ctx, view.rot, side.key, art, left, top, w, frame.houseHpRatio, frame.barricades);
+          if (frame.approachingHero && view.rot === 0) drawApproachOpening(ctx, frame.approachingHero, root, z);
           if (frame.houseBreaks?.length) drawHouseDebris(ctx, frame.houseBreaks, view.rot, side.key, art, left, top, w);
           const chimney = houseOffset(view.rot, side.chimney.x, side.chimney.y);
           drawChimneySmoke(ctx, root.x + chimney.dx * z, root.y - chimney.lift * z, view, frame.time);
@@ -556,6 +561,17 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       const ground = PROP_SHADOW.car;
       contacts.push({ gx, gy, rx: ground.rx, ry: ground.ry, alpha: ground.contact });
     }
+  }
+
+  if (frame.approachingHero) {
+    const hero = frame.approachingHero;
+    const { x, y } = hero.position;
+    const foot = project(view, x, y);
+    drawables.push({
+      depth: approachDepth(hero, depthOf(view.rot, x, y)),
+      draw: () => drawApproachingHero(ctx, hero, foot, z),
+    });
+    contacts.push({ gx: x, gy: y, rx: 0.39, ry: 0.36, alpha: 0.34 * (1 - smoothstep(0, 22, hero.lift)) });
   }
 
   // Devices.
@@ -973,22 +989,30 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   const art = deviceArt(device.type, device.facing, state, view.rot);
   const removing = frame.dismantleTarget === device.id;
 
-  if (device.highlight && logLayer !== 'near') {
+  if ((device.highlight || device.repairPreview) && logLayer !== 'near') {
     diamond(ctx, view, device.x, device.y, 0.02);
-    ctx.fillStyle = removing ? 'rgba(226,80,59,0.45)' : 'rgba(242,165,49,0.3)';
+    ctx.save();
+    ctx.fillStyle = device.repairPreview ? 'rgba(164, 198, 177, 0.24)' : removing ? 'rgba(226,80,59,0.45)' : 'rgba(242,165,49,0.3)';
     ctx.fill();
-    ctx.strokeStyle = removing ? '#ff937d' : '#f2a531';
+    ctx.strokeStyle = device.repairPreview ? '#c8dfca' : removing ? '#ff937d' : '#f2a531';
     ctx.lineWidth = 2;
+    if (device.repairPreview) ctx.setLineDash([5 * z, 4 * z]);
     ctx.stroke();
+    ctx.restore();
   }
 
   const baseY = p.y - (device.placementLift ?? 0) * z;
+  if (device.repairPreview) {
+    ctx.save();
+    ctx.globalAlpha *= 0.78;
+  }
   const drawn = drawDefense(ctx, p.x, baseY, z, {
     kind: device.type, art, rot: view.rot, previous: (pose) => deviceArt(device.type, device.facing, pose, view.rot), id: device.id,
     hpRatio: device.hpRatio, state: device.state, activeAge: device.activeAge ?? 0, rearm: device.rearm ?? 0,
     time: frame.time, motion: frame.defenseMotion, ...(logLayer && { logLayer }),
     ...(device.logTarget && { aim: logAim(view, p, art, device.logTarget, false, device.hpRatio) }),
   });
+  if (device.repairPreview) ctx.restore();
   if (logLayer === 'far') return;
   if (!drawn) placeholder(ctx, p.x, baseY, 34 * z, 34 * z, state === 'broken' ? '#4a3a2a' : '#b98a3a', device.type);
 
