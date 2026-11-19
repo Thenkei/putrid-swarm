@@ -216,6 +216,7 @@ const backParts: Partial<typeof movingParts> = {
     149,121, 150,161, 83,174, 82,147, 73,144],
 };
 const backNetLeft = [0,123, 44,122, 46,144, 38,148, 38,170, 0,170];
+const resetStroke: Partial<Record<Kind, number>> = { spikes: 0.30, barrier: 0.51, net: 0.91 };
 
 function trace(ctx: CanvasRenderingContext2D, points: readonly number[], append = false): void {
   if (!append) ctx.beginPath();
@@ -414,23 +415,32 @@ function drawBackLog(ctx: CanvasRenderingContext2D, ratio: number, release: numb
   return true;
 }
 
-function drawMechanism(ctx: CanvasRenderingContext2D, type: Kind, art: Sprite, image: CanvasImageSource, age: number, rear: boolean): void {
+function drawMechanism(ctx: CanvasRenderingContext2D, type: Kind, art: Sprite, image: CanvasImageSource, age: number, rear: boolean, recovery?: number): void {
   const shift = rear || type === 'barricade' ? undefined : firedShift[type];
   if (shift) ctx.translate(...shift);
   const outline = (rear ? backParts : movingParts)[type];
   const backNet = rear && type === 'net';
-  const pair = outline && age < 0.55 ? cut(art, image, outline, backNet ? backNetLeft : undefined) : null;
+  const pair = outline && (recovery !== undefined || age < 0.55) ? cut(art, image, outline, backNet ? backNetLeft : undefined) : null;
   if (pair) {
     if (!backNet) ctx.drawImage(pair.base, 0, 0, 200, 200);
     const t = clamp(age / (type === 'net' ? 0.45 : 0.29));
-    const open = type === 'net' ? t * t : 1 - (1 - t) ** 3;
-    const settle = Math.sin(t * Math.PI * 2) * Math.sin(Math.PI * t);
+    const open = recovery === undefined ? (type === 'net' ? t * t : 1 - (1 - t) ** 3) : 1 - ease(recovery);
+    const settle = recovery === undefined ? Math.sin(t * Math.PI * 2) * Math.sin(Math.PI * t) : 0;
     ctx.save();
     if (type === 'net') {
-      const anchor = rear ? 108 : 94;
-      ctx.translate(anchor, 80);
-      ctx.scale(0.8 + 0.2 * open, 0.4 + 0.6 * open);
-      ctx.translate(-anchor, -80 - 16 * (1 - open));
+      if (recovery === undefined) {
+        const anchor = rear ? 108 : 94;
+        ctx.translate(anchor, 80);
+        ctx.scale(0.8 + 0.2 * open, 0.4 + 0.6 * open);
+        ctx.translate(-anchor, -80 - 16 * (1 - open));
+      } else {
+        // Lift the mesh first, then haul the loose end toward its reel.
+        const gather = ease((recovery - 0.22) / 0.78);
+        const reel = rear ? 158 : 51;
+        ctx.translate(reel, 74 - 27 * gather);
+        ctx.scale(1 - 0.76 * gather, 0.33 + 0.67 * open);
+        ctx.translate(-reel, -74);
+      }
     } else {
       const pivot = type === 'barrier' ? 150 : rear ? 139 : 95;
       ctx.translate(0, pivot);
@@ -598,20 +608,27 @@ function drawOperation(ctx: CanvasRenderingContext2D, d: DefenseDrawing, art: Sp
   } else if (d.state === 'rearming' && d.kind !== 'barricade' && !still) {
     const progress = d.rearm ?? 0;
     const age = progress * DEVICES[d.kind].rearmSeconds;
-    const fired = sprite(d.previous('triggered').key);
     // The winch takes the full re-arm to lift the trunk back into its cradle.
-    if (d.kind !== 'log' || (!logRig(ctx, d.hpRatio, 1 - ease(progress), 0, 0, d.logLayer) && d.logLayer !== 'far')) {
-      ctx.drawImage(image, 0, 0, 200, 200);
-      if (fired && movingParts[d.kind] && age < 0.55) {
-        ctx.save(); ctx.globalAlpha *= 1 - ease((age - 0.16) / 0.39);
-        drawMechanism(ctx, d.kind, fired, finish(fired, d.previous('triggered').key, d.kind, d.hpRatio), (0.55 - age) * 0.7, rear); ctx.restore();
+    if (d.kind === 'log' && (logRig(ctx, d.hpRatio, 1 - ease(progress), 0, 0, d.logLayer) || d.logLayer === 'far')) return;
+    const stroke = resetStroke[d.kind];
+    if (stroke && age < stroke) {
+      const firedKey = d.previous('triggered').key;
+      const fired = sprite(firedKey);
+      if (fired) {
+        // Keep one planted frame while its working part returns to rest.
+        ctx.save();
+        drawMechanism(ctx, d.kind, fired, finish(fired, firedKey, d.kind, d.hpRatio), 1, rear, age / stroke);
+        ctx.restore();
+        return;
       }
-      if (progress > 0.94) {
-        const ready = sprite(d.previous('armed').key);
-        if (ready) {
-          ctx.save(); ctx.globalAlpha *= ease((progress - 0.94) / 0.06);
-          ctx.drawImage(finish(ready, d.previous('armed').key, d.kind, d.hpRatio), 0, 0, 200, 200); ctx.restore();
-        }
+    }
+    ctx.drawImage(image, 0, 0, 200, 200);
+    if (progress > 0.94) {
+      const key = d.previous('armed').key;
+      const ready = sprite(key);
+      if (ready) {
+        ctx.save(); ctx.globalAlpha *= ease((progress - 0.94) / 0.06);
+        ctx.drawImage(finish(ready, key, d.kind, d.hpRatio), 0, 0, 200, 200); ctx.restore();
       }
     }
   } else if (d.kind === 'log' && d.logLayer) {
@@ -633,6 +650,7 @@ export function drawDeviceCast(ctx: CanvasRenderingContext2D, x: number, y: numb
   const moving = type === 'log' || movingParts[type];
   const resetting = state === 'rearming';
   const resetAge = rearm * DEVICES[type].rearmSeconds;
+  const resetDuration = type === 'log' ? DEVICES.log.rearmSeconds : resetStroke[type] ?? 0;
   if (aim && state === 'active' && activeAge < LOG_CONTACT_SECONDS + 0.53) {
     const source = sprite(art.key);
     if (!source) return;
@@ -656,11 +674,11 @@ export function drawDeviceCast(ctx: CanvasRenderingContext2D, x: number, y: numb
       [(px + art.foot[0] * width) / shape.width, (py + art.foot[1] * height) / shape.height]);
     return;
   }
-  if (!moving || calmMotion() || (state !== 'active' && !resetting) || (resetting && type !== 'log' && resetAge >= 0.55)) {
+  if (!moving || calmMotion() || (state !== 'active' && !resetting) || (resetting && resetAge >= resetDuration)) {
     castShadow(ctx, art.key, x, y, h, art.flip, alpha, 0.85, art.foot);
     return;
   }
-  const duration = resetting ? (type === 'log' ? DEVICES.log.rearmSeconds : 0.55) : (type === 'log' ? DEVICES.log.activeSeconds : 0.55);
+  const duration = resetting ? resetDuration : (type === 'log' ? DEVICES.log.activeSeconds : 0.55);
   const phase = Math.round(clamp((resetting ? resetAge : activeAge) / duration) * 12);
   const key = `${art.key}/${state}/${phase}`;
   let shape = castPoses.get(key);
