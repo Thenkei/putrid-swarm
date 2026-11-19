@@ -3,7 +3,8 @@ import { GATE_HALF_ANGLE, Padlock } from '../src/core/padlock';
 import { createRng } from '../src/core/rng';
 import { circuitTiles, traceCircuit } from '../src/core/scavenge';
 import { hasCrossbow } from '../src/core/crossbow';
-import { LOCATIONS } from '../src/core/data/locations';
+import { LOCATIONS, SEARCH_HOURS } from '../src/core/data/locations';
+import { GATE_WINDOW, gateResult } from '../src/core/fairground';
 import { newGame, prepareSearch, travelTo } from '../src/core/game';
 import { deserialize, serialize } from '../src/core/save';
 
@@ -67,5 +68,33 @@ describe('padlock rings', () => {
     expect(lock.open).toBe(true);
     expect(lock.angles).toEqual([0, 0, 0]);
     expect(lock.catchRing()).toBe(false);
+  });
+});
+
+describe('the fairground', () => {
+  it('accepts both edges of a gate and distinguishes early and late closures', () => {
+    expect(gateResult(GATE_WINDOW.opens - 0.001)).toBe('early');
+    expect(gateResult(GATE_WINDOW.opens)).toBe('caught');
+    expect(gateResult(GATE_WINDOW.closes)).toBe('caught');
+    expect(gateResult(GATE_WINDOW.closes + 0.001)).toBe('late');
+  });
+
+  it('charges for a failed attempt, then lets the player retry and loot the prize stall once', () => {
+    const visit = travelTo({ ...newGame(12), day: 2 }, 'grocery');
+    if (!visit.ok) throw new Error('The grocery is reachable on day two');
+    const grocery = visit.value.state;
+    const index = LOCATIONS.grocery.spots.findIndex(spot => spot.key === 'vachette');
+    const attempt = prepareSearch(grocery, index);
+    if (!attempt.ok) throw new Error('The fairground entrance is searchable');
+    const missed = attempt.value.failure;
+    expect(missed.phase).toBe('day');
+    expect(missed.hoursLeft).toBe(grocery.hoursLeft - SEARCH_HOURS);
+    expect(missed.outing?.trunk).toEqual(grocery.outing?.trunk);
+    const retry = prepareSearch(missed, index);
+    if (!retry.ok) throw new Error('A missed gate can be retried');
+    const { state, loot } = retry.value.success;
+    expect(state.hoursLeft).toBe(grocery.hoursLeft - 2 * SEARCH_HOURS);
+    expect(loot).toEqual({ wire: 2, battery: 2 });
+    expect(prepareSearch(deserialize(serialize(state))!, index)).toMatchObject({ ok: false, error: { code: 'already_searched' } });
   });
 });

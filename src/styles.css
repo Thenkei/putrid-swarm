@@ -4859,6 +4859,63 @@ button:disabled {
 .directory-screen .salvage-piece { background: #16241b; border-color: #61765b; color: inherit; font: inherit; }
 .map-card .map-cache, .pin .tag .map-cache { color: #ffd58c; }
 .records-photo { background-size: cover; }
+.vachette-case { grid-template-columns: 780px; }
+.vachette-case .salvage-sheet { padding: 20px 24px 12px; }
+.vachette-case .salvage-clue { margin: 6px 0; }
+.vachette-case .salvage-instruction { padding: 6px 0 8px; }
+.vachette-cost { display: block; margin-bottom: 8px; color: #5b391d; font-size: 16px; }
+.board-vachette { padding: 10px; }
+.vachette-arena {
+  position: relative;
+  height: 275px;
+  overflow: hidden;
+  border: 1px solid #917f60;
+  border-radius: 3px;
+  background: #5a4d36 center 57% / cover no-repeat;
+}
+.vachette-cow {
+  position: absolute;
+  left: var(--vachette-position);
+  bottom: 30px;
+  width: 23%;
+  transform: translateX(-50%);
+  filter: drop-shadow(1px 3px 3px #1d150eaa);
+  pointer-events: none;
+}
+.vachette-track {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 30px;
+  background: #1b1814e8;
+  border-top: 1px solid #a98b5f;
+}
+.vachette-gate {
+  position: absolute;
+  inset-block: 5px;
+  border: 1px solid #a98b5f;
+  border-radius: 2px;
+  background: repeating-linear-gradient(135deg, #574734 0 4px, #806848 4px 8px);
+}
+.vachette-gate[data-state='active'] {
+  border-color: #ffe1a8;
+  background: repeating-linear-gradient(135deg, #86541f 0 4px, #ffd88f 4px 8px);
+}
+.vachette-gate[data-state='closed'] { border-color: #abc18c; background: #456140; }
+.vachette-marker {
+  position: absolute;
+  left: var(--vachette-position);
+  top: -5px;
+  bottom: 3px;
+  width: 3px;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  background: #fff8df;
+  box-shadow: 0 0 0 1px #22150d;
+}
+.vachette-arena[data-in-band='true'] .vachette-marker { width: 7px; }
+.vachette-controls { display: flex; justify-content: center; gap: 10px; margin-top: 9px; }
 .record-albums, .record-targets {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

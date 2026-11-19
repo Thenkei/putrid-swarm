@@ -441,6 +441,8 @@ export const ART = [
       'a small village post office sorting room: wooden pigeonhole sorting shelves, canvas mail sacks, a parcel trolley stacked with boxes, a counter with brass scales, rolls of string and wire, a locked parcel cage, a delivery bicycle with panniers, scattered blank envelopes on the floor.',
     ),
   },
+  { id: 'plate_vachette', kind: 'plate', w: 900, source: { concept: 'art/raw/plate_vachette.png' } },
+  { id: 'vachette_cow', kind: 'atlas', w: 450, source: { concept: 'art/raw/vachette_cow.png' } },
   {
     id: 'plate_loc_police',
     kind: 'plate',

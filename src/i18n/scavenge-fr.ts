@@ -1,4 +1,4 @@
-import { circuit, directory, padlock, pairs, records, riddle, scale, timing, type PuzzleBook } from '../core/scavenge';
+import { circuit, directory, padlock, pairs, records, riddle, scale, timing, vachette, type PuzzleBook } from '../core/scavenge';
 
 export const scavengeFr = {
   back: 'Laisser tomber', cost: '{h} h par tentative · dès le premier geste', target: 'Commande', loaded: 'Charge',
@@ -27,6 +27,13 @@ export const scavengeFr = {
   records: 'Choisissez un disque que vous êtes prêt à sacrifier.',
   recordAim: 'Où lancer « {album} » ?',
   recordClear: 'Les paniers s’entrechoquent. Il file vers la porte et libère le rayon.',
+  vachette: 'Fermez chaque barrière quand le repère entre dans la bande hachurée.',
+  fairground: {
+    start: 'Lancer la course', untimed: 'Jouer sans chrono', gate: 'Barrière {n} sur {total}', close: 'Fermer la barrière',
+    early: 'Trop tôt. Elle fait demi-tour dans le couloir.',
+    late: 'Trop tard. Elle retourne au galop dans l’arène.',
+    clear: 'Elle est dans l’enclos. Le stand de lots est libre.',
+  },
   spots: {
     shed: {
       planks: scale('Mesurer deux fois, piquer une fois', 'Les bonnes planches sont déjà débitées. Deux chutes doivent couvrir l’écart marqué sur le tréteau.', 'dm'),
@@ -64,6 +71,7 @@ export const scavengeFr = {
         ['Ballades pour un dimanche pluvieux', 'La polka du navet', 'Minuit à la laverie'],
         'Paniers métalliques vides', [['Sacs de farine', 'La farine étouffe le bruit. Il reste devant le rayon.'], ['Vitrine', 'La vitre éclate. Toute la rue a entendu.']],
       ),
+      vachette: vachette('La Vachette', 'Derrière l’épicerie, une vachette infectée bloque le stand de lots. Trois barrières mènent à l’enclos.'),
     },
     post: {
       parcels: riddle('Retour à l’expéditeur', 'Les escargots ont mangé le nom de leur rue. Le code postal finit par un chiffre pair, le numéro de rue est impair et la traînée monte à l’étage. Quelle étiquette coller ?', ['7 · 35002 · 1er étage', '8 · 35002 · 1er étage', '7 · 35001 · RDC'], 'Vérifiez le numéro de rue et le dernier chiffre du code postal.'),

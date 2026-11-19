@@ -110,6 +110,7 @@ const destinations = {
       { key: 'trolley', x: 0.6, y: 0.8, loot: { scrap: [3, 3], springs: [1, 1] } },
       { key: 'backroom', x: 0.84, y: 0.4, loot: { wood: [3, 4], battery: [1, 1] } },
       { key: 'records', x: 0.33, y: 0.81, loot: { scrap: [2, 2], battery: [1, 1] } },
+      { key: 'vachette', x: 0.87, y: 0.68, loot: { wire: [2, 2], battery: [2, 2] } },
     ],
   },
   post: {

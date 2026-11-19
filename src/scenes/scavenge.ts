@@ -1,4 +1,5 @@
 import { SEARCH_HOURS, type SearchSpot } from '../core/data/locations';
+import { COURSE, GATE_WINDOW, gateResult } from '../core/fairground';
 import { GATE_HALF_ANGLE, Padlock } from '../core/padlock';
 import type { Rng } from '../core/rng';
 import { circuitTiles, PORTS, shuffled, traceCircuit, turnTile, type Puzzle } from '../core/scavenge';
@@ -40,9 +41,11 @@ export class ScavengePanel {
     this.root.setAttribute('aria-label', puzzle.title);
     this.status.setAttribute('role', 'status');
     this.board.classList.add(`board-${puzzle.kind}`);
-    this.root.append(el('div', { class: 'salvage-case' }, [photo, el('div', { class: 'salvage-sheet' }, [
+    const fairground = puzzle.kind === 'vachette';
+    this.root.append(el('div', { class: fairground ? 'salvage-case vachette-case' : 'salvage-case' }, [fairground ? null : photo, el('div', { class: 'salvage-sheet' }, [
       el('h2', { text: puzzle.title }), el('p', { class: 'salvage-clue', text: puzzle.clue }),
       spot.fatalMiss ? el('strong', { class: 'salvage-danger', text: s.liftWarning }) : null,
+      fairground ? el('small', { class: 'vachette-cost', text: fmt(s.cost, { h: hours(SEARCH_HOURS) }) }) : null,
       this.instruction, this.board, this.status,
       el('button', { class: 'salvage-back', text: s.back, onClick: cancel }),
     ])]));
@@ -54,6 +57,7 @@ export class ScavengePanel {
       case 'timing': this.timing(puzzle.action, rng); break;
       case 'records': this.records(puzzle, rng); break;
       case 'directory': this.directory(puzzle.entries, rng); break;
+      case 'vachette': this.vachette(); break;
       case 'riddle':
         for (const index of shuffled([0, 1, 2], rng)) {
           const button = this.button(puzzle.answers[index]!, () => {
@@ -110,6 +114,81 @@ export class ScavengePanel {
     this.advance = null;
     audio.play('deny');
     this.onFailure(message);
+  }
+
+  private vachette(): void {
+    const { fairground: s, take } = S().scavenge;
+    const arenaArt = assetUrl('plate_vachette');
+    const cowArt = assetUrl('vachette_cow');
+    const cow = cowArt ? el('img', { class: 'vachette-cow' }) : null;
+    if (cow && cowArt) {
+      cow.src = cowArt;
+      cow.alt = '';
+    }
+    const marker = el('i', { class: 'vachette-marker' });
+    const gates = COURSE.map(gate => {
+      const span = gate.to - gate.from;
+      return el('i', {
+        class: 'vachette-gate',
+        style: { left: `${gate.from + span * GATE_WINDOW.opens}%`, width: `${span * (GATE_WINDOW.closes - GATE_WINDOW.opens)}%` },
+      });
+    });
+    const arena = el('div', { class: 'vachette-arena' }, [cow, el('div', { class: 'vachette-track' }, [...gates, marker])]);
+    if (arenaArt) arena.style.backgroundImage = `url("${arenaArt}")`;
+    arena.setAttribute('aria-hidden', 'true');
+    const controls = el('div', { class: 'vachette-controls' });
+    const leadIn = 0.55;
+    let index = 0;
+    let elapsed = -leadIn;
+    let untimed = false;
+
+    const paint = (progress: number): void => {
+      const gate = COURSE[index]!;
+      const position = gate.from + (gate.to - gate.from) * Math.max(0, Math.min(1, progress));
+      arena.style.setProperty('--vachette-position', `${position}%`);
+      arena.dataset.inBand = String(gateResult(progress) === 'caught');
+    };
+    const setGate = (): void => {
+      elapsed = -leadIn;
+      this.status.textContent = fmt(s.gate, { n: index + 1, total: COURSE.length });
+      gates.forEach((gate, i) => { gate.dataset.state = i < index ? 'closed' : i === index ? 'active' : 'pending'; });
+      paint(untimed ? (GATE_WINDOW.opens + GATE_WINDOW.closes) / 2 : 0);
+    };
+    const action = this.button(s.close, () => {
+      if (!untimed && elapsed < 0) return;
+      const gate = COURSE[index]!;
+      const result = untimed ? 'caught' : gateResult(elapsed / gate.seconds);
+      if (result !== 'caught') return this.miss(s[result]);
+      gates[index]!.dataset.state = 'closed';
+      if (++index < COURSE.length) {
+        setGate();
+        return;
+      }
+      this.advance = null;
+      arena.dataset.inBand = 'false';
+      arena.style.setProperty('--vachette-position', `${gate.to}%`);
+      this.status.textContent = s.clear;
+      const collect = this.button(take, this.solved);
+      controls.replaceChildren(collect);
+      collect.focus();
+    });
+    const begin = (withoutTimer: boolean): void => {
+      untimed = withoutTimer;
+      controls.replaceChildren(action);
+      action.focus();
+      setGate();
+      if (!untimed) {
+        this.advance = dt => {
+          elapsed += dt;
+          const progress = elapsed / COURSE[index]!.seconds;
+          if (progress >= 1) return this.miss(s.late);
+          paint(progress);
+        };
+      }
+    };
+    paint(0);
+    controls.append(this.button(s.start, () => begin(false)), this.button(s.untimed, () => begin(true)));
+    this.board.append(arena, controls);
   }
 
   private records(puzzle: Extract<Puzzle, { kind: 'records' }>, rng: Rng): void {
