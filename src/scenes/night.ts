@@ -3,6 +3,7 @@
 
 import { cameraPriority, type CameraPriority } from '../core/camera-priority';
 import { BARRICADE, COMBAT, DEVICES, HOUSE_MAX_HP, isAuto, isManual } from '../core/data/devices';
+import { detectContact, hasDetector, SCAN_RANGE, SCAN_SECONDS } from '../core/dead-channel';
 import { concludeNight } from '../core/game';
 import { HOUSE, sectorOf } from '../core/map';
 import { NightSim, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
@@ -10,6 +11,7 @@ import { deskFor, outageFor } from '../core/orchard';
 import { allyFor } from '../core/radio';
 import type { DeviceTypeId, GameState, NeighborId, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
+import { spend } from '../core/yard';
 import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/app';
 import { assetUrl } from '../engine/assets';
 import { audio, type Sfx } from '../engine/audio';
@@ -140,6 +142,14 @@ export class NightScene implements Scene {
   private camLabel!: HTMLElement;
   private camClock!: HTMLElement;
   private camFrame!: HTMLElement;
+  private detector!: HTMLElement;
+  private scanButton!: HTMLButtonElement;
+  private scanReadout!: HTMLElement;
+  private scanTimer!: HTMLElement;
+  private scanMeter!: HTMLElement;
+  private scanEnds = 0;
+  private nextPing = 0;
+  private readonly detectorFound: boolean;
   private lastSignalClock: string | null = null;
   private trapBar!: HTMLElement;
   private alertButton!: HTMLButtonElement;
@@ -166,6 +176,7 @@ export class NightScene implements Scene {
 
   constructor(private readonly app: App) {
     const state = this.state;
+    this.detectorFound = hasDetector(state);
     this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state), deskFor(state), allyFor(state));
     this.defenseMotion.update(this.sim);
     try {
@@ -216,9 +227,21 @@ export class NightScene implements Scene {
 
     this.camLabel = el('span');
     this.camClock = el('div', { class: 'cam-clock' });
+    this.scanButton = el('button', { class: 'btn', onClick: () => this.scan() });
+    this.scanReadout = el('span', { class: 'detector-readout' });
+    this.scanTimer = el('span', { class: 'detector-time' });
+    this.scanMeter = el('i');
+    const meter = el('div', { class: 'detector-meter' }, [this.scanMeter]);
+    meter.setAttribute('aria-hidden', 'true');
+    this.detector = el('section', { class: 'dead-channel' }, [
+      el('header', {}, [el('strong', { text: s.night.detector.title }), this.scanTimer]),
+      meter, this.scanReadout, this.scanButton,
+    ]);
+    this.detector.hidden = true;
     this.camFrame = el('div', { class: 'cam-frame', style: { left: `${MAIN.x - 3}px`, top: `${MAIN.y - 3}px`, width: `${MAIN.w + 6}px`, height: `${MAIN.h + 6}px` } }, [
       el('div', { class: 'cam-label' }, [el('span', { class: 'rec' }), this.camLabel]),
       this.camClock,
+      this.detector,
     ]);
 
     const minis: HTMLElement[] = [];
@@ -347,6 +370,34 @@ export class NightScene implements Scene {
   /** A camera that stopped sending: its feed is snow, and nothing on it can be counted or cued. */
   private isDark(sector: SectorId): boolean {
     return this.sim.cameraLost === sector;
+  }
+
+  private scan(): void {
+    if (this.paused || this.ending || !this.detectorFound || !this.isDark(this.cam) || this.scanEnds > 0 || this.state.inventory.battery < 1) return;
+    this.scanEnds = this.sim.time + SCAN_SECONDS;
+    audio.play('crt_on', 0.65);
+    this.syncDetector(true);
+  }
+
+  private syncDetector(blind: boolean): void {
+    if (!this.detectorFound) return;
+    this.detector.hidden = !blind;
+    if (!blind) return;
+    const s = S().night.detector;
+    const remaining = this.scanEnds - this.sim.time;
+    const scanning = remaining > 0;
+    this.scanButton.hidden = scanning;
+    this.scanButton.disabled = this.scanEnds > 0 || this.state.inventory.battery < 1;
+    setText(this.scanButton, this.scanEnds > 0 ? s.done : this.scanButton.disabled ? s.empty : s.start);
+    setText(this.scanTimer, scanning ? fmt(s.timer, { n: Math.ceil(remaining) }) : '');
+    const distance = scanning ? detectContact(this.cam, this.sim.enemies) : null;
+    setText(this.scanReadout, scanning ? distance === null ? s.quiet : fmt(s.contact, { n: Math.round(distance) }) : '');
+    this.scanMeter.style.width = distance === null ? '0%' : `${(1 - distance / SCAN_RANGE) * 94 + 6}%`;
+    if (distance !== null && this.sim.time >= this.nextPing) {
+      audio.play('tracker_ping');
+      this.nextPing = this.sim.time + 0.19 + 0.085 * distance;
+      if (!calmMotion()) this.scanMeter.animate([{ opacity: 0.42 }, { opacity: 1 }], { duration: 180 });
+    }
   }
 
   /** The night spans 21:00 to 06:00 on the desk. */
@@ -478,6 +529,7 @@ export class NightScene implements Scene {
     setText(this.clockEl, `${clock} → ${s.night.dawn}`);
     setText(this.camClock, blind ? this.lastSignalClock ?? '––:––:––' : this.cameraTimestamp(clock));
     this.camFrame.classList.toggle('no-link', blind);
+    this.syncDetector(blind);
 
     const lit = Math.ceil((sim.houseHp / HOUSE_MAX_HP) * 5);
     const pipSignature = `${lit}`;
@@ -678,6 +730,11 @@ export class NightScene implements Scene {
       return;
     }
     if (this.paused) return;
+    if (code === 'KeyG' && this.detectorFound && this.isDark(this.cam)) {
+      event.preventDefault();
+      this.scan();
+      return;
+    }
     const digit = (DIGIT_CODES as readonly string[]).indexOf(code);
     const numpad = (NUMPAD_CODES as readonly string[]).indexOf(code);
     const camIndex = digit >= 0 ? digit : numpad;
@@ -995,7 +1052,9 @@ export class NightScene implements Scene {
   private finish(): void {
     if (this.finished) return;
     this.finished = true;
-    this.app.state = concludeNight(this.state, this.sim);
+    const battery = this.scanEnds > 0 ? spend(this.state.inventory, { battery: 1 }) : null;
+    const state = battery?.ok ? { ...this.state, inventory: battery.value } : this.state;
+    this.app.state = concludeNight(state, this.sim);
     this.app.save();
     if (this.app.state.phase === 'morning') goMorning(this.app);
     // A house that fell, or the seventh dawn, is not shown the door straight away: it gets its last scene first.
