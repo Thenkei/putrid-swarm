@@ -272,6 +272,8 @@ export const en: Strings = {
     reinforcements: 'Reinforcements · {sector}',
     bossArrives: '{name} · {sector}',
     lane: 'Mowing lane',
+    away: 'The game paused when you left the window.',
+    leaveToTitle: 'Return to title',
     paused: 'Paused',
     resume: 'Resume',
     abandon: 'Abandon the night',

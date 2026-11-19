@@ -274,6 +274,8 @@ export const fr = {
     reinforcements: 'Renforts · {sector}',
     bossArrives: '{name} · {sector}',
     lane: 'Couloir de tonte',
+    away: 'Le jeu s’est mis en pause quand vous avez quitté la fenêtre.',
+    leaveToTitle: 'Retour au titre',
     paused: 'Pause',
     resume: 'Reprendre',
     abandon: 'Abandonner la nuit',

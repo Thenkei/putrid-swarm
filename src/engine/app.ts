@@ -28,7 +28,7 @@ export interface Scene {
   onPointerUp?(pointer: Pointer): void;
   onKeyDown?(code: string, event: KeyboardEvent): void;
   onKeyUp?(code: string, event: KeyboardEvent): void;
-  /** The window lost focus: whatever was held is no longer known to be. */
+  /** The window lost focus or the document was hidden. */
   onBlur?(): void;
   /** The keyboard turned out not to be the one guessed: key labels on screen are out of date. */
   onKeyLabels?(): void;
@@ -102,6 +102,9 @@ export class App {
     });
     window.addEventListener('keyup', (event) => this.scene?.onKeyUp?.(event.code, event));
     window.addEventListener('blur', () => this.scene?.onBlur?.());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.scene?.onBlur?.();
+    });
     this.ui.addEventListener('pointerdown', () => audio.unlock(), true);
   }
 
