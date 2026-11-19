@@ -2,10 +2,15 @@
 // owns travel and action time, so a paused, obstructed or restrained character cannot tread air.
 
 import { BOSS } from '../core/data/enemies';
+import { ENTRIES } from '../core/map';
 import { BLOW_RECOVERY_SECONDS, HIT_REACTION_SECONDS, type Enemy, type LogTarget } from '../core/night';
 import type { EnemyTypeId, SectorId } from '../core/types';
 import { sprite, type Sprite } from '../engine/assets';
 import { calmMotion } from './lighting';
+import { mobCycle, mobGaitAssetKey } from './mob-cycles';
+import mobGaits from './mob-gaits.json';
+import { drawHoist, drawMobGesture, type MobGesture } from './mob-signatures';
+import mowerGait from './mower-gait.json';
 import { smoothstep } from './noise';
 import { project, type View } from './projection';
 import { contactShadow } from './shadows';
@@ -34,8 +39,8 @@ interface CharacterArt {
   readonly animal?: boolean;
   readonly wheels?: boolean;
   readonly heavy?: boolean;
-  /** The artist drew these original front stride cels facing screen right. */
-  readonly reverseFrontStride?: boolean;
+  /** The original front paintings for this character face screen right. */
+  readonly reverseFrontPaint?: boolean;
 }
 
 const ART: Readonly<Record<EnemyTypeId, CharacterArt>> = {
@@ -44,9 +49,9 @@ const ART: Readonly<Record<EnemyTypeId, CharacterArt>> = {
   brute: { key: 'en_brute', row: 2, height: 84, stride: 0.76, bounce: 0.024, heavy: true },
   dog: { key: 'en_dog', row: 3, height: 40, stride: 1.18, bounce: 0.066, animal: true },
   boar: { key: 'en_boar', row: 4, height: 54, stride: 1.08, bounce: 0.052, animal: true, heavy: true },
-  deer: { key: 'en_deer', row: 5, height: 74, stride: 1.52, bounce: 0.058, animal: true, reverseFrontStride: true },
-  mower: { key: 'boss_mower', row: 6, height: 82, stride: 1.35, bounce: 0.009, wheels: true },
-  mechanic: { key: 'boss_mechanic', row: 7, height: 92, stride: 0.92, bounce: 0.009, wheels: true, heavy: true, reverseFrontStride: true },
+  deer: { key: 'en_deer', row: 5, height: 74, stride: 1.52, bounce: 0.058, animal: true, reverseFrontPaint: true },
+  mower: { key: 'boss_mower', row: 6, height: mowerGait.renderHeight, stride: 1.35, bounce: 0.009, wheels: true },
+  mechanic: { key: 'boss_mechanic', row: 7, height: 92, stride: 0.92, bounce: 0.009, wheels: true, heavy: true, reverseFrontPaint: true },
   mail: { key: 'boss_mail', row: 8, height: 76, stride: 1.37, bounce: 0.046 },
   chief: { key: 'boss_chief', row: 9, height: 86, stride: 0.88, bounce: 0.021, heavy: true },
   mayor: { key: 'boss_mayor', row: 10, height: 96, stride: 2.0, bounce: 0.006, wheels: true, heavy: true },
@@ -78,6 +83,9 @@ interface Figure {
 }
 
 const figures = new Map<string, Figure>();
+const reverseFront = (art: CharacterArt): boolean =>
+  art.reverseFrontPaint === true || (art.key === 'boss_chief' && mobCycle('chief')?.mirrorFront === true);
+
 function figureFor(art: CharacterArt, front: boolean, pose: Pose): Figure | null {
   const base = art.key + (front ? '_front' : '_back');
   const key = base + '_' + pose;
@@ -104,11 +112,63 @@ function figureFor(art: CharacterArt, front: boolean, pose: Pose): Figure | null
     const reference = sprite(base + '_a') ?? sprite(base);
     const source = sprite(key) ?? (pose === 'grip' ? sprite(base + '_x') : undefined) ?? reference;
     if (!source || !reference) return null;
-    const reverse = front && art.reverseFrontStride === true && (pose === 'a' || pose === 'p' || pose === 'b');
+    const forwardDeerLanding = art.key === 'en_deer' && pose === 'b' && mobCycle('deer');
+    const reversingAction = pose === 'x' && (art.key === 'boss_mechanic' && mobCycle('mechanic') ||
+      art.key === 'en_deer' && mobCycle('deer') || art.key === 'boss_chief' && mobCycle('chief'));
+    const reverse = front && reverseFront(art) && !forwardDeerLanding && (pose === 'a' || pose === 'p' || pose === 'b' || !!reversingAction);
     figure = { source, sx: 0, sy: 0, sw: source.w, sh: source.h, width: source.w / reference.h, height: source.h / reference.h, reverse };
   }
   figures.set(key, figure);
   return figure;
+}
+
+const mowerCels: Figure[] = [];
+const gaitCels = new Map<string, Figure>();
+
+function gaitFigure(type: EnemyTypeId, art: CharacterArt, front: boolean, phase: number): Figure | undefined {
+  const { frames, columns, cellWidth: sw, cellHeight: sh, inkHeight } = mobGaits;
+  const index = (front ? 0 : frames) + Math.floor(phase * frames);
+  const key = `${type}:${index}`;
+  const cached = gaitCels.get(key);
+  if (cached) return cached;
+  const atlas = sprite(mobGaitAssetKey(type));
+  const rows = Math.ceil(2 * frames / columns);
+  if (!atlas || atlas.img.naturalWidth !== sw * columns || atlas.img.naturalHeight !== sh * rows) return;
+  const figure = {
+    source: atlas, sx: index % columns * sw, sy: Math.floor(index / columns) * sh,
+    sw, sh, width: sw / inkHeight, height: sh / inkHeight, reverse: front && reverseFront(art),
+  };
+  gaitCels.set(key, figure);
+  return figure;
+}
+
+function mowerFigure(e: Enemy, front: boolean, reduced: boolean): Figure | undefined {
+  if ((e.action !== 'walk' && e.action !== 'charge') || e.hitFlash > 0 || e.nettedFor > 0 ||
+    e.stunnedFor > 0 || e.crawlDepth > 0 || e.blowRecovery > 0) return;
+  const atlas = sprite('boss_mower_gait');
+  if (!atlas) return;
+
+  const { columns, cycleFrames, cellWidth, cellHeight, atlasScale, standingHeight, chargeStride, walkStride } = mowerGait;
+  const view = front ? 0 : 1;
+  const charging = e.action === 'charge';
+  const cycles = e.travel / (charging ? chargeStride : walkStride);
+  const frame = Math.floor((cycles % 1) * cycleFrames);
+  const index = reduced ? 4 * cycleFrames + view : ((charging ? 2 : 0) + view) * cycleFrames + frame;
+  const sw = cellWidth * atlasScale;
+  const sh = cellHeight * atlasScale;
+  const rows = Math.ceil((4 * cycleFrames + 2) / columns);
+  if (atlas.img.naturalWidth !== sw * columns || atlas.img.naturalHeight !== sh * rows) return;
+
+  return mowerCels[index] ??= {
+    source: atlas,
+    sx: index % columns * sw,
+    sy: Math.floor(index / columns) * sh,
+    sw,
+    sh,
+    width: cellWidth / standingHeight,
+    height: cellHeight / standingHeight,
+    reverse: false,
+  };
 }
 
 const TAU = Math.PI * 2;
@@ -162,6 +222,9 @@ interface Movement {
   squash: number;
   flash: number;
   step: number;
+  gait?: number;
+  /** Moving portion of a signature gesture, independent of camera angle. */
+  signature?: MobGesture;
 }
 
 /** Ground projection and shoulder height of the actor held in the release frame. */
@@ -180,15 +243,110 @@ export function shoulderAt(view: View, target: LogTarget) {
 
 const grounded: Movement = { pose: 'p', forward: 0, up: 0, lean: 0, squash: 1, flash: 0, step: 1 };
 
+// Length and onset of each footfall come from the painted gait. The hind legs
+// of a galloping animal carry one full phase, unlike two alternating boots.
+function locomotion(e: Enemy, art: CharacterArt, m: Movement, reduced: boolean): void {
+  const profile = mobCycle(e.type);
+  const cycle = e.travel / (profile?.stride ?? art.stride) + trait(e.id);
+  const phase = cycle % 1;
+  const segment = Math.floor(phase * 4);
+  const run = e.action === 'charge' || e.moveSpeed >= 1.45 || e.hasteFor > 0;
+  m.pose = segment === 0 ? 'a' : segment === 1 ? (run ? 'run' : 'walk') : segment === 2 ? 'b' : 'p';
+  if (!profile) {
+    const step = art.animal && run ? phase : (phase * 2) % 1;
+    const lift = Math.sin(Math.PI * step) ** 2;
+    m.up = lift * art.bounce * (run ? 1.1 : 0.75);
+    if (m.pose === 'run' && !art.wheels) m.up += 0.08;
+    m.lean = (run && !art.wheels ? 0.065 : 0.014) + Math.sin(TAU * phase) * (art.wheels ? 0.008 : 0.022);
+    m.squash = 1 - (1 - lift) * (run && !art.wheels ? 0.022 : 0.009);
+    m.step = step;
+    return;
+  }
+  const step = art.animal ? phase : (phase * 2) % 1;
+  const lift = Math.sin(Math.PI * step) ** 2;
+  m.gait = reduced ? 0 : phase;
+  m.step = step;
+  m.up = lift * art.bounce;
+  m.lean = 0.012 + Math.sin(TAU * phase) * 0.023;
+  m.squash = 1 - (1 - lift) * (art.heavy ? 0.046 : 0.023);
+  switch (e.type) {
+    case 'shambler':
+      m.up *= phase < 0.53 ? 0.92 : 0.22;
+      m.lean *= phase < 0.53 ? 1.6 : -1.1;
+      break;
+    case 'runner':
+    case 'mail':
+      m.up = Math.sin(Math.PI * smoothstep(0.14, 0.82, step)) * 0.083;
+      m.lean += 0.054;
+      break;
+    case 'brute':
+    case 'chief':
+      m.up *= 0.52;
+      m.squash -= 0.044 * (1 - smoothstep(0.03, 0.22, step));
+      break;
+    case 'dog':
+    case 'deer':
+      m.up = Math.sin(Math.PI * smoothstep(0.36, 1, phase)) * (e.type === 'deer' ? 0.13 : 0.08);
+      m.lean = 0.064 * Math.cos(TAU * phase);
+      break;
+    case 'boar':
+      m.lean = 0.05 * Math.sin(TAU * phase);
+      m.up *= 0.73;
+      m.squash -= 0.042 * (1 - smoothstep(0, 0.24, phase));
+      break;
+    case 'mechanic':
+    case 'mayor':
+      m.up = 0;
+      m.lean *= 0.27;
+      m.squash = 1;
+      break;
+  }
+  m.up *= profile.lift;
+  m.lean *= profile.lean;
+}
+
+function windup(e: Enemy, m: Movement, enhanced: boolean): void {
+  const t = Math.min(1, e.actionSeconds / e.def.windupSeconds);
+  if (!enhanced) {
+    m.pose = 'x';
+    m.forward = -0.035 * t;
+    m.lean = -0.07 * t;
+    m.squash = 1 - 0.045 * t;
+    return;
+  }
+  const load = smoothstep(0.07, 0.76, t);
+  m.pose = t < 0.13 ? 'p' : 'x';
+  m.forward = -0.042 * load;
+  m.lean = -0.078 * load;
+  m.squash = 1 - 0.038 * load;
+  if (e.type === 'boar') {
+    m.pose = t < 0.46 ? 'p' : 'x';
+    m.squash = 1 - 0.17 * load;
+    m.lean = 0.058 * load;
+  } else if (e.action === 'rev') {
+    m.lean -= 0.025 * Math.sin(e.actionSeconds * 36) * load;
+    m.signature = { kind: 'rev', time: e.actionSeconds, force: load };
+  } else if (e.type === 'mechanic' && m.pose === 'x') {
+    m.signature = { kind: 'hoist', time: t, force: load };
+  } else if (e.action === 'speech') {
+    const declaim = Math.sin(Math.PI * 3 * t) ** 2 * load;
+    m.forward = 0.016 + 0.044 * declaim;
+    m.lean = 0.072 * declaim;
+    m.squash = 1 + 0.028 * declaim;
+    m.signature = { kind: 'speech', time: t, force: load };
+  }
+}
+
 function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
   const m = { ...grounded };
+  const enhanced = e.type === 'mower' || !!mobCycle(e.type);
   if (e.hitFlash > 0) {
     const t = 1 - e.hitFlash / HIT_REACTION_SECONDS;
     const recoil = (1 - smoothstep(0.24, 1, t)) * (0.65 + 0.35 * smoothstep(0, 0.15, t));
     m.pose = 'hit';
-    m.forward = -0.065 * recoil;
-    m.lean = -0.09 * recoil;
-    m.squash = 1 - 0.045 * recoil;
+    m.forward = -(enhanced ? art.wheels ? 0.039 : art.heavy ? 0.049 : 0.085 : 0.065) * recoil;
+    m.lean = -(enhanced ? art.wheels ? 0.031 : art.animal ? 0.15 : 0.10 : 0.09) * recoil;
+    m.squash = 1 - (enhanced ? art.animal ? 0.093 : 0.049 : 0.045) * recoil;
     m.flash = 0.4 * (1 - smoothstep(0, 0.3, t));
     const low = e.hitCrawlDepth ?? e.crawlDepth;
     if (low > 0) {
@@ -199,51 +357,69 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
       m.lean = (art.animal ? -0.025 : 0.10) * recoil;
       m.squash = 1 - (art.animal ? 0.20 : 0.24) * recoil;
     }
-  } else if (e.nettedFor > 0 || e.stunnedFor > 0 || e.action === 'jam' || (e.action === 'idle' && e.crawlDepth > 0)) {
+  } else if (e.nettedFor > 0 || e.stunnedFor > 0 || (e.action === 'idle' && e.crawlDepth > 0)) {
     const low = Math.max(e.crawlDepth, e.hitCrawlDepth ?? 0);
     m.pose = low >= 0.6 ? 'crawlGather' : low > 0 ? 'kneel' : 'p';
-    m.squash = 0.96;
+    const pull = enhanced && e.nettedFor > 0 ? Math.sin(e.nettedFor * 21) * smoothstep(0, 0.4, e.nettedFor) : 0;
+    m.squash = enhanced ? 0.93 + 0.021 * pull : 0.96;
+    m.lean = 0.044 * pull;
   } else if (e.crawlDepth > 0) {
     const phase = (e.travel / (art.animal ? 0.83 : 0.68) + trait(e.id)) % 1;
     m.pose = e.crawlDepth < 0.6 ? 'kneel' : CRAWL_CYCLE[Math.floor(phase * 4)]!;
     m.squash = 1 - 0.025 * Math.sin(TAU * phase) * e.crawlDepth;
     m.forward = 0.023 * Math.sin(TAU * phase);
     m.lean = 0.022 * Math.cos(TAU * phase);
+  } else if (enhanced && e.type === 'chief' && e.boss && e.boss.ability > BOSS.chief.whistleEvery - 0.7) {
+    const t = (BOSS.chief.whistleEvery - e.boss.ability) / 0.7;
+    m.pose = 'x';
+    m.lean = -0.04 * (1 - smoothstep(0.45, 1, t));
+    m.signature = { kind: 'whistle', time: t, force: 1 };
   } else if (e.blowRecovery > 0 || (e.action === 'attack' && (e.type !== 'mail' || e.cooldown <= 0))) {
     // A discrete blow starts at contact. Continuous attackers reach, keep their grip, tug and release.
     const { phase: t, reach } = attackBeat(e);
-    const raisedFists = e.type === 'shambler' || e.type === 'brute';
-    m.pose = t < 0.1 || t > 0.94 ? 'p' : t < 0.23 && raisedFists ? 'x' : 'grip';
-    m.forward = 0.095 * reach;
-    m.lean = reach * 0.07;
-    m.squash = 1 - 0.038 * reach;
+    const armed = e.type === 'shambler' || e.type === 'brute' || (enhanced && (e.def.flanks || e.type === 'deer'));
+    m.pose = t < 0.1 || t > 0.94 ? 'p' : t < 0.23 && armed ? 'x' : 'grip';
+    m.forward = (enhanced && art.animal ? 0.125 : 0.095) * reach;
+    m.lean = reach * (enhanced ? e.type === 'brute' ? 0.15 : 0.084 : 0.07);
+    m.squash = 1 - (enhanced ? 0.058 : 0.038) * reach;
+    if (enhanced && e.type === 'mail' && t < 0.78) {
+      const secondKnock = e.boss?.knocks === 0;
+      m.pose = 'x';
+      m.forward *= secondKnock ? 1.2 : 0.78;
+      m.lean *= secondKnock ? 1.1 : 0.82;
+      m.signature = { kind: 'delivery', time: (t - 0.3) / 0.68, force: secondKnock ? 1 : 0.62 };
+    } else if (enhanced && e.type === 'mechanic' && e.blowRecovery > 0 && t < 0.88) {
+      m.pose = 'x';
+      m.signature = { kind: 'hoist', time: t, force: -2.5 * reach };
+    }
   } else if (e.action === 'windup' || e.action === 'rev' || e.action === 'speech') {
-    const build = Math.min(1, e.actionSeconds / e.def.windupSeconds);
-    m.pose = 'x';
-    m.forward = -0.035 * build;
-    m.lean = -0.07 * build;
-    m.squash = 1 - 0.045 * build;
+    windup(e, m, enhanced);
   } else if (e.type === 'chief' && e.boss && e.boss.ability > BOSS.chief.whistleEvery - 0.42) {
     m.pose = 'x';
+  } else if (e.action === 'jam') {
+    const recoil = Math.sin(e.actionSeconds * 24) * (1 - smoothstep(0, 0.46, e.actionSeconds));
+    m.pose = e.actionSeconds < 0.22 ? 'hit' : 'p';
+    m.lean = -0.106 * recoil;
+    m.squash = 1 - 0.056 * Math.abs(recoil);
+    m.signature = { kind: 'jam', time: e.actionSeconds, force: 1 - smoothstep(1, 2.5, e.actionSeconds) };
   } else if (e.action === 'walk' || e.action === 'charge') {
-    const run = e.action === 'charge' || e.hasteFor > 0 || e.moveSpeed >= 1.45;
-    const cycle = e.travel / art.stride + trait(e.id);
-    const phase = cycle - Math.floor(cycle);
-    const segment = Math.floor(phase * 4);
-    m.pose = segment === 0 ? 'a' : segment === 1 ? (run ? 'run' : 'walk') : segment === 2 ? 'b' : 'p';
-    const stride = art.animal && run ? phase : (phase * 2) % 1;
-    const lift = 0.5 - 0.5 * Math.cos(TAU * stride);
-    m.up = lift * art.bounce * (run ? 1.1 : 0.75);
-    if (m.pose === 'run' && !art.wheels) m.up += 0.08;
-    m.lean = (run && !art.wheels ? 0.065 : 0.014) + Math.sin(TAU * phase) * (art.wheels ? 0.008 : 0.022);
-    m.squash = 1 - (1 - lift) * (run && !art.wheels ? 0.022 : 0.009);
-    m.step = stride;
+    const vault = e.vault && (e.travel - e.vault.start) / e.vault.length;
+    if (enhanced && vault !== undefined && vault >= 0 && vault < 1) {
+      m.pose = vault < 0.15 ? 'x' : vault < 0.74 ? 'a' : 'b';
+      const takeoff = smoothstep(0.05, 0.58, vault);
+      const landing = smoothstep(0.58, 0.99, vault);
+      m.up = 0.58 * Math.sin(Math.PI / 2 * (takeoff + landing));
+      m.lean = 0.17 * Math.sin(TAU * vault);
+      m.squash = 1 - 0.15 * smoothstep(0.76, 0.91, vault) * (1 - smoothstep(0.92, 1, vault));
+    } else locomotion(e, art, m, reduced);
   }
   if (reduced) {
     m.lean = 0;
     m.up = 0;
+    if (enhanced) m.squash = 1;
     m.forward *= 0.35;
     m.flash = 0;
+    delete m.signature;
   }
   return m;
 }
@@ -340,23 +516,46 @@ function cameraCel(f: Figure, exposure: Exposure): HTMLCanvasElement | undefined
   return canvas;
 }
 
-function drawFigure(ctx: CanvasRenderingContext2D, f: Figure, height: number, exposure: Exposure, night: boolean, flash = 0): void {
+function drawFigure(
+  ctx: CanvasRenderingContext2D, f: Figure, height: number, exposure: Exposure, night: boolean,
+  flash = 0, front = false, signature?: MobGesture,
+): void {
   const w = f.width * height;
   const h = f.height * height;
   ctx.save();
   if (f.reverse) ctx.scale(-1, 1);
   const baked = night ? cameraCel(f, exposure) : undefined;
-  if (baked) ctx.drawImage(baked, -w / 2, -h, w, h);
+  if (signature?.kind === 'hoist' && f.sw === (front ? 331 : 302) && f.sh === (front ? 269 : 268)) {
+    drawHoist(ctx, front, w, h, signature.force, () => {
+      if (baked) ctx.drawImage(baked, -w / 2, -h, w, h);
+      else paintCel(ctx, f, -w / 2, -h, w, h);
+    });
+  } else if (baked) ctx.drawImage(baked, -w / 2, -h, w, h);
   else {
     paintCel(ctx, f, -w / 2, -h, w, h);
     if (exposure === 'net') ctx.drawImage(netOverlay(f), -w / 2, -h, w, h);
   }
+  if (signature) drawMobGesture(ctx, front, height, signature);
   if (flash > 0) {
     ctx.globalCompositeOperation = 'lighter';
     ctx.globalAlpha *= flash;
     paintCel(ctx, f, -w / 2, -h, w, h);
   }
   ctx.restore();
+}
+
+/** The finale walks the same painted cels along a side-scrolling lane. */
+export function drawMobStride(ctx: CanvasRenderingContext2D, type: EnemyTypeId, phase: number, height: number): boolean {
+  const reduced = calmMotion();
+  const f = gaitFigure(type, ART[type], true, reduced ? 0 : phase);
+  if (!f) return false;
+  ctx.save();
+  const airborne = type === 'runner' || type === 'dog';
+  const lift = reduced ? 0 : Math.sin(Math.PI * (type === 'dog' ? phase : (2 * phase) % 1)) ** 2;
+  ctx.translate(0, -height * lift * (airborne ? 0.075 : 0.016));
+  drawFigure(ctx, f, height, 'live', false);
+  ctx.restore();
+  return true;
 }
 
 interface Moment { readonly time: number; readonly night: boolean }
@@ -366,16 +565,23 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
   const art = ART[enemy.type];
   const p = project(view, enemy.x, enemy.y);
   if (p.x < view.x - 110 * z || p.x > view.x + view.w + 110 * z || p.y < view.y - 25 * z || p.y > view.y + view.h + 125 * z) return;
-  const { front, dir, flip, depth } = facing(view, enemy.fx, enemy.fy);
+  const delivery = enemy.type === 'mail' && mobCycle('mail') && enemy.blowRecovery > 0 && typeof enemy.gripTarget === 'string'
+    ? ENTRIES[enemy.gripTarget] : undefined;
+  const dx = delivery ? delivery.x + 0.5 - enemy.x : 0;
+  const dy = delivery ? delivery.y + 0.5 - enemy.y : 0;
+  const reach = delivery ? Math.hypot(dx, dy) : 0;
+  const { front, dir, flip, depth } = reach > 0.001 ? facing(view, dx / reach, dy / reach) : facing(view, enemy.fx, enemy.fy);
   const h = art.height * z * stature(art, enemy.id);
   const reduced = calmMotion();
-  const movement = motion(enemy, art, reduced);
-  const f = figureFor(art, front, movement.pose);
+  const gait = enemy.type === 'mower' ? mowerFigure(enemy, front, reduced) : undefined;
+  const movement = gait ? grounded : motion(enemy, art, reduced);
+  const moveCel = movement.gait === undefined ? undefined : gaitFigure(enemy.type, art, front, movement.gait);
+  const f = gait ?? moveCel ?? figureFor(art, front, movement.pose);
   const crouching = CRAWL_CLIPS.includes(movement.pose as CrawlClip);
   const low = enemy.hitFlash > 0 || enemy.nettedFor > 0 || enemy.stunnedFor > 0
     ? Math.max(enemy.crawlDepth, enemy.hitCrawlDepth ?? 0) : enemy.crawlDepth;
   const posture = crouching ? crawlHeight(art, front, low) : 1;
-  if (f && !reduced && movement.step < 1 && movement.pose === 'p' && !art.wheels) {
+  if (f && !moveCel && !reduced && movement.step < 1 && movement.pose === 'p' && !art.wheels) {
     // With legs tucked, the bottom of the cel is the lifted foot. Keep the chest
     // near the stride's shoulder line while a grounded walker retains a little dip.
     const flight = art.animal || enemy.type === 'runner' || enemy.type === 'mail';
@@ -394,7 +600,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
   ctx.translate(p.x + dir * movement.forward * h, p.y + 3 * z + h * (movement.forward * depth - movement.up));
   ctx.rotate(dir * movement.lean);
   ctx.scale(flip ? -1 : 1, posture * movement.squash);
-  if (f) drawFigure(ctx, f, h, enemy.nettedFor > 0 ? 'net' : enemy.threshold ? 'door' : 'live', frame.night, movement.flash);
+  if (f) drawFigure(ctx, f, h, enemy.nettedFor > 0 ? 'net' : enemy.threshold ? 'door' : 'live', frame.night, movement.flash, front, movement.signature);
   else {
     ctx.fillStyle = enemy.def.boss ? '#a8433a' : '#7d9a58';
     ctx.beginPath();
@@ -427,10 +633,12 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
     ctx.fillRect(-s / 2, -s / 2, s, s);
     ctx.strokeRect(-s / 2, -s / 2, s, s);
     ctx.restore();
+    ctx.save();
     ctx.fillStyle = '#1a1206';
     ctx.font = `700 ${12 * z}px "DIN Condensed","Arial Narrow",sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText('!', p.x, top - 12 * z);
+    ctx.restore();
   }
   if (enemy.hasteFor > 0) {
     ctx.strokeStyle = 'rgba(255,255,255,0.7)';
@@ -474,18 +682,22 @@ export function drawFallen(ctx: CanvasRenderingContext2D, view: View, frame: Mom
   const { front, flip, dir, depth } = facing(view, body.fx, body.fy);
   const initialDepth = body.crawlDepth ?? 0;
   const low = initialDepth > 0;
-  const rollEnd = low ? 0.24 : 0.39;
+  const enhanced = body.type === 'mower' || !!mobCycle(body.type);
+  const rollEnd = low ? 0.24 : enhanced && art.wheels ? 0.52 : enhanced && art.heavy ? 0.45 : enhanced && art.animal ? 0.31 : 0.39;
+  const recoilEnd = enhanced ? rollEnd * (art.wheels ? 0.34 : 0.27) : 0.12;
   const under = initialDepth + (1 - initialDepth) * smoothstep(0, rollEnd, age);
-  const falling: Pose = low ? (under < 0.6 ? 'kneel' : 'crawlGather') : (age < 0.12 ? 'hit' : 'fall');
+  const falling: Pose = low ? (under < 0.6 ? 'kneel' : 'crawlGather') : (age < recoilEnd ? 'hit' : 'fall');
   const pose = age < rollEnd ? falling : 'dead';
   const cel = figureFor(art, front, pose);
   if (!cel) return;
   const p = project(view, body.x, body.y);
   const reduced = calmMotion();
-  const collapse = smoothstep(0.04, low ? rollEnd : 0.45, age);
-  const buckle = smoothstep(low ? 0 : 0.12, rollEnd, age);
-  const settle = age >= rollEnd && age < rollEnd + 0.16 ? Math.sin((age - rollEnd) / 0.16 * Math.PI) : 0;
-  const x = p.x - dir * h * collapse * (reduced ? 0.03 : low ? 0.075 : 0.115);
+  const collapse = smoothstep(0.04, rollEnd + 0.065, age);
+  const buckle = smoothstep(low ? 0 : recoilEnd, rollEnd, age);
+  const landing = smoothstep(rollEnd, rollEnd + 0.18, age);
+  const settle = Math.sin(Math.PI * landing);
+  const slide = low ? 0.075 : enhanced && art.wheels ? 0.18 : enhanced && art.animal ? 0.16 : 0.115;
+  const x = p.x - dir * h * collapse * (reduced ? 0.03 : slide);
   const y = p.y + view.zoom * 3 - depth * h * collapse * 0.07;
   contactShadow(ctx, x, y - h * collapse * 0.075, h * (0.22 + 0.15 * collapse), h * (0.075 + 0.03 * collapse), 0.51 * opacity);
   ctx.save();
@@ -494,8 +706,10 @@ export function drawFallen(ctx: CanvasRenderingContext2D, view: View, frame: Mom
   if (low) {
     const tilt = art.animal ? -0.06 : 0.14;
     ctx.rotate(reduced ? 0 : dir * tilt * (pose === 'dead' ? 1 - settle * 0.3 : buckle));
-  } else if (!sprite('defense_mob_poses')) ctx.rotate(-dir * collapse * 1.35);
-  else if (!reduced && pose !== 'dead') ctx.rotate(dir * (pose === 'hit' ? -0.08 : -buckle * 0.13));
+  } else if (!reduced) {
+    if (!sprite('defense_mob_poses')) ctx.rotate(-dir * collapse * 1.35);
+    else if (pose !== 'dead') ctx.rotate(dir * (pose === 'hit' ? -0.08 : -buckle * (art.wheels ? 0.075 : 0.16)));
+  }
   const squash = pose === 'crawlGather' ? 1 - 0.28 * buckle : pose === 'fall' ? 1 - 0.22 * buckle : 1 - 0.045 * settle;
   const posture = low ? pose === 'dead' ? 0.80 : crawlHeight(art, front, under) : 1;
   ctx.scale(flip ? -1 : 1, posture * (reduced ? 1 : squash));

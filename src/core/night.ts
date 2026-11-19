@@ -65,6 +65,8 @@ export interface Enemy {
   /** Animation clocks use simulation time. Shoves and knockback do not count as steps. */
   travel: number;
   moveSpeed: number;
+  /** Distance interval for rendering a fence vault. Collision stays on the route. */
+  vault?: { readonly start: number; readonly length: number };
   actionSeconds: number;
   blowRecovery: number;
   /** The door or device actually being gripped, including the recovery from a single blow. */

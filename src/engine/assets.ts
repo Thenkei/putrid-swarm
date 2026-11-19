@@ -1,6 +1,8 @@
 // Runtime art. Everything is optional by design: a missing image degrades to a placeholder
 // instead of blocking the game, so art can be regenerated independently of the code.
 
+import { mobGaitSheets } from '../render/mob-cycles';
+
 export interface Sprite {
   readonly img: HTMLImageElement;
   readonly w: number;
@@ -46,7 +48,7 @@ export async function loadAssets(onProgress: (done: number, total: number) => vo
     console.warn('[assets] manifest.json unavailable; running with placeholders', error);
   }
 
-  const entries = Object.entries(manifest);
+  const entries = Object.entries<ManifestEntry>({ ...manifest, ...mobGaitSheets });
   const failed: string[] = [];
   let done = 0;
   await Promise.all(

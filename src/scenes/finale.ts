@@ -18,6 +18,7 @@ import { el } from '../engine/dom';
 import { S, fmt } from '../engine/i18n';
 import { keepJam, rememberEnding } from '../engine/progress';
 import { hush, say } from '../engine/voice';
+import { drawMobStride } from '../render/infected';
 import { Atmosphere, drawArm } from './atmosphere';
 import { TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
 import { drawPlate } from './common';
@@ -64,10 +65,10 @@ const GRABS = [
 const GRAVITY = 1500;
 
 const WALKERS = [
-  { key: 'en_shambler', height: 128, speed: 150, weight: 6 },
-  { key: 'en_runner', height: 124, speed: 250, weight: 3 },
-  { key: 'en_dog', height: 74, speed: 300, weight: 2 },
-  { key: 'en_brute', height: 168, speed: 120, weight: 1 },
+  { type: 'shambler', height: 128, speed: 150, weight: 6 },
+  { type: 'runner', height: 124, speed: 250, weight: 3 },
+  { type: 'dog', height: 74, speed: 300, weight: 2 },
+  { type: 'brute', height: 168, speed: 120, weight: 1 },
 ] as const;
 const WALK_CYCLE = ['a', 'p', 'b', 'p'] as const;
 
@@ -731,7 +732,7 @@ export class FinaleScene implements Scene {
     // Everything standing on the lane, the furthest first.
     const walking = (walker: Walker): void => {
       const frame = WALK_CYCLE[Math.floor(walker.phase) % WALK_CYCLE.length] as string;
-      const base = `${walker.kind.key}_front`;
+      const base = `en_${walker.kind.type}_front`;
       const stride = sprite(`${base}_a`);
       const pose = sprite(`${base}_${frame}`) ?? stride ?? sprite(base);
       if (!pose) return;
@@ -748,6 +749,10 @@ export class FinaleScene implements Scene {
         ctx.beginPath();
         ctx.ellipse(0, 0, w * 0.34, 7, 0, 0, Math.PI * 2);
         ctx.fill();
+        if (drawMobStride(ctx, walker.kind.type, (walker.phase % WALK_CYCLE.length) / WALK_CYCLE.length, standing)) {
+          ctx.restore();
+          return;
+        }
       }
       ctx.translate(0, -lift - h / 2);
       if (walker.thrown) ctx.rotate(walker.thrown.angle);
