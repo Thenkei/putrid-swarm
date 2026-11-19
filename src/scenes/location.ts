@@ -7,21 +7,26 @@ import { spotRng, type Puzzle } from '../core/scavenge';
 import type { Dispute, GameState, LocationId } from '../core/types';
 import { RESOURCE_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
-import { assetUrl } from '../engine/assets';
+import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { rememberEnding } from '../engine/progress';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
+import { calmMotion } from '../render/lighting';
+import { smoothstep } from '../render/noise';
 import { carDeparture, heroArt, costLine, drawPlate, inventoryBar, lootSfx, oneArmed, platePoint } from './common';
 import { EncounterPanel, memoryLine, nameOf, roadPlate } from './encounter';
 import { goAmbush, goEnd, goHomeStretch, goTravel } from './flow';
 import { ScavengePanel } from './scavenge';
+
+const SEARCH_DUST_SECONDS = 0.78;
 
 export class LocationScene implements Scene {
   private hud!: HTMLElement;
   private overlay!: HTMLElement;
   private panel!: EncounterPanel;
   private puzzle: ScavengePanel | null = null;
+  private searchDust: { readonly x: number; readonly y: number; age: number } | null = null;
   private get escorted(): boolean {
     const location = LOCATIONS[this.id];
     const state = this.state;
@@ -253,6 +258,7 @@ export class LocationScene implements Scene {
     this.app.state = result.state;
     this.app.save();
     this.refresh();
+    if (!calmMotion()) this.searchDust = { ...at, age: 0 };
     const pop = el('div', { class: 'loot-pop', style: { left: `${at.x}px`, top: `${at.y - 34}px` } }, [costLine(result.loot, undefined, '+')]);
     this.hud.append(pop);
     window.setTimeout(() => pop.remove(), 1900);
@@ -278,6 +284,10 @@ export class LocationScene implements Scene {
   update(dt: number): void {
     this.puzzle?.update(dt);
     this.panel.update(dt);
+    if (this.searchDust) {
+      this.searchDust.age += dt;
+      if (this.searchDust.age >= SEARCH_DUST_SECONDS) this.searchDust = null;
+    }
   }
 
   render(ctx: CanvasRenderingContext2D): void {
@@ -285,6 +295,26 @@ export class LocationScene implements Scene {
     const dusk = 1 - this.state.hoursLeft / DAY_HOURS;
     ctx.fillStyle = `rgba(40, 30, 90, ${Math.max(0, dusk - 0.55) * 0.5})`;
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+    this.drawSearchDust(ctx);
+  }
+
+  private drawSearchDust(ctx: CanvasRenderingContext2D): void {
+    const dust = this.searchDust;
+    if (!dust || calmMotion()) return;
+    const art = sprite('fx_dust');
+    if (!art) return;
+    ctx.save();
+    for (const [index, direction] of [-1, 1, -0.33].entries()) {
+      const progress = (dust.age - index * 0.09) / 0.6;
+      if (progress <= 0 || progress >= 1) continue;
+      const w = 27 + 53 * progress;
+      const h = w * art.h / art.w;
+      const x = dust.x + direction * (18 + 29 * progress);
+      const y = dust.y + 6 - (5 + 21 * progress);
+      ctx.globalAlpha = smoothstep(0, 0.17, progress) * (1 - progress) ** 1.45 * 0.72;
+      ctx.drawImage(art.img, x - w / 2, y - h / 2, w, h);
+    }
+    ctx.restore();
   }
 
   onKeyDown(code: string): void {
