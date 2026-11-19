@@ -73,6 +73,7 @@ export class App {
       this.pointer.overCanvas = event.target === this.canvas;
     };
     this.canvas.addEventListener('pointerdown', (event) => {
+      if (this.pendingScene) return;
       audio.unlock();
       toStage(event);
       this.pointer.down = true;
@@ -80,20 +81,21 @@ export class App {
     });
     window.addEventListener('pointermove', (event) => {
       toStage(event);
-      this.scene?.onPointerMove?.(this.pointer);
+      if (!this.pendingScene) this.scene?.onPointerMove?.(this.pointer);
     });
     window.addEventListener('pointerup', (event) => {
       toStage(event);
       this.pointer.down = false;
-      this.scene?.onPointerUp?.(this.pointer);
+      if (!this.pendingScene) this.scene?.onPointerUp?.(this.pointer);
     });
     this.canvas.addEventListener('wheel', (event) => {
       toStage(event);
-      this.scene?.onWheel?.(event.deltaY, this.pointer);
+      if (!this.pendingScene) this.scene?.onWheel?.(event.deltaY, this.pointer);
       event.preventDefault();
     }, { passive: false });
     this.canvas.addEventListener('contextmenu', (event) => event.preventDefault());
     window.addEventListener('keydown', (event) => {
+      if (this.pendingScene) return;
       audio.unlock();
       if (event.repeat) return;
       // What the key types is what is printed on it: the prompts follow the keyboard actually in use.
@@ -137,12 +139,15 @@ export class App {
   go(factory: () => Scene): void {
     if (this.pendingScene) return;
     this.pendingScene = factory;
+    this.ui.inert = true;
     this.fadeTarget = 1;
   }
 
   private swap(scene: Scene): void {
     this.scene?.exit?.();
     this.ui.replaceChildren();
+    this.ui.inert = false;
+    this.pointer.down = false;
     this.toastHost.replaceChildren();
     this.scene = scene;
     scene.enter?.();
@@ -150,17 +155,18 @@ export class App {
 
   private tick(dt: number): void {
     this.time += dt;
-    if (this.fade !== this.fadeTarget) {
-      const step = dt / 0.22;
-      this.fade = this.fadeTarget > this.fade ? Math.min(this.fadeTarget, this.fade + step) : Math.max(this.fadeTarget, this.fade - step);
-      if (this.fade >= 1 && this.pendingScene) {
+    try {
+      if (this.fade !== this.fadeTarget) {
+        const step = dt / 0.22;
+        this.fade = this.fadeTarget > this.fade ? Math.min(this.fadeTarget, this.fade + step) : Math.max(this.fadeTarget, this.fade - step);
+      }
+      // A scene may request its successor during enter(), while the screen is already black.
+      if (this.fade === 1 && this.pendingScene) {
         const factory = this.pendingScene;
         this.pendingScene = null;
-        this.swap(factory());
         this.fadeTarget = 0;
+        this.swap(factory());
       }
-    }
-    try {
       this.scene?.update(dt);
       const ctx = this.ctx;
       ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
