@@ -84,6 +84,22 @@ const REF_MORNING = C('17-morning-after.png');
 const REF_HOMESTEAD = C('01-day-night-homestead.png');
 const REF_PROJECTION = C('03-2d-projection-comparison.png');
 const YARD_STYLE_REFS = ['art/raw/obj_trees.png', 'art/raw/obj_house_front.png'];
+const CAR_SPRITE_REF = 'public/assets/sprites/obj_car_front.webp';
+const CAR_BOARDING_BRIEF =
+  'Use case: stylized-concept, production animation sprites for the original game Putrid Swarm. Deliver one wide 3:2 sprite ' +
+  'atlas, EXACTLY a perfectly regular 2×2 grid of four distinct frames, each composition wholly inside its cell with generous ' +
+  'transparent gutters, no graphic dividers. Genuine transparent background, no ground or cast shadows, no labels. The first ' +
+  'reference is the EXACT existing game vehicle sprite: trace/replicate its silhouette, orientation and proportions and ' +
+  'preserve its detailed inked texture. Fixed high isometric front driver-side view: grille points DOWN LEFT, rear points UP ' +
+  'RIGHT, near-side front door is red, wood roof rack on top. Left-hand drive, driver enters through that visible red front ' +
+  'door. Keep the car body including tires, hood, rack and rear completely stationary and exactly the same scale and ' +
+  'coordinates within each cell. All vehicles centered with a slight left shift within each cell to leave room on the right ' +
+  'for the man. No lighting or perspective changes. The second reference is the exact protagonist identity and clothing, a ' +
+  'scruffy dark-haired adult man with short stubble, worn mustard yellow hooded field jacket (hood down), dark charcoal cargo ' +
+  'trousers, brown work boots. Keep his scale consistent: upright he is about as tall as the car is from tire to rack, his ' +
+  'waist at the handle. Keep ink-and-painted storybook game artwork, rust and crisp brown contours. Each frame has one car and ' +
+  'one person only. Red driver\'s door opens outward on its front hinge and remains partly in front of the man\'s legs when ' +
+  'open. Camera never moves. Match full car placement when comparing any two cells.';
 
 export const ART = [
   // ───────────────────────────── Plates taken directly from the concept art ─────────────────────────────
@@ -474,6 +490,92 @@ export const ART = [
       'a black roof rack carrying strapped planks, mud on the sills, all doors and tailgate closed. ' +
       'LEFT view: isometric three-quarter FRONT view, bonnet pointing to the lower-left. RIGHT view: isometric three-quarter REAR view, tailgate pointing to the lower-left. Same size in both. ' +
       `${ISO} ${KEY} ${STYLE}`,
+  },
+  // Registered transparent cels, read in place to keep the body of the break steady.
+  {
+    id: 'car_boarding', kind: 'atlas', w: 1152, source: { concept: 'art/raw/car_boarding.png' },
+    refs: [CAR_SPRITE_REF, REF_TRUNK],
+    prompt: CAR_BOARDING_BRIEF + ' ' +
+      'The character has both arms. Top left: he is one stride from the CLOSED driver\'s door, one boot forward mid-step, angled ' +
+      'toward screen upper left, his body entirely recognizable to the right of the front door. Top right: red front driver\'s door ' +
+      'wide open; he stands beside the opening with a hand on the top outer edge, turns his shoulder toward the seat and starts ' +
+      'leaning to duck in. Bottom left: red front door open; he is visibly halfway inside, torso and head partly occluded by the ' +
+      'door frame, bending forward across the driver\'s seat while one boot is still on the ground. Bottom right: he is now fully ' +
+      'seated, all legs inside, his head and shoulder visible through the doorway as he draws the red door inward with his hand, ' +
+      'door still a little ajar.',
+  },
+  {
+    id: 'car_boarding_one_arm', kind: 'atlas', w: 1152, source: { concept: 'art/raw/car_boarding_one_arm.png' },
+    refs: [CAR_SPRITE_REF, 'art/raw/plate_trunk_one_arm.png'],
+    prompt: CAR_BOARDING_BRIEF + ' ' +
+      'The man permanently lost his LEFT arm at the shoulder. Depict only his anatomical RIGHT arm, with a visibly short ' +
+      'folded/pinned empty left sleeve. He has exactly ONE hand in every frame. No wound or blood. Top left: he is one stride from ' +
+      'the CLOSED driver\'s door and is reaching across with his RIGHT hand toward the latch, his body entirely recognizable to the ' +
+      'right of the front door. Top right: red driver\'s door open; he has shuffled around it and braces his right palm against the ' +
+      'upper door frame, body twisted to line up with the opening, empty left sleeve visible. Bottom left: red driver\'s door open; ' +
+      'he leans heavily on his right hand at the frame, body visibly halfway inside and head lowered, one boot still on the ground ' +
+      'as he pauses and repositions. Bottom right: he is fully seated, all legs inside, twisted back toward the opening to take a ' +
+      'second grip on the still-partly-open red door with his only right hand; his head and right shoulder visible through the ' +
+      'doorway.' +
+      '\n\nRetouch of the original atlas: ' +
+      'Use case: precise-object-edit, production correction to a transparent 1536×1024 2×2 animation atlas for Putrid Swarm. The ' +
+      'supplied atlas is the edit target. Keep the same four quadrants, crops, fixed camera, car pixels, matching wheel positions, ' +
+      'texture, colours, doors and true alpha. Keep BOTH top-row cells exactly as supplied: they already use his anatomical right ' +
+      'hand and clearly show his empty LEFT sleeve cinched close to his LEFT shoulder. Edit ONLY the pose of the protagonist in ' +
+      'the two bottom cells. He is an adult man with a fully healed left shoulder amputation; a short, tied, empty ochre sleeve ' +
+      'clearly ends immediately below the LEFT shoulder. Exactly ONE arm. His only hand is his anatomical RIGHT hand. LOWER LEFT: ' +
+      'keep one boot on the ground and his head bent as he inches into the seat, but redraw his chest slightly toward the viewer, ' +
+      'with his right shoulder on the screen-LEFT side of his sternum. His single RIGHT arm braces close to his body on the ' +
+      'windshield-side vertical frame, clearly emerging from that screen-left shoulder and staying left of the red door window. ' +
+      'His screen-right SHOULDER ends in a short definitely empty knotted sleeve, in plain view next to the red door. REMOVE the ' +
+      'hand currently resting on the top of the door and the arm attached to it. LOWER RIGHT: he is seated and both legs are ' +
+      'inside. Turn his chest toward the doorway and viewer so both shoulders are readable. Open jacket reveals dark shirt, and ' +
+      'the old mustard short empty LEFT sleeve on the SCREEN-RIGHT side is pinned up and fully visible at his shoulder with clear ' +
+      'space below it. His only right arm originates at the screen-LEFT shoulder by the windshield pillar, bends at the elbow, ' +
+      'then reaches diagonally ACROSS the front of his dark chest from screen left to right. That one right hand is pulling the ' +
+      'inner edge of the near red door inward, with fingers gripping the door frame near chest height. Make the path from RIGHT ' +
+      'shoulder across torso to the right hand unmistakable. Do not place an arm under the empty screen-right sleeve, do not have ' +
+      'a hand dangling over the window ledge, and do not leave a second arm half hidden by the door. Preserve the real car and its ' +
+      'registration, the man\'s facial identity, the exact four-step action sequence and genuinely transparent empty gutters. No ' +
+      'blood, no lettering, no added marks. Reproduce the original 1536×1024 canvas size.',
+  },
+  {
+    id: 'car_driver', kind: 'atlas', w: 676, source: { concept: 'art/raw/car_driver.png' },
+    edit: CAR_SPRITE_REF, refs: ['art/raw/car_boarding.png'],
+    prompt:
+      'Use case: precise-object-edit, isolated sprite for Putrid Swarm. Image 1 is the edit target and exact game sprite. Image 2 ' +
+      'is the boarding sequence and character reference. Reproduce the car from image 1 EXACTLY, with identical silhouette, ' +
+      'front-left isometric angle, scale and proportions, red driver door completely latched, car nose at bottom left, rear at top ' +
+      'right, roof rack and planks. Make only a small change within the windshield and front side glass: draw the protagonist ' +
+      'seated behind the wheel by the visible red driver\'s door. Show his dark hair, head facing toward the front of the car, and ' +
+      'the collar/shoulder of his ochre jacket behind the existing reflective glass. His arms and hands stay below the windowsill, ' +
+      'hidden behind the body. Preserve the original windshield reflections and the game\'s ink texture. No other changes or ' +
+      'additions. Single full isolated car with narrow transparent margin on all sides. Genuine transparent background, no floor, ' +
+      'no shadow, no other figures, text or graphics.',
+  },
+  {
+    id: 'car_turn_road', kind: 'atlas', w: 1152, source: { concept: 'art/raw/car_turn_road.png' },
+    refs: ['art/raw/car_driver.png'],
+    prompt:
+      'Use case: stylized-concept. Create one transparent 1536×1024 production sprite atlas for the isometric game Putrid Swarm. ' +
+      'EXACT evenly spaced 2×2 grid, one complete car per quadrant, ample clear margins so no car crosses a cell boundary. The ' +
+      'supplied isolated sprite is the exact rusty mustard-yellow 1980s station wagon, dark roof rack with strapped wood, red ' +
+      'left-hand driver\'s door on the driver\'s side only, seated scruffy dark-haired driver in an ochre jacket in the left seat. ' +
+      'Match its inked, painted detailing, proportions and fixed elevated orthographic camera (about 27 degrees above the ground). ' +
+      'All views at the same physical scale, with the chassis horizontal on a level ground plane, wheels touching that plane. All ' +
+      'four are NEW ground-plane rotations of the reference. The car\'s nose turns from the reference\'s bottom-left orientation ' +
+      'TOWARDS the bottom of the page and then to the RIGHT. Top left: the nose points STEEPLY down-left at 50 degrees below ' +
+      'horizontal, two headlights prominently visible and the red driver\'s door is visible on the right of the image in a narrow ' +
+      'foreshortened side plane. Top right: the car is aimed EXACTLY STRAIGHT DOWN at the middle of the lower margin of its ' +
+      'quadrant. Symmetric straight-on front view still distinctly elevated, with both headlamps aligned, both front tyres ' +
+      'aligned, the entire roof rack visible and the driver on the VIEWER\'S RIGHT through the glass. No side panels visible. ' +
+      'Bottom left: nose points STEEPLY down-right at 50 degrees below horizontal, front grille prominent and a little of the ' +
+      'MUSTARD-yellow passenger-side flank visible on the left side of the image. Bottom right: nose points DIAGONALLY DOWN-RIGHT ' +
+      'at 27 degrees below horizontal, the mustard-yellow PASSENGER side is closest to the camera, red door is on the FAR side and ' +
+      'hidden, the left-hand driver is visible through the far half of the front windshield. Do not horizontally mirror the driver ' +
+      'or the red door. Same stationery rack, closed doors, round treaded tyres, no shadows or floors, no background, genuinely ' +
+      'transparent RGBA, no text, no frame, no guides or marks. The nose faces the viewer in every view, DO NOT draw any rear ' +
+      'view.',
   },
   {
     id: 'obj_trees',

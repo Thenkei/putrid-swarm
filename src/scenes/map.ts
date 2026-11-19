@@ -8,7 +8,7 @@ import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
-import { carDeparture, drawPlate, inventoryBar, platePoint, tripLine } from './common';
+import { drawPlate, inventoryBar, platePoint } from './common';
 import { goDay, goLocation, goTravel } from './flow';
 
 const MAP_PLATE = 'plate_map';
@@ -138,14 +138,13 @@ export class MapScene implements Scene {
   }
 
   private drive(id: LocationId): void {
-    const result = travelTo(this.state, id);
+    const departure = this.state;
+    const result = travelTo(departure, id);
     if (!result.ok) {
       audio.play('deny');
       this.app.toast(result.error.code === 'no_time' ? S().map.noTime : S().err.generic, 'error');
       return;
     }
-    carDeparture();
-    tripLine('car', this.state);
     this.app.state = result.value.state;
     this.app.save();
     const s = S();
@@ -155,6 +154,7 @@ export class MapScene implements Scene {
       plate: LOCATION_IDS.indexOf(id) % 2 === 0 ? 'plate_village' : 'plate_town',
       title: s.location[id].name,
       sub: fmt(s.map.travel, { h: hours(LOCATIONS[id].travelHours) }),
+      departure,
       next: () => goLocation(this.app, id, meeting),
     });
   }

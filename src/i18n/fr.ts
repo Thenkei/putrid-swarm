@@ -255,6 +255,7 @@ export const fr = {
   map: {
     title: 'Le village',
     drive: 'Y aller',
+    skipTravel: 'Passer le trajet',
     home: 'Rentrer au refuge',
     travel: 'Trajet {h} h',
     roundTrip: 'aller-retour {h} h',

@@ -253,6 +253,7 @@ export const en: Strings = {
   map: {
     title: 'The village',
     drive: 'Drive there',
+    skipTravel: 'Skip travel',
     home: 'Back to the refuge',
     travel: 'Drive {h} h',
     roundTrip: 'round trip {h} h',
