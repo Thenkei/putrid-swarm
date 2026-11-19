@@ -579,6 +579,9 @@ export class DayScene implements Scene {
         this.refundTag.style.left = `${point.x - RECT.x + (left ? 16 : -16)}px`;
         this.refundTag.style.top = `${Math.max(18, Math.min(RECT.h - 18, point.y - RECT.y - 10 * this.zoom))}px`;
         this.refundTag.style.transform = left ? 'translateY(-50%)' : 'translate(-100%, -50%)';
+        if (this.showRoutes && def.blocks && !device.broken && this.forecast(device).traffic.has(idx(device.x, device.y))) {
+          lines.push(el('div', { class: 'tally silent', text: s.day.dismantleGap }));
+        }
       }
       if (fresh) lines.push(el('div', { class: 'tally', text: s.day.freshNote }));
       lines.push(el('div', { class: 'muted', text: s.day.turnHint }));
@@ -739,19 +742,20 @@ export class DayScene implements Scene {
   }
 
   /**
-   * Where the infected will walk with the yard as it stands (plus the palisade being placed):
+   * Where the infected will walk with the yard as it stands or with a palisade previewed:
    * three sample routes per stretch of tree line for the dashed overlay, and every cell any of
    * them would step on, grouped by the door they end at.
    */
-  private forecast(): Forecast {
+  private forecast(removing: DeviceInstance | null = null): Forecast {
     const devices = this.state.yard.devices;
     const ghost = this.currentGhost().ghost;
     const preview = ghost && ghost.ok && DEVICES[ghost.type].blocks ? ghost : null;
-    const key = `${devices.length}:${devices.filter((d) => d.broken).length}:${devices.map((d) => d.id).join(',')}:${preview ? idx(preview.x, preview.y) : -1}`;
+    const key = `${devices.length}:${devices.filter((d) => d.broken).length}:${devices.map((d) => d.id).join(',')}:${preview ? idx(preview.x, preview.y) : -1}:${removing?.id ?? -1}`;
     if (this.routeCache?.key === key) return this.routeCache.forecast;
 
     const fences = fenceCells(devices);
     if (preview) fences.add(idx(preview.x, preview.y));
+    if (removing) fences.delete(idx(removing.x, removing.y));
     const fields = Object.fromEntries(SECTOR_IDS.map((sector) => [sector, computeField(ENTRIES[sector], { blocked: fences })])) as Record<SectorId, Float32Array>;
     const overlay = emptyOverlay();
     const byDoor = { portail: emptyOverlay(), grange: emptyOverlay(), arriere: emptyOverlay(), verger: emptyOverlay() };
@@ -845,8 +849,11 @@ export class DayScene implements Scene {
 
   render(ctx: CanvasRenderingContext2D): void {
     const state = this.state;
+    const removing = this.mode.kind === 'dismantle' && this.hoverDevice && !this.hoverDevice.broken && DEVICES[this.hoverDevice.type].blocks
+      ? this.hoverDevice
+      : null;
     const focus = this.mode.kind === 'build' ? null : this.inspectedDoor;
-    const forecast = this.showRoutes || this.mode.kind === 'build' ? this.forecast() : null;
+    const forecast = this.showRoutes || this.mode.kind === 'build' ? this.forecast(removing) : null;
     const overlay = focus ? forecast?.byDoor[focus] : forecast;
     const placing = this.currentGhost().ghost;
     const ghost = placing ? { ...placing, idle: this.ghostIdle() } : null;
