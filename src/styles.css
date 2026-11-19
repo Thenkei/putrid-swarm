@@ -4524,6 +4524,59 @@ button:disabled {
 .board-riddle { display: grid; gap: 8px; }
 .board-riddle button { text-align: left; padding-left: 18px; }
 .board-riddle button:disabled { text-decoration: line-through; }
+.records-photo { background-size: cover; }
+.record-albums, .record-targets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.record-albums .salvage-piece {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 10px;
+  min-height: 144px;
+  padding: 12px 7px;
+  border: 1px solid #683e33;
+  border-radius: 2px;
+  background: #75403d;
+  color: #fff0ca;
+  font: bold 17px/1.15 var(--slab-font);
+}
+.record-albums [data-cover='1'] { background: #525b36; border-color: #4e4f35; }
+.record-albums [data-cover='2'] { background: #334c5d; border-color: #35404e; }
+.record-albums .salvage-piece::before, .record-flight {
+  content: '';
+  width: 47px;
+  height: 47px;
+  border: 1px solid #170f0c;
+  border-radius: 50%;
+  background: radial-gradient(circle, #141414 0 6%, #e6ab60 7% 31%, transparent 32%),
+    repeating-radial-gradient(circle, #353131 0 1px, #211d1c 2px 3px);
+  box-shadow: 2px 4px 4px #0006;
+}
+.record-targets .salvage-piece { min-height: 52px; }
+.record-lane {
+  position: relative;
+  height: 63px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  border-bottom: 1px solid #ad9570;
+}
+.record-flight {
+  position: absolute;
+  left: var(--record-landing);
+  bottom: 2px;
+  transform: translateX(-50%) rotateX(68deg);
+  animation: record-flight 0.58s linear both;
+}
+@keyframes record-flight {
+  0% { left: 50%; bottom: -10px; transform: translateX(-50%) rotateX(50deg) rotateZ(0deg) scale(1.12); }
+  44% { bottom: 22px; transform: translateX(-50%) rotateX(64deg) rotateZ(155deg) scale(0.85); }
+  88% { bottom: 3px; transform: translateX(-50%) rotateX(54deg) rotateZ(325deg) scale(0.63); opacity: 1; }
+  100% { bottom: 0; transform: translateX(-50%) rotateX(72deg) rotateZ(365deg) scale(0.55); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .record-flight { animation: none; } }
 .board-circuit { display: grid; justify-content: center; }
 .wire-grid { position: relative; display: grid; grid-template-columns: repeat(3, 48px); gap: 2px; }
 .wire-grid::before, .wire-grid::after { position: absolute; top: 50%; transform: translateY(-50%); content: '➜'; color: #f9bb5c; font-size: 30px; }

@@ -12,7 +12,10 @@ export const timing = (title: string, clue: string, action: string) => ({ kind: 
 export const padlock = (title: string, clue: string) => ({ kind: 'padlock' as const, title, clue });
 // The first answer solves the clue. Its position on screen is shuffled.
 export const riddle = (title: string, clue: string, answers: Three, hint: string) => ({ kind: 'riddle' as const, title, clue, answers, hint });
-export type Puzzle = ReturnType<typeof scale | typeof pairs | typeof circuit | typeof timing | typeof padlock | typeof riddle>;
+/** The distraction lands at a safe target, or at one of two targets with distinct consequences. */
+export const records = (title: string, clue: string, albums: Three, target: string, decoys: readonly [readonly [string, string], readonly [string, string]]) =>
+  ({ kind: 'records' as const, title, clue, albums, target, decoys });
+export type Puzzle = ReturnType<typeof scale | typeof pairs | typeof circuit | typeof timing | typeof padlock | typeof riddle | typeof records>;
 export type PuzzleBook = { readonly [L in LocationId]: Record<SpotKey<L>, Puzzle> };
 
 export function spotRng(seed: number, location: LocationId, key: string): Rng {
