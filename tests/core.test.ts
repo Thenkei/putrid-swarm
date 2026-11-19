@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { COMBAT, DEVICES } from '../src/core/data/devices';
 import { LOCATIONS } from '../src/core/data/locations';
 import { NIGHTS } from '../src/core/data/waves';
-import { arriveHome, concludeNight, leaveLocation, newGame, plannedSearches, prepareSearch, retryChapter, searchSpot, startNextDay, startNight, travelTo } from '../src/core/game';
+import { arriveHome, concludeNight, leaveLocation, newGame, planVisit, prepareSearch, retryChapter, searchSpot, startNextDay, startNight, travelTo } from '../src/core/game';
 import { ENTRIES, SPAWN_CELLS, idx, isBuildable } from '../src/core/map';
 import { NightSim, type Enemy } from '../src/core/night';
 import { auditRoutes, computeField } from '../src/core/pathing';
@@ -903,22 +903,25 @@ describe('campaign', () => {
 
   it('quotes a shed visit after the greeting and keeps the return drive affordable', () => {
     const home = { ...newGame(5), hoursLeft: 1 };
-    expect(plannedSearches(home, LOCATIONS.shed)).toBe(0);
+    const firstTrip = planVisit(home, LOCATIONS.shed);
+    expect(firstTrip).toEqual({ searches: 0, hoursAfterReturn: 0.25 });
     const visit = unwrap(travelTo(home, 'shed')).state;
     expect(prepareSearch(visit, 0)).toMatchObject({ ok: false, error: { code: 'no_time' } });
+    expect(unwrap(leaveLocation(visit)).state.hoursLeft).toBe(firstTrip.hoursAfterReturn);
     const later = { ...home, flags: visit.flags };
-    expect(plannedSearches(later, LOCATIONS.shed)).toBe(1);
+    const nextTrip = planVisit(later, LOCATIONS.shed);
+    expect(nextTrip).toEqual({ searches: 1, hoursAfterReturn: 0 });
     const searched = unwrap(searchSpot(unwrap(travelTo(later, 'shed')).state, 0)).state;
-    expect(searched.hoursLeft).toBe(LOCATIONS.shed.travelHours);
+    expect(unwrap(leaveLocation(searched)).state.hoursLeft).toBe(nextTrip.hoursAfterReturn);
   });
 
   it('caps the map estimate by the visit limit and the spots still stocked', () => {
     const home = { ...newGame(5), day: 3 };
     const station = LOCATIONS.police;
-    expect(plannedSearches(home, station)).toBe(2);
-    expect(plannedSearches({ ...home, day: 7 }, station)).toBe(station.spots.length);
+    expect(planVisit(home, station)).toEqual({ searches: 2, hoursAfterReturn: 9 });
+    expect(planVisit({ ...home, day: 7 }, station)).toEqual({ searches: station.spots.length, hoursAfterReturn: 7.5 });
     const locations = { ...home.locations, police: { ...home.locations.police, searched: [0, 1, 2, 3] } };
-    expect(plannedSearches({ ...home, locations }, station)).toBe(1);
+    expect(planVisit({ ...home, locations }, station)).toEqual({ searches: 1, hoursAfterReturn: 9.5 });
   });
 
   it('keeps later destinations locked until their day', () => {

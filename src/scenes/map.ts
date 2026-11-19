@@ -1,7 +1,7 @@
 // The village map: pick a destination for the break, or stay home.
 
 import { DAY_HOURS, HOME_PIN, LOCATIONS, type LocationDef } from '../core/data/locations';
-import { clockLabel, isUnlocked, neighborStatus, plannedSearches, roundTripHours, travelTo } from '../core/game';
+import { clockLabel, isUnlocked, neighborStatus, planVisit, roundTripHours, travelTo } from '../core/game';
 import type { GameState, LocationId } from '../core/types';
 import { LOCATION_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
@@ -111,8 +111,19 @@ export class MapScene implements Scene {
     const reason = !unlocked ? fmt(s.map.locked, { n: location.unlockDay }) : !enough ? s.map.noTime : '';
     if (reason) lines.push(el('p', { style: { color: '#ff8a78' }, text: reason }));
     else {
-      const count = plannedSearches(state, location);
-      lines.push(el('p', { text: count > 0 ? fmt(s.map.searchBudget, { n: count }) : s.map.noSearches }));
+      const { searches, hoursAfterReturn } = planVisit(state, location);
+      const clock = clockLabel(hoursAfterReturn);
+      const atDusk = hoursAfterReturn < 1e-9;
+      lines.push(el('p', {}, [
+        searches > 0 ? fmt(s.map.searchBudget, { n: searches }) : s.map.noSearches,
+        el('br'),
+        el('span', {
+          class: atDusk ? 'return-at-dusk' : 'muted',
+          text: atDusk
+            ? fmt(s.map.returnAtDusk, { clock })
+            : fmt(s.map.returnEstimate, { clock, h: hours(hoursAfterReturn) }),
+        }),
+      ]));
     }
     lines.push(
       el('button', {

@@ -128,11 +128,12 @@ export function visitSearchLimit(location: LocationDef, day: number): number {
   return location.neighbor === 'chief' && neighborStatus('chief', day) === 'alive' ? CHIEF_SEARCH_LIMIT : Infinity;
 }
 
-/** Upper bound on distinct spots a player can search on the next trip from home. */
-export function plannedSearches(state: GameState, location: LocationDef): number {
+/** Search limit and yard daylight after a trip at that limit, before any encounters. */
+export function planVisit(state: GameState, location: LocationDef): { searches: number; hoursAfterReturn: number } {
   const time = state.hoursLeft - roundTripHours(location) - greetingHours(state, location);
   const remaining = location.spots.length - state.locations[location.id].searched.length;
-  return Math.max(0, Math.min(Math.floor((time + 1e-9) / SEARCH_HOURS), remaining, visitSearchLimit(location, state.day)));
+  const searches = Math.max(0, Math.min(Math.floor((time + 1e-9) / SEARCH_HOURS), remaining, visitSearchLimit(location, state.day)));
+  return { searches, hoursAfterReturn: Math.max(0, time - searches * SEARCH_HOURS) };
 }
 
 export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome, DayError> {
