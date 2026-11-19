@@ -721,6 +721,33 @@ describe('night simulation', () => {
       expect(litDistance).toBeGreaterThan(0.2);
     });
 
+    it('approaching walkers skirt the light, then take the direct route again when it dies', () => {
+      const { sim, device, target } = scenario('floodlight', 8, 18, 5.2);
+      const doorHp = sim.barricades.portail.hp;
+      Object.assign(target, { x: 12.5, y: 21.5, target: 'portail', offsetX: 0, offsetY: 0 });
+      expect(sim.trigger(device.id).ok).toBe(true);
+      let enteredLight = false;
+      run(sim, 7, () => { enteredLight ||= target.lit; });
+      expect(enteredLight || target.lit).toBe(false);
+      expect(target.x).toBeGreaterThan(13);
+      expect(target.y).toBeLessThan(18);
+      expect(target.target).toBe('portail');
+      run(sim, 6);
+      expect(sim.device(device.id)?.state).toBe('rearming');
+      expect(target.x).toBeLessThan(11.8);
+      expect(sim.barricades.portail.hp).toBeLessThan(doorHp);
+    });
+
+    it('walkers cross the light if it covers the only way to their door', () => {
+      const { sim, device, target } = scenario('floodlight', 10, 16, 5.6);
+      Object.assign(target, { x: 12.5, y: 21.5, target: 'portail', offsetX: 0, offsetY: 0 });
+      expect(sim.trigger(device.id).ok).toBe(true);
+      run(sim, 3);
+      expect(target.lit).toBe(true);
+      expect(target.y).toBeLessThan(21);
+      expect(target.x).toBeLessThan(12);
+    });
+
     it('a raised barrier holds the queue, and only while it is up', () => {
       const { sim, device, target } = scenario('barrier', 10, 17, 1.6);
       expect(sim.trigger(device.id).ok).toBe(true);

@@ -51,7 +51,7 @@ export const en: Strings = {
     net: { name: 'Net', desc: 'Automatic: closes on two infected or more and holds them. Whatever it holds takes +50% damage.' },
     barrier: { name: 'Barrier', desc: 'Fired by hand: blocks one tile for a few seconds and holds the queue. Perfect just before a log.' },
     horn: { name: 'Horn', desc: 'Fired by hand: draws nearby infected toward it. Drains the battery.' },
-    floodlight: { name: 'Floodlight', desc: 'Fired by hand: dazzles, slows and weakens whatever it lights. Drains the battery.' },
+    floodlight: { name: 'Floodlight', desc: 'Slows and weakens infected caught in the light. Approaching infected try to go around it. Drains the battery.' },
   },
   enemy: {
     shambler: 'Villager',

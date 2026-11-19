@@ -53,7 +53,7 @@ export const fr = {
     net: { name: 'Filet', desc: 'Automatique : se referme sur deux infectés ou plus et les retient. Les prises encaissent +50 % de dégâts.' },
     barrier: { name: 'Barrière', desc: 'À déclencher : bloque une case quelques secondes et retient la file. Idéale juste avant un rondin.' },
     horn: { name: 'Klaxon', desc: 'À déclencher : attire les infectés alentour vers lui. Consomme de la batterie.' },
-    floodlight: { name: 'Projecteur', desc: 'À déclencher : éblouit, ralentit et fragilise ceux qu’il éclaire. Consomme de la batterie.' },
+    floodlight: { name: 'Projecteur', desc: 'Ralentit et fragilise les infectés pris dans la lumière. Ceux qui approchent essaient de la contourner. Consomme de la batterie.' },
   },
   enemy: {
     shambler: 'Villageois',

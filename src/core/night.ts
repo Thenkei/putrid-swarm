@@ -28,6 +28,13 @@ export interface DeviceRuntime {
   logTarget?: LogTarget;
 }
 
+interface LightDetours {
+  readonly lights: readonly DeviceRuntime[];
+  readonly fences: ReadonlySet<number>;
+  readonly blocked: ReadonlySet<number>;
+  readonly fields: Map<SectorId, Field | null>;
+}
+
 export type EnemyAction = 'walk' | 'crawl' | 'attack' | 'windup' | 'charge' | 'rev' | 'jam' | 'speech' | 'idle';
 
 export const HIT_REACTION_SECONDS = 0.36;
@@ -251,6 +258,7 @@ export class NightSim {
   private walkFields!: Record<SectorId, Field>;
   private breachFields!: Record<SectorId, Field>;
   private readonly lureFields = new Map<number, Field>();
+  private lightDetours: LightDetours | null = null;
   private fieldsDirty = true;
 
   private readonly kills: Partial<Record<EnemyTypeId, number>> = {};
@@ -809,6 +817,7 @@ export class NightSim {
   /** Recomputes per-tick statuses that depend on position: floodlights, the chief's order, horns. */
   private updateAuras(): void {
     const lights = this.devices.filter((d) => d.type === 'floodlight' && d.state === 'active');
+    this.updateLightDetours(lights);
     const horns = this.devices.filter((d) => d.type === 'horn' && d.state === 'active');
     const chiefs = this.enemies.filter((e) => e.alive && e.type === 'chief');
     for (const e of this.enemies) {
@@ -823,6 +832,31 @@ export class NightSim {
         }
       }
     }
+  }
+
+  private updateLightDetours(lights: readonly DeviceRuntime[]): void {
+    if (lights.length === 0) {
+      this.lightDetours = null;
+      return;
+    }
+    const current = this.lightDetours;
+    if (current?.fences === this.fences && current.lights.length === lights.length &&
+        lights.every((light, i) => current.lights[i] === light)) return;
+    const blocked = new Set(this.fences);
+    const radius = DEVICES.floodlight.radius;
+    const span = Math.floor(radius + 0.5);
+    for (const light of lights) {
+      for (let dy = -span; dy <= span; dy++) {
+        for (let dx = -span; dx <= span; dx++) {
+          // Keep whole tiles clear so following the rim doesn't graze the light when a walker is off centre.
+          if (inGrid(light.x + dx, light.y + dy) &&
+              Math.hypot(Math.max(0, Math.abs(dx) - 0.5), Math.max(0, Math.abs(dy) - 0.5)) <= radius) {
+            blocked.add(idx(light.x + dx, light.y + dy));
+          }
+        }
+      }
+    }
+    this.lightDetours = { lights, fences: this.fences, blocked, fields: new Map() };
   }
 
   private updateEnemy(e: Enemy, dt: number): void {
@@ -883,7 +917,7 @@ export class NightSim {
     const blocked = breaker ? undefined : this.fences;
     const cx = Math.floor(e.x);
     const cy = Math.floor(e.y);
-    const step = nextStep(field, cx, cy, blocked);
+    const step = this.lightDetourStep(e, cx, cy) ?? nextStep(field, cx, cy, blocked);
     if (!step) {
       e.action = 'idle';
       return;
@@ -907,6 +941,19 @@ export class NightSim {
 
     e.windup = 0;
     this.followStep(e, step, dt);
+  }
+
+  private lightDetourStep(e: Enemy, x: number, y: number): Cell | null {
+    const detours = this.lightDetours;
+    if (!detours || e.lit || e.def.boss) return null;
+    let field = detours.fields.get(e.target);
+    if (field === undefined) {
+      const entry = ENTRIES[e.target];
+      field = detours.blocked.has(idx(entry.x, entry.y)) ? null : computeField(entry, { blocked: detours.blocked });
+      detours.fields.set(e.target, field);
+    }
+    // A door inside the pool or a yard with no clear bypass keeps its usual route.
+    return field ? nextStep(field, x, y, detours.blocked) : null;
   }
 
   /** A standing palisade or a raised barrier on that cell, if any. */
