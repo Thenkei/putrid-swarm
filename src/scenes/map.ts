@@ -9,7 +9,8 @@ import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { drawPlate, inventoryBar, platePoint } from './common';
-import { goDay, goLocation, goTravel } from './flow';
+import { shouldPlayCrossing } from '../core/crossing';
+import { goCrossing, goDay, goLocation, goTravel } from './flow';
 
 const MAP_PLATE = 'plate_map';
 const MAP_FOCUS_Y = 0.25;
@@ -139,6 +140,10 @@ export class MapScene implements Scene {
 
   private drive(id: LocationId): void {
     const departure = this.state;
+    if (shouldPlayCrossing(departure, id)) {
+      this.travel(id, departure, () => goCrossing(this.app, id));
+      return;
+    }
     const result = travelTo(departure, id);
     if (!result.ok) {
       audio.play('deny');
@@ -147,15 +152,18 @@ export class MapScene implements Scene {
     }
     this.app.state = result.value.state;
     this.app.save();
+    this.travel(id, departure, () => goLocation(this.app, id, result.value.meeting));
+  }
+
+  private travel(id: LocationId, departure: GameState, next: () => void): void {
     const s = S();
-    const { meeting } = result.value;
     goTravel(this.app, {
       // The two village concept plates alternate so the drive does not always look the same.
       plate: LOCATION_IDS.indexOf(id) % 2 === 0 ? 'plate_village' : 'plate_town',
       title: s.location[id].name,
       sub: fmt(s.map.travel, { h: hours(LOCATIONS[id].travelHours) }),
       departure,
-      next: () => goLocation(this.app, id, meeting),
+      next,
     });
   }
 

@@ -198,6 +198,10 @@ export const ART = [
     id: 'plate_crossbow_road', kind: 'plate', w: 1280, refs: [REF_STORYBOARD],
     prompt: `Wide 16:9 view through the windshield of a stalled French estate car at blue dusk. Warm low beams light an empty wet lane, a mossy stone gatepost and hazel hedges. A low, dark dashboard frames the bottom. Leave the lane clear for animated characters. ${STYLE}`,
   },
+  {
+    id: 'plate_crossing', kind: 'plate', w: 1280, refs: [REF_STORYBOARD],
+    prompt: `16:9 through the old yellow estate car’s windshield, looking at an empty road and a limestone farm lane in autumn. A cream enamel coffee cup sits at bottom left. Keep the central road clear for animated deer. ${STYLE}`,
+  },
   // Three consecutive frames of the same garage accident, from the original generated filmstrip.
   ...[
     ['raised', 'The rusty blue car is raised. The scavenger in his ochre jacket reaches for a crate beneath it.'],

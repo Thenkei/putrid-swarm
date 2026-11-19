@@ -2117,5 +2117,10 @@
     "file": "sprites/car_turn_road.webp",
     "w": 1152,
     "h": 768
+  },
+  "plate_crossing": {
+    "file": "plates/plate_crossing.webp",
+    "w": 1280,
+    "h": 720
   }
 }
