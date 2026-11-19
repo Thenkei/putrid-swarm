@@ -137,7 +137,7 @@ export const fr = {
     grocery: { batteries: 'Présentoir à piles', crates: 'Cagettes', fridge: 'Frigo', trolley: 'Caddie', backroom: 'Arrière-boutique', records: 'Bac à vinyles' },
     post: { parcels: 'Chariot de colis', string: 'Ficelle et fil', cage: 'Cage à recommandés', sacks: 'Sacs postaux', bicycle: 'Vélo de tournée', minitel: 'Terminal Minitel' },
     police: { radios: 'Chargeurs radio', barriers: 'Barrières', locker: 'Casier à scellés', cell: 'Cellule', desk: 'Bureau du chef' },
-    townhall: { boards: 'Panneaux électoraux', pa: 'Sono', sideboard: 'Buffet d’apparat', chairs: 'Chaises pliantes', leaflets: 'Cartons de tracts' },
+    townhall: { boards: 'Panneaux électoraux', pa: 'Sono', sideboard: 'Buffet d’apparat', chairs: 'Chaises pliantes', leaflets: 'Cartons de tracts', siren: 'Boîtier de sirène' },
   },
   crossing: {
     title: 'La Traversée',
@@ -303,6 +303,17 @@ export const fr = {
     noTime: 'Il faut garder le temps de rentrer.',
     trunk: 'Dans le coffre',
     disputed: 'Ce lot se règle avec la personne qui est dessus.',
+  },
+  siren: {
+    title: 'L’essai du mercredi',
+    found: 'Boîtier de sirène récupéré. Choisissez le passage au refuge.',
+    pick: 'Visualisez un trajet avant de dépenser une batterie.',
+    moved: 'Vague {wave} · {n} infectés déviés de {from} vers {to}.',
+    armed: 'Essai programmé',
+    arm: 'Programmer · 1 batterie',
+    empty: 'Il faut 1 batterie',
+    inspect: 'Voir le trajet dévié',
+    firing: 'Essai de sirène · mouvement côté {sector}',
   },
   night: {
     detector: {

@@ -3,7 +3,7 @@
 
 import { BARRICADE, COMBAT, DEVICES, isManual, isTrap } from './data/devices';
 import { BOSS, ENEMIES, type EnemyDef } from './data/enemies';
-import { NIGHT_LEAD_IN, planForNight } from './data/waves';
+import { NIGHT_LEAD_IN, planForNight, type SirenSector } from './data/waves';
 import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlocked, sectorOf } from './map';
 import type { CameraOutage } from './orchard';
 import type { Ally } from './radio';
@@ -283,6 +283,7 @@ export class NightSim {
     private readonly oneHand: OneHand | null = null,
     /** Someone holding a door, from the radio (core/radio.ts). Null is nobody. */
     private readonly ally: Ally | null = null,
+    siren: SirenSector | null = null,
   ) {
     this.hand = oneHand ? { row: null, at: -Infinity, queue: [] } : null;
     this.heldDoor = ally?.sector ?? null;
@@ -316,7 +317,7 @@ export class NightSim {
       verger: yard.barricades.verger.hp,
     };
 
-    const plan = planForNight(night);
+    const plan = planForNight(night, siren);
     this.waveCount = plan.waves.length;
     let waveStart = NIGHT_LEAD_IN;
     plan.waves.forEach((wave, waveIndex) => {
