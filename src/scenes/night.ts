@@ -999,10 +999,14 @@ export class NightScene implements Scene {
 
   /** Everything that gives light on the lot, as seen from one side of the house. */
   private lights(rot: Rot): Light[] {
+    // A strike rattles the barn lantern. Use the same contact time as the barricade animation.
+    const hitAt = this.defenseMotion.at('grange')?.hitAt ?? -Infinity;
+    const hitAge = this.sim.time + (this.ending?.t ?? 0) - hitAt;
+    const lanternIntensity = calmMotion() ? 1 : 0.56 + 0.44 * smoothstep(0, 0.34, hitAge);
     const lights: Light[] = [
       // What spills out of the house on every side, then its windows and its lantern.
       { gx: (HOUSE.x0 + HOUSE.x1 + 1) / 2, gy: (HOUSE.y0 + HOUSE.y1 + 1) / 2, radius: 4.4, color: 'rgba(255,214,150,0.5)', lift: 40 },
-      ...houseLights(rot, this.sim.barricades, this.sim.houseHp / HOUSE_MAX_HP),
+      ...houseLights(rot, this.sim.barricades, this.sim.houseHp / HOUSE_MAX_HP, lanternIntensity),
     ];
     // A lamp over each door: the doorsteps are where the night is decided.
     for (const sector of SECTOR_IDS) lights.push({ gx: THRESHOLDS[sector].gx, gy: THRESHOLDS[sector].gy, radius: 2.6, color: 'rgba(255,196,120,0.72)', lift: 10, flicker: 0.35 });
