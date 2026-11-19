@@ -44,6 +44,8 @@ export interface DeviceVisual {
   readonly rearm?: number;
   readonly label?: string;
   readonly highlight?: boolean;
+  /** Daytime repair forecast. Restored art without committing the repair. */
+  readonly repairPreview?: boolean;
   /** Manual trap with enough under it to be worth firing now: drawn so it cannot be missed. */
   readonly cue?: boolean;
   /** By day: a working trap that never went off last night. Marked, so the yard says which ones to move. */
@@ -969,22 +971,30 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   const art = deviceArt(device.type, device.facing, state, view.rot);
   const removing = frame.dismantleTarget === device.id;
 
-  if (device.highlight && logLayer !== 'near') {
+  if ((device.highlight || device.repairPreview) && logLayer !== 'near') {
     diamond(ctx, view, device.x, device.y, 0.02);
-    ctx.fillStyle = removing ? 'rgba(226,80,59,0.45)' : 'rgba(242,165,49,0.3)';
+    ctx.save();
+    ctx.fillStyle = device.repairPreview ? 'rgba(164, 198, 177, 0.24)' : removing ? 'rgba(226,80,59,0.45)' : 'rgba(242,165,49,0.3)';
     ctx.fill();
-    ctx.strokeStyle = removing ? '#ff937d' : '#f2a531';
+    ctx.strokeStyle = device.repairPreview ? '#c8dfca' : removing ? '#ff937d' : '#f2a531';
     ctx.lineWidth = 2;
+    if (device.repairPreview) ctx.setLineDash([5 * z, 4 * z]);
     ctx.stroke();
+    ctx.restore();
   }
 
   const baseY = p.y - (device.placementLift ?? 0) * z;
+  if (device.repairPreview) {
+    ctx.save();
+    ctx.globalAlpha *= 0.78;
+  }
   const drawn = drawDefense(ctx, p.x, baseY, z, {
     kind: device.type, art, rot: view.rot, previous: (pose) => deviceArt(device.type, device.facing, pose, view.rot), id: device.id,
     hpRatio: device.hpRatio, state: device.state, activeAge: device.activeAge ?? 0, rearm: device.rearm ?? 0,
     time: frame.time, motion: frame.defenseMotion, ...(logLayer && { logLayer }),
     ...(device.logTarget && { aim: logAim(view, p, art, device.logTarget, false, device.hpRatio) }),
   });
+  if (device.repairPreview) ctx.restore();
   if (logLayer === 'far') return;
   if (!drawn) placeholder(ctx, p.x, baseY, 34 * z, 34 * z, state === 'broken' ? '#4a3a2a' : '#b98a3a', device.type);
 

@@ -252,6 +252,8 @@ export const fr = {
     repairPart: 'Réparer {n}/{total}',
     repairAllNone: 'Tout réparer',
     repairAllNoneTitle: 'Rien de cassé.',
+    repairPreview: 'Aperçu des réparations',
+    repairPreviewLeft: '{n} {n:pièce reste cassée|pièces restent cassées}.',
     repairedAll: '{n} {n:réparé|réparés}',
     repairedSome: '{n} {n:réparé|réparés}, {left} encore {left:cassé|cassés} : le stock ou le jour ne suit pas',
     tally: 'Cette nuit : {fired} {fired:déclenchement|déclenchements}, {hits} {hits:touché|touchés}.',

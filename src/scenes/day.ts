@@ -10,7 +10,7 @@ import { LAST_NIGHT, planForNight } from '../core/data/waves';
 import { bossOfNight, clockLabel, startNight } from '../core/game';
 import { ENTRIES, GRID_H, GRID_W, SPAWN_CELLS, idx } from '../core/map';
 import { computeField, traceRoute } from '../core/pathing';
-import type { Cell, DeviceInstance, DeviceTypeId, Facing, GameState, Result, SectorId } from '../core/types';
+import type { Cell, Cost, DeviceInstance, DeviceTypeId, Facing, GameState, Result, SectorId } from '../core/types';
 import { DEVICE_TYPE_IDS, RESOURCE_IDS, SECTOR_IDS, ok } from '../core/types';
 import {
   affordableCount,
@@ -134,6 +134,7 @@ export class DayScene implements Scene {
   private panelDoor: SectorId | null = null;
   private previewHp: number | undefined;
   private reinforcementPreview: SectorId | null = null;
+  private repairPreview: { readonly devices: ReadonlyMap<number, DeviceInstance>; readonly bill: Cost; readonly elapsed: number; readonly left: number } | null = null;
   private readonly reinforceButtons = new Map<SectorId, HTMLButtonElement>();
   private showRoutes = true;
   private sceneryAction: SceneryAction | null = null;
@@ -213,6 +214,7 @@ export class DayScene implements Scene {
     const s = S();
     const state = this.state;
     const yard = state.yard;
+    this.repairPreview = null;
 
     const daylight = el('span', { class: 'meter' }, [el('i', { style: { width: `${(state.hoursLeft / DAY_HOURS) * 100}%` } })]);
     const houseMeter = el('span', { class: `meter house ${yard.houseHp <= 35 ? 'low' : ''}` }, [el('i', { style: { width: `${(yard.houseHp / HOUSE_MAX_HP) * 100}%` } })]);
@@ -275,11 +277,31 @@ export class DayScene implements Scene {
     // The two chores that come back every day, each in one click: take back the piece just laid, and put
     // everything the night broke back on its feet.
     const fresh = lastFresh(state);
-    const wrecks = brokenDevices(yard).length;
+    const broken = brokenDevices(yard);
+    const wrecks = broken.length;
     const repairs = repairAll(state);
     const count = repairs.ok ? repairs.value.repaired : 0;
     const after = repairs.ok ? repairs.value.state : state;
     const bill = Object.fromEntries(RESOURCE_IDS.map((id) => [id, state.inventory[id] - after.inventory[id]]));
+    const elapsed = state.hoursLeft - after.hoursLeft;
+    const repairAllButton = el('button', {
+      class: `btn ${count > 0 ? 'btn-alert' : ''}`,
+      text: wrecks === 0 ? s.day.repairAllNone : fmt(count === wrecks ? s.day.repairAll : s.day.repairPart, { n: count, total: wrecks }),
+      disabled: count === 0,
+      title: repairs.ok ? `${describeCost(bill)} · ${fmt(s.day.time, { h: hours(elapsed) })}` : wrecks ? yardErrorText(repairs.error) : s.day.repairAllNoneTitle,
+      onClick: () => this.repairEverything(),
+    });
+    if (repairs.ok) {
+      const brokenIds = new Set(broken.map(d => d.id));
+      const devices = new Map(after.yard.devices.filter(d => brokenIds.has(d.id) && !d.broken).map(d => [d.id, d]));
+      const preview = { devices, bill, elapsed, left: repairs.value.left };
+      for (const event of ['mouseenter', 'mouseleave', 'focus', 'blur']) {
+        repairAllButton.addEventListener(event, () => {
+          this.repairPreview = repairAllButton.matches(':hover, :focus') ? preview : null;
+          this.updateInfo();
+        });
+      }
+    }
     const quick = el('div', { class: 'tool-row quick' }, [
       el('button', {
         class: 'btn',
@@ -288,13 +310,7 @@ export class DayScene implements Scene {
         title: fresh ? fmt(s.day.undoTitle, { name: s.device[fresh.type].name }) : s.day.undoNone,
         onClick: () => this.undo(),
       }),
-      el('button', {
-        class: `btn ${count > 0 ? 'btn-alert' : ''}`,
-        text: wrecks === 0 ? s.day.repairAllNone : fmt(count === wrecks ? s.day.repairAll : s.day.repairPart, { n: count, total: wrecks }),
-        disabled: count === 0,
-        title: repairs.ok ? `${describeCost(bill)} · ${fmt(s.day.time, { h: hours(state.hoursLeft - after.hoursLeft) })}` : wrecks ? yardErrorText(repairs.error) : s.day.repairAllNoneTitle,
-        onClick: () => this.repairEverything(),
-      }),
+      repairAllButton,
     ]);
     const panel = el('div', { class: 'panel build-panel' }, [
       el('h3', { text: s.day.build }),
@@ -530,6 +546,15 @@ export class DayScene implements Scene {
     this.refundTag.hidden = true;
     this.previewHp = undefined;
     this.reinforcementPreview = null;
+    if (this.repairPreview) {
+      const { bill, elapsed, left } = this.repairPreview;
+      this.info.replaceChildren(
+        el('b', { text: s.day.repairPreview }),
+        el('div', {}, [costLine(bill, this.state.inventory), ` · ${fmt(s.day.time, { h: hours(elapsed) })}`]),
+      );
+      if (left > 0) this.info.append(el('div', { class: 'muted', text: fmt(s.day.repairPreviewLeft, { n: left }) }));
+      return;
+    }
     const sector = this.inspectedDoor;
     if (sector) {
       const door = this.state.yard.barricades[sector];
@@ -880,10 +905,14 @@ export class DayScene implements Scene {
     const ghost = placing ? { ...placing, idle: this.ghostIdle() } : null;
     const hoverId = this.mode.kind === 'repair' || this.mode.kind === 'dismantle' ? this.hoverDevice?.id : undefined;
     const marksSilent = this.showRoutes && this.mode.kind !== 'build';
-    const devices = state.yard.devices.map(d => ({
-      ...dayDeviceVisual(d, d.id === hoverId, marksSilent && wasSilent(state, d)),
-      placementLift: this.placementLift(d.id),
-    }));
+    const devices = state.yard.devices.map(d => {
+      const repaired = this.repairPreview?.devices.get(d.id);
+      return {
+        ...dayDeviceVisual(repaired ?? d, d.id === hoverId, marksSilent && wasSilent(state, d)),
+        placementLift: this.placementLift(d.id),
+        repairPreview: repaired !== undefined,
+      };
+    });
     const def = this.mode.kind === 'build' ? DEVICES[this.mode.type] : null;
     // Out of build mode, the trap under the pointer shows how far it reaches.
     const reaching = !def && this.hoverDevice && isTrap(this.hoverDevice.type) && !this.hoverDevice.broken ? this.hoverDevice : null;
