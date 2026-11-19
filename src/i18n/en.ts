@@ -361,6 +361,9 @@ export const en: Strings = {
   },
   end: {
     lostTitle: 'The house has fallen',
+    firstHouseHit: 'First damage to the house',
+    firstBreach: 'First barricade breached',
+    barricadesBreached: 'Barricades breached that night',
     lostText: 'Night {n}. They got in. The screens stayed on for a while.',
     rampage: {
       title: 'End of the show',

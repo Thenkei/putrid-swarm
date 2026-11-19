@@ -252,6 +252,7 @@ export class NightSim {
   private readonly kills: Partial<Record<EnemyTypeId, number>> = {};
   private killCount = 0;
   private highlight: NightHighlight | undefined;
+  private firstHouseHit: SectorId | undefined;
   private breaches = 0;
   private houseDamage = 0;
   private devicesBroken = 0;
@@ -983,8 +984,7 @@ export class NightSim {
     // The door is open.
     if (!e.def.boss) {
       e.alive = false;
-      this.loseHouse(e.def.houseDamage);
-      this.events.push({ type: 'entered', sector, enemy: e.type, damage: e.def.houseDamage });
+      this.hitHouseFrom(sector, e);
       return;
     }
     // Bosses stay on the doorstep and keep hammering the house itself.
@@ -996,8 +996,7 @@ export class NightSim {
     } else if (!this.strike(e, dt, sector, 'ram', 3)) {
       return;
     }
-    this.loseHouse(e.def.houseDamage);
-    this.events.push({ type: 'entered', sector, enemy: e.type, damage: e.def.houseDamage });
+    this.hitHouseFrom(sector, e);
   }
 
   /** What was bitten turns, from inside: the planks he was holding are pulled half off. */
@@ -1023,9 +1022,12 @@ export class NightSim {
     }
   }
 
-  private loseHouse(amount: number): void {
-    this.houseHp = Math.max(0, this.houseHp - amount);
-    this.houseDamage += amount;
+  private hitHouseFrom(sector: SectorId, enemy: Enemy): void {
+    const damage = enemy.def.houseDamage;
+    if (damage > 0) this.firstHouseHit ??= sector;
+    this.houseHp = Math.max(0, this.houseHp - damage);
+    this.houseDamage += damage;
+    this.events.push({ type: 'entered', sector, enemy: enemy.type, damage });
   }
 
   private attackDevice(e: Enemy, device: DeviceRuntime, dt: number): void {
@@ -1149,8 +1151,7 @@ export class NightSim {
             e.blowRecovery = BLOW_RECOVERY_SECONDS;
             this.hitBarricade(boss.sector, e.def.barricadeDamage, true);
           } else {
-            this.loseHouse(e.def.houseDamage);
-            this.events.push({ type: 'entered', sector: boss.sector, enemy: e.type, damage: e.def.houseDamage });
+            this.hitHouseFrom(boss.sector, e);
           }
           this.jamMower(e);
         }
@@ -1205,8 +1206,7 @@ export class NightSim {
       e.gripTarget = boss.sector;
       this.hitBarricade(boss.sector, e.def.barricadeDamage, true);
     } else {
-      this.loseHouse(e.def.houseDamage);
-      this.events.push({ type: 'entered', sector: boss.sector, enemy: e.type, damage: e.def.houseDamage });
+      this.hitHouseFrom(boss.sector, e);
     }
     boss.knocks++;
     if (boss.knocks >= BOSS.mail.knocksPerDoor) {
@@ -1399,6 +1399,7 @@ export class NightSim {
     return {
       night: this.night,
       ...(this.highlight && { highlight: this.highlight }),
+      ...(this.firstHouseHit && { firstHouseHit: this.firstHouseHit }),
       survived: this.outcome === 'survived',
       kills: { ...this.kills },
       breaches: this.breaches,

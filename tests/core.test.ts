@@ -416,6 +416,25 @@ describe('night simulation', () => {
     expect(sim.report().highlight).toEqual(expected);
   });
 
+  it('preserves the route of the first house hit when a barricade starts open', () => {
+    const initial = newGame(11);
+    const yard = {
+      ...initial.yard,
+      houseHp: 1,
+      devices: [],
+      barricades: { ...initial.yard.barricades, portail: { hp: 0, level: 0 as const } },
+    };
+    const state = unwrap(startNight({ ...initial, yard }));
+    const sim = new NightSim(state.day, yard, state.seed);
+    run(sim, 900);
+    expect(sim.drainEvents().find(event => event.type === 'entered')?.sector).toBe('portail');
+    const lost = concludeNight(state, sim);
+    expect(lost.phase).toBe('lost');
+    expect(deserialize(serialize(lost))?.lastNight).toMatchObject({ firstHouseHit: 'portail', breaches: 0 });
+    const raw = serialize(lost).replace('"firstHouseHit":"portail"', '"firstHouseHit":"cellar"');
+    expect(deserialize(raw)?.lastNight?.firstHouseHit).toBeUndefined();
+  });
+
   it('loads every kind of highlight, and loads the morning without one it cannot read', () => {
     const state = unwrap(startNight(newGame(11)));
     const sim = new NightSim(1, state.yard, 11);

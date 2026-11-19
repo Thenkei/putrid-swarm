@@ -368,6 +368,9 @@ export const fr = {
   },
   end: {
     lostTitle: 'La maison est tombée',
+    firstHouseHit: 'Premiers dégâts à la maison',
+    firstBreach: 'Première barricade forcée',
+    barricadesBreached: 'Barricades forcées cette nuit-là',
     lostText: 'Nuit {n}. Ils sont entrés. Les écrans sont restés allumés un moment.',
     rampage: {
       title: 'Fin du concert',

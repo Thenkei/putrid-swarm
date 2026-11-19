@@ -124,6 +124,7 @@ export class EndScene implements Scene {
       el('h1', { text: title }),
       el('p', { text }),
       this.songCard(),
+      this.lossDebrief(state),
       this.radioLine(state),
       el('p', { class: 'muted', text: `${fmt(s.end.stats, { ...totals, held })}${state && !hasLeftArm(state) ? ` · ${s.end.oneArm}` : ''}` }),
       el('div', { class: 'row' }, buttons),
@@ -136,6 +137,21 @@ export class EndScene implements Scene {
 
   exit(): void {
     this.left = true;
+  }
+
+  private lossDebrief(state: GameState | null): HTMLElement | null {
+    if (state?.phase !== 'lost' || state.fate !== null || state.lastNight?.night !== state.day) return null;
+    const s = S();
+    const { firstHouseHit, highlight, breaches } = state.lastNight;
+    const firstBreach = highlight?.kind === 'breach' ? highlight.sector : undefined;
+    const sector = firstHouseHit ?? firstBreach;
+    if (!sector) return null;
+    const detail = (label: string, value: string): HTMLElement =>
+      el('div', {}, [el('dt', { text: label }), el('dd', { text: value })]);
+    return el('dl', { class: 'loss-debrief' }, [
+      detail(firstHouseHit ? s.end.firstHouseHit : s.end.firstBreach, s.sector[sector]),
+      Number.isInteger(breaches) && breaches >= 0 ? detail(s.end.barricadesBreached, String(breaches)) : null,
+    ]);
   }
 
   /** One line about the morning on the radio, if it led anywhere. */

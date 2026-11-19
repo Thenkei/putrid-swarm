@@ -3818,6 +3818,36 @@ button:disabled {
   font-size: 22px;
 }
 
+.loss-debrief {
+  display: flex;
+  margin: 2px 0;
+  padding: 8px 0;
+  border: 1px solid #846540;
+  border-radius: 5px;
+  background: rgba(20, 14, 9, 0.88);
+  text-align: left;
+}
+
+.loss-debrief > div {
+  padding: 0 16px;
+}
+
+.loss-debrief > div + div {
+  border-left: 1px solid #846540;
+}
+
+.loss-debrief dt {
+  color: var(--cream-dim);
+  font-size: 16px;
+}
+
+.loss-debrief dd {
+  margin: 2px 0 0;
+  color: var(--cream);
+  font-size: 22px;
+  font-weight: 700;
+}
+
 .end-new {
   padding: 4px 14px 2px;
   font-size: 17px;

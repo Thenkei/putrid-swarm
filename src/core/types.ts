@@ -118,6 +118,8 @@ export interface TrapTally {
 export interface NightReport {
   /** Absent in older saves, or on nights without a qualifying event. */
   readonly highlight?: NightHighlight;
+  /** The first door through which the house took damage, including doors already open at dusk. */
+  readonly firstHouseHit?: SectorId;
   readonly night: number;
   readonly survived: boolean;
   readonly kills: Readonly<Partial<Record<EnemyTypeId, number>>>;

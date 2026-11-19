@@ -266,7 +266,10 @@ export function deserialize(raw: string): GameState | null {
     cameraLost: SECTOR_IDS.includes(parsed.lastNight.cameraLost as SectorId) ? parsed.lastNight.cameraLost : null,
     traps: parseTallies((parsed.lastNight as { traps?: unknown }).traps),
   };
-  if (lastNight && !isNightHighlight(lastNight.highlight)) delete lastNight.highlight;
+  if (lastNight) {
+    if (!isNightHighlight(lastNight.highlight)) delete lastNight.highlight;
+    if (!SECTOR_IDS.includes(lastNight.firstHouseHit as SectorId)) delete lastNight.firstHouseHit;
+  }
   const shed = parseShed(data);
   const radio = parseRadio(data, parsePeople(data['people']), shed.shed, data['seed'] as number);
   const chaptered: GameState = { ...parsed, lastNight, ...parseOrchard(data), ...shed, ...radio, fate: null };
