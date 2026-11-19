@@ -44,7 +44,7 @@ import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { sayAny, sayOnce } from '../engine/voice';
-import { applyDaylight, cameraView, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, WELL_CLINK_AT, type DeviceVisual, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
+import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
 import { deviceArt } from '../render/defenses';
 import { calmMotion } from '../render/lighting';
 import { VISIBLE_DOORS } from '../render/house';
@@ -76,20 +76,18 @@ const panLimit = (value: number, size: number): number => Math.min(size - PAN_IN
 /** How close a predicted route must pass for a device there to do anything. A barrier only holds what walks into it. */
 const coverReach = (type: DeviceTypeId): number => (type === 'barrier' ? 0.5 : DEVICES[type].reach);
 
-function dayDeviceVisual(d: DeviceInstance, highlight = false, silent = false): DeviceVisual {
-  return {
-    id: d.id, type: d.type, x: d.x, y: d.y, facing: d.facing,
-    state: d.broken ? 'broken' : 'idle', hpRatio: d.hp / DEVICES[d.type].maxHp, highlight, silent,
-  };
+/** Where the infected are predicted to walk: sample routes to draw, and every cell stepped on per door. */
+interface RouteOverlay {
+  readonly routes: Cell[][];
+  /** How many of the predicted routes step on each cell: the worn ground the overlay paints. */
+  readonly traffic: Map<number, number>;
 }
 
-/** Where the infected are predicted to walk: sample routes to draw, and every cell stepped on per door. */
-interface Forecast {
-  readonly routes: Cell[][];
-  readonly walked: Readonly<Record<SectorId, ReadonlySet<number>>>;
-  /** How many of the predicted routes step on each cell: the worn ground the overlay paints. */
-  readonly traffic: ReadonlyMap<number, number>;
+interface Forecast extends RouteOverlay {
+  readonly byDoor: Readonly<Record<SectorId, RouteOverlay>>;
 }
+
+const emptyOverlay = (): RouteOverlay => ({ routes: [], traffic: new Map() });
 
 export function yardErrorText(error: YardError): string {
   const s = S();
@@ -306,9 +304,9 @@ export class DayScene implements Scene {
 
     // Doors and house. Each door also says how many working traps stand on the way to it.
     const expected = this.expectedSectors();
-    const walked = this.forecast().walked;
+    const { byDoor } = this.forecast();
     const doorRows = SECTOR_IDS.map((sector) => {
-      const cover = yard.devices.filter((d) => !d.broken && isTrap(d.type) && this.covers(d.type, d.x, d.y, walked[sector])).length;
+      const cover = yard.devices.filter((d) => !d.broken && isTrap(d.type) && this.covers(d.type, d.x, d.y, byDoor[sector].traffic)).length;
       const exposed = cover === 0 && expected.includes(sector);
       const barricade = yard.barricades[sector];
       const max = barricadeMaxHp(barricade.level);
@@ -529,6 +527,9 @@ export class DayScene implements Scene {
       );
       if (hp !== undefined) this.info.append(el('div', { text: this.doorRepairLabel(hp - door.hp) }));
       else if (!repair.ok && door.hp < barricadeMaxHp(door.level)) this.info.append(el('div', { class: 'bad', text: yardErrorText(repair.error) }));
+      if (this.showRoutes && this.mode.kind !== 'build' && this.forecast().byDoor[sector].traffic.size === 0) {
+        this.info.append(el('div', { class: 'muted', text: s.day.noDoorPaths }));
+      }
       if (this.panelDoor && !VISIBLE_DOORS[this.rot].includes(sector)) {
         this.info.append(el('div', { class: 'muted', text: fmt(s.day.showDoorHint, { sector: s.sector[sector] }) }));
       }
@@ -752,9 +753,8 @@ export class DayScene implements Scene {
     const fences = fenceCells(devices);
     if (preview) fences.add(idx(preview.x, preview.y));
     const fields = Object.fromEntries(SECTOR_IDS.map((sector) => [sector, computeField(ENTRIES[sector], { blocked: fences })])) as Record<SectorId, Float32Array>;
-    const routes: Cell[][] = [];
-    const walked: Record<SectorId, Set<number>> = { portail: new Set(), grange: new Set(), arriere: new Set(), verger: new Set() };
-    const traffic = new Map<number, number>();
+    const overlay = emptyOverlay();
+    const byDoor = { portail: emptyOverlay(), grange: emptyOverlay(), arriere: emptyOverlay(), verger: emptyOverlay() };
     for (const sector of SECTOR_IDS) {
       const cells = SPAWN_CELLS[sector];
       const drawn = new Set([cells[1], cells[Math.floor(cells.length / 2)], cells[cells.length - 2]]);
@@ -771,26 +771,30 @@ export class DayScene implements Scene {
         }
         if (!Number.isFinite(best)) continue;
         const route = traceRoute(fields[target], cell, fences);
+        const approach = byDoor[target];
         for (const step of route) {
           const cellIndex = idx(step.x, step.y);
-          walked[target].add(cellIndex);
-          traffic.set(cellIndex, (traffic.get(cellIndex) ?? 0) + 1);
+          approach.traffic.set(cellIndex, (approach.traffic.get(cellIndex) ?? 0) + 1);
+          overlay.traffic.set(cellIndex, (overlay.traffic.get(cellIndex) ?? 0) + 1);
         }
-        if (drawn.has(cell)) routes.push(route);
+        if (drawn.has(cell)) {
+          approach.routes.push(route);
+          overlay.routes.push(route);
+        }
       }
     }
-    const forecast: Forecast = { routes, walked, traffic };
+    const forecast: Forecast = { ...overlay, byDoor };
     this.routeCache = { key, forecast };
     return forecast;
   }
 
   /** True when a device of that type on that cell would have a predicted route within reach. */
-  private covers(type: DeviceTypeId, x: number, y: number, walked: ReadonlySet<number>): boolean {
+  private covers(type: DeviceTypeId, x: number, y: number, traffic: ReadonlyMap<number, number>): boolean {
     const reach = coverReach(type);
     const span = Math.ceil(reach);
     for (let dy = -span; dy <= span; dy++) {
       for (let dx = -span; dx <= span; dx++) {
-        if (Math.hypot(dx, dy) <= reach && walked.has(idx(x + dx, y + dy))) return true;
+        if (Math.hypot(dx, dy) <= reach && traffic.has(idx(x + dx, y + dy))) return true;
       }
     }
     return false;
@@ -800,8 +804,7 @@ export class DayScene implements Scene {
   private ghostIdle(): boolean {
     const ghost = this.currentGhost().ghost;
     if (!ghost || !ghost.ok || !isTrap(ghost.type)) return false;
-    const walked = this.forecast().walked;
-    return !SECTOR_IDS.some((sector) => this.covers(ghost.type, ghost.x, ghost.y, walked[sector]));
+    return !this.covers(ghost.type, ghost.x, ghost.y, this.forecast().traffic);
   }
 
   /** The approaches tonight's infected come from: the tracks the protagonist found this morning. */
@@ -842,6 +845,9 @@ export class DayScene implements Scene {
 
   render(ctx: CanvasRenderingContext2D): void {
     const state = this.state;
+    const focus = this.mode.kind === 'build' ? null : this.inspectedDoor;
+    const forecast = this.showRoutes || this.mode.kind === 'build' ? this.forecast() : null;
+    const overlay = focus ? forecast?.byDoor[focus] : forecast;
     const placing = this.currentGhost().ghost;
     const ghost = placing ? { ...placing, idle: this.ghostIdle() } : null;
     const hoverId = this.mode.kind === 'repair' || this.mode.kind === 'dismantle' ? this.hoverDevice?.id : undefined;
@@ -871,7 +877,7 @@ export class DayScene implements Scene {
       particles: this.particles,
       ghost,
       // While placing something the routes are the whole point, so they show regardless of the toggle.
-      ...(this.showRoutes || this.mode.kind === 'build' ? { routes: this.forecast().routes, traffic: this.forecast().traffic } : {}),
+      ...(overlay && { routes: overlay.routes, traffic: overlay.traffic }),
       hoverCell: reaching ? { x: reaching.x, y: reaching.y } : this.hover,
       hoverRadius: reachDef && reachDef.mode !== 'passive' ? Math.max(reachDef.radius, reachDef.reach) : 0,
       showBuildable: this.mode.kind === 'build',
