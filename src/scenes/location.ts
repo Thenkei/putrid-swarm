@@ -157,6 +157,12 @@ export class LocationScene implements Scene {
     const neighbor = location.neighbor;
     const gone = neighbor && neighborStatus(neighbor, state.day) === 'gone';
     const claimedSpot = dispute ? (spotNames[location.spots[dispute.spot]?.key ?? ''] ?? '') : '';
+    const hoursOnReturn = state.hoursLeft - location.travelHours;
+    const dusk = shouldStopAtDusk(state, hoursOnReturn);
+    const lastSearchBeforeDusk =
+      !dusk && canStillSearch && !this.escorted &&
+      shouldStopAtDusk(state, hoursOnReturn - SEARCH_HOURS) &&
+      spots.some((spot, index) => spot !== null && index !== dispute?.spot && !progress.searched.includes(index));
     const title = el('div', { class: 'panel loc-title' }, [
       el('h3', { text: s.location[this.id].name }),
       el('p', {
@@ -174,12 +180,13 @@ export class LocationScene implements Scene {
     // Driving off leaves the lot to whoever is standing on it: said on the button, not after the fact.
     const drive = fmt(s.loc.leaveCost, { h: hours(location.travelHours) });
     const leaveNote = dispute ? `${drive} · ${fmt(s.encounter.leaveKeeps, { name: nameOf(dispute.rival) })}` : drive;
-    const dusk = shouldStopAtDusk(state, state.hoursLeft - location.travelHours);
     const leave = el('div', { class: 'loc-leave' }, [el('button', { class: 'btn btn-primary', onClick: () => this.leave() }, [
       s.loc.leave, el('small', { text: leaveNote }), dusk ? el('small', { class: 'road-warning', text: s.crossbowRoad.warning }) : null,
     ])]);
+    const thought = lastSearchBeforeDusk ? el('p', { class: 'panel last-search-thought', text: s.crossbowRoad.lastSearch }) : null;
 
     this.hud.replaceChildren(topbar, stash, ...spots.filter(spot => spot !== null), title, leave);
+    if (thought) this.hud.append(thought);
   }
 
   private showMeeting(meeting: NeighborMeeting): void {
