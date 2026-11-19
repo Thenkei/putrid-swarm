@@ -86,7 +86,7 @@ pnpm check      # typecheck + tests + build: what the deployment runs
    - **Hand-fired** (Rondin, Barrière, Klaxon, Projecteur) wait for the desk. When enough is standing under one, its key turns bright yellow and beats, on the trap bar, in the feed and on the thumbnail of its camera: that is the moment. `Space` jumps to it.
 
    A trap leaves its armed state only when it fires, so repeated input can neither repeat the effect nor spend battery twice.
-3. **Morning.** The report shows what the night actually did. The yard handed to the next day is the simulation's own result: broken traps stay broken, the mown strip stays mown.
+3. **Morning.** The report shows what the night actually did. Choose **Rewind** on its highlight to play up to eight seconds from that sector’s security camera. Pause or scrub the tape, then choose **Inspect the yard** to see the same spot in daylight. The cassette stays with the morning save until the next day starts. The yard handed to the next day is the simulation's own result: broken traps stay broken, the mown strip stays mown.
 
 4. **The orchard, once.** During the second wave of night 2 the orchard camera stops sending: its feed is snow, its thumbnail counts nothing, its traps can still be fired blind and only its door is still heard. The next morning the day does not start before someone has been to look. That is a played cut-scene, seen through the protagonist's eyes: walk in, look around, and find a small white rabbit chewing the cable.
    - **Clap**, and it is gone; the cable is spliced and nothing is lost.

@@ -414,6 +414,12 @@ export const en: Strings = {
     ally: '{name} is holding the {sector} door. He is sitting with his back against the planks.',
     allyTurned: '{name} has turned · {sector} door',
   },
+  cassette: {
+    title: 'The Sunday tape',
+    label: 'Gran’s birthday',
+    keep: 'DO NOT ERASE',
+    rewind: 'Rewind', pause: 'Pause', play: 'Play', eject: 'Eject tape', seek: 'Tape position',
+  },
   morning: {
     breach: 'The barricade gave way.',
     broken: 'This device broke during the night.',

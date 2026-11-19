@@ -1,5 +1,6 @@
 // Domain types for the Putrid Swarm simulation. Nothing in src/core touches the DOM.
 
+import type { MorningTape } from './cassette';
 import type { RadioChapter } from './radio';
 
 export type Result<T, E> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: E };
@@ -325,6 +326,7 @@ export interface GameState {
   readonly locations: Readonly<Record<LocationId, LocationProgress>>;
   readonly springReceipt: SpringReceipt;
   readonly flags: Readonly<Record<string, number>>;
+  readonly morningTape?: MorningTape;
   readonly lastNight: NightReport | null;
   readonly orchard: OrchardChapter;
   readonly shed: ShedChapter;

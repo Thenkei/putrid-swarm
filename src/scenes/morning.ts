@@ -15,6 +15,7 @@ import { calmMotion } from '../render/lighting';
 import { smoothstep } from '../render/noise';
 import { cameraView, drawWorld, type View, type WorldFrame } from '../render/world';
 import { drawPlate, oneArmed } from './common';
+import { CassettePlayer } from './cassette';
 import { goChapter, goDay } from './flow';
 
 /** Cells around the highlighted spot that the inspection view rings, so it is found at a glance. */
@@ -24,6 +25,7 @@ const INSPECT_OUT = 0.46;
 
 export class MorningScene implements Scene {
   private time = 0;
+  private cassette: CassettePlayer | null = null;
   private inspecting = false;
   private inspectionProgress = 0;
   private inspection: { view: View; overview: View; frame: WorldFrame } | null = null;
@@ -135,7 +137,17 @@ export class MorningScene implements Scene {
       },
     });
     button.setAttribute('aria-expanded', 'false');
-    return el('div', { class: 'card morning-headline' }, [el('div', {}, [el('strong', { text: label }), el('div', { text: detail })]), button]);
+    if (this.state.morningTape) {
+      this.cassette = new CassettePlayer(this.state.morningTape, sector, !this.state.flags['birthdayTapeSeen'], () => {
+        this.app.state = { ...this.state, flags: { ...this.state.flags, birthdayTapeSeen: 1 } };
+        this.app.save();
+      }, () => {
+        if (!this.inspecting) button.click();
+        button.focus();
+      });
+      this.app.ui.append(this.cassette.root);
+    }
+    return el('div', { class: 'card morning-headline' }, [el('div', {}, [el('strong', { text: label }), el('div', { text: detail })]), this.cassette?.launch, button]);
   }
 
   /** On to the day — or to the chapter this morning is waiting for. */
@@ -152,6 +164,7 @@ export class MorningScene implements Scene {
 
   update(dt: number): void {
     this.time += dt;
+    this.cassette?.update(dt);
     this.inspectionProgress = this.inspecting
       ? Math.min(1, this.inspectionProgress + dt / INSPECT_IN)
       : Math.max(0, this.inspectionProgress - dt / INSPECT_OUT);
@@ -188,7 +201,11 @@ export class MorningScene implements Scene {
   }
 
   onKeyDown(code: string, event: KeyboardEvent): void {
-    if (event.target instanceof HTMLElement && event.target.closest('button, summary')) return;
+    if (this.cassette && !this.cassette.root.hidden) {
+      if (code === 'Escape') this.cassette.close();
+      return;
+    }
+    if (event.target instanceof HTMLElement && event.target.closest('button, summary, input')) return;
     if (code === 'Enter') this.next();
   }
 }
