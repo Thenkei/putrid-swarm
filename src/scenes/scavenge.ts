@@ -189,12 +189,24 @@ export class ScavengePanel {
       tiles[index] = turnTile(tiles[index]!);
       draw();
     }));
+    let previousRoute: string | null = null;
     const draw = (): void => {
       const trace = traceCircuit(tiles);
+      const order = [...trace.lit];
+      const route = order.map(index => `${index}:${tiles[index]}`).join(',');
+      const traceChange = previousRoute !== null && route !== previousRoute;
+      previousRoute = route;
       buttons.forEach((button, i) => {
         const ends = PORTS.filter(port => tiles[i]! & port);
-        button.replaceChildren(...ends.map(port => el('i', { class: `lead lead-${port}` })));
-        button.classList.toggle('connected', trace.lit.has(i));
+        const leads = ends.map(port => el('i', { class: `lead lead-${port}` }));
+        const step = order.indexOf(i);
+        if (traceChange && step >= 0) {
+          const glint = el('i', { class: 'route-glint', style: { animationDelay: `${step * 65}ms` } });
+          glint.setAttribute('aria-hidden', 'true');
+          leads.push(glint);
+        }
+        button.replaceChildren(...leads);
+        button.classList.toggle('connected', step >= 0);
         const sides = ends.map(port => s.directions[PORTS.indexOf(port)]).join(' / ');
         button.setAttribute('aria-label', `${fmt(s.tile, { n: i + 1 })} · ${sides}`);
       });
