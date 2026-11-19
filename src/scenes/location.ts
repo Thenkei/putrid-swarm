@@ -290,13 +290,13 @@ export class LocationScene implements Scene {
     this.app.save();
     this.refresh();
     if (!calmMotion()) this.searchDust = { ...at, age: 0 };
-    if (foundCrossbow) {
-      this.revealCrossbow();
-      return;
-    }
     if (foundDetector) {
       audio.play('tracker_ping');
       this.app.toast(S().night.detector.found, 'good');
+      return;
+    }
+    if (foundCrossbow) {
+      this.revealCrossbow();
       return;
     }
     const pop = el('div', { class: 'loot-pop', style: { left: `${at.x}px`, top: `${at.y - 34}px` } }, [costLine(result.loot, undefined, '+')]);
