@@ -825,6 +825,7 @@ export class NightSim {
     if (e.lureFor <= 0) e.lureDevice = null;
 
     if (e.nettedFor > 0 || e.stunnedFor > 0) {
+      delete e.vault;
       e.nettedFor = Math.max(0, e.nettedFor - dt);
       e.stunnedFor = Math.max(0, e.stunnedFor - dt);
       if (e.boss && e.type === 'mower' && e.boss.phase === 'charge') this.jamMower(e);
@@ -883,6 +884,8 @@ export class NightSim {
       if (e.def.jumps) {
         if (!e.trampled.has(-obstacle.id)) {
           e.trampled.add(-obstacle.id);
+          const approach = Math.hypot(step.x + 0.5 - e.x, step.y + 0.5 - e.y);
+          e.vault = { start: e.travel, length: approach + 0.52 };
           this.events.push({ type: 'jump', x: step.x + 0.5, y: step.y + 0.5 });
         }
       } else {
