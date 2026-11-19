@@ -2094,6 +2094,20 @@ button:disabled {
   gap: 14px;
 }
 
+.pause-reason {
+  max-width: 460px;
+  margin: 0;
+  color: var(--cream);
+  font-size: 22px;
+  text-align: center;
+}
+
+.pause button:focus-visible {
+  outline: 2px solid #ffd190;
+  outline-offset: 4px;
+}
+
+
 .pause h1 {
   margin: 0;
   font-size: 64px;

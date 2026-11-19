@@ -5,6 +5,7 @@
 // hook — makes it heard through the static, and puts the keys on screen. Nothing here changes the campaign
 // except `settle`, once, at the very end.
 
+import { PauseMenu } from './pause';
 import { settleRadio } from '../core/game';
 import { hasLeftArm } from '../core/orchard';
 import { createRng } from '../core/rng';
@@ -261,6 +262,7 @@ export class RadioScene implements Scene {
   private promptsEl!: HTMLElement;
   private noteEl!: HTMLElement;
   private overlay!: HTMLElement;
+  private pauseMenu!: PauseMenu;
   private promptSignature = '';
   private readonly promptEls = new Map<PromptId, HTMLElement>();
 
@@ -294,7 +296,9 @@ export class RadioScene implements Scene {
     this.promptsEl = el('div', { class: 'qte-layer' });
     this.noteEl = el('div', { class: 'orchard-note' });
     this.overlay = el('div');
-    this.root = el('div', { class: 'orchard radio' }, [this.titleEl, this.logEl, this.answersEl, this.waitEl, this.weakEl, this.promptsEl, this.noteEl, this.overlay]);
+    const pauseOverlay = el('div');
+    this.pauseMenu = new PauseMenu(pauseOverlay);
+    this.root = el('div', { class: 'orchard radio' }, [this.titleEl, this.logEl, this.answersEl, this.waitEl, this.weakEl, this.promptsEl, this.noteEl, this.overlay, pauseOverlay]);
     this.app.ui.append(this.root);
     this.after(1.2, () => this.once('vo_radio_arrive'));
   }
@@ -512,10 +516,10 @@ export class RadioScene implements Scene {
       this.togglePause();
       return;
     }
+    if (this.paused) return;
     const name = KEY_OF[code];
     if (!name) return;
     event.preventDefault();
-    if (this.paused) return;
     if (this.phase === 'card') {
       if (name === 'act' && this.phaseTime > 0.6) this.settle();
       return;
@@ -535,6 +539,7 @@ export class RadioScene implements Scene {
   onBlur(): void {
     this.keys.clear();
     this.pointerHold = null;
+    if (!this.paused) this.togglePause(true);
   }
 
   onPointerUp(): void {
@@ -550,25 +555,18 @@ export class RadioScene implements Scene {
     else if (spec.tap) this.send(spec.tap);
   }
 
-  private togglePause(): void {
+  private togglePause(auto = false): void {
     if (this.phase === 'card' || this.left) return;
     this.paused = !this.paused;
     this.keys.clear();
     this.pointerHold = null;
     if (!this.paused) {
-      this.overlay.replaceChildren();
+      this.pauseMenu.close();
       return;
     }
     hush();
     this.silence();
-    const s = S();
-    this.overlay.replaceChildren(
-      el('div', { class: 'modal pause' }, [
-        el('h1', { text: s.night.paused }),
-        el('button', { class: 'btn btn-primary', text: s.night.resume, onClick: () => this.togglePause() }),
-        el('button', { class: 'btn', text: s.end.menu, onClick: () => goTitle(this.app) }),
-      ]),
-    );
+    this.pauseMenu.open(() => this.togglePause(), () => goTitle(this.app), auto);
   }
 
   // ───────────────────────────── Loop ─────────────────────────────

@@ -1,6 +1,7 @@
 // The night: a desk, four cameras, and traps fired by hand.
 // The simulation runs on its own clock; this scene only chooses which part of it to look at.
 
+import { PauseMenu } from './pause';
 import { BARRICADE, COMBAT, DEVICES, HOUSE_MAX_HP, isAuto, isManual } from '../core/data/devices';
 import { concludeNight } from '../core/game';
 import { HOUSE, sectorOf } from '../core/map';
@@ -129,6 +130,7 @@ export class NightScene implements Scene {
   private trapBar!: HTMLElement;
   private banners!: HTMLElement;
   private overlay!: HTMLElement;
+  private pauseMenu!: PauseMenu;
   private readonly miniEls = new Map<SectorId, { root: HTMLElement; count: HTMLElement; door: HTMLElement }>();
   private readonly trapButtons = new Map<number, TrapButton>();
   private trapSignature = '';
@@ -178,6 +180,7 @@ export class NightScene implements Scene {
     this.energyFill = el('i');
     this.clockEl = el('span');
     this.pipsEl = el('span', { class: 'pips' });
+    const pauseButton = el('button', { class: 'btn icon-btn', text: 'II', title: s.night.paused, onClick: () => this.togglePause() });
     const topbar = el('div', { class: 'topbar night-top' }, [
       el('span', { class: 'cell label-strong', text: fmt(s.night.night, { n: this.sim.night }) }),
       el('span', { class: 'sep' }),
@@ -188,7 +191,7 @@ export class NightScene implements Scene {
       el('span', { class: 'cell' }, [this.clockEl]),
       el('span', { class: 'sep' }),
       el('span', { class: 'cell' }, ['⌂', this.pipsEl]),
-      el('button', { class: 'btn icon-btn', text: 'II', title: s.night.paused, onClick: () => this.togglePause() }),
+      pauseButton,
     ]);
 
     this.camLabel = el('span');
@@ -227,8 +230,10 @@ export class NightScene implements Scene {
     this.trapBar = el('div', { class: 'trap-bar' });
     this.banners = el('div', { class: 'banner' });
     this.overlay = el('div');
+    const pauseOverlay = el('div');
+    this.pauseMenu = new PauseMenu(pauseOverlay, pauseButton);
     this.coachEl = el('div', { class: 'coach' });
-    this.root = el('div', {}, [topbar, frame, ...minis, this.trapBar, this.banners, this.coachEl, this.overlay]);
+    this.root = el('div', {}, [topbar, frame, ...minis, this.trapBar, this.banners, this.coachEl, this.overlay, pauseOverlay]);
     this.app.ui.append(this.root);
     if (this.sim.handView()) this.hand = new HandGauge();
     this.layoutMinis();
@@ -566,21 +571,15 @@ export class NightScene implements Scene {
     this.particles.push({ kind: 'text', x, y, age: 0, life: 0.9, text, color: '#ff9a88' });
   }
 
-  private togglePause(): void {
+  private togglePause(auto = false): void {
     if (this.ending) return;
     this.paused = !this.paused;
-    const s = S();
-    if (!this.paused) {
-      this.overlay.querySelector('.modal')?.remove();
-      return;
-    }
-    this.overlay.append(
-      el('div', { class: 'modal pause' }, [
-        el('h1', { text: s.night.paused }),
-        el('button', { class: 'btn btn-primary', text: s.night.resume, onClick: () => this.togglePause() }),
-        el('button', { class: 'btn btn-danger', text: s.night.abandon, onClick: () => goTitle(this.app) }),
-      ]),
-    );
+    if (this.paused) this.pauseMenu.open(() => this.togglePause(), () => goTitle(this.app), auto, S().night.abandon);
+    else this.pauseMenu.close();
+  }
+
+  onBlur(): void {
+    if (!this.paused) this.togglePause(true);
   }
 
   onKeyLabels(): void {
