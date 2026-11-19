@@ -2439,6 +2439,23 @@ button:disabled {
   overflow-y: auto;
 }
 
+#ui .postal-paper {
+  position: absolute;
+  pointer-events: auto;
+  width: max-content;
+  max-width: 310px;
+  background: #e4d7b0;
+  color: #352e25;
+  border: 1px solid #746549;
+  box-shadow: 2px 3px 8px #19161080;
+  padding: 7px 12px;
+  font: 17px/1.3 Georgia, serif;
+}
+.postal-paper summary { cursor: pointer; font-weight: bold; }
+.postal-paper p, .postal-paper blockquote { margin: 10px 0 4px; }
+.delivery-slip { transform: translate(-50%, -100%); }
+.morning-letter { left: 40px; top: 44px; max-width: 370px; padding: 14px 18px; }
+
 /* What the night is remembered for: a caption on the scene, under the yard view it opens. */
 .morning-headline {
   position: absolute;

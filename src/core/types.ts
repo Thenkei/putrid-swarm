@@ -129,6 +129,7 @@ export interface NightReport {
   readonly triggers: number;
   /** Traps that went off by themselves. */
   readonly autoTriggers: number;
+  readonly letterDelivered?: true;
   readonly bossDefeated: NeighborId | null;
   readonly durationSeconds: number;
   /** A camera that stopped sending during the night, and is still dark in the morning. */

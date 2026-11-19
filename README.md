@@ -147,7 +147,7 @@ The house falls when its integrity reaches zero; infected only get in through a 
 | 2 | Le Tondeur | mows a straight lane from door to door; flattens palisades in it |
 | 3 | prowlers, rams, jumpers | flanking, breaching, clearing obstacles |
 | 4 | Le Dépanneur | winds up, then rams with his hoist |
-| 5 | La Dernière Tournée | two knocks per door, exploits any breach |
+| 5 | La Dernière Tournée | two knocks per door, exploits any breach. On her first stop at the gate she waits for a signature. A wet slip in the yard mailbox on the fourth afternoon announces her visit. Leave her undisturbed and a registered letter can be opened in the morning |
 | 6 | Le Chef de la Police | shields the queue around him, makes it ignore the horn |
 | 7 | Le Maire | every speech brings reinforcements to another sector |
 

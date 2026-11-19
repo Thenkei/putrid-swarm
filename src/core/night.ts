@@ -130,6 +130,7 @@ export type SimEvent = (
   | { readonly type: 'entered'; readonly sector: SectorId; readonly enemy: EnemyTypeId; readonly damage: number }
   | { readonly type: 'telegraph'; readonly kind: TelegraphKind; readonly enemyId: number; readonly x: number; readonly y: number; readonly sector: SectorId; readonly seconds: number }
   | { readonly type: 'interrupt'; readonly x: number; readonly y: number }
+  | { readonly type: 'registered_letter'; readonly stage: 'knock' | 'waiting' | 'delivered' | 'missed' }
   | { readonly type: 'reinforcements'; readonly sector: SectorId }
   | { readonly type: 'jump'; readonly x: number; readonly y: number }
   | { readonly type: 'camera_lost'; readonly sector: SectorId }
@@ -261,6 +262,7 @@ export class NightSim {
   private autoTriggers = 0;
   /** What each trap of the yard did tonight, by device id. Every trap has an entry, fired or not. */
   private readonly tallies = new Map<number, { fired: number; hits: number; kills: number }>();
+  private letterDelivered = false;
   private bossDefeated: NeighborId | null = null;
   /** A camera that stopped sending. The lot goes on without it: only the desk is blind. */
   cameraLost: SectorId | null = null;
@@ -1200,6 +1202,17 @@ export class NightSim {
       this.advance(e, dt);
       return;
     }
+    if (boss.phase === 'signature') {
+      e.action = 'idle';
+      boss.timer -= dt;
+      if (boss.timer <= 0) {
+        this.letterDelivered = true;
+        this.events.push({ type: 'registered_letter', stage: 'delivered' });
+        boss.phase = 'round';
+        boss.sector = nextSector(boss.sector);
+      }
+      return;
+    }
     // On the doorstep: two brisk knocks, then on with the round.
     e.action = 'attack';
     this.face(e, entry.x + 0.5, entry.y + 0.5);
@@ -1207,7 +1220,11 @@ export class NightSim {
     e.cooldown = BOSS.mail.knockInterval;
     e.blowRecovery = BLOW_RECOVERY_SECONDS;
     const barricade = this.barricades[boss.sector];
-    if (barricade.hp > 0) {
+    const registered = this.night === BOSS.mail.deliveryNight && boss.sector === 'portail' && boss.phase === 'advance';
+    if (registered) {
+      e.gripTarget = boss.sector;
+      this.events.push({ type: 'registered_letter', stage: 'knock' });
+    } else if (barricade.hp > 0) {
       e.gripTarget = boss.sector;
       this.hitBarricade(boss.sector, e.def.barricadeDamage, true);
     } else {
@@ -1217,7 +1234,13 @@ export class NightSim {
     boss.knocks++;
     if (boss.knocks >= BOSS.mail.knocksPerDoor) {
       boss.knocks = 0;
-      boss.sector = nextSector(boss.sector);
+      if (registered) {
+        boss.phase = 'signature';
+        boss.timer = BOSS.mail.signatureSeconds;
+        this.events.push({ type: 'registered_letter', stage: 'waiting' });
+      } else {
+        boss.sector = nextSector(boss.sector);
+      }
     }
   }
 
@@ -1293,6 +1316,11 @@ export class NightSim {
     if (e.shielded) dealt *= BOSS.chief.auraDamageTaken;
     if (e.type === 'chief' && e.nettedFor <= 0 && !e.lit) dealt *= BOSS.chief.selfDamageTaken;
     if (e.type === 'mower' && e.boss?.phase === 'jam') dealt *= 1.5;
+    if (e.type === 'mail' && e.boss?.phase === 'signature') {
+      e.boss.phase = 'round';
+      e.boss.sector = nextSector(e.boss.sector);
+      this.events.push({ type: 'registered_letter', stage: 'missed' });
+    }
     e.hp -= dealt;
     e.hitFlash = HIT_REACTION_SECONDS;
     e.hitCrawlDepth = e.crawlDepth;
@@ -1414,6 +1442,7 @@ export class NightSim {
       triggers: this.triggers,
       autoTriggers: this.autoTriggers,
       bossDefeated: this.bossDefeated,
+      ...(this.letterDelivered && { letterDelivered: true as const }),
       durationSeconds: Math.round(this.time),
       cameraLost: this.cameraLost,
       traps: Object.fromEntries([...this.tallies].map(([id, tally]) => [id, { ...tally }])) as Record<number, TrapTally>,

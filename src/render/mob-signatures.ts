@@ -1,5 +1,5 @@
 export interface MobGesture {
-  readonly kind: 'rev' | 'jam' | 'hoist' | 'delivery' | 'whistle' | 'speech';
+  readonly kind: 'rev' | 'jam' | 'hoist' | 'delivery' | 'registered' | 'whistle' | 'speech';
   readonly time: number;
   readonly force: number;
 }
@@ -95,6 +95,32 @@ function post(ctx: CanvasRenderingContext2D, front: boolean, height: number, { t
   }
 }
 
+/** The extended pen, then the envelope at the sill and the tick on the receipt. */
+function registered(ctx: CanvasRenderingContext2D, front: boolean, height: number, time: number): void {
+  const dir = front ? 1 : -1;
+  ctx.scale(dir * height, height);
+  ctx.translate(front ? 0.37 : 0.19, front ? -0.48 : -0.53);
+  const slide = Math.max(0, Math.min(1, (time - 0.85) / 0.1));
+  ctx.fillStyle = '#ede0ba';
+  ctx.fillRect(0.02 + slide * 0.12, 0.02 + slide * 0.38, 0.13, 0.078 * (1 - slide));
+  ctx.fillStyle = '#ae483b';
+  ctx.fillRect(0.12 + slide * 0.12, 0.03 + slide * 0.38, 0.025, 0.025 * (1 - slide));
+  ctx.strokeStyle = '#cbd7dc';
+  ctx.lineWidth = 0.019;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0.14, -0.085 + 0.075 * slide);
+  ctx.stroke();
+  if (time > 0.95) {
+    ctx.strokeStyle = '#eee4cc';
+    ctx.beginPath();
+    ctx.moveTo(0.06, -0.04);
+    ctx.lineTo(0.09, -0.015);
+    ctx.lineTo(0.14, -0.075);
+    ctx.stroke();
+  }
+}
+
 function signal(ctx: CanvasRenderingContext2D, front: boolean, height: number, gesture: MobGesture): void {
   const speech = gesture.kind === 'speech';
   const mouths = speech ? (front ? [-0.38, -0.87] : [0.29, -0.88]) : (front ? [0.157, -0.793] : [0.213, -0.831]);
@@ -123,6 +149,7 @@ export function drawMobGesture(ctx: CanvasRenderingContext2D, front: boolean, he
   switch (gesture.kind) {
     case 'rev':
     case 'jam': mowerDebris(ctx, front, height, gesture); break;
+    case 'registered': registered(ctx, front, height, gesture.time); break;
     case 'delivery': post(ctx, front, height, gesture); break;
     case 'whistle':
     case 'speech': signal(ctx, front, height, gesture); break;

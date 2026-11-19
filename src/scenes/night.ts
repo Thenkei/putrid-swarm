@@ -858,6 +858,10 @@ export class NightScene implements Scene {
           this.banner(fmt(s.night.bossArrives, { name: s.enemy[event.boss], sector: s.sector[event.sector] }), 'bad');
           this.bossCard(event.boss, s.enemy[event.boss], s.neighbor[event.boss].boss);
           break;
+        case 'registered_letter':
+          if (event.stage === 'knock') audio.play('door');
+          else this.banner(s.registeredLetter[event.stage], event.stage === 'missed' ? 'bad' : 'good');
+          break;
         case 'boss_dead':
           audio.setMusic('night');
           this.bossAlive = null;

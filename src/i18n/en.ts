@@ -94,8 +94,8 @@ export const en: Strings = {
       later: '“I finish my round, whatever happens.”',
       gone: 'The satchel is gone from its hook. The round goes on, somewhere.',
       boss: 'Two sharp knocks at each door, then the next. She exploits the smallest breach. A net on her route barely holds her.',
-      defeated: 'Mail all over the drive. None of these letters is for you.',
-      escaped: 'The Mail Carrier finished her round at dawn. She left a delivery notice.',
+      defeated: 'The satchel split open on the drive. Envelopes stick to the gravel.',
+      escaped: 'The Mail Carrier finished her round at dawn. Her satchel still bumps against her hip.',
     },
     chief: {
       name: 'The Police Chief',
@@ -321,6 +321,16 @@ export const en: Strings = {
     noTime: 'Keep enough time to drive home.',
     trunk: 'In the boot',
     disputed: 'This lot is settled with whoever is standing on it.',
+  },
+  registeredLetter: {
+    slip: 'Missed delivery',
+    notice: 'The rain has washed out the sender’s name. Yours is still legible. “Second attempt tomorrow. Signature required at the front gate.”',
+    waiting: 'Gate · Two knocks. She holds out her pen.',
+    delivered: 'She slips the envelope under the door, ticks her form and moves on.',
+    missed: 'The envelope lands in the mud. The address disappears.',
+    open: 'Open the registered letter',
+    postmark: 'The postmark is from the week before it all started.',
+    complaint: 'Dear Sir, at 7:12 on Sunday morning you once again mowed the lawn beneath my window. Please consider this my third and final complaint. Your neighbour.',
   },
   siren: {
     title: 'The Wednesday Test',
