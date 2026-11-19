@@ -1468,6 +1468,17 @@ button:disabled {
   font-size: 24px;
 }
 
+.last-search-thought {
+  position: absolute;
+  top: 54px;
+  left: 16px;
+  margin: 0;
+  padding: 7px 10px;
+  color: #ffda99;
+  font-size: 17px;
+  line-height: 1.15;
+}
+
 /* ───────── Night ───────── */
 
 .night-top {
@@ -4010,17 +4021,6 @@ button:disabled {
   flex-direction: column;
   align-items: center;
   line-height: 1;
-}
-
-.last-search-thought {
-  position: absolute;
-  top: 54px;
-  left: 16px;
-  margin: 0;
-  padding: 7px 10px;
-  color: #ffda99;
-  font-size: 17px;
-  line-height: 1.15;
 }
 
 .jam-total b {
