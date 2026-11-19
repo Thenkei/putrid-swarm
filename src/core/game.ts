@@ -3,6 +3,7 @@
 
 import { BARRICADE, HOUSE_MAX_HP } from './data/devices';
 import { BOSS_NIGHT, DAY_HOURS, LOCATIONS, SEARCH_HOURS, type LocationDef } from './data/locations';
+import { shouldStopAtDusk } from './crossbow-road';
 import { LAST_NIGHT } from './data/waves';
 import type { NightSim } from './night';
 import { NO_STOCK, rollAmbush, rollDispute, walkAway, type Resolution } from './encounters';
@@ -291,6 +292,7 @@ export function leaveLocation(state: GameState): Result<Departure, DayError> {
   }
 
   next = { ...next, where: 'road', hoursLeft: Math.max(0, next.hoursLeft - location.travelHours) };
+  if (next.outing && shouldStopAtDusk(next, next.hoursLeft)) next = { ...next, outing: { ...next.outing, crossbowStop: true } };
   const rng = createRng(next.rng);
   const ambush = rollAmbush(next, rng);
   next = { ...next, rng: rng.state() };
@@ -311,7 +313,7 @@ export interface Arrival {
 export function arriveHome(state: GameState): Result<Arrival, DayError> {
   if (state.phase !== 'day') return err({ code: 'wrong_phase' });
   if (state.where !== 'road' || !state.outing) return err({ code: 'not_on_road' });
-  if (state.encounter) return err({ code: 'encounter_pending' });
+  if (state.encounter || state.outing.crossbowStop) return err({ code: 'encounter_pending' });
   const { trunk, parted, marks } = state.outing;
   return ok({
     state: { ...state, where: 'home', inventory: gain(state.inventory, trunk), outing: null },

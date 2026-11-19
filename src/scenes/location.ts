@@ -19,6 +19,7 @@ import { EncounterPanel, memoryLine, nameOf, roadPlate } from './encounter';
 import { goAmbush, goEnd, goHomeStretch, goTravel } from './flow';
 import { ScavengePanel } from './scavenge';
 import { hasCrossbow } from '../core/crossbow';
+import { shouldStopAtDusk } from '../core/crossbow-road';
 
 const SEARCH_DUST_SECONDS = 0.78;
 
@@ -147,8 +148,12 @@ export class LocationScene implements Scene {
       }),
     ]);
     // Driving off leaves the lot to whoever is standing on it: said on the button, not after the fact.
-    const leaveNote = dispute ? `${fmt(s.loc.leaveCost, { h: hours(location.travelHours) })} · ${fmt(s.encounter.leaveKeeps, { name: nameOf(dispute.rival) })}` : fmt(s.loc.leaveCost, { h: hours(location.travelHours) });
-    const leave = el('div', { class: 'loc-leave' }, [el('button', { class: 'btn btn-primary', onClick: () => this.leave() }, [s.loc.leave, el('small', { text: leaveNote })])]);
+    const drive = fmt(s.loc.leaveCost, { h: hours(location.travelHours) });
+    const leaveNote = dispute ? `${drive} · ${fmt(s.encounter.leaveKeeps, { name: nameOf(dispute.rival) })}` : drive;
+    const dusk = shouldStopAtDusk(state, state.hoursLeft - location.travelHours);
+    const leave = el('div', { class: 'loc-leave' }, [el('button', { class: 'btn btn-primary', onClick: () => this.leave() }, [
+      s.loc.leave, el('small', { text: leaveNote }), dusk ? el('small', { class: 'road-warning', text: s.crossbowRoad.warning }) : null,
+    ])]);
 
     this.hud.replaceChildren(topbar, stash, ...spots, title, leave);
   }
@@ -311,17 +316,20 @@ export class LocationScene implements Scene {
   private leave(): void {
     const result = leaveLocation(this.state);
     if (!result.ok) return;
-    carDeparture();
+    const { state, forfeit } = result.value;
+    // The dusk scene opens on the engine dying. Leave its ignition to the player.
+    if (state.outing?.crossbowStop && !state.encounter) audio.play('car_door');
+    else carDeparture();
     const s = S();
-    this.app.state = result.value.state;
+    this.app.state = state;
     this.app.save();
     // A lot left behind on the way out is still a good turn: it is said on the drive home.
-    const memory = result.value.forfeit ? memoryLine(result.value.forfeit) : null;
+    const memory = forfeit ? memoryLine(forfeit) : null;
     const drive = fmt(s.loc.leaveCost, { h: hours(LOCATIONS[this.id].travelHours) });
     const sub = memory ? `${drive} · ${memory}` : drive;
-    if (result.value.state.encounter) {
+    if (state.encounter) {
       // Seen from the wheel before anything is said: there is time to take it in.
-      goTravel(this.app, { plate: roadPlate(result.value.state), title: s.encounter.road.title, sub: s.encounter.road.ahead, next: () => goAmbush(this.app) });
+      goTravel(this.app, { plate: roadPlate(state), title: s.encounter.road.title, sub: s.encounter.road.ahead, next: () => goAmbush(this.app) });
     } else goHomeStretch(this.app, sub);
   }
 

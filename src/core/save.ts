@@ -116,10 +116,13 @@ function parseAmbush(v: Record<string, unknown>): Ambush | null {
   return valid ? (v as unknown as Ambush) : null;
 }
 
-function parseOuting(v: unknown): Outing | null {
+function parseOuting(v: unknown, onRoad: boolean): Outing | null {
   if (!isRecord(v) || !isLocation(v['to']) || !isStock(v['trunk']) || !isStock(v['parted'])) return null;
   const marks = Array.isArray(v['marks']) ? v['marks'].filter((m) => isRecord(m) && typeof m['who'] === 'string' && typeof m['outcome'] === 'string') : [];
-  return { to: v['to'], trunk: v['trunk'], parted: v['parted'], major: v['major'] === true, marks: marks as Outing['marks'] };
+  return {
+    to: v['to'], trunk: v['trunk'], parted: v['parted'], major: v['major'] === true, marks: marks as Outing['marks'],
+    ...(onRoad && v['crossbowStop'] === true ? { crossbowStop: true } : {}),
+  };
 }
 
 function parsePeople(v: unknown): GameState['people'] {
@@ -139,7 +142,7 @@ function parseTrip(data: Record<string, unknown>, where: GameState['where']): Pi
   const people = parsePeople(data['people']);
   if (where === 'home') return { where, outing: null, encounter: null, people };
 
-  const outing = parseOuting(data['outing']);
+  const outing = parseOuting(data['outing'], where === 'road');
   // On the road with nothing to say what was loaded: the drive is over, nothing was lost.
   if (where === 'road' && !outing) return { where: 'home', outing: null, encounter: null, people };
   const trip: Outing = outing ?? { to: where as Outing['to'], trunk: { wood: 0, scrap: 0, springs: 0, wire: 0, battery: 0 }, parted: { wood: 0, scrap: 0, springs: 0, wire: 0, battery: 0 }, major: false, marks: [] };

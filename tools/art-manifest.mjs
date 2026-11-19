@@ -178,6 +178,10 @@ export const ART = [
     id: 'plate_crossbow', kind: 'plate', w: 1280, refs: [REF_GARAGE],
     prompt: `Wide 16:9 garage close-up. A closed olive canvas case on a teal workbench, two feathered wings embroidered on its cream shoulder strap, a worn motorcycle glove and a swallow-shaped key tag. Leave the lower edge in shadow for the caption. ${STYLE}`,
   },
+  {
+    id: 'plate_crossbow_road', kind: 'plate', w: 1280, refs: [REF_STORYBOARD],
+    prompt: `Wide 16:9 view through the windshield of a stalled French estate car at blue dusk. Warm low beams light an empty wet lane, a mossy stone gatepost and hazel hedges. A low, dark dashboard frames the bottom. Leave the lane clear for animated characters. ${STYLE}`,
+  },
   // Three consecutive frames of the same garage accident, from the original generated filmstrip.
   ...[
     ['raised', 'The rusty blue car is raised. The scavenger in his ochre jacket reaches for a crate beneath it.'],

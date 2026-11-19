@@ -4380,6 +4380,83 @@ button:disabled {
   letter-spacing: 0.13em;
   text-transform: uppercase;
 }
+
+/* Last Light. The lower panel sits on the dashboard and leaves the windscreen interactive. */
+.road-hud { position: absolute; inset: 0; }
+.road-card {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  width: min(810px, 88%);
+  padding: 16px 24px 15px;
+  transform: translateX(-50%);
+  border: 1px solid #a9c4c74f;
+  border-top-color: #e9c7939e;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #172324f7, #0c1214fa);
+  box-shadow: 0 12px 35px #000b;
+  color: #f5e7c7;
+  text-align: center;
+}
+.road-card:not([data-beat]) { width: 720px; padding: 22px 32px 23px; }
+.road-card:focus { outline: none; }
+.road-card h1, .road-card h2 { margin: 0; font: bold 32px/1.1 var(--slab-font); }
+.road-card h1 { font-size: 54px; }
+.road-card h2 { font-size: 25px; }
+.road-card p { margin: 7px 0; font-size: 20px; line-height: 1.25; }
+.road-card .road-kicker { color: #ffd598; font-size: 15px; text-transform: uppercase; letter-spacing: 0.15em; }
+.road-card .road-note { color: #d0d8cd; font-size: 18px; }
+.road-actions { display: flex; justify-content: center; gap: 12px; margin-top: 13px; }
+.road-card .btn { margin-top: 5px; }
+.road-card[data-beat='aim'], .road-card[data-beat='impact'], .road-card[data-beat='reveal'] {
+  width: min(610px, 75%);
+  padding-block: 12px;
+}
+.road-card[data-beat='aim'] p { margin-block: 5px; font-size: 18px; }
+.road-pause {
+  position: absolute;
+  top: 18px;
+  right: 21px;
+  min-width: 76px;
+  min-height: 40px;
+  border: 1px solid #a9c4c77a;
+  border-radius: 4px;
+  background: #121a1cdd;
+  font-size: 17px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.road-card button:focus-visible, .road-pause:focus-visible { outline: 2px solid #ffdd9e; outline-offset: 3px; }
+.road-ignition, .road-time {
+  --road-progress: 0;
+  position: relative;
+  overflow: hidden;
+  width: 360px;
+  height: 18px;
+  margin: 11px auto;
+  border: 1px solid #a9c4c77a;
+  border-radius: 4px;
+  background: #0b1213;
+}
+.road-window {
+  position: absolute;
+  inset-block: 0;
+  background: repeating-linear-gradient(135deg, #ad7734 0 5px, #e2ad64 5px 10px);
+}
+.road-ignition i {
+  position: absolute;
+  inset-block: 0;
+  left: clamp(0px, calc(var(--road-progress) * 100% - 2px), calc(100% - 4px));
+  width: 4px;
+  background: #fff9e1;
+  box-shadow: 0 0 7px #fff9e1;
+}
+.road-time { width: min(420px, 92%); height: 5px; margin: 8px auto 0; }
+.road-time i { display: block; width: calc(var(--road-progress) * 100%); height: 100%; background: #ebbb78; }
+.loc-leave .road-warning { color: #ffda99; }
+.road-card .cost { display: inline-flex; vertical-align: middle; }
+#stage:has(.road-card[data-beat='aim']) #game { cursor: crosshair; touch-action: none; }
+
 .salvage-case {
   display: grid;
   grid-template-columns: 240px 560px;

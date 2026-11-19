@@ -2082,5 +2082,10 @@
     "file": "plates/plate_crossbow.webp",
     "w": 1280,
     "h": 720
+  },
+  "plate_crossbow_road": {
+    "file": "plates/plate_crossbow_road.webp",
+    "w": 1280,
+    "h": 720
   }
 }
