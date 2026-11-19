@@ -12,6 +12,7 @@
 import { ENCOUNTER, GROUPS, RESOURCE_VALUE, RIVALS, WASHERS, type StanceWeights } from './data/rivals';
 import { LOCATIONS, type LocationDef, type SearchSpot } from './data/locations';
 import { APPRAISAL_FLAG, radioAppraisal } from './appraisal';
+import { hasViceLeftovers } from './garage-vice';
 import type { Rng } from './rng';
 import type {
   Acquaintance,
@@ -209,8 +210,10 @@ export function rollDispute(state: GameState, location: LocationDef, neighborAtH
   if ((flags[majorsKey(day)] ?? 0) >= ENCOUNTER.majorsPerDay) return null;
   if (flags[flagToday('dispute', location.id, day)]) return null;
 
-  const searched = state.locations[location.id].searched;
-  const open = location.spots.map((spot, index) => ({ spot, index })).filter(({ spot, index }) => !spot.requiresDirectory && !searched.includes(index) && expectedWorth(spot) > 0);
+  const { searched, covered } = state.locations[location.id];
+  const open = location.spots.map((spot, index) => ({ spot, index })).filter(({ spot, index }) =>
+    !spot.requiresDirectory && !searched.includes(index) && !covered.includes(index)
+    && !hasViceLeftovers(state, location.id, index) && expectedWorth(spot) > 0);
   if (open.length === 0) return null;
 
   const candidates = RIVAL_IDS.filter((id) => RIVALS[id].fromDay <= day && !flags[flagToday('rival', id, day)]);

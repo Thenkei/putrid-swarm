@@ -1390,16 +1390,40 @@ button:disabled {
   color: #ffd58c;
 }
 
-.spring-receipt {
+.spot.covered:not(.looted) .ring,
+.spot.cover-target .ring {
+  border-color: #b1d486;
+}
+
+.spot.covered:not(.looted) .tag small,
+.spot.cover-target .tag small,
+.spot.vice-leftovers .tag small {
+  display: block;
+  margin-top: 3px;
+  color: #d7edb0;
+}
+
+.spot:disabled .ring {
+  opacity: 0.45;
+  animation: none;
+}
+
+.loc-title .conceal-button {
+  margin-top: 8px;
+  min-height: 32px;
+  font-size: 18px;
+}
+
+.stash-note {
   width: 560px;
   padding: 18px 22px;
 }
 
-.spring-receipt h2 {
+.stash-note h2 {
   font-size: 30px;
 }
 
-.spring-receipt blockquote {
+.stash-note blockquote {
   margin: 12px 0;
   padding: 14px 16px;
   background: #ede0bf;
