@@ -255,6 +255,8 @@ export const fr = {
     energy: 'Énergie {p} %',
     cam: 'CAM {i} · {name}',
     cameras: '1-4 · Caméras',
+    space: 'Espace',
+    alert: { quiet: 'Aucune alerte', movement: '{sector}', critical: '{sector} en danger', breached: 'Brèche à {sector}' },
     ready: 'Prêt',
     now: 'MAINTENANT',
     autoTraps: 'Automatiques',

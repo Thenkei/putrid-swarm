@@ -253,6 +253,8 @@ export const en: Strings = {
     energy: 'Power {p}%',
     cam: 'CAM {i} · {name}',
     cameras: '1-4 · Cameras',
+    space: 'Space',
+    alert: { quiet: 'No alert', movement: '{sector}', critical: '{sector} at risk', breached: '{sector} breached' },
     ready: 'Ready',
     now: 'NOW',
     autoTraps: 'Automatic',
