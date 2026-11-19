@@ -11,17 +11,22 @@ import { STAGE_H, type App, type Scene } from '../engine/app';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt } from '../engine/i18n';
+import { calmMotion } from '../render/lighting';
+import { smoothstep } from '../render/noise';
 import { cameraView, drawWorld, type View, type WorldFrame } from '../render/world';
 import { drawPlate, oneArmed } from './common';
 import { goChapter, goDay } from './flow';
 
 /** Cells around the highlighted spot that the inspection view rings, so it is found at a glance. */
 const SPOT_RADIUS = 1.2;
+const INSPECT_IN = 0.64;
+const INSPECT_OUT = 0.46;
 
 export class MorningScene implements Scene {
   private time = 0;
   private inspecting = false;
-  private inspection: { view: View; frame: WorldFrame } | null = null;
+  private inspectionProgress = 0;
+  private inspection: { view: View; overview: View; frame: WorldFrame } | null = null;
 
   constructor(private readonly app: App) {}
 
@@ -95,6 +100,7 @@ export class MorningScene implements Scene {
     const view = cameraView(sector, { x: 20, y: 28, w: 766, h: STAGE_H - 56 }, 1.2);
     this.inspection = {
       view: { ...view, cx: cell.x + 0.5, cy: cell.y + 0.5 },
+      overview: view,
       frame: {
         time: 0,
         night: false,
@@ -108,9 +114,7 @@ export class MorningScene implements Scene {
           ...d, state: d.broken ? 'broken' : 'idle', hpRatio: d.hp / DEVICES[d.type].maxHp, highlight: d.id === device?.id,
         })),
         doorHighlight: highlight.kind === 'breach' ? sector : null,
-        // The renderer only marks a hovered cell that has a radius: this ring is what points at the spot.
         hoverCell: cell,
-        hoverRadius: SPOT_RADIUS,
       },
     };
 
@@ -120,8 +124,10 @@ export class MorningScene implements Scene {
       onClick: () => {
         this.inspecting = !this.inspecting;
         button.textContent = this.inspecting ? s.morning.back : s.morning.inspect;
+        button.setAttribute('aria-expanded', String(this.inspecting));
       },
     });
+    button.setAttribute('aria-expanded', 'false');
     return el('div', { class: 'card morning-headline' }, [el('div', {}, [el('strong', { text: label }), el('div', { text: detail })]), button]);
   }
 
@@ -139,12 +145,38 @@ export class MorningScene implements Scene {
 
   update(dt: number): void {
     this.time += dt;
+    this.inspectionProgress = this.inspecting
+      ? Math.min(1, this.inspectionProgress + dt / INSPECT_IN)
+      : Math.max(0, this.inspectionProgress - dt / INSPECT_OUT);
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    drawPlate(ctx, 'plate_morning', { zoom: 1.03 + this.time * 0.003, focusX: 0.1, focusY: 0.5, oneArmed: oneArmed(this.app.state) });
-    if (this.inspecting && this.inspection) {
-      drawWorld(ctx, this.inspection.view, { ...this.inspection.frame, time: this.time });
+    const still = calmMotion();
+    const plate = { zoom: 1.03 + (still ? 0 : 0.04 * smoothstep(0, 12, this.time)), focusX: 0.1, focusY: 0.5, oneArmed: oneArmed(this.app.state) };
+    drawPlate(ctx, 'plate_morning', plate);
+    const progress = still ? Number(this.inspecting) : this.inspectionProgress;
+    if (!this.inspection || progress <= 0) return;
+    const { view, overview, frame } = this.inspection;
+    const focus = smoothstep(0, 1, progress);
+    const visibility = smoothstep(0.04, 0.39, progress);
+    if (visibility <= 0) return;
+    const drift = (1 - focus) * 0.24;
+    drawWorld(ctx, {
+      ...view,
+      cx: view.cx + (overview.cx - view.cx) * drift,
+      cy: view.cy + (overview.cy - view.cy) * drift,
+      zoom: view.zoom - 0.23 * (1 - focus),
+    }, { ...frame, time: this.time, hoverRadius: SPOT_RADIUS * smoothstep(0.5, 1, progress) });
+    if (visibility < 1) {
+      // Dissolve from the same painting inside the inspection rectangle. The
+      // world draws its own alpha layers, so the dissolve belongs over the shot.
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(view.x, view.y, view.w, view.h);
+      ctx.clip();
+      ctx.globalAlpha = 1 - visibility;
+      drawPlate(ctx, 'plate_morning', { ...plate, alpha: 1 - visibility });
+      ctx.restore();
     }
   }
 
