@@ -250,6 +250,8 @@ export const en: Strings = {
     repairPart: 'Repair {n}/{total}',
     repairAllNone: 'Repair all',
     repairAllNoneTitle: 'Nothing is broken.',
+    repairPreview: 'Repair preview',
+    repairPreviewLeft: '{n} {n:piece stays|pieces stay} broken.',
     repairedAll: '{n} repaired',
     repairedSome: '{n} repaired, {left} still broken: the stock or the daylight ran out',
     tally: 'Last night: went off {fired} {fired:time|times}, {hits} caught.',
