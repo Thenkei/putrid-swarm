@@ -148,6 +148,7 @@ export const en: Strings = {
   },
   crossbowRoad: {
     warning: 'Return at dusk · movement in the hedges',
+    lastSearch: 'One more search and I’ll be driving back at dusk.',
     kicker: 'The road home',
     title: 'Last Light',
     intro: 'The engine dies at the bend. Something moves in the headlights. The Quiet Rider is on the passenger seat.',

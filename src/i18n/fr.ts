@@ -150,6 +150,7 @@ export const fr = {
   },
   crossbowRoad: {
     warning: 'Retour au crépuscule · Ça bouge dans les haies',
+    lastSearch: 'Encore une fouille et je rentrerai à la nuit tombante.',
     kicker: 'La route du retour',
     title: 'Dernière lueur',
     intro: 'Le moteur s’éteint dans le virage. Quelque chose bouge dans les phares. L’arbalète est sur le siège passager.',
