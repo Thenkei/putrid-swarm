@@ -1098,6 +1098,7 @@ export class NightScene implements Scene {
       focusSector: sector,
       hoverCell: hovered ? { x: hovered.x, y: hovered.y } : null,
       hoverRadius: hovered ? DEVICES[hovered.type].radius : 0,
+      hoverBarrier: hovered?.type === 'barrier' && hovered.state === 'armed',
     };
   }
 

@@ -888,6 +888,7 @@ export class DayScene implements Scene {
     // Out of build mode, the trap under the pointer shows how far it reaches.
     const reaching = !def && this.hoverDevice && isTrap(this.hoverDevice.type) && !this.hoverDevice.broken ? this.hoverDevice : null;
     const reachDef = reaching ? DEVICES[reaching.type] : def;
+    const barrier = reachDef?.id === 'barrier';
     const frame: WorldFrame = {
       time: this.time,
       night: false,
@@ -907,7 +908,8 @@ export class DayScene implements Scene {
       // While placing something the routes are the whole point, so they show regardless of the toggle.
       ...(overlay && { routes: overlay.routes, traffic: overlay.traffic }),
       hoverCell: reaching ? { x: reaching.x, y: reaching.y } : this.hover,
-      hoverRadius: reachDef && reachDef.mode !== 'passive' ? Math.max(reachDef.radius, reachDef.reach) : 0,
+      hoverRadius: !barrier && reachDef && reachDef.mode !== 'passive' ? Math.max(reachDef.radius, reachDef.reach) : 0,
+      hoverBarrier: barrier && (reaching !== null || ghost?.ok === true),
       showBuildable: this.mode.kind === 'build',
       doorHighlight: this.inspectedDoor,
       doorRepairHp: this.previewHp ?? null,
