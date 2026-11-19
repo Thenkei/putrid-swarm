@@ -1,15 +1,21 @@
 // A short beat in the old break between the refuge and the village, and back with the boot full.
 
+import { DAY_HOURS } from '../core/data/locations';
 import type { Cost } from '../core/types';
-import type { App, Scene } from '../engine/app';
+import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S } from '../engine/i18n';
+import { applyDayGrade, calmMotion } from '../render/lighting';
 import { costLine, drawPlate, oneArmed } from './common';
 
 const HOLD_SECONDS = 3.2;
 /** The road noise comes up slowly, under the engine that was just started. */
 const ROAD_FADE_IN = 2.2;
+
+// These paintings are lit for daytime. The dusk return and roadblock plates have their own light.
+const DAYLIGHT_PLATES = new Set(['plate_village', 'plate_town', 'plate_trunk']);
+const STAGE = { x: 0, y: 0, w: STAGE_W, h: STAGE_H };
 
 export interface TravelOptions {
   readonly plate: string;
@@ -65,7 +71,12 @@ export class TravelScene implements Scene {
   }
 
   render(ctx: CanvasRenderingContext2D): void {
-    drawPlate(ctx, this.options.plate, { zoom: 1.04 + this.time * 0.012, focusY: 0.5, oneArmed: oneArmed(this.app.state) });
+    const state = this.app.state;
+    const zoom = 1.04 + (calmMotion() ? 0 : this.time * 0.012);
+    drawPlate(ctx, this.options.plate, { zoom, focusY: 0.5, oneArmed: oneArmed(state) });
+    if (state && DAYLIGHT_PLATES.has(this.options.plate)) {
+      applyDayGrade(ctx, STAGE, 1 - state.hoursLeft / DAY_HOURS);
+    }
   }
 
   onKeyDown(code: string): void {
