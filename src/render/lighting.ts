@@ -14,6 +14,8 @@ export interface Light {
   /** Radius on the ground, in cells. */
   readonly radius: number;
   readonly color: string;
+  /** 0..1: how much light the source emits at this instant. */
+  readonly intensity?: number;
   /** Screen-space lift, for lights that hang above the ground (lanterns). */
   readonly lift?: number;
   /** Screen-space shift to the right, in stage units at zoom 1, for lamps fixed to a sprite. */
@@ -82,7 +84,7 @@ export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: re
     const rx = light.radius * Math.SQRT2 * (TW / 2) * view.zoom * scale * (1 - dip * 0.12);
     if (x < -rx || y < -rx || x > w + rx || y > h + rx) continue;
     lctx.save();
-    lctx.globalAlpha = 1 - dip * 0.45;
+    lctx.globalAlpha = (light.intensity ?? 1) * (1 - dip * 0.45);
     lctx.translate(x, y);
     lctx.scale(1, light.round ? 0.9 : 0.62);
     const gradient = lctx.createRadialGradient(0, 0, 0, 0, 0, rx);
@@ -116,7 +118,7 @@ function drawGlows(ctx: CanvasRenderingContext2D, view: View, lights: readonly L
     const r = (9 + 26 * light.glow) * view.zoom;
     if (p.x < view.x - r || p.y < view.y - r || p.x > view.x + view.w + r || p.y > view.y + view.h + r) continue;
     const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
-    const peak = (0.2 + 0.36 * light.glow) * strength * (1 - dip * 0.5);
+    const peak = (0.2 + 0.36 * light.glow) * strength * (light.intensity ?? 1) * (1 - dip * 0.5);
     halo.addColorStop(0, `rgba(255, 214, 150, ${peak})`);
     halo.addColorStop(0.4, `rgba(255, 170, 90, ${peak * 0.38})`);
     halo.addColorStop(1, 'rgba(255, 150, 60, 0)');
