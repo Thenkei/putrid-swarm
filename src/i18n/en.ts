@@ -292,6 +292,22 @@ export const en: Strings = {
     clue: 'There’s red paint on two springs in her bag. Just like the receipt says.',
     answer: '“The Camper. He traded them to me for a battery. Even asked me to sign for them.”',
   },
+  stashCover: {
+    start: 'Hide a stash · {n} min',
+    choose: 'Choose a stash to cover. You might find it untouched next time.',
+    cancel: 'Cancel',
+    target: 'Hide this stash',
+    intact: 'Cover intact',
+    torn: 'Looted · cover pulled aside',
+    tornReceipt: 'Cover pulled aside · receipt left',
+  },
+  viceLeftovers: {
+    found: 'Vice open · springs left',
+    title: 'Someone opened the vice',
+    note: 'Wait for the compressor to cough, then wedge a washer in the jaws. Took the battery. The springs are yours.',
+    take: 'Take the springs',
+    leave: 'Leave them here',
+  },
   loc: {
     search: 'Search · {h} h',
     searched: 'Already searched',

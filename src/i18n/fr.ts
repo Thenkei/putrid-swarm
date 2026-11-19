@@ -294,6 +294,22 @@ export const fr = {
     clue: 'Deux ressorts dans son sac portent une trace de peinture rouge. Comme sur le reçu.',
     answer: '« Le Campeur. Il me les a échangés contre une pile. Il m’a même demandé de signer. »',
   },
+  stashCover: {
+    start: 'Cacher une réserve · {n} min',
+    choose: 'Choisissez un lot à couvrir. Il sera peut-être encore là à votre retour.',
+    cancel: 'Annuler',
+    target: 'Cacher ce lot',
+    intact: 'Cache intacte',
+    torn: 'Pillé · cache écartée',
+    tornReceipt: 'Cache écartée · reçu laissé',
+  },
+  viceLeftovers: {
+    found: 'Étau ouvert · ressorts laissés',
+    title: 'Quelqu’un a ouvert l’étau',
+    note: 'Attendre que le compresseur tousse, puis coincer une rondelle entre les mâchoires. J’ai pris la batterie. Les ressorts sont pour toi.',
+    take: 'Prendre les ressorts',
+    leave: 'Les laisser ici',
+  },
   loc: {
     search: 'Fouiller · {h} h',
     searched: 'Déjà fouillé',
