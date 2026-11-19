@@ -1439,6 +1439,26 @@ button:disabled {
   gap: 10px;
 }
 
+.meter.night-power {
+  width: 110px;
+}
+
+.meter.night-power > i {
+  transition: none;
+}
+
+.meter.night-power > .power-trace {
+  background: linear-gradient(180deg, #b9752e, #623011);
+  box-shadow: inset 0 1px #e0a45a;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meter.night-power > .power-trace {
+    display: none;
+  }
+}
+
 .pips {
   display: inline-flex;
   gap: 4px;
