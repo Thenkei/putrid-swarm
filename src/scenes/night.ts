@@ -134,6 +134,8 @@ export class NightScene implements Scene {
   private pipsEl!: HTMLElement;
   private camLabel!: HTMLElement;
   private camClock!: HTMLElement;
+  private camFrame!: HTMLElement;
+  private lastSignalClock: string | null = null;
   private trapBar!: HTMLElement;
   private alertButton!: HTMLButtonElement;
   private alertTarget: CameraPriority | null = null;
@@ -208,7 +210,7 @@ export class NightScene implements Scene {
 
     this.camLabel = el('span');
     this.camClock = el('div', { class: 'cam-clock' });
-    const frame = el('div', { class: 'cam-frame', style: { left: `${MAIN.x - 3}px`, top: `${MAIN.y - 3}px`, width: `${MAIN.w + 6}px`, height: `${MAIN.h + 6}px` } }, [
+    this.camFrame = el('div', { class: 'cam-frame', style: { left: `${MAIN.x - 3}px`, top: `${MAIN.y - 3}px`, width: `${MAIN.w + 6}px`, height: `${MAIN.h + 6}px` } }, [
       el('div', { class: 'cam-label' }, [el('span', { class: 'rec' }), this.camLabel]),
       this.camClock,
     ]);
@@ -246,7 +248,7 @@ export class NightScene implements Scene {
     const pauseOverlay = el('div');
     this.pauseMenu = new PauseMenu(pauseOverlay, pauseButton);
     this.coachEl = el('div', { class: 'coach' });
-    this.root = el('div', {}, [topbar, frame, ...minis, this.trapBar, this.banners, this.coachEl, this.overlay, pauseOverlay]);
+    this.root = el('div', {}, [topbar, this.camFrame, ...minis, this.trapBar, this.banners, this.coachEl, this.overlay, pauseOverlay]);
     this.app.ui.append(this.root);
     if (this.sim.handView()) this.hand = new HandGauge();
     this.layoutMinis();
@@ -339,6 +341,16 @@ export class NightScene implements Scene {
   /** A camera that stopped sending: its feed is snow, and nothing on it can be counted or cued. */
   private isDark(sector: SectorId): boolean {
     return this.sim.cameraLost === sector;
+  }
+
+  /** The night spans 21:00 to 06:00 on the desk. */
+  private deskClock(): string {
+    const minutes = Math.round(21 * 60 + this.sim.progress() * 9 * 60) % (24 * 60);
+    return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+  }
+
+  private cameraTimestamp(clock: string): string {
+    return `${clock}:${String(Math.floor((this.time * 7) % 60)).padStart(2, '0')}`;
   }
 
   private otherSectors(): SectorId[] {
@@ -449,11 +461,11 @@ export class NightScene implements Scene {
     setText(this.energyEl, fmt(s.night.energy, { p: Math.round(sim.energy) }));
     this.syncPower(sim.energy);
 
-    // 21:00 at dusk, 06:00 at dawn.
-    const minutes = Math.round(21 * 60 + sim.progress() * 9 * 60) % (24 * 60);
-    const clock = `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+    const clock = this.deskClock();
+    const blind = this.isDark(this.cam);
     setText(this.clockEl, `${clock} → ${s.night.dawn}`);
-    setText(this.camClock, `${clock}:${String(Math.floor((this.time * 7) % 60)).padStart(2, '0')}`);
+    setText(this.camClock, blind ? this.lastSignalClock ?? '––:––:––' : this.cameraTimestamp(clock));
+    this.camFrame.classList.toggle('no-link', blind);
 
     const lit = Math.ceil((sim.houseHp / HOUSE_MAX_HP) * 5);
     const pipSignature = `${lit}`;
@@ -504,7 +516,6 @@ export class NightScene implements Scene {
       }
     }
 
-    const blind = this.isDark(this.cam);
     const signature = `${this.cam}:${this.camTraps()
       .map((d) => d.id)
       .join(',')}:${sim.devices.filter((d) => d.state === 'broken').length}`;
@@ -830,6 +841,7 @@ export class NightScene implements Scene {
           this.banner(fmt(s.night.cameraLost, { i: String(SECTOR_IDS.indexOf(event.sector) + 1).padStart(2, '0'), name: s.sector[event.sector] }), 'bad');
           this.hoverDevice = null;
           this.lostAt = this.time;
+          this.lastSignalClock = this.cameraTimestamp(this.deskClock());
           this.syncHud(true);
           break;
         case 'ally_turned':
