@@ -256,6 +256,8 @@ export const en: Strings = {
     travel: 'Drive {h} h',
     roundTrip: 'round trip {h} h',
     searchBudget: 'Up to {n} {n:search|searches}, including the drive home.',
+    returnEstimate: 'Back around {clock} · {h} h left at the yard',
+    returnAtDusk: 'Back around {clock} · no daylight left',
     noSearches: 'Time for the round trip, but no searches.',
     locked: 'Reachable on day {n}',
     noTime: 'Too late for the round trip',

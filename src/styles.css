@@ -1318,6 +1318,10 @@ button:disabled {
   width: 100%;
 }
 
+.map-card .return-at-dusk {
+  color: #ffc27e;
+}
+
 .spot {
   position: absolute;
   transform: translate(-50%, -50%);

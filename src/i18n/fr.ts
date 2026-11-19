@@ -258,6 +258,8 @@ export const fr = {
     travel: 'Trajet {h} h',
     roundTrip: 'aller-retour {h} h',
     searchBudget: 'Jusqu’à {n} {n:fouille|fouilles}, retour compris.',
+    returnEstimate: 'Retour vers {clock} · {h} h à la ferme',
+    returnAtDusk: 'Retour vers {clock} · la nuit tombe',
     noSearches: 'Aller-retour possible, aucune fouille.',
     locked: 'Accessible au jour {n}',
     noTime: 'Trop tard pour l’aller-retour',
