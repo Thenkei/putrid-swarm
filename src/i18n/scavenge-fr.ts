@@ -45,6 +45,7 @@ export const scavengeFr = {
       springbin: timing('La boîte à diables', 'Chaque fois que le couvercle rebondit, un ressort passe la tête. Chopez-en deux avant qu’ils ne rentrent.', 'Choper'),
       shelves: pairs('Rayon vis perdues', 'Trois bacs ont perdu leur couvercle. Associez les filetages gravés avant que tout finisse par terre.', ['M4', 'M6', 'M8']),
       counter: riddle('L’appoint pour la fin du monde', 'La caisse veut six centimes en trois pièces. Elle accepte les pièces de un, deux et cinq. Que glissez-vous dedans ?', ['2 + 2 + 2', '5 + 1', '1 + 2 + 2'], 'Elle compte les tintements autant que les centimes.'),
+      detector: circuit('Canal mort', 'Le chef a déposé son détecteur de mouvement en réparation. Deux contacts sont repérés sur le circuit fendu. Reliez-les pour rallumer le petit écran ambré.'),
     },
     grocery: {
       batteries: pairs('Les jumelles de caisse', 'Le testeur cache trois paires face contre table. Associez les formats pour ouvrir le tiroir à piles.', ['AA', 'AAA', '9 V']),

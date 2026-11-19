@@ -89,6 +89,7 @@ const destinations = {
       { key: 'springbin', x: 0.5, y: 0.72, loot: { springs: [3, 4], scrap: [1, 1] } },
       { key: 'shelves', x: 0.14, y: 0.3, loot: { scrap: [3, 4], wire: [1, 1] } },
       { key: 'counter', x: 0.27, y: 0.58, loot: { battery: [1, 1], scrap: [2, 3] } },
+      { key: 'detector', x: 0.38, y: 0.48, loot: {} },
     ],
   },
   grocery: {

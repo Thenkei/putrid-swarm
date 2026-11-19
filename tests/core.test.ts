@@ -886,7 +886,7 @@ describe('campaign', () => {
     expect(prepareSearch(resumed, open).ok).toBe(true);
 
     const returned = unwrap(arriveHome(unwrap(leaveLocation(resumed)).state)).state;
-    expect(planVisit(returned, LOCATIONS.hardware).searches).toBe(3);
+    expect(planVisit(returned, LOCATIONS.hardware).searches).toBe(LOCATIONS.hardware.spots.length - 2);
     expect(unwrap(travelTo({ ...returned, rng: 7 }, 'hardware')).state.outing?.lootNotice).toBeUndefined();
     const dayThree = startNextDay({ ...returned, phase: 'morning', rng: 7 });
     const repeat = unwrap(travelTo(dayThree, 'hardware')).state;

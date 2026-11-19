@@ -46,6 +46,7 @@ export const scavengeEn: typeof scavengeFr = {
       springbin: timing('Jack in the bin', 'Each time the lid bounces, a spring sticks its head out. Catch two before they tuck themselves back in.', 'Snatch'),
       shelves: pairs('Aisle of lost screws', 'Three bins have lost their lids. Match the stamped thread sizes before the contents end up on the floor.', ['M4', 'M6', 'M8']),
       counter: riddle('Exact change for the end times', 'The till wants six cents in three coins. It accepts ones, twos and fives. What do you drop in?', ['2 + 2 + 2', '5 + 1', '1 + 2 + 2'], 'It counts the clinks as well as the cash.'),
+      detector: circuit('Dead Channel', 'The chief left his motion detector here for repair. The cracked board has two marked contacts. Join them and the little amber screen should come back.'),
     },
     grocery: {
       batteries: pairs('Twins at the checkout', 'The tester has three pairs face down. Match the size labels to make the battery drawer pop.', ['AA', 'AAA', '9 V']),

@@ -20,6 +20,7 @@ import { EncounterPanel, memoryLine, nameOf, roadPlate } from './encounter';
 import { goAmbush, goEnd, goHomeStretch, goTravel } from './flow';
 import { ScavengePanel } from './scavenge';
 import { hasCrossbow } from '../core/crossbow';
+import { hasDetector } from '../core/dead-channel';
 import { shouldStopAtDusk } from '../core/crossbow-road';
 
 const SEARCH_DUST_SECONDS = 0.78;
@@ -281,6 +282,7 @@ export class LocationScene implements Scene {
 
   private collect(result: SearchOutcome, at: { x: number; y: number }): void {
     const foundCrossbow = !hasCrossbow(this.state) && hasCrossbow(result.state);
+    const foundDetector = !hasDetector(this.state) && hasDetector(result.state);
     audio.play('rummage');
     const found = lootSfx(result.loot);
     if (found) window.setTimeout(() => audio.play(found), 380);
@@ -288,6 +290,11 @@ export class LocationScene implements Scene {
     this.app.save();
     this.refresh();
     if (!calmMotion()) this.searchDust = { ...at, age: 0 };
+    if (foundDetector) {
+      audio.play('tracker_ping');
+      this.app.toast(S().night.detector.found, 'good');
+      return;
+    }
     if (foundCrossbow) {
       this.revealCrossbow();
       return;

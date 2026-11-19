@@ -18,6 +18,7 @@ export type Sfx =
   | 'horn'
   | 'floodlight'
   | 'ready'
+  | 'tracker_ping'
   | 'hit'
   | 'kill'
   | 'door'
@@ -842,6 +843,9 @@ class AudioEngine {
         break;
       case 'ready':
         this.tone('sine', 880, 1320, 0.08, 0.07);
+        break;
+      case 'tracker_ping':
+        this.tone('triangle', 940, 760, 0.12, 0.1);
         break;
       case 'hit':
         this.tone('sine', 150, 60, 0.09, 0.3);
