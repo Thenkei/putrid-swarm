@@ -146,6 +146,8 @@ export const fr = {
     waitNote: 'Continuer vers {place} · +{h} h d’attente',
     detour: 'Prendre le chemin de ferme',
     detourNote: 'Changer de destination et aller au garage',
+    searches: 'Jusqu’à {n} {n:fouille|fouilles}',
+    noSearches: 'Aucune fouille sur ce trajet',
     back: 'Faire demi-tour vers le refuge',
   },
   crossbowRoad: {

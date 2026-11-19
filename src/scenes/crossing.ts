@@ -1,4 +1,4 @@
-import { chooseCrossing, HERD_WAIT_HOURS, type CrossingRoute } from '../core/crossing';
+import { chooseCrossing, crossingSearches, HERD_WAIT_HOURS, type CrossingRoute } from '../core/crossing';
 import { DAY_HOURS } from '../core/data/locations';
 import type { LocationId } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
@@ -35,11 +35,17 @@ export class CrossingScene implements Scene {
     audio.setAmbience('day');
     audio.setMusic('none');
     const { crossing: s, location } = S();
+    const estimate = (route: CrossingRoute): HTMLElement | null => {
+      const state = this.app.state;
+      const count = state ? crossingSearches(state, this.planned, route) : null;
+      if (count === null) return null;
+      return el('small', { class: 'crossing-searches', text: count > 0 ? fmt(s.searches, { n: count }) : s.noSearches });
+    };
     const wait = el('button', { class: 'btn btn-primary', data: { route: 'wait' }, onClick: () => this.choose('wait') }, [
-      s.wait, el('small', { text: fmt(s.waitNote, { place: location[this.planned].name, h: hours(HERD_WAIT_HOURS) }) }),
+      s.wait, el('small', { text: fmt(s.waitNote, { place: location[this.planned].name, h: hours(HERD_WAIT_HOURS) }) }), estimate('wait'),
     ]);
     const bypass = el('button', { class: 'btn', data: { route: 'garage' }, onClick: () => this.choose('garage') }, [
-      s.detour, el('small', { text: s.detourNote }),
+      s.detour, el('small', { text: s.detourNote }), estimate('garage'),
     ]);
     this.card.append(
       el('h1', { text: s.title }),

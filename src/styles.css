@@ -4612,6 +4612,7 @@ button:disabled {
 .crossing-routes { display: flex; justify-content: center; gap: 10px; }
 .crossing-routes .btn { display: grid; gap: 3px; min-height: 56px; text-align: center; font-size: 18px; }
 .crossing-routes small { font-size: 15px; text-transform: none; letter-spacing: normal; }
+.crossing-routes .crossing-searches { font-weight: 700; }
 .crossing-back { margin-top: 12px; padding: 3px 10px; font-size: 17px; text-decoration: underline; text-underline-offset: 3px; }
 .crossing-card button:focus-visible { outline: 2px solid #ffe2a8; outline-offset: 3px; }
 .road-card .cost { display: inline-flex; vertical-align: middle; }
