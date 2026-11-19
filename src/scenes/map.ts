@@ -58,19 +58,23 @@ export class MapScene implements Scene {
       const unlocked = isUnlocked(location, state.day);
       const left = this.remaining(location);
       const sub = !unlocked ? fmt(s.map.locked, { n: location.unlockDay }) : left > 0 ? fmt(s.map.left, { n: left }) : s.map.empty;
-      return el(
+      const pin = el(
         'button',
         {
           class: `pin ${unlocked ? '' : 'locked'} ${this.selected === id ? 'sel' : ''}`,
+          data: { pin: id },
           style: { left: `${p.x}px`, top: `${p.y}px` },
           onClick: () => {
             audio.play('click');
             this.selected = id;
             this.refresh();
+            this.root.querySelector<HTMLButtonElement>(`[data-pin="${id}"]`)?.focus({ preventScroll: true });
           },
         },
         [el('span', { class: 'tag' }, [s.location[id].name, el('small', { text: sub })]), el('span', { class: 'stem' }), el('span', { class: 'dot' })],
       );
+      pin.setAttribute('aria-pressed', String(this.selected === id));
+      return pin;
     });
     const home = platePoint(MAP_PLATE, HOME_PIN.x, HOME_PIN.y, MAP_FOCUS_Y);
     pins.push(
