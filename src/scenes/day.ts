@@ -133,6 +133,8 @@ export class DayScene implements Scene {
   private hoverDoor: SectorId | null = null;
   private panelDoor: SectorId | null = null;
   private previewHp: number | undefined;
+  private reinforcementPreview: SectorId | null = null;
+  private readonly reinforceButtons = new Map<SectorId, HTMLButtonElement>();
   private showRoutes = true;
   private sceneryAction: SceneryAction | null = null;
   private time = 0;
@@ -305,6 +307,7 @@ export class DayScene implements Scene {
     // Doors and house. Each door also says how many working traps stand on the way to it.
     const expected = this.expectedSectors();
     const { byDoor } = this.forecast();
+    this.reinforceButtons.clear();
     const doorRows = SECTOR_IDS.map((sector) => {
       const cover = yard.devices.filter((d) => !d.broken && isTrap(d.type) && this.covers(d.type, d.x, d.y, byDoor[sector].traffic)).length;
       const exposed = cover === 0 && expected.includes(sector);
@@ -322,12 +325,7 @@ export class DayScene implements Scene {
             onClick: () => this.apply(repairBarricade(this.state, sector), s.day.repaired, 'build'),
           })
         : barricade.level === 0
-          ? el('button', {
-              class: 'btn icon-btn',
-              text: '▲',
-              title: `${s.day.doorReinforce} · ${describeCost(BARRICADE.reinforceCost)} · ${fmt(s.day.time, { h: hours(BARRICADE.reinforceHours) })}`,
-              onClick: () => this.apply(reinforceBarricade(this.state, sector), s.day.repaired, 'build'),
-            })
+          ? this.reinforceButton(sector)
           : el('span');
       const row = el('div', { class: 'row', data: { door: sector } }, [
         el('span', {}, [
@@ -507,6 +505,22 @@ export class DayScene implements Scene {
     return `${fmt(s.doorRepair, { hp: gain })} · ${fmt(s.time, { h: hours(BARRICADE.repairHours) })}`;
   }
 
+  private reinforceButton(sector: SectorId): HTMLButtonElement {
+    const { day: s } = S();
+    const button = el('button', {
+      class: 'btn icon-btn',
+      text: '▲',
+      title: `${s.doorReinforce} · ${describeCost(BARRICADE.reinforceCost)} · ${fmt(s.time, { h: hours(BARRICADE.reinforceHours) })}`,
+      onClick: () => this.apply(reinforceBarricade(this.state, sector), s.repaired, 'build'),
+    });
+    button.setAttribute('aria-label', `${s.doorReinforce} · ${S().sector[sector]}`);
+    this.reinforceButtons.set(sector, button);
+    for (const event of ['mouseenter', 'mouseleave', 'focus', 'blur']) {
+      button.addEventListener(event, () => this.updateInfo());
+    }
+    return button;
+  }
+
   private get inspectedDoor(): SectorId | null {
     return this.panelDoor ?? (this.mode.kind === 'repair' || this.mode.kind === 'idle' ? this.hoverDoor : null);
   }
@@ -515,18 +529,25 @@ export class DayScene implements Scene {
     const s = S();
     this.refundTag.hidden = true;
     this.previewHp = undefined;
+    this.reinforcementPreview = null;
     const sector = this.inspectedDoor;
     if (sector) {
       const door = this.state.yard.barricades[sector];
-      const repair = repairBarricade(this.state, sector);
-      const hp = repair.ok ? repair.value.yard.barricades[sector].hp : undefined;
-      this.previewHp = hp;
+      const reinforcing = this.reinforceButtons.get(sector)?.matches(':hover, :focus');
+      const work = reinforcing ? reinforceBarricade(this.state, sector) : repairBarricade(this.state, sector);
+      const hp = work.ok ? work.value.yard.barricades[sector].hp : undefined;
+      if (reinforcing) this.reinforcementPreview = work.ok ? sector : null;
+      else this.previewHp = hp;
       this.info.replaceChildren(
         el('b', { text: fmt(s.day.door, { sector: s.sector[sector] }) }),
         hp === undefined ? `${door.hp} / ${barricadeMaxHp(door.level)}` : fmt(s.day.repairHp, { from: door.hp, to: hp }),
       );
-      if (hp !== undefined) this.info.append(el('div', { text: this.doorRepairLabel(hp - door.hp) }));
-      else if (!repair.ok && door.hp < barricadeMaxHp(door.level)) this.info.append(el('div', { class: 'bad', text: yardErrorText(repair.error) }));
+      if (reinforcing) this.info.append(el('div', {}, [
+        `${s.day.doorReinforce} · `, costLine(BARRICADE.reinforceCost, this.state.inventory),
+        ` · ${fmt(s.day.time, { h: hours(BARRICADE.reinforceHours) })}`,
+      ]));
+      else if (hp !== undefined) this.info.append(el('div', { text: this.doorRepairLabel(hp - door.hp) }));
+      if (!work.ok && (reinforcing || door.hp < barricadeMaxHp(door.level))) this.info.append(el('div', { class: 'bad', text: yardErrorText(work.error) }));
       if (this.showRoutes && this.mode.kind !== 'build' && this.forecast().byDoor[sector].traffic.size === 0) {
         this.info.append(el('div', { class: 'muted', text: s.day.noDoorPaths }));
       }
@@ -890,6 +911,7 @@ export class DayScene implements Scene {
       showBuildable: this.mode.kind === 'build',
       doorHighlight: this.inspectedDoor,
       doorRepairHp: this.previewHp ?? null,
+      doorReinforcement: this.reinforcementPreview,
       dismantleTarget: this.mode.kind === 'dismantle' ? hoverId ?? null : null,
     };
 
