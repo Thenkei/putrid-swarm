@@ -46,9 +46,18 @@ import { S, fmt, hours } from '../engine/i18n';
 import { sayAny, sayOnce } from '../engine/voice';
 import { applyDaylight, cameraView, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, WELL_CLINK_AT, type DeviceVisual, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
 import { deviceArt } from '../render/defenses';
+import { calmMotion } from '../render/lighting';
 import { VISIBLE_DOORS } from '../render/house';
 import { costLine, describeCost, inventoryBar } from './common';
 import { goMap, goNightfall, goTitle } from './flow';
+
+const BUILD_CONTACT = 0.13;
+const BUILD_SETTLED = 0.25;
+
+interface Construction {
+  readonly at: Cell;
+  age: number;
+}
 
 type Mode = { readonly kind: 'idle' } | { readonly kind: 'build'; readonly type: DeviceTypeId } | { readonly kind: 'repair' } | { readonly kind: 'dismantle' };
 
@@ -125,6 +134,7 @@ export class DayScene implements Scene {
   private time = 0;
   private reveal: number;
   private readonly particles: Particle[] = [];
+  private readonly construction = new Map<number, Construction>();
   private drag: {
     x: number;
     y: number;
@@ -658,7 +668,7 @@ export class DayScene implements Scene {
   }
 
   /** Commits a state transition or explains why it was refused. */
-  private apply(result: Result<GameState, YardError>, okMessage: string, sound: 'build' | 'click', at?: Cell): boolean {
+  private apply(result: Result<GameState, YardError>, okMessage: string, sound: 'build' | 'click' | null, at?: Cell): boolean {
     if (!result.ok) {
       audio.play('deny');
       this.app.toast(yardErrorText(result.error), 'error');
@@ -666,13 +676,42 @@ export class DayScene implements Scene {
     }
     this.app.state = result.value;
     this.app.save();
-    audio.play(sound);
+    if (sound) audio.play(sound);
     if (at) this.particles.push({ kind: 'dust', x: at.x + 0.5, y: at.y + 0.5, age: 0, life: 0.6, radius: 1 });
     if (okMessage) this.app.toast(okMessage, 'good');
     this.routeCache = null;
     this.ghostCache = null;
     this.refresh();
     return true;
+  }
+
+  private placeDevice(type: DeviceTypeId, at: Cell): number | null {
+    const id = this.state.yard.nextDeviceId;
+    if (!this.apply(build(this.state, type, at.x, at.y, this.facing), '', null)) return null;
+    if (calmMotion()) audio.play('build');
+    else this.construction.set(id, { at, age: 0 });
+    return id;
+  }
+
+  private advanceConstruction(dt: number): void {
+    for (const [id, placement] of this.construction) {
+      const before = placement.age;
+      placement.age += dt;
+      if (before < BUILD_CONTACT && placement.age >= BUILD_CONTACT && this.state.yard.devices.some(device => device.id === id)) {
+        audio.play('build');
+        if (!calmMotion()) this.particles.push({ kind: 'burst', x: placement.at.x + 0.5, y: placement.at.y + 0.5, age: 0, life: 0.44, radius: 0.8 });
+      }
+      if (placement.age >= BUILD_SETTLED) this.construction.delete(id);
+    }
+  }
+
+  private placementLift(id: number): number {
+    const placement = this.construction.get(id);
+    if (!placement || calmMotion()) return 0;
+    const { age } = placement;
+    if (age < BUILD_CONTACT) return 32 * (1 - (age / BUILD_CONTACT) ** 2);
+    const rebound = (age - BUILD_CONTACT) / (BUILD_SETTLED - BUILD_CONTACT);
+    return 5 * 4 * rebound * (1 - rebound);
   }
 
   // ───────────────────────────── Derived view data ─────────────────────────────
@@ -784,6 +823,7 @@ export class DayScene implements Scene {
         sayOnce('day1', 'vo_day1');
       }
     }
+    this.advanceConstruction(dt);
     for (const particle of this.particles) particle.age += dt;
     for (let i = this.particles.length - 1; i >= 0; i--) if ((this.particles[i] as Particle).age >= (this.particles[i] as Particle).life) this.particles.splice(i, 1);
   }
@@ -794,7 +834,10 @@ export class DayScene implements Scene {
     const ghost = placing ? { ...placing, idle: this.ghostIdle() } : null;
     const hoverId = this.mode.kind === 'repair' || this.mode.kind === 'dismantle' ? this.hoverDevice?.id : undefined;
     const marksSilent = this.showRoutes && this.mode.kind !== 'build';
-    const devices = state.yard.devices.map(d => dayDeviceVisual(d, d.id === hoverId, marksSilent && wasSilent(state, d)));
+    const devices = state.yard.devices.map(d => ({
+      ...dayDeviceVisual(d, d.id === hoverId, marksSilent && wasSilent(state, d)),
+      placementLift: this.placementLift(d.id),
+    }));
     const def = this.mode.kind === 'build' ? DEVICES[this.mode.type] : null;
     // Out of build mode, the trap under the pointer shows how far it reaches.
     const reaching = !def && this.hoverDevice && isTrap(this.hoverDevice.type) && !this.hoverDevice.broken ? this.hoverDevice : null;
@@ -935,8 +978,8 @@ export class DayScene implements Scene {
       if (problem?.code === 'occupied' || problem?.code === 'not_buildable') return;
       this.alignToStroke(x, y);
     }
-    const id = this.state.yard.nextDeviceId;
-    if (this.apply(build(this.state, this.mode.type, x, y, this.facing), '', 'build', this.hover)) drag.last = { x, y, id };
+    const id = this.placeDevice(this.mode.type, this.hover);
+    if (id !== null) drag.last = { x, y, id };
     else if (!first) drag.stopped = true;
   }
 
@@ -1007,7 +1050,7 @@ export class DayScene implements Scene {
     if (this.mode.kind === 'build') {
       if (!this.hover) return;
       const type = this.mode.type;
-      this.apply(build(state, type, this.hover.x, this.hover.y, this.facing), '', 'build', this.hover);
+      this.placeDevice(type, this.hover);
       return;
     }
     if (this.mode.kind === 'repair' || (this.mode.kind === 'idle' && this.quickRepair)) {

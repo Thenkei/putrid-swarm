@@ -36,6 +36,8 @@ export interface DeviceVisual {
   readonly state: DeviceRuntimeState | 'idle';
   readonly hpRatio: number;
   readonly activeAge?: number;
+  /** Visual height during placement. The tile, shadow and picking stay at ground level. */
+  readonly placementLift?: number;
   readonly logTarget?: LogTarget;
   /** 0..1 progress of the re-arm, when rearming. */
   readonly rearm?: number;
@@ -881,14 +883,15 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
     ctx.stroke();
   }
 
-  const drawn = drawDefense(ctx, p.x, p.y, z, {
+  const baseY = p.y - (device.placementLift ?? 0) * z;
+  const drawn = drawDefense(ctx, p.x, baseY, z, {
     kind: device.type, art, rot: view.rot, previous: (pose) => deviceArt(device.type, device.facing, pose, view.rot), id: device.id,
     hpRatio: device.hpRatio, state: device.state, activeAge: device.activeAge ?? 0, rearm: device.rearm ?? 0,
     time: frame.time, motion: frame.defenseMotion, ...(logLayer && { logLayer }),
     ...(device.logTarget && { aim: logAim(view, p, art, device.logTarget, false, device.hpRatio) }),
   });
   if (logLayer === 'far') return;
-  if (!drawn) placeholder(ctx, p.x, p.y, 34 * z, 34 * z, state === 'broken' ? '#4a3a2a' : '#b98a3a', device.type);
+  if (!drawn) placeholder(ctx, p.x, baseY, 34 * z, 34 * z, state === 'broken' ? '#4a3a2a' : '#b98a3a', device.type);
 
   if (device.type !== 'fence' && device.hpRatio < 0.999 && state !== 'broken') {
     const barW = 28 * z;
