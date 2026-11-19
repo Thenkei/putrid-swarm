@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { chooseCrossing, HERD_WAIT_HOURS, shouldPlayCrossing } from '../src/core/crossing';
+import { chooseCrossing, crossingSearches, HERD_WAIT_HOURS, shouldPlayCrossing } from '../src/core/crossing';
 import { LOCATIONS } from '../src/core/data/locations';
 import { arriveHome, leaveLocation, newGame } from '../src/core/game';
 import { deserialize, serialize } from '../src/core/save';
@@ -18,6 +18,10 @@ it('only interrupts an eligible day-two or later outbound trip with daylight for
   expect(shouldPlayCrossing(dayTwo, 'garage')).toBe(false);
   expect(shouldPlayCrossing({ ...dayTwo, hoursLeft: 1.75 }, 'grocery')).toBe(false);
   expect(shouldPlayCrossing({ ...dayTwo, hoursLeft: 2 }, 'grocery')).toBe(true);
+  expect(crossingSearches({ ...dayTwo, hoursLeft: 1.75 }, 'grocery', 'wait')).toBeNull();
+  const tight = { ...dayTwo, hoursLeft: 2 };
+  expect(crossingSearches(tight, 'grocery', 'wait')).toBe(0);
+  expect(crossingSearches(tight, 'grocery', 'garage')).toBe(2);
 });
 
 it('commits the selected route once and keeps its result on reload', () => {

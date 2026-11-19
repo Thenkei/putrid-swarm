@@ -1,5 +1,5 @@
 import { LOCATIONS } from './data/locations';
-import { isUnlocked, roundTripHours, travelTo, type TravelOutcome } from './game';
+import { isUnlocked, planVisit, roundTripHours, travelTo, type TravelOutcome } from './game';
 import type { GameState, LocationId } from './types';
 
 export const HERD_WAIT_HOURS = 0.5;
@@ -14,14 +14,27 @@ export function shouldPlayCrossing(state: GameState, planned: LocationId): boole
     && state.hoursLeft + 1e-9 >= roundTripHours(destination) + HERD_WAIT_HOURS;
 }
 
+function crossingDeparture(state: GameState, planned: LocationId, route: CrossingRoute): { state: GameState; id: LocationId } | null {
+  if (!shouldPlayCrossing(state, planned)) return null;
+  return {
+    id: route === 'wait' ? planned : 'garage',
+    state: {
+      ...state,
+      hoursLeft: state.hoursLeft - (route === 'wait' ? HERD_WAIT_HOURS : 0),
+      flags: { ...state.flags, [CROSSED]: 1 },
+    },
+  };
+}
+
+export function crossingSearches(state: GameState, planned: LocationId, route: CrossingRoute): number | null {
+  const trip = crossingDeparture(state, planned, route);
+  return trip ? planVisit(trip.state, LOCATIONS[trip.id]).searches : null;
+}
+
 /** Charge the route only when the player commits. The chosen trip uses normal scavenging arrival rules. */
 export function chooseCrossing(state: GameState, planned: LocationId, route: CrossingRoute): (TravelOutcome & { id: LocationId }) | null {
-  if (!shouldPlayCrossing(state, planned)) return null;
-  const id = route === 'wait' ? planned : 'garage';
-  const result = travelTo({
-    ...state,
-    hoursLeft: state.hoursLeft - (route === 'wait' ? HERD_WAIT_HOURS : 0),
-    flags: { ...state.flags, [CROSSED]: 1 },
-  }, id);
-  return result.ok ? { ...result.value, id } : null;
+  const trip = crossingDeparture(state, planned, route);
+  if (!trip) return null;
+  const result = travelTo(trip.state, trip.id);
+  return result.ok ? { ...result.value, id: trip.id } : null;
 }

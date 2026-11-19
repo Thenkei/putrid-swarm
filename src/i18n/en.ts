@@ -144,6 +144,8 @@ export const en: Strings = {
     waitNote: 'Continue to {place} · +{h} h waiting',
     detour: 'Take the farm lane',
     detourNote: 'Change destination to the garage',
+    searches: 'Up to {n} {n:search|searches}',
+    noSearches: 'No searches on this trip',
     back: 'Turn back to the refuge',
   },
   crossbowRoad: {
