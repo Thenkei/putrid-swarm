@@ -218,6 +218,7 @@ export const fr = {
     covered: '{n} piège(s) sur le passage',
     uncovered: 'aucun piège sur le passage',
     noDoorPaths: 'Aucun trajet prévu vers cette porte.',
+    dismantleGap: 'Des traces passeraient par cette brèche.',
     tagAuto: 'AUTO',
     tagManual: 'À LA MAIN',
     tagPassive: 'OBSTACLE',

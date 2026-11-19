@@ -216,6 +216,7 @@ export const en: Strings = {
     covered: '{n} trap(s) on the way',
     uncovered: 'no trap on the way',
     noDoorPaths: 'No predicted paths to this door.',
+    dismantleGap: 'Tracks would cross this gap.',
     tagAuto: 'AUTO',
     tagManual: 'BY HAND',
     tagPassive: 'OBSTACLE',
