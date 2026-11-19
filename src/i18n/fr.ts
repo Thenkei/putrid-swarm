@@ -139,6 +139,15 @@ export const fr = {
     police: { radios: 'Chargeurs radio', barriers: 'Barrières', locker: 'Casier à scellés', cell: 'Cellule', desk: 'Bureau du chef' },
     townhall: { boards: 'Panneaux électoraux', pa: 'Sono', sideboard: 'Buffet d’apparat', chairs: 'Chaises pliantes', leaflets: 'Cartons de tracts' },
   },
+  crossing: {
+    title: 'La Traversée',
+    herd: 'Le premier cerf a traversé. D’autres silhouettes bougent derrière la haie.',
+    wait: 'Attendre le passage du troupeau',
+    waitNote: 'Continuer vers {place} · +{h} h d’attente',
+    detour: 'Prendre le chemin de ferme',
+    detourNote: 'Changer de destination et aller au garage',
+    back: 'Faire demi-tour vers le refuge',
+  },
   crossbowRoad: {
     warning: 'Retour au crépuscule · Ça bouge dans les haies',
     kicker: 'La route du retour',

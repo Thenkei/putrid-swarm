@@ -137,6 +137,15 @@ export const en: Strings = {
     police: { radios: 'Radio chargers', barriers: 'Barriers', locker: 'Evidence locker', cell: 'Cell', desk: 'Chief’s desk' },
     townhall: { boards: 'Election boards', pa: 'PA system', sideboard: 'Ceremonial sideboard', chairs: 'Folding chairs', leaflets: 'Boxes of leaflets' },
   },
+  crossing: {
+    title: 'The Crossing',
+    herd: 'The first stag clears the road. More are moving behind the hedge.',
+    wait: 'Wait for the herd',
+    waitNote: 'Continue to {place} · +{h} h waiting',
+    detour: 'Take the farm lane',
+    detourNote: 'Change destination to the garage',
+    back: 'Turn back to the refuge',
+  },
   crossbowRoad: {
     warning: 'Return at dusk · movement in the hedges',
     kicker: 'The road home',

@@ -4581,6 +4581,28 @@ button:disabled {
 .road-time { width: min(420px, 92%); height: 5px; margin: 8px auto 0; }
 .road-time i { display: block; width: calc(var(--road-progress) * 100%); height: 100%; background: #ebbb78; }
 .loc-leave .road-warning { color: #ffda99; }
+.crossing-card {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: 695px;
+  padding: 15px 24px;
+  transform: translateX(-37%);
+  border: 1px solid #a78a65;
+  border-radius: 6px;
+  background: linear-gradient(#201b13f5, #100d09fa);
+  box-shadow: 0 12px 36px #000a;
+  color: #f9e4bd;
+  text-align: center;
+}
+.crossing-card[hidden] { display: none; }
+.crossing-card h1 { margin: 0; font: bold 36px/1.1 var(--slab-font); }
+.crossing-card p { margin: 8px 0 13px; font-size: 20px; }
+.crossing-routes { display: flex; justify-content: center; gap: 10px; }
+.crossing-routes .btn { display: grid; gap: 3px; min-height: 56px; text-align: center; font-size: 18px; }
+.crossing-routes small { font-size: 15px; text-transform: none; letter-spacing: normal; }
+.crossing-back { margin-top: 12px; padding: 3px 10px; font-size: 17px; text-decoration: underline; text-underline-offset: 3px; }
+.crossing-card button:focus-visible { outline: 2px solid #ffe2a8; outline-offset: 3px; }
 .road-card .cost { display: inline-flex; vertical-align: middle; }
 #stage:has(.road-card[data-beat='aim']) #game { cursor: crosshair; touch-action: none; }
 
