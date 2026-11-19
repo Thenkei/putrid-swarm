@@ -233,6 +233,8 @@ export class NightSim {
   readonly waveCount: number;
   readonly devices: DeviceRuntime[];
   private readonly logs: readonly DeviceRuntime[];
+  /** Enemies that advanced on a door route this tick, where raised barriers can intercept them. */
+  private readonly barrierWalkers: Set<Enemy> | null;
   readonly enemies: Enemy[] = [];
   readonly barricades: Record<SectorId, { hp: number; level: 0 | 1 }>;
   readonly decals: Decal[];
@@ -305,6 +307,7 @@ export class NightSim {
       timer: 0,
     }));
     this.logs = this.devices.filter((d) => d.type === 'log');
+    this.barrierWalkers = this.devices.some((d) => d.type === 'barrier' && d.state !== 'broken') ? new Set() : null;
     for (const d of this.devices) if (isTrap(d.type)) this.tallies.set(d.id, { fired: 0, hits: 0, kills: 0 });
     this.barricades = {
       portail: { ...yard.barricades.portail },
@@ -553,8 +556,41 @@ export class NightSim {
     if (!device || device.state !== 'armed' || !isManual(device.type) || this.outcome !== 'ongoing') return { targets: 0, now: false };
     const def = DEVICES[device.type];
     if (this.energy < def.energy) return { targets: 0, now: false };
+    if (device.type === 'barrier') return this.barrierOpportunity(device);
     const { count, pressing } = this.underTrap(device);
     return { targets: count, now: count >= def.targets || pressing };
+  }
+
+  private barrierOpportunity(barrier: DeviceRuntime): Opportunity {
+    let targets = 0;
+    let charging = false;
+    for (const e of this.enemies) {
+      if (!e.alive || e.nettedFor > 0 || e.stunnedFor > 0) continue;
+      if (e.type === 'mower' && e.boss?.phase === 'charge') {
+        const first = this.mowerChargeCell(e.boss);
+        const following = LANES[e.boss.sector][e.boss.laneIndex + 2];
+        if ((first.x === barrier.x && first.y === barrier.y) ||
+            (following?.x === barrier.x && following.y === barrier.y && !this.isRaised(first.x, first.y))) {
+          targets++;
+          charging = true;
+        }
+        continue;
+      }
+      if (!this.barrierWalkers?.has(e) || this.atDoor(e) ||
+          Math.hypot(e.x - barrier.x - 0.5, e.y - barrier.y - 0.5) > DEVICES.barrier.reach) continue;
+
+      const first = this.doorStep(e, Math.floor(e.x), Math.floor(e.y));
+      if (!first || this.obstacleAt(idx(first.x, first.y))) continue;
+      if (first.x === barrier.x && first.y === barrier.y) {
+        targets++;
+        continue;
+      }
+      // Check one more step so a group approaching in a line can get the cue before the lead reaches the tile.
+      if (this.atDoor(e, first.x + 0.5, first.y + 0.5)) continue;
+      const following = this.doorStep(e, first.x, first.y);
+      if (following?.x === barrier.x && following.y === barrier.y) targets++;
+    }
+    return { targets, now: charging || targets >= DEVICES.barrier.targets };
   }
 
   private applyTrigger(device: DeviceRuntime): number {
@@ -620,6 +656,7 @@ export class NightSim {
 
   step(dt: number): void {
     if (this.outcome !== 'ongoing') return;
+    this.barrierWalkers?.clear();
     this.time += dt;
     this.spawnDue();
     if (this.outage && this.outageAt !== null && this.time >= this.outageAt) {
@@ -861,21 +898,25 @@ export class NightSim {
     this.advance(e, dt);
   }
 
+  private atDoor(e: Enemy, x = e.x, y = e.y): boolean {
+    const entry = ENTRIES[e.target];
+    return Math.hypot(x - (entry.x + 0.5), y - (entry.y + 0.5)) <= DOOR_REACH;
+  }
+
+  private doorStep(e: Enemy, x: number, y: number): Cell | null {
+    const breaker = e.def.breaksFences || e.def.jumps;
+    const field = (breaker ? this.breachFields : this.walkFields)[e.target];
+    return nextStep(field, x, y, breaker ? undefined : this.fences);
+  }
+
   /** Walk toward the target door, dealing with whatever stands in the way. */
   private advance(e: Enemy, dt: number): void {
-    const entry = ENTRIES[e.target];
-    const doorDistance = Math.hypot(e.x - (entry.x + 0.5), e.y - (entry.y + 0.5));
-    if (doorDistance <= DOOR_REACH) {
+    if (this.atDoor(e)) {
       this.assaultDoor(e, dt);
       return;
     }
 
-    const breaker = e.def.breaksFences || e.def.jumps;
-    const field = (breaker ? this.breachFields : this.walkFields)[e.target];
-    const blocked = breaker ? undefined : this.fences;
-    const cx = Math.floor(e.x);
-    const cy = Math.floor(e.y);
-    const step = nextStep(field, cx, cy, blocked);
+    const step = this.doorStep(e, Math.floor(e.x), Math.floor(e.y));
     if (!step) {
       e.action = 'idle';
       return;
@@ -897,6 +938,7 @@ export class NightSim {
       }
     }
 
+    if (!e.def.jumps) this.barrierWalkers?.add(e);
     e.windup = 0;
     this.followStep(e, step, dt);
   }
@@ -1098,6 +1140,11 @@ export class NightSim {
 
   // ───────────────────────────── Bosses ─────────────────────────────
 
+  private mowerChargeCell(boss: BossRuntime): Cell {
+    const lane = LANES[boss.sector];
+    return lane[Math.min(boss.laneIndex + 1, lane.length - 1)]!;
+  }
+
   private updateMower(e: Enemy, boss: BossRuntime, dt: number): void {
     const lane = LANES[boss.sector];
     if ((e.nettedFor > 0 || e.stunnedFor > 0) && (boss.phase === 'relocate' || boss.phase === 'reverse')) {
@@ -1132,7 +1179,7 @@ export class NightSim {
       }
       case 'charge': {
         e.action = 'charge';
-        const cell = lane[Math.min(boss.laneIndex + 1, lane.length - 1)] as Cell;
+        const cell = this.mowerChargeCell(boss);
         const reached = this.moveToward(e, cell.x + 0.5, cell.y + 0.5, BOSS.mower.chargeSpeed * (e.lit ? 0.8 : 1), dt);
         if (!reached) return;
         boss.laneIndex = Math.min(boss.laneIndex + 1, lane.length - 1);

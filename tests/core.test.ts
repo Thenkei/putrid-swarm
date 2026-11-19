@@ -563,6 +563,27 @@ describe('night simulation', () => {
     expect(cued).toBe(true);
   });
 
+  it('cues a barrier for an approaching queue and stays quiet for nearby traffic headed elsewhere', () => {
+    const start = newGame(42);
+    const open = { ...start, yard: { ...start.yard, devices: [] } };
+    const setup = unwrap(build(open, 'barrier', 10, 17));
+    const barrier = setup.yard.devices.at(-1)!;
+    const sim = new NightSim(1, setup.yard, 42);
+    while (sim.enemies.length < 3 && sim.time < 20) sim.step(1 / 60);
+    const crowd = sim.enemies.slice(0, 3);
+    expect(crowd).toHaveLength(3);
+    const positions = [{ x: 10.5, y: 18.15 }, { x: 11.22, y: 18.4 }, { x: 10.42, y: 19.12 }];
+    for (const target of ['grange', 'portail'] as const) {
+      crowd.forEach((enemy, index) => Object.assign(enemy, positions[index], { target }));
+      sim.step(1 / 60);
+      expect(crowd.every(e => Math.hypot(e.x - 10.5, e.y - 17.5) < DEVICES.barrier.reach)).toBe(true);
+      expect(sim.opportunity(barrier.id)).toEqual(target === 'grange' ? { targets: 0, now: false } : { targets: 3, now: true });
+    }
+    crowd[2]!.stunnedFor = 1;
+    sim.step(1 / 60);
+    expect(sim.opportunity(barrier.id)).toEqual({ targets: 2, now: false });
+  });
+
   it('the first night is survivable with the starting yard even with nobody at the desk', () => {
     for (const seed of [1, 2, 3, 4, 5]) {
       const sim = new NightSim(1, newGame(seed).yard, seed);
@@ -634,7 +655,7 @@ describe('night simulation', () => {
     expect(mauled.hp).toBeLessThan(DEVICES.log.maxHp);
   });
 
-  it('a raised barrier in the lane stops the charge', () => {
+  it('cues an oncoming mower in the barrier lane and stops the charge when fired', () => {
     let state = rich(newGame(1));
     state = unwrap(build(state, 'barrier', 10, 18));
     const barrier = state.yard.devices.at(-1)!;
@@ -642,7 +663,7 @@ describe('night simulation', () => {
     let jammed = false;
     run(sim, 200, (s) => {
       const mower = s.enemies.find((e) => e.type === 'mower');
-      if (mower?.action === 'rev' && s.device(barrier.id)?.state === 'armed') s.trigger(barrier.id);
+      if (mower?.action === 'charge' && mower.boss?.sector === 'portail' && s.opportunity(barrier.id).now) s.trigger(barrier.id);
       if (mower?.action === 'jam' && mower.y > 14) jammed = true;
     });
     expect(jammed).toBe(true);
