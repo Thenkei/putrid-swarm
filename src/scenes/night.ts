@@ -21,6 +21,7 @@ import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
 import { BrushPassage } from '../render/brush';
+import { rattleForNight } from '../core/rattle';
 import { DefenseMotion, deviceArt, floodlightEmitter } from '../render/defenses';
 import { THRESHOLDS, doorStance, houseDamageStage } from '../render/house';
 import { HOUSE_BREAK_SECONDS, type HouseBreak } from '../render/house-debris';
@@ -147,6 +148,7 @@ export class NightScene implements Scene {
   private camLabel!: HTMLElement;
   private camClock!: HTMLElement;
   private camFrame!: HTMLElement;
+  private rattleCaption: HTMLElement | null = null;
   private detector!: HTMLElement;
   private scanButton!: HTMLButtonElement;
   private scanReadout!: HTMLElement;
@@ -185,7 +187,7 @@ export class NightScene implements Scene {
     const state = this.state;
     this.siren = sirenForNight(state);
     this.detectorFound = hasDetector(state);
-    this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state), deskFor(state), allyFor(state), this.siren);
+    this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state), deskFor(state), allyFor(state), this.siren, rattleForNight(state));
     this.defenseMotion.update(this.sim);
     try {
       // The evening as it stood, so a lost night can be replayed with the same yard.
@@ -251,6 +253,11 @@ export class NightScene implements Scene {
       this.camClock,
       this.detector,
     ]);
+    if (this.sim.rattleSector) {
+      this.rattleCaption = el('span', { class: 'rattle-caption' });
+      this.rattleCaption.setAttribute('role', 'status');
+      this.camFrame.append(this.rattleCaption);
+    }
 
     const minis: HTMLElement[] = [];
     // Keep the live thumbnails at camera-feed resolution. The selected monitor, controls and
@@ -544,6 +551,10 @@ export class NightScene implements Scene {
     setText(this.camClock, blind ? this.lastSignalClock ?? '––:––:––' : this.cameraTimestamp(clock));
     this.camFrame.classList.toggle('no-link', blind);
     this.syncDetector(blind);
+    if (this.rattleCaption && sim.rattleSector) {
+      const heard = sim.rattleAt !== null && sim.time - sim.rattleAt < 3.2;
+      setText(this.rattleCaption, heard ? fmt(s.rattle.heard, { sector: s.sector[sim.rattleSector] }) : '');
+    }
 
     const lit = Math.ceil((sim.houseHp / HOUSE_MAX_HP) * 5);
     const pipSignature = `${lit}`;
@@ -862,6 +873,9 @@ export class NightScene implements Scene {
           if (event.stage === 'knock') audio.play('door');
           else this.banner(s.registeredLetter[event.stage], event.stage === 'missed' ? 'bad' : 'good');
           break;
+        case 'rattle':
+          audio.play('tin', 0.85, 0.85);
+          break;
         case 'boss_dead':
           audio.setMusic('night');
           this.bossAlive = null;
@@ -1110,6 +1124,7 @@ export class NightScene implements Scene {
       decals: this.impactFeedback.length ? this.sim.decals.filter(d => !this.impactFeedback.some(e => e.type === 'enemy_dead' && e.stain === d)) : this.sim.decals,
       enemies: this.logReactions.enemies(this.sim.enemies, time),
       brushPassage: this.brushPassage,
+      ...(this.sim.rattleSector && { rattle: { sector: this.sim.rattleSector, struckAt: this.sim.rattleAt } }),
       fallen: this.logReactions.bodies(this.fallen, time),
       particles: main ? this.particles : this.particles.filter((particle) => particle.kind !== 'text'),
       lanes: this.sim.telegraphedLanes(),

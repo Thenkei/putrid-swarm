@@ -115,6 +115,7 @@ function impactPose(enemy: Enemy): EnemyImpact {
 export type SimEvent = (
   | { readonly type: 'wave'; readonly index: number; readonly total: number }
   | { readonly type: 'spawn'; readonly enemy: EnemyTypeId; readonly sector: SectorId }
+  | { readonly type: 'rattle'; readonly sector: SectorId }
   | { readonly type: 'boss_spawn'; readonly boss: NeighborId; readonly sector: SectorId }
   | { readonly type: 'boss_dead'; readonly boss: NeighborId; readonly x: number; readonly y: number }
   | { readonly type: 'trigger'; readonly deviceId: number; readonly device: DeviceTypeId; readonly x: number; readonly y: number; readonly hits: number; readonly kills: number; readonly auto: boolean }
@@ -274,6 +275,7 @@ export class NightSim {
 
   /** The camera on the desk's main screen. Only what is watched changes: the lot goes on regardless. */
   camera: SectorId = 'portail';
+  rattleAt: number | null = null;
   /** The one hand, when there is only one: the row it last pressed on, when, and what waits for it. */
   private hand: { row: HandRow | null; at: number; queue: DeskPress[] } | null;
 
@@ -286,6 +288,7 @@ export class NightSim {
     /** Someone holding a door, from the radio (core/radio.ts). Null is nobody. */
     private readonly ally: Ally | null = null,
     siren: SirenSector | null = null,
+    readonly rattleSector: SectorId | null = null,
   ) {
     this.hand = oneHand ? { row: null, at: -Infinity, queue: [] } : null;
     this.heldDoor = ally?.sector ?? null;
@@ -723,6 +726,11 @@ export class NightSim {
       enemy.target = this.chooseTarget(enemy, sector);
     }
     this.enemies.push(enemy);
+    // The wire spans the entry hedge. Use the edge the creature crossed, even when it flanks a different door.
+    if (sector === this.rattleSector && this.rattleAt === null) {
+      this.rattleAt = this.time;
+      this.events.push({ type: 'rattle', sector });
+    }
     if (announce) this.events.push({ type: 'spawn', enemy: type, sector });
     return enemy;
   }

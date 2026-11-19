@@ -7,6 +7,7 @@ import { DAY_HOURS } from '../core/data/locations';
 import { ORCHARD, hasLeftArm } from '../core/orchard';
 import { SHED, briefingFor, type Briefing } from '../core/shed';
 import { allyFor, guestOf, lookoutFor } from '../core/radio';
+import { canRigRattle, rattleForNight, RATTLE_COST, RATTLE_HOURS, rigRattle } from '../core/rattle';
 import { LAST_NIGHT, planForNight, SIREN_SECTORS, sirenPackFor, type SirenSector } from '../core/data/waves';
 import { canPlanSiren, scheduleSiren, SIREN_COST, sirenForNight } from '../core/siren';
 import { bossOfNight, clockLabel, startNight } from '../core/game';
@@ -383,6 +384,7 @@ export class DayScene implements Scene {
       el('b', { text: `${s.day.tonight} · ${fmt(s.night.night, { n: state.day })}` }),
       el('div', { text: fmt(s.day.tonightFrom, { sectors: expected.map((sector) => s.sector[sector]).join(', ') }) }),
       el('div', { class: 'muted', text: boss ? fmt(s.day.tonightBoss, { name: s.neighbor[boss].name }) : s.day.tonightUnknown }),
+      this.rattlePanel(),
       this.sirenPanel(),
       this.briefing(briefingFor(state)),
       this.radioBriefing(),
@@ -418,6 +420,50 @@ export class DayScene implements Scene {
     this.panelDoor = SECTOR_IDS.find((_, index) => doorRows[index]?.matches(':hover')) ?? null;
     this.updateHover(this.app.pointer, true);
     this.maybeHint();
+  }
+
+  private rattlePanel(): HTMLElement {
+    const s = S();
+    const armed = rattleForNight(this.state);
+    if (armed) {
+      return el('button', {
+        class: 'door-location rattle-rigged',
+        text: fmt(s.rattle.armed, { sector: s.sector[armed] }),
+        onClick: () => this.showDoor(armed),
+      });
+    }
+    const approach = el('select', {}, SECTOR_IDS.map(id => {
+      const option = el('option', { text: s.sector[id] });
+      option.value = id;
+      return option;
+    }));
+    approach.setAttribute('aria-label', s.rattle.approach);
+    const details = el('details', { class: 'rattle-plan' }, [
+      el('summary', { text: s.rattle.title }),
+      el('p', { text: s.rattle.pick }),
+      el('div', { class: 'rattle-price' }, [
+        costLine(RATTLE_COST, this.state.inventory), ` · ${fmt(s.day.time, { h: hours(RATTLE_HOURS) })}`,
+      ]),
+      el('div', { class: 'rattle-controls' }, [
+        approach,
+        el('button', {
+          class: 'btn',
+          text: s.rattle.arm,
+          disabled: !canRigRattle(this.state),
+          onClick: () => {
+            const id = SECTOR_IDS[approach.selectedIndex];
+            if (!id) return;
+            const next = rigRattle(this.state, id);
+            if (!next) return;
+            this.apply(ok(next), '', null);
+            audio.play('tin', 0.45);
+            this.showDoor(id);
+            this.root.querySelector<HTMLButtonElement>('.rattle-rigged')?.focus();
+          },
+        }),
+      ]),
+    ]);
+    return details;
   }
 
   private sirenPanel(): HTMLElement | null {
@@ -973,12 +1019,14 @@ export class DayScene implements Scene {
     const reaching = !def && this.hoverDevice && isTrap(this.hoverDevice.type) && !this.hoverDevice.broken ? this.hoverDevice : null;
     const reachDef = reaching ? DEVICES[reaching.type] : def;
     const barrier = reachDef?.id === 'barrier';
+    const rattle = rattleForNight(state);
     const frame: WorldFrame = {
       time: this.time,
       night: false,
       carPresent: true,
       ...(this.options.arrivedByCar && { exhaustAge: this.time }),
       sceneryAction: this.sceneryAction,
+      ...(rattle && { rattle: { sector: rattle, struckAt: null } }),
       devices,
       ...(this.dismantling.length > 0 && !calmMotion() && {
         dismantling: this.dismantling.map(({ device, age }) => ({ device: dayDeviceVisual(device), progress: age / DISMANTLE_SECONDS })),
