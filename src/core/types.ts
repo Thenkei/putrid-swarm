@@ -203,7 +203,7 @@ export interface Dispute {
   readonly plays: boolean;
   readonly receiptAnswered?: true;
   /** `refused`: a threat was made and did not work. */
-  readonly stage: 'open' | 'refused' | 'game' | 'fight';
+  readonly stage: 'open' | 'refused' | 'game' | 'price' | 'fight';
   readonly game: WasherGame;
   readonly fight: Fight;
 }

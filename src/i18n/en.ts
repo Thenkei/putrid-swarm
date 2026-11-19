@@ -501,6 +501,7 @@ export const en: Strings = {
       share: { label: 'Share', hint: 'Turn by turn, rarest first. The other one picks first.' },
       trade: { label: 'Trade', hint: 'The whole lot, for what they ask from your boot.' },
       play: { label: 'Play washers', hint: 'Three throws each, best total takes it all. A tie is a split.' },
+      appraise: { label: 'Price the radio', hint: 'One estimate. Closest without going over takes the lot.' },
       threaten: { label: 'Insist', hint: 'Raise your voice to take it all. It will not be forgotten.' },
       concede: { label: 'Leave the lot', hint: 'You go without. A gesture like that is not forgotten.' },
       backDown: { label: 'Back down', hint: 'The lot stays where it is. The threat was heard all the same.' },
@@ -541,6 +542,14 @@ export const en: Strings = {
       theirTurn: '{name} throws.',
       yourTurn: 'Your turn: stop the washer where you want it.',
       scored: { tin: 'In the tin!', ring: 'In the ring.', plank: 'On the plank.', off: 'On the floor.' },
+    },
+    appraisal: {
+      title: 'The Last Price',
+      rules: 'La Brocanteuse sets down a boxed radio and folds her estimate. Use the two tags. Closest without going over takes the lot.',
+      sticker: 'Original sticker',
+      markdown: 'Handwritten markdown',
+      francs: '{n} F',
+      reveal: 'The radio was marked down to {correct} F. You said {yours} F. She wrote {dealer} F.',
     },
     pay: {
       title: 'What do you hand over?',
