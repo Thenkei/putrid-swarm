@@ -369,6 +369,11 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
     m.squash = 1 - 0.025 * Math.sin(TAU * phase) * e.crawlDepth;
     m.forward = 0.023 * Math.sin(TAU * phase);
     m.lean = 0.022 * Math.cos(TAU * phase);
+  } else if (e.type === 'mail' && e.boss?.phase === 'signature' && e.blowRecovery <= 0) {
+    const progress = 1 - e.boss.timer / BOSS.mail.signatureSeconds;
+    m.pose = 'grip';
+    m.lean = 0.045 * smoothstep(0.85, 0.94, progress);
+    m.signature = { kind: 'registered', time: reduced ? 0 : progress, force: 1 };
   } else if (enhanced && e.type === 'chief' && e.boss && e.boss.ability > BOSS.chief.whistleEvery - 0.7) {
     const t = (BOSS.chief.whistleEvery - e.boss.ability) / 0.7;
     m.pose = 'x';
@@ -419,7 +424,7 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
     if (enhanced) m.squash = 1;
     m.forward *= 0.35;
     m.flash = 0;
-    delete m.signature;
+    if (m.signature?.kind !== 'registered') delete m.signature;
   }
   return m;
 }

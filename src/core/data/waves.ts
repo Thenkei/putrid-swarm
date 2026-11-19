@@ -73,7 +73,8 @@ export const NIGHTS: readonly NightPlan[] = [
       { after: 28, groups: [g('grange', 'brute', 2, 8), g('grange', 'shambler', 7, 1.9, 3), g('verger', 'deer', 5, 2.2, 6), g('portail', 'dog', 5, 1.8, 10)] },
       {
         after: 30,
-        groups: [g('portail', 'mail', 1, 1), g('portail', 'shambler', 8, 2, 4), g('arriere', 'runner', 6, 2, 6), g('grange', 'boar', 2, 7, 10), g('verger', 'shambler', 6, 2.4, 14)],
+        // The faster carrier catches the villagers at the gate, within the same log sweep.
+        groups: [g('portail', 'mail', 1, 1, 6), g('portail', 'shambler', 8, 2), g('arriere', 'runner', 6, 2, 6), g('grange', 'boar', 2, 7, 10), g('verger', 'shambler', 6, 2.4, 14)],
       },
     ],
   },

@@ -103,7 +103,7 @@ export const ENEMIES: Readonly<Record<EnemyTypeId, EnemyDef>> = {
 
 export const BOSS = {
   mower: { chargeSpeed: 5.2, jamSeconds: 2.6, relocateSpeed: 2.4, laneDamage: 0.55 },
-  mail: { knocksPerDoor: 2, knockInterval: 0.55 },
+  mail: { deliveryNight: 5, knocksPerDoor: 2, knockInterval: 0.55, signatureSeconds: 6 },
   chief: { auraRadius: 3.6, auraDamageTaken: 0.72, selfDamageTaken: 0.6, whistleEvery: 11, whistleSeconds: 3.5, whistleSpeed: 1.35 },
   mayor: { speechEvery: 13, reinforcements: { shambler: 4, runner: 1 } },
   mechanic: { blowInterval: 3 },

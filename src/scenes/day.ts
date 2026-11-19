@@ -2,6 +2,7 @@
 // out of the day — the car, or waiting for night.
 
 import { BARRICADE, DEVICES, HOUSE_MAX_HP, HOUSE_REPAIR, facingsOf, isTrap, turned } from '../core/data/devices';
+import { BOSS } from '../core/data/enemies';
 import { DAY_HOURS } from '../core/data/locations';
 import { ORCHARD, hasLeftArm } from '../core/orchard';
 import { SHED, briefingFor, type Briefing } from '../core/shed';
@@ -9,7 +10,7 @@ import { allyFor, guestOf, lookoutFor } from '../core/radio';
 import { LAST_NIGHT, planForNight, SIREN_SECTORS, sirenPackFor, type SirenSector } from '../core/data/waves';
 import { canPlanSiren, scheduleSiren, SIREN_COST, sirenForNight } from '../core/siren';
 import { bossOfNight, clockLabel, startNight } from '../core/game';
-import { ENTRIES, GRID_H, GRID_W, SPAWN_CELLS, idx } from '../core/map';
+import { ENTRIES, GRID_H, GRID_W, MAILBOX, SPAWN_CELLS, idx } from '../core/map';
 import { computeField, traceRoute } from '../core/pathing';
 import type { Cell, Cost, DeviceInstance, DeviceTypeId, Facing, GameState, Result, SectorId } from '../core/types';
 import { DEVICE_TYPE_IDS, RESOURCE_IDS, SECTOR_IDS, ok } from '../core/types';
@@ -163,6 +164,7 @@ export class DayScene implements Scene {
 
   private root!: HTMLElement;
   private info!: HTMLElement;
+  private deliverySlip: HTMLDetailsElement | null = null;
   private refundTag!: HTMLElement;
   private readonly buildIcons = new Map<DeviceTypeId, HTMLImageElement>();
   private routeCache: { key: string; forecast: Forecast } | null = null;
@@ -402,6 +404,14 @@ export class DayScene implements Scene {
     const frame = el('div', { class: 'yard-frame', style: { left: `${RECT.x}px`, top: `${RECT.y}px`, width: `${RECT.w}px`, height: `${RECT.h}px` } });
     this.refundTag = el('div', { class: 'yard-refund' });
     frame.append(this.refundTag);
+    // The clock runs from 07:00 to 19:00. The slip turns up after noon.
+    this.deliverySlip = state.day === BOSS.mail.deliveryNight - 1 && state.hoursLeft <= 7
+      ? el('details', { class: 'delivery-slip postal-paper' }, [
+          el('summary', { text: s.registeredLetter.slip }),
+          el('p', { text: s.registeredLetter.notice }),
+        ])
+      : null;
+    if (this.deliverySlip) frame.append(this.deliverySlip);
     // One column: the doors' panel grows a line taller with every door that needs a nail, and the card under it follows.
     const side = el('div', { class: 'day-side' }, [doors, tonight]);
     this.root.replaceChildren(frame, topbar, panel, viewTools, side, actions, this.info);
@@ -997,6 +1007,11 @@ export class DayScene implements Scene {
     ctx.roundRect(RECT.x, RECT.y, RECT.w, RECT.h, FRAME_RADIUS);
     ctx.clip();
     drawWorld(ctx, this.view, frame);
+    if (this.deliverySlip) {
+      const point = project(this.view, MAILBOX.x + 0.5, MAILBOX.y + 0.5);
+      this.deliverySlip.style.left = `${point.x - RECT.x}px`;
+      this.deliverySlip.style.top = `${point.y - RECT.y - 42 * this.zoom}px`;
+    }
     // The hour it is: the light warms as the daylight runs out, and the lamps come on before dark.
     applyDaylight(ctx, this.view, 1 - state.hoursLeft / DAY_HOURS, houseLights(this.rot, frame.barricades, frame.houseHpRatio), this.time);
     ctx.restore();
@@ -1196,8 +1211,12 @@ export class DayScene implements Scene {
     if (!this.hoverDevice && !this.hoverDoor) this.poke();
   }
 
-  /** Nothing useful: the break's horn, and a washer down the well. Neither costs or changes anything. */
+  /** Inspect the mailbox or play with the scenery without spending daylight. */
   private poke(): void {
+    if (this.deliverySlip && pickProp(this.view, ['mailbox'], this.app.pointer.x, this.app.pointer.y)) {
+      this.deliverySlip.open = !this.deliverySlip.open;
+      return;
+    }
     const prop = pickProp(this.view, ['car', 'well'], this.app.pointer.x, this.app.pointer.y);
     if (this.sceneryAction || (prop !== 'car' && prop !== 'well')) return;
     this.sceneryAction = { kind: prop, startedAt: this.time };

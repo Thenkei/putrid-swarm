@@ -96,8 +96,8 @@ export const fr = {
       later: '« Je finis ma tournée, quoi qu’il arrive. »',
       gone: 'La sacoche n’est plus au crochet. La tournée continue, quelque part.',
       boss: 'Deux coups secs à chaque porte, puis la suivante. Elle exploite la moindre brèche. Un filet sur son trajet la retient à peine.',
-      defeated: 'Du courrier partout dans l’allée. Aucune de ces lettres n’est pour vous.',
-      escaped: 'La Factrice a fini sa tournée à l’aube. Elle a laissé un avis de passage.',
+      defeated: 'La sacoche s’est ouverte dans l’allée. Des enveloppes collent aux graviers.',
+      escaped: 'La Factrice a fini sa tournée à l’aube. La sacoche bat encore contre sa hanche.',
     },
     chief: {
       name: 'Le Chef de la Police',
@@ -323,6 +323,16 @@ export const fr = {
     noTime: 'Il faut garder le temps de rentrer.',
     trunk: 'Dans le coffre',
     disputed: 'Ce lot se règle avec la personne qui est dessus.',
+  },
+  registeredLetter: {
+    slip: 'Avis de passage',
+    notice: 'La pluie a effacé le nom de l’expéditeur. Le vôtre est encore lisible. « Deuxième présentation demain. Remise en main propre au portail. »',
+    waiting: 'Portail · Deux coups. Elle tend son stylo.',
+    delivered: 'Elle glisse le pli sous la porte, coche sa case et repart.',
+    missed: 'Le pli tombe dans la boue. On ne voit plus l’adresse.',
+    open: 'Ouvrir le recommandé',
+    postmark: 'Le cachet de la poste date de la semaine avant les premiers cas.',
+    complaint: 'Monsieur, dimanche à 7 h 12, vous avez de nouveau passé la tondeuse sous ma fenêtre. Je vous prie de considérer ce courrier comme ma troisième et dernière réclamation. Votre voisin.',
   },
   siren: {
     title: 'L’essai du mercredi',

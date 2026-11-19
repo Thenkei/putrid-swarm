@@ -79,6 +79,13 @@ export class MorningScene implements Scene {
       el('div', { class: 'actions' }, [el('button', { class: 'btn btn-primary', text: chapter ? s.chapter[chapter].go : fmt(s.morning.next, { n: state.day + 1 }), onClick: () => this.next() })]),
     ]);
     this.app.ui.append(card);
+    if (report?.letterDelivered === true) {
+      this.app.ui.append(el('details', { class: 'morning-letter postal-paper' }, [
+        el('summary', { text: s.registeredLetter.open }),
+        el('p', { text: s.registeredLetter.postmark }),
+        el('blockquote', { text: s.registeredLetter.complaint }),
+      ]));
+    }
     // Reinforced doors badly hit make figures long enough to fold the labels beside them: set tighter, it all fits.
     if (card.scrollHeight > card.clientHeight) card.classList.add('tight');
     // On the scene, not in the report: a chapter morning already fills the card to its last line.
@@ -181,7 +188,7 @@ export class MorningScene implements Scene {
   }
 
   onKeyDown(code: string, event: KeyboardEvent): void {
-    if (event.target instanceof HTMLButtonElement) return;
+    if (event.target instanceof HTMLElement && event.target.closest('button, summary')) return;
     if (code === 'Enter') this.next();
   }
 }

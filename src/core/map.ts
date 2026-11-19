@@ -38,6 +38,8 @@ export interface Prop {
 
 export const PARKED_CAR = { kind: 'car', x: 15, y: 13, w: 2, h: 3 } as const satisfies Prop;
 
+export const MAILBOX = { kind: 'mailbox', x: 12, y: 19, w: 1, h: 1 } as const satisfies Prop;
+
 /** Fixed scenery. Every prop blocks movement and building on its footprint. */
 export const PROPS: readonly Prop[] = [
   PARKED_CAR,
@@ -51,7 +53,7 @@ export const PROPS: readonly Prop[] = [
   { kind: 'apple', x: 3, y: 14, w: 1, h: 1 },
   { kind: 'oak', x: 5, y: 4, w: 1, h: 1 },
   { kind: 'rock', x: 17, y: 17, w: 1, h: 1 },
-  { kind: 'mailbox', x: 12, y: 19, w: 1, h: 1 },
+  MAILBOX,
   { kind: 'bush', x: 6, y: 17, w: 1, h: 1 },
   { kind: 'bush', x: 17, y: 4, w: 1, h: 1 },
 ];
