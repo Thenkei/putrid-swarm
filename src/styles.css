@@ -1701,52 +1701,6 @@ button:disabled {
   background: var(--green);
 }
 
-.cam-door {
-  position: absolute;
-  top: 40px;
-  right: 14px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 4px 7px 3px;
-  border: 1px solid #6d766c;
-  border-radius: 4px;
-  background: rgba(12, 17, 14, 0.94);
-  box-shadow: inset 0 0 10px rgba(255, 177, 111, var(--door-impact, 0));
-  color: #d8e7d9;
-  font: 700 14px/1 'Courier New', monospace;
-  text-transform: uppercase;
-}
-
-.cam-door .door-bar {
-  position: static;
-  width: 66px;
-  border-color: #525a51;
-}
-
-.cam-door.critical {
-  color: #ffce99;
-}
-
-.cam-door.critical .door-bar i {
-  background: #f2a531;
-}
-
-.cam-door.breached {
-  color: #ffb3a4;
-  border-color: #9e5348;
-}
-
-.cam-door.breached .door-bar {
-  background: repeating-linear-gradient(135deg, #66342d 0 2px, #241816 2px 4px);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .cam-door {
-    box-shadow: none;
-  }
-}
-
 .trap-bar {
   position: absolute;
   left: 12px;
@@ -2007,6 +1961,44 @@ button:disabled {
 .night-alert.urgent {
   border-color: #f78366;
   color: #ffaf99;
+}
+
+.door-contact {
+  --contact-color: #b5bf94;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px 3px;
+  border: 1px solid #584a3b;
+  border-radius: 3px;
+  background: #17130f;
+  box-shadow: inset 0 1px 2px #0f0c09;
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+.door-contact-lamp {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  margin-left: auto;
+  border: 1px solid #211a11;
+  border-radius: 50%;
+  background: var(--contact-color);
+  box-shadow: 0 0 0 1px #645449, inset 0 1px rgba(255, 255, 255, 0.45);
+}
+
+.door-contact-state {
+  min-width: 6ch;
+  color: var(--contact-color);
+}
+
+.door-contact[data-contact='hit'] {
+  --contact-color: #ffcc78;
+}
+
+.door-contact[data-contact='open'] {
+  --contact-color: #ff9a87;
 }
 
 .mini.priority {

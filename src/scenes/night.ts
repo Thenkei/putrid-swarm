@@ -36,6 +36,7 @@ const MAIN_ZOOM = 1.22;
 const STEP = 1 / 60;
 const MAX_STEPS_PER_FRAME = 5;
 const END_HOLD_SECONDS = 3;
+const DOOR_CONTACT_SECONDS = 0.65;
 const COACH_KEY = 'putrid-swarm.coach';
 
 const powerPercent = (energy: number): number => energy * 100 / COMBAT.nightEnergy;
@@ -139,12 +140,11 @@ export class NightScene implements Scene {
   private pipsEl!: HTMLElement;
   private camLabel!: HTMLElement;
   private camClock!: HTMLElement;
-  private camDoor!: HTMLElement;
-  private camDoorStatus!: HTMLElement;
-  private camDoorFill!: HTMLElement;
   private camFrame!: HTMLElement;
   private lastSignalClock: string | null = null;
   private trapBar!: HTMLElement;
+  private doorContact!: HTMLElement;
+  private doorContactState!: HTMLElement;
   private alertButton!: HTMLButtonElement;
   private alertTarget: CameraPriority | null = null;
   private banners!: HTMLElement;
@@ -219,15 +219,9 @@ export class NightScene implements Scene {
 
     this.camLabel = el('span');
     this.camClock = el('div', { class: 'cam-clock' });
-    this.camDoorStatus = el('span');
-    this.camDoorFill = el('i');
-    const camDoorMeter = el('span', { class: 'door-bar' }, [this.camDoorFill]);
-    camDoorMeter.setAttribute('aria-hidden', 'true');
-    this.camDoor = el('div', { class: 'cam-door' }, [this.camDoorStatus, camDoorMeter]);
     this.camFrame = el('div', { class: 'cam-frame', style: { left: `${MAIN.x - 3}px`, top: `${MAIN.y - 3}px`, width: `${MAIN.w + 6}px`, height: `${MAIN.h + 6}px` } }, [
       el('div', { class: 'cam-label' }, [el('span', { class: 'rec' }), this.camLabel]),
       this.camClock,
-      this.camDoor,
     ]);
 
     const minis: HTMLElement[] = [];
@@ -257,6 +251,12 @@ export class NightScene implements Scene {
     }
 
     this.alertButton = el('button', { class: 'night-alert', onClick: () => this.jumpToAlert() });
+    this.doorContactState = el('span', { class: 'door-contact-state' });
+    const contactLamp = el('i', { class: 'door-contact-lamp' });
+    contactLamp.setAttribute('aria-hidden', 'true');
+    this.doorContact = el('div', { class: 'door-contact' }, [
+      el('span', { text: s.night.doorContact.label }), contactLamp, this.doorContactState,
+    ]);
     this.trapBar = el('div', { class: 'trap-bar' });
     this.banners = el('div', { class: 'banner' });
     this.overlay = el('div');
@@ -453,7 +453,7 @@ export class NightScene implements Scene {
     const autoLines = autos.size > 0 ? [...autos].map(([type, n]) => el('span', { text: `${s.device[type].name} ×${n}` })) : [el('span', { text: s.night.autoNone })];
     children.push(el('div', { class: 'trap-auto' }, [el('b', { text: s.night.autoTraps }), ...autoLines]));
     if (this.hand) children.push(this.hand.root);
-    children.push(el('div', { class: 'trap-hint' }, [el('span', { text: s.night.cameras }), this.alertButton]));
+    children.push(el('div', { class: 'trap-hint' }, [el('span', { text: s.night.cameras }), this.alertButton, this.doorContact]));
     this.trapBar.replaceChildren(...children);
   }
 
@@ -521,17 +521,14 @@ export class NightScene implements Scene {
     const alertText = alert ? fmt(s.night.alert[alert.reason], { sector: s.sector[alert.sector] }) : s.night.alert.quiet;
     setText(this.alertButton, `${s.night.space} · ${alertText}`);
 
+    const hitAt = this.defenseMotion.at(this.cam)?.hitAt ?? -Infinity;
+    const contact = sim.barricades[this.cam].hp <= 0 ? 'open' : sim.time - hitAt < DOOR_CONTACT_SECONDS ? 'hit' : 'closed';
+    if (this.doorContact.dataset.contact !== contact) {
+      this.doorContact.dataset.contact = contact;
+      setText(this.doorContactState, s.night.doorContact[contact]);
+    }
+
     for (const { sector, threat, doorRatio: ratio, dark, cue } of cameras) {
-      if (sector === this.cam) {
-        const percent = Math.ceil(ratio * 100);
-        setText(this.camDoorStatus, threat.breached ? s.night.doorOpen : fmt(s.night.doorCondition, { p: percent }));
-        this.camDoor.classList.toggle('critical', ratio <= 0.25);
-        this.camDoor.classList.toggle('breached', threat.breached);
-        this.camDoorFill.style.width = `${ratio * 100}%`;
-        const hitAt = this.defenseMotion.at(sector)?.hitAt ?? -Infinity;
-        const impact = Math.max(0, 1 - (sim.time - hitAt) / 0.3);
-        this.camDoor.style.setProperty('--door-impact', String(impact));
-      }
       const mini = this.miniEls.get(sector)!;
       const danger = dark ? threat.atDoor > 0 : threat.atDoor > 0 || threat.boss !== null || (threat.breached && threat.count > 0);
       const cls = `mini ${danger ? 'danger' : !dark && threat.count > 0 ? 'alert' : ''}${cue ? ' cue' : ''}${alert?.sector === sector ? ' priority' : ''}${dark ? ' dark' : ''}${lookAwaited === sector ? ' queued' : ''}`;
