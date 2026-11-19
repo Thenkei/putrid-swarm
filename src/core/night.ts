@@ -1427,6 +1427,10 @@ export class NightSim {
 
   // ───────────────────────────── Results ─────────────────────────────
 
+  get currentHighlight(): NightHighlight | undefined {
+    return this.highlight;
+  }
+
   report(): NightReport {
     const barricadeDamage = {} as Record<SectorId, number>;
     for (const sector of SECTOR_IDS) barricadeDamage[sector] = Math.round(this.barricadeStart[sector] - this.barricades[sector].hp);

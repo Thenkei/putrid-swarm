@@ -451,7 +451,8 @@ export function concludeNight(state: GameState, sim: NightSim): GameState {
 /** Morning → next day. Not before a chapter this morning waits for has been played (a camera is dark, someone is in the shed). */
 export function startNextDay(state: GameState): GameState {
   if (state.phase !== 'morning' || chapterWaiting(state) !== null) return state;
-  const next: GameState = { ...state, phase: 'day', day: state.day + 1, where: 'home', outing: null, encounter: null };
+  const { morningTape: _played, ...campaign } = state;
+  const next: GameState = { ...campaign, phase: 'day', day: state.day + 1, where: 'home', outing: null, encounter: null };
   // What the chapters already played still do to every morning: a dressing, a man to water, a bundle at the gate.
   const dawn = dawnOf(next);
   return { ...next, hoursLeft: Math.max(0, DAY_HOURS + dawn.hours), inventory: gain(next.inventory, dawn.gift) };

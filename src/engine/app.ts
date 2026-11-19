@@ -205,6 +205,18 @@ export class App {
     try {
       localStorage.setItem(SAVE_KEY, serialize(this.state));
     } catch (error) {
+      if (this.state.morningTape) {
+        // Storage can be almost full. The campaign must outlive an optional recording.
+        const { morningTape: _tape, ...campaign } = this.state;
+        try {
+          localStorage.setItem(SAVE_KEY, serialize(campaign));
+          console.warn('[save] saved the morning without its cassette', error);
+          return;
+        } catch (retryError) {
+          console.warn('[save] could not write the campaign', retryError);
+          return;
+        }
+      }
       console.warn('[save] could not write the save', error);
     }
   }

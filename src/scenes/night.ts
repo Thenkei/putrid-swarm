@@ -1,9 +1,11 @@
 // The night: a desk, four cameras, and traps fired by hand.
 // The simulation runs on its own clock; this scene only chooses which part of it to look at.
 
+import { CassetteRecorder } from '../render/cassette';
+import { TAPE } from '../core/cassette';
 import { cameraPriority, type CameraPriority } from '../core/camera-priority';
 import { BARRICADE, COMBAT, DEVICES, HOUSE_MAX_HP, isAuto, isManual } from '../core/data/devices';
-import { sirenPackFor, type SirenSector } from '../core/data/waves';
+import { LAST_NIGHT, sirenPackFor, type SirenSector } from '../core/data/waves';
 import { sirenForNight } from '../core/siren';
 import { detectContact, hasDetector, SCAN_RANGE, SCAN_SECONDS } from '../core/dead-channel';
 import { concludeNight } from '../core/game';
@@ -106,6 +108,7 @@ interface TrapButton {
 
 export class NightScene implements Scene {
   private readonly sim: NightSim;
+  private readonly recorder = new CassetteRecorder();
   private readonly siren: SirenSector | null;
   private readonly brushPassage = new BrushPassage();
   private readonly defenseMotion = new DefenseMotion();
@@ -312,6 +315,7 @@ export class NightScene implements Scene {
 
   exit(): void {
     this.trace?.cancel();
+    this.recorder.dispose();
     hush();
   }
 
@@ -1085,7 +1089,9 @@ export class NightScene implements Scene {
     this.finished = true;
     const battery = this.scanEnds > 0 ? spend(this.state.inventory, { battery: 1 }) : null;
     const state = battery?.ok ? { ...this.state, inventory: battery.value } : this.state;
-    this.app.state = concludeNight(state, this.sim);
+    const morning = concludeNight(state, this.sim);
+    const tape = morning.phase === 'morning' && this.recorder.finish();
+    this.app.state = tape ? { ...morning, morningTape: tape } : morning;
     this.app.save();
     if (this.app.state.phase === 'morning') goMorning(this.app);
     // A house that fell, or the seventh dawn, is not shown the door straight away: it gets its last scene first.
@@ -1216,6 +1222,22 @@ export class NightScene implements Scene {
       if (canvas) ctx.drawImage(canvas, MINI.x, MINI.ys[slot] as number, MINI.w, MINI.h);
     });
 
+    if (!this.paused && this.sim.night < LAST_NIGHT) {
+      const highlight = this.sim.currentHighlight;
+      const device = highlight && highlight.kind !== 'breach' ? this.sim.device(highlight.deviceId) : null;
+      const sector = highlight?.kind === 'breach' ? highlight.sector : device ? sectorOf(device.x, device.y) : undefined;
+      this.recorder.record(this.sim.time, highlight, sector, (id, into, x, y) => {
+        if (id === this.cam) {
+          const ratio = this.app.pixelRatio;
+          const h = MAIN.w * TAPE.height / TAPE.width;
+          into.drawImage(ctx.canvas, MAIN.x * ratio, (MAIN.y + (MAIN.h - h) / 2) * ratio, MAIN.w * ratio, h * ratio,
+            x, y, TAPE.width, TAPE.height);
+        } else {
+          const feed = this.minis.get(id);
+          if (feed) into.drawImage(feed, x, y, TAPE.width, TAPE.height);
+        }
+      });
+    }
     if (this.debug) this.drawDebug(ctx);
   }
 

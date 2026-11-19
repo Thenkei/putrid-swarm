@@ -409,6 +409,12 @@ export const fr = {
     ally: '{name} tient la porte {sector}. Il s’est assis contre les planches.',
     allyTurned: '{name} s’est retourné · porte {sector}',
   },
+  cassette: {
+    title: 'La cassette du dimanche',
+    label: 'Anniversaire de Mamie',
+    keep: 'NE PAS EFFACER',
+    rewind: 'Rembobiner', pause: 'Pause', play: 'Lecture', eject: 'Éjecter la cassette', seek: 'Position sur la bande',
+  },
   morning: {
     breach: 'La barricade a cédé.',
     broken: 'Ce dispositif a cassé pendant la nuit.',

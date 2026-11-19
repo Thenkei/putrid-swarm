@@ -2,6 +2,7 @@
 // never a half-valid GameState.
 
 import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, ChapterFate, Fate, Fight, GameState, Intel, Inventory, LocationId, LocationProgress, NightHighlight, OrchardChapter, Outing, Phase, RivalId, SectorId, ShedChapter, Stance, Standing, TrapTally } from './types';
+import { isMorningTape } from './cassette';
 import { chapterOfFate, chapterWaiting } from './chapters';
 import { CALLERS, ENDINGS as RADIO_ENDINGS, QUIET_RADIO, optionOf, rollCall, type AnswerId, type Call, type CallerId, type Ending as RadioEnding, type RadioStage } from './radio';
 import { createRng } from './rng';
@@ -287,7 +288,8 @@ export function deserialize(raw: string): GameState | null {
   // A night in progress is not resumable: restart that night from the evening.
   const receipt = data['springReceipt'];
   const springReceipt = locations.hardware.looted.includes(HARDWARE_SPRING_BIN) && (receipt === 'left' || receipt === 'held' || receipt === 'answered') ? receipt : 'none';
-  const parsed = { ...data, phase, locations, springReceipt } as unknown as GameState;
+  const { morningTape, ...campaign } = data;
+  const parsed = { ...campaign, phase, locations, springReceipt, ...(phase === 'morning' && isMorningTape(morningTape) && { morningTape }) } as unknown as GameState;
   // Reports saved before automatic traps existed have no count for them.
   const lastNight = parsed.lastNight && {
     ...parsed.lastNight,
