@@ -143,6 +143,7 @@ interface HouseLamp {
   readonly flicker: number;
   readonly glazedDoor?: SectorId;
   readonly atticWindow?: boolean;
+  readonly attractsMoths?: boolean;
 }
 
 /** What is painted on each side of the house that gives light or smoke. */
@@ -154,7 +155,7 @@ const HOUSE_ART: Readonly<Record<Rot, { readonly key: string; readonly chimney: 
       { x: 242, y: 321, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25, atticWindow: true },
       { x: 533, y: 364, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25 },
       // The lantern by the barn door.
-      { x: 472, y: 562, radius: 2.3, strength: 0.85, glow: 0.9, flicker: 0.55 },
+      { x: 472, y: 562, radius: 2.3, strength: 0.85, glow: 0.9, flicker: 0.55, attractsMoths: true },
     ],
   },
   1: {
@@ -476,6 +477,13 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           if (frame.houseBreaks?.length) drawHouseDebris(ctx, frame.houseBreaks, view.rot, side.key, art, left, top, w);
           const chimney = houseOffset(view.rot, side.chimney.x, side.chimney.y);
           drawChimneySmoke(ctx, root.x + chimney.dx * z, root.y - chimney.lift * z, view, frame.time);
+          if (frame.night && !calmMotion()) {
+            for (const lamp of side.lamps) {
+              if (!lamp.attractsMoths) continue;
+              const point = houseOffset(view.rot, lamp.x, lamp.y);
+              drawLanternMoths(ctx, root.x + point.dx * z, root.y - point.lift * z, z, frame.time);
+            }
+          }
         } else {
           placeholder(ctx, root.x, root.y, 240 * z, 200 * z, '#8a6a47', 'house');
         }
@@ -647,6 +655,27 @@ function drawChimneySmoke(ctx: CanvasRenderingContext2D, x: number, y: number, v
     ctx.drawImage(blob, px - size, py - size, size * 2, size * 2);
   }
   ctx.globalAlpha = 1;
+}
+
+/** Three moths circle the painted lantern, sampled at the same instant on every live feed. */
+function drawLanternMoths(ctx: CanvasRenderingContext2D, x: number, y: number, zoom: number, time: number): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(zoom, zoom);
+  ctx.fillStyle = '#fff0ca';
+  for (let i = 0; i < 3; i++) {
+    const orbit = time * (1.18 + i * 0.16) + i * 2.15;
+    const radius = 16 + i * 7;
+    const dx = Math.cos(orbit) * radius + Math.sin(orbit * 2.1) * 5;
+    const dy = Math.sin(orbit) * radius * 0.68 - 4 + Math.cos(orbit * 1.7) * 4;
+    const wing = 1.18 + 0.54 * Math.sin(time * (24 + i * 5) + i);
+    ctx.globalAlpha = 0.76 + 0.16 * Math.cos(orbit);
+    ctx.beginPath();
+    ctx.ellipse(dx - 0.5, dy, wing, 0.88, -0.55, 0, Math.PI * 2);
+    ctx.ellipse(dx + 0.5, dy, wing, 0.88, 0.55, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 const LEAF_COLORS = ['#d98a2b', '#c9561f', '#e0b23a', '#a8662a', '#8f3b1c'] as const;
