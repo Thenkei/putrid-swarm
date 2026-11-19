@@ -652,6 +652,17 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     if (particle.kind === 'ring') continue;
     drawables.push({ depth: depthOf(view.rot, particle.x, particle.y) + 0.6, draw: () => drawParticle(ctx, view, particle) });
   }
+  if (passage) {
+    for (const leaf of passage.leaves(frame.time)) {
+      const p = project(view, leaf.x, leaf.y);
+      const y = p.y - leaf.height * z;
+      if (!onScreen({ x: p.x, y }, 10)) continue;
+      drawables.push({
+        depth: depthOf(view.rot, leaf.x, leaf.y),
+        draw: () => paintLeaf(ctx, p.x, y, leaf.size * z, view.rot === 0 ? leaf.angle : -leaf.angle, leaf.turning, leaf.alpha, leaf.colour),
+      });
+    }
+  }
 
   // Shadows first, on the bare ground: what is painted over it afterwards (routes, rings) stays legible.
   ctx.save();
@@ -783,20 +794,26 @@ function drawLeaves(ctx: CanvasRenderingContext2D, view: View, time: number): vo
     const y = landing.y - up * 190 * z;
     if (x < view.x - 10 || x > view.x + view.w + 10 || y < view.y - 10 || y > view.y + view.h + 10) continue;
     const size = (2.2 + hash2(i, 3, 9) * 1.8) * z;
-    ctx.save();
-    ctx.globalAlpha = Math.min(1, fall / 0.08) * Math.min(1, up / 0.1) * 0.9;
-    ctx.translate(x, y);
-    ctx.rotate(side * (fall * (5 + hash2(i, 4, 9) * 9) + i));
-    // Seen edge-on half the time, as a tumbling leaf is.
-    ctx.scale(1, 0.35 + Math.abs(Math.sin(fall * 13 + i)) * 0.65);
-    ctx.fillStyle = LEAF_COLORS[i % LEAF_COLORS.length] as string;
-    ctx.beginPath();
-    ctx.moveTo(-size, 0);
-    ctx.quadraticCurveTo(0, -size * 0.75, size, 0);
-    ctx.quadraticCurveTo(0, size * 0.75, -size, 0);
-    ctx.fill();
-    ctx.restore();
+    const angle = side * (fall * (5 + hash2(i, 4, 9) * 9) + i);
+    const turning = 0.35 + Math.abs(Math.sin(fall * 13 + i)) * 0.65;
+    const alpha = Math.min(1, fall / 0.08) * Math.min(1, up / 0.1) * 0.9;
+    paintLeaf(ctx, x, y, size, angle, turning, alpha, i);
   }
+}
+
+function paintLeaf(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, angle: number, turning: number, alpha: number, colour: number): void {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.scale(1, turning);
+  ctx.fillStyle = LEAF_COLORS[colour % LEAF_COLORS.length]!;
+  ctx.beginPath();
+  ctx.moveTo(-size, 0);
+  ctx.quadraticCurveTo(0, -size * 0.75, size, 0);
+  ctx.quadraticCurveTo(0, size * 0.75, -size, 0);
+  ctx.fill();
+  ctx.restore();
 }
 
 function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): void {
