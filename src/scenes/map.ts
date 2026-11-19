@@ -160,7 +160,7 @@ export class MapScene implements Scene {
   private travel(id: LocationId, departure: GameState, next: () => void): void {
     const s = S();
     goTravel(this.app, {
-      // The two village concept plates alternate so the drive does not always look the same.
+      // The village illustration in the rotation depends on the destination.
       plate: LOCATION_IDS.indexOf(id) % 2 === 0 ? 'plate_village' : 'plate_town',
       title: s.location[id].name,
       sub: fmt(s.map.travel, { h: hours(LOCATIONS[id].travelHours) }),

@@ -1,7 +1,7 @@
 import { sprite } from '../engine/assets';
 import { depthOf, project, unproject, viewX, viewY, world, type Rot, type View } from './projection';
 import { BOTTOM_CENTRE, spriteRect, type Foot } from './registration';
-import { treesIn, type Tree } from './scenery';
+import { isDepthSortedTree, treesIn, type Tree } from './scenery';
 import { castShadow, contactShadow } from './shadows';
 import { windAt } from './wind';
 import { vegetationView } from './vegetation';
@@ -22,7 +22,7 @@ export interface Stand {
 interface Stamp { tree: Tree; s: Stand }
 interface Crown extends Stamp { x: number; y: number; w: number; h: number; cover: HTMLCanvasElement | null }
 interface ForestTile { picture: HTMLCanvasElement; crowns: Crown[]; pixels: number }
-const movingCrown = (t: Tree): boolean => t.row > 0 && t.trait > 0.835;
+const movingCrown = (t: Tree): boolean => t.trait > 0.835 && !isDepthSortedTree(t);
 const hinge = (s: Stand): number => s.y - s.h * 0.59;
 
 /** Register each painted face at the same planting point, with the same physical crown height. */
@@ -83,7 +83,7 @@ export function drawStand(ctx: CanvasRenderingContext2D, stand: Stand, lean = 0,
 }
 
 function fixedStand(ctx: CanvasRenderingContext2D, {s, tree}: Stamp): void {
-  if (tree.row === 0) return;
+  if (isDepthSortedTree(tree)) return;
   if (!movingCrown(tree)) { drawStand(ctx, s); return; }
   ctx.save();
   ctx.beginPath(); ctx.rect(s.x - s.w / 2 - 1, hinge(s), s.w + 2, s.h); ctx.clip();
@@ -124,7 +124,7 @@ function bakeTile(rot: Rot, tx: number, ty: number): ForestTile | null {
     if (w <= 0 || h <= 0) continue;
     // Keep any branches in front of this moving crown in their correct depth order.
     const nearer = visible.slice(index + 1).filter(({s:n, tree}) =>
-      tree.row > 0 && n.x + n.w / 2 >= x && n.x - n.w / 2 < x+w && n.y >= y && n.y - n.h < y+h);
+      !isDepthSortedTree(tree) && n.x + n.w / 2 >= x && n.x - n.w / 2 < x+w && n.y >= y && n.y - n.h < y+h);
     let cover: HTMLCanvasElement | null = null;
     if (nearer.length) {
       cover = document.createElement('canvas'); cover.width = w; cover.height = h;
