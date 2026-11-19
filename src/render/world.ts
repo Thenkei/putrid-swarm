@@ -23,6 +23,7 @@ import { windAt } from './wind';
 import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
 import { drawDepartingCar, type DepartingCar } from './car-departure';
+import { approachDepth, drawApproachOpening, drawApproachingHero, type ApproachingHero } from './hero-approach';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
 export { applyCctv, applyDaylight, applyNight, type Light } from './lighting';
@@ -92,6 +93,7 @@ export interface WorldFrame {
   readonly houseHpRatio: number;
   readonly houseBreaks?: readonly HouseBreak[];
   readonly carPresent: boolean;
+  readonly approachingHero?: ApproachingHero;
   readonly departingCar?: DepartingCar;
   /** Seconds since the car shut off after returning from an outing. */
   readonly exhaustAge?: number;
@@ -491,6 +493,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           const left = root.x + origin.dx * z;
           const top = root.y - origin.lift * z;
           paintHouse(ctx, view.rot, side.key, art, left, top, w, frame.houseHpRatio, frame.barricades);
+          if (frame.approachingHero && view.rot === 0) drawApproachOpening(ctx, frame.approachingHero, root, z);
           if (frame.houseBreaks?.length) drawHouseDebris(ctx, frame.houseBreaks, view.rot, side.key, art, left, top, w);
           const chimney = houseOffset(view.rot, side.chimney.x, side.chimney.y);
           drawChimneySmoke(ctx, root.x + chimney.dx * z, root.y - chimney.lift * z, view, frame.time);
@@ -554,6 +557,17 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       const ground = PROP_SHADOW.car;
       contacts.push({ gx, gy, rx: ground.rx, ry: ground.ry, alpha: ground.contact });
     }
+  }
+
+  if (frame.approachingHero) {
+    const hero = frame.approachingHero;
+    const { x, y } = hero.position;
+    const foot = project(view, x, y);
+    drawables.push({
+      depth: approachDepth(hero, depthOf(view.rot, x, y)),
+      draw: () => drawApproachingHero(ctx, hero, foot, z),
+    });
+    contacts.push({ gx: x, gy: y, rx: 0.39, ry: 0.36, alpha: 0.34 * (1 - smoothstep(0, 22, hero.lift)) });
   }
 
   // Devices.
