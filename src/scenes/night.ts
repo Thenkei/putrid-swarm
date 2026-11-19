@@ -126,6 +126,7 @@ export class NightScene implements Scene {
   private readonly houseBreaks: HouseBreak[] = [];
   private hoverFeedDevice: number | null = null;
   private hoverDevice: number | null = null;
+  private focusedBarrier: DeviceRuntime | null = null;
 
   private readonly minis = new Map<SectorId, HTMLCanvasElement>();
   private miniCursor = 0;
@@ -616,10 +617,12 @@ export class NightScene implements Scene {
     }
     const hovered = this.hoverDevice !== null && this.trapButtons.has(this.hoverDevice);
     const focused = document.activeElement;
+    this.focusedBarrier = null;
     let previewCost = 0;
     for (const [id, button] of this.trapButtons) {
       const device = sim.device(id);
       if (!device) continue;
+      if (device.type === 'barrier' && button.root === focused) this.focusedBarrier = device;
       const def = DEVICES[device.type];
       let cls = 'trap';
       let status = '';
@@ -1087,6 +1090,9 @@ export class NightScene implements Scene {
 
   private frame(sector: SectorId, main: boolean): WorldFrame {
     const hovered = main && this.hoverDevice !== null ? this.sim.device(this.hoverDevice) : undefined;
+    const inspected = hovered ?? (main ? this.focusedBarrier : null);
+    const showBarrier = inspected?.type === 'barrier' && inspected.state === 'armed' && !this.isDark(sector) && !this.paused && !this.ending;
+    const previewCell = showBarrier ? inspected : hovered;
     const time = this.sim.time + (this.ending?.t ?? 0);
     return {
       time,
@@ -1104,8 +1110,9 @@ export class NightScene implements Scene {
       particles: main ? this.particles : this.particles.filter((particle) => particle.kind !== 'text'),
       lanes: this.sim.telegraphedLanes(),
       focusSector: sector,
-      hoverCell: hovered ? { x: hovered.x, y: hovered.y } : null,
+      hoverCell: previewCell ? { x: previewCell.x, y: previewCell.y } : null,
       hoverRadius: hovered ? DEVICES[hovered.type].radius : 0,
+      hoverBarrier: showBarrier,
     };
   }
 

@@ -118,6 +118,8 @@ export interface WorldFrame {
   readonly lanes?: readonly { readonly cells: readonly Cell[]; readonly seconds: number }[];
   readonly hoverCell?: Cell | null;
   readonly hoverRadius?: number;
+  /** A raised barrier blocks its own square. The stripes mark that square. */
+  readonly hoverBarrier?: boolean;
   /** Dim everything outside this camera's sector. */
   readonly focusSector?: SectorId;
   readonly showBuildable?: boolean;
@@ -663,6 +665,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
 
   drawables.sort((a, b) => a.depth - b.depth);
   for (const drawable of drawables) drawable.draw();
+  if (frame.hoverCell && frame.hoverBarrier) drawBarrierFootprint(ctx, view, frame.hoverCell);
 
   // What is in the air over all of it.
   if (frame.night) drawMist(ctx, view, frame.time);
@@ -1194,6 +1197,29 @@ function drawParticle(ctx: CanvasRenderingContext2D, view: View, particle: Parti
       ctx.fill();
       ctx.restore();
     }
+  }
+  ctx.restore();
+}
+
+function drawBarrierFootprint(ctx: CanvasRenderingContext2D, view: View, { x, y }: Cell): void {
+  const z = view.zoom;
+  ctx.save();
+  diamond(ctx, view, x, y, 0.05);
+  ctx.fillStyle = 'rgba(25, 20, 12, 0.42)';
+  ctx.fill();
+  ctx.strokeStyle = '#ffcf75';
+  ctx.lineWidth = 1.8 * z;
+  ctx.stroke();
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(255, 194, 89, 0.75)';
+  ctx.lineWidth = 3 * z;
+  for (const stripe of [0.15, 0.39, 0.63, 0.87]) {
+    const from = project(view, x + stripe - 0.22, y);
+    const to = project(view, x + stripe + 0.22, y + 1);
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    ctx.lineTo(to.x, to.y);
+    ctx.stroke();
   }
   ctx.restore();
 }

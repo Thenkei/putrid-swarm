@@ -49,7 +49,7 @@ export const en: Strings = {
     spikes: { name: 'Stakes', desc: 'Automatic: springs up as soon as it is stepped on, then re-arms by itself. Put it where they walk.' },
     log: { name: 'Log', desc: 'Fire by hand to stun, knock back and deal heavy damage. Runners and dogs crawl under the log. Fire as they approach or catch them in a net. Slow to winch.' },
     net: { name: 'Net', desc: 'Automatic: closes on two infected or more and holds them. Whatever it holds takes +50% damage.' },
-    barrier: { name: 'Barrier', desc: 'Fired by hand: stands up for a few seconds and holds the queue. Perfect just before a log.' },
+    barrier: { name: 'Barrier', desc: 'Fired by hand: blocks one tile for a few seconds and holds the queue. Perfect just before a log.' },
     horn: { name: 'Horn', desc: 'Fired by hand: draws nearby infected toward it. Drains the battery.' },
     floodlight: { name: 'Floodlight', desc: 'Fired by hand: dazzles, slows and weakens whatever it lights. Drains the battery.' },
   },
