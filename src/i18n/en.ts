@@ -285,6 +285,7 @@ export const en: Strings = {
     wave: 'Wave {i} / {n}',
     energy: 'Power {p}%',
     powerCost: '−{p}%',
+    doorContact: { label: 'Door contact', closed: 'Closed', hit: 'Impact', open: 'Open' },
     cam: 'CAM {i} · {name}',
     cameras: '1-4 · Cameras',
     space: 'Space',

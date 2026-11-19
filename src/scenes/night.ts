@@ -36,6 +36,7 @@ const MAIN_ZOOM = 1.22;
 const STEP = 1 / 60;
 const MAX_STEPS_PER_FRAME = 5;
 const END_HOLD_SECONDS = 3;
+const DOOR_CONTACT_SECONDS = 0.65;
 const COACH_KEY = 'putrid-swarm.coach';
 
 const powerPercent = (energy: number): number => energy * 100 / COMBAT.nightEnergy;
@@ -142,6 +143,8 @@ export class NightScene implements Scene {
   private camFrame!: HTMLElement;
   private lastSignalClock: string | null = null;
   private trapBar!: HTMLElement;
+  private doorContact!: HTMLElement;
+  private doorContactState!: HTMLElement;
   private alertButton!: HTMLButtonElement;
   private alertTarget: CameraPriority | null = null;
   private banners!: HTMLElement;
@@ -248,6 +251,12 @@ export class NightScene implements Scene {
     }
 
     this.alertButton = el('button', { class: 'night-alert', onClick: () => this.jumpToAlert() });
+    this.doorContactState = el('span', { class: 'door-contact-state' });
+    const contactLamp = el('i', { class: 'door-contact-lamp' });
+    contactLamp.setAttribute('aria-hidden', 'true');
+    this.doorContact = el('div', { class: 'door-contact' }, [
+      el('span', { text: s.night.doorContact.label }), contactLamp, this.doorContactState,
+    ]);
     this.trapBar = el('div', { class: 'trap-bar' });
     this.banners = el('div', { class: 'banner' });
     this.overlay = el('div');
@@ -444,7 +453,7 @@ export class NightScene implements Scene {
     const autoLines = autos.size > 0 ? [...autos].map(([type, n]) => el('span', { text: `${s.device[type].name} ×${n}` })) : [el('span', { text: s.night.autoNone })];
     children.push(el('div', { class: 'trap-auto' }, [el('b', { text: s.night.autoTraps }), ...autoLines]));
     if (this.hand) children.push(this.hand.root);
-    children.push(el('div', { class: 'trap-hint' }, [el('span', { text: s.night.cameras }), this.alertButton]));
+    children.push(el('div', { class: 'trap-hint' }, [el('span', { text: s.night.cameras }), this.alertButton, this.doorContact]));
     this.trapBar.replaceChildren(...children);
   }
 
@@ -511,6 +520,13 @@ export class NightScene implements Scene {
     this.alertButton.classList.toggle('urgent', !!alert && alert.reason !== 'movement');
     const alertText = alert ? fmt(s.night.alert[alert.reason], { sector: s.sector[alert.sector] }) : s.night.alert.quiet;
     setText(this.alertButton, `${s.night.space} · ${alertText}`);
+
+    const hitAt = this.defenseMotion.at(this.cam)?.hitAt ?? -Infinity;
+    const contact = sim.barricades[this.cam].hp <= 0 ? 'open' : sim.time - hitAt < DOOR_CONTACT_SECONDS ? 'hit' : 'closed';
+    if (this.doorContact.dataset.contact !== contact) {
+      this.doorContact.dataset.contact = contact;
+      setText(this.doorContactState, s.night.doorContact[contact]);
+    }
 
     for (const { sector, threat, doorRatio: ratio, dark, cue } of cameras) {
       const mini = this.miniEls.get(sector)!;

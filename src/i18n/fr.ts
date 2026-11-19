@@ -287,6 +287,7 @@ export const fr = {
     wave: 'Vague {i} / {n}',
     energy: 'Énergie {p} %',
     powerCost: '−{p} %',
+    doorContact: { label: 'Contact porte', closed: 'Fermé', hit: 'Impact', open: 'Ouvert' },
     cam: 'CAM {i} · {name}',
     cameras: '1-4 · Caméras',
     space: 'Espace',
