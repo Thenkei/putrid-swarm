@@ -1479,6 +1479,10 @@ button:disabled {
   opacity: 0;
 }
 
+.meter.night-power > .power-preview {
+  background: repeating-linear-gradient(135deg, #fff3d6 0 2px, #805624 2px 4px);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .meter.night-power > .power-trace {
     display: none;
@@ -1767,6 +1771,23 @@ button:disabled {
   bottom: 0;
   height: 5px;
   background: #cfd6d0;
+}
+
+.trap .power-cost {
+  position: absolute;
+  right: 8px;
+  bottom: 9px;
+  padding: 1px 5px 0;
+  border-radius: 3px;
+  background: #211810;
+  color: #ffd582;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.trap.low-power .power-cost {
+  color: #ff9a87;
 }
 
 .trap.ready {
