@@ -24,6 +24,8 @@ export interface Light {
   readonly flicker?: number;
   /** 0..1: a source one can see (a window, a lamp): it gets a small halo over the finished picture. */
   readonly glow?: number;
+  /** Fraction of daylight spent where the source begins to glow and reaches full output. */
+  readonly twilight?: readonly [start: number, full: number];
   /** Hangs in the air instead of lying on the ground: drawn round, not flattened into a pool. */
   readonly round?: boolean;
 }
@@ -102,17 +104,20 @@ export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: re
   ctx.clip();
   ctx.globalCompositeOperation = 'multiply';
   ctx.drawImage(lightCanvas, view.x, view.y, view.w, view.h);
-  drawGlows(ctx, view, lights, time, 1);
+  drawGlows(ctx, view, lights, time);
   ctx.restore();
 }
 
 /** The lamps themselves: a small bright halo on each visible source, added over the picture. */
-function drawGlows(ctx: CanvasRenderingContext2D, view: View, lights: readonly Light[], time: number, strength: number): void {
-  if (strength <= 0) return;
+const DEFAULT_TWILIGHT = [0.55, 0.95] as const;
+
+function drawGlows(ctx: CanvasRenderingContext2D, view: View, lights: readonly Light[], time: number, dusk?: number): void {
   const still = calmMotion();
   ctx.globalCompositeOperation = 'lighter';
   for (const light of lights) {
     if (!light.glow) continue;
+    const strength = dusk === undefined ? 1 : smoothstep(...(light.twilight ?? DEFAULT_TWILIGHT), dusk);
+    if (strength <= 0) continue;
     const p = lightPoint(view, light);
     const dip = light.flicker && !still ? light.flicker * waver(time, light.gx * 3.1 + light.gy * 5.7 + (light.dx ?? 0)) : 0;
     const r = (9 + 26 * light.glow) * view.zoom;
@@ -165,7 +170,7 @@ export function applyDaylight(ctx: CanvasRenderingContext2D, view: View, dusk: n
     ctx.fillRect(view.x, view.y, view.w, view.h);
   }
 
-  drawGlows(ctx, view, lamps, time, smoothstep(0.55, 0.95, dusk));
+  drawGlows(ctx, view, lamps, time, dusk);
 
   // The corners fall off a little, as they do through any lens.
   ctx.globalCompositeOperation = 'source-over';

@@ -143,6 +143,7 @@ interface HouseLamp {
   readonly strength: number;
   readonly glow: number;
   readonly flicker: number;
+  readonly twilight: NonNullable<Light['twilight']>;
   readonly glazedDoor?: SectorId;
   readonly atticWindow?: boolean;
   readonly barnLantern?: true;
@@ -154,19 +155,19 @@ const HOUSE_ART: Readonly<Record<Rot, { readonly key: string; readonly chimney: 
     key: 'obj_house_front',
     chimney: { x: 567, y: 18 },
     lamps: [
-      { x: 242, y: 321, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25, atticWindow: true },
-      { x: 533, y: 364, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25 },
+      { x: 242, y: 321, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25, twilight: [0.64, 0.82], atticWindow: true },
+      { x: 533, y: 364, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25, twilight: [0.51, 0.69] },
       // The lantern by the barn door.
-      { x: 472, y: 562, radius: 2.3, strength: 0.85, glow: 0.9, flicker: 0.55, barnLantern: true },
+      { x: 472, y: 562, radius: 2.3, strength: 0.85, glow: 0.9, flicker: 0.55, twilight: [0.79, 0.97], barnLantern: true },
     ],
   },
   1: {
     key: 'obj_house_back',
     chimney: { x: 302, y: 20 },
     lamps: [
-      { x: 224, y: 330, radius: 1.3, strength: 0.4, glow: 0.3, flicker: 0.25, atticWindow: true },
+      { x: 224, y: 330, radius: 1.3, strength: 0.4, glow: 0.3, flicker: 0.25, twilight: [0.64, 0.82], atticWindow: true },
       // The glazed doors of the kitchen.
-      { x: 563, y: 550, radius: 2.2, strength: 0.6, glow: 0.6, flicker: 0.2, glazedDoor: 'verger' },
+      { x: 563, y: 550, radius: 2.2, strength: 0.6, glow: 0.6, flicker: 0.2, twilight: [0.51, 0.69], glazedDoor: 'verger' },
     ],
   },
 };
@@ -186,6 +187,7 @@ export function houseLights(rot: Rot, barricades: WorldFrame['barricades'], hous
       color: `rgba(255, 198, 118, ${lamp.strength * (halfPane ? 0.6 : 1)})`,
       glow: lamp.glow * (halfPane ? 0.55 : 1),
       flicker: lamp.flicker,
+      twilight: lamp.twilight,
       ...(lamp.barnLantern && { intensity: barnLanternIntensity }),
       round: true,
     });
