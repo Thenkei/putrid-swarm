@@ -88,6 +88,8 @@ export interface WorldFrame {
   readonly exhaustAge?: number;
   readonly sceneryAction?: SceneryAction | null;
   readonly devices: readonly DeviceVisual[];
+  /** A removed piece is briefly drawn over its old tile without casting a shadow or occupying the lot. */
+  readonly dismantling?: readonly { readonly device: DeviceVisual; readonly progress: number }[];
   readonly defenseMotion?: DefenseMotion;
   readonly barricades: Readonly<Record<SectorId, { hp: number; level: 0 | 1 }>>;
   readonly decals: readonly Decal[];
@@ -566,6 +568,21 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       const aim = device.logTarget && state === 'active' ? logAim(view, p, art, device.logTarget, true) : undefined;
       casts.push(() => drawDeviceCast(ctx, p.x, p.y, z, device.type, art, state, activeAge, rearm, cast * shade, aim));
     }
+  }
+
+  for (const { device, progress } of frame.dismantling ?? []) {
+    const foot = project(view, device.x + 0.5, device.y + 0.5);
+    if (!onScreen(foot, 125)) continue;
+    drawables.push({
+      depth: depthOf(view.rot, device.x + 0.5, device.y + 0.5) + 0.3,
+      draw: () => {
+        ctx.save();
+        ctx.globalAlpha *= 1 - smoothstep(0.16, 1, progress);
+        const lift = 22 * (1 - (1 - progress) ** 2) * z;
+        drawDevice(ctx, view, frame, device, { x: foot.x, y: foot.y - lift });
+        ctx.restore();
+      },
+    });
   }
 
   // Placement ghost.

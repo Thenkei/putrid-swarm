@@ -53,6 +53,7 @@ import { goMap, goNightfall, goTitle } from './flow';
 
 const BUILD_CONTACT = 0.13;
 const BUILD_SETTLED = 0.25;
+const DISMANTLE_SECONDS = 0.28;
 
 interface Construction {
   readonly at: Cell;
@@ -140,6 +141,7 @@ export class DayScene implements Scene {
   private reveal: number;
   private readonly particles: Particle[] = [];
   private readonly construction = new Map<number, Construction>();
+  private dismantling: { readonly device: DeviceInstance; age: number }[] = [];
   private drag: {
     x: number;
     y: number;
@@ -693,6 +695,7 @@ export class DayScene implements Scene {
   private placeDevice(type: DeviceTypeId, at: Cell): number | null {
     const id = this.state.yard.nextDeviceId;
     if (!this.apply(build(this.state, type, at.x, at.y, this.facing), '', null)) return null;
+    this.dismantling = this.dismantling.filter(({ device }) => device.x !== at.x || device.y !== at.y);
     if (calmMotion()) audio.play('build');
     else this.construction.set(id, { at, age: 0 });
     return id;
@@ -829,6 +832,10 @@ export class DayScene implements Scene {
       }
     }
     this.advanceConstruction(dt);
+    if (this.dismantling.length > 0) {
+      for (const removal of this.dismantling) removal.age += dt;
+      this.dismantling = this.dismantling.filter(removal => removal.age < DISMANTLE_SECONDS);
+    }
     for (const particle of this.particles) particle.age += dt;
     for (let i = this.particles.length - 1; i >= 0; i--) if ((this.particles[i] as Particle).age >= (this.particles[i] as Particle).life) this.particles.splice(i, 1);
   }
@@ -854,6 +861,9 @@ export class DayScene implements Scene {
       ...(this.options.arrivedByCar && { exhaustAge: this.time }),
       sceneryAction: this.sceneryAction,
       devices,
+      ...(this.dismantling.length > 0 && !calmMotion() && {
+        dismantling: this.dismantling.map(({ device, age }) => ({ device: dayDeviceVisual(device), progress: age / DISMANTLE_SECONDS })),
+      }),
       barricades: state.yard.barricades,
       houseHpRatio: state.yard.houseHp / HOUSE_MAX_HP,
       decals: state.yard.decals,
@@ -1068,7 +1078,9 @@ export class DayScene implements Scene {
       if (this.hoverDevice) {
         const at = this.hoverDevice;
         this.hoverDevice = null;
-        this.apply(dismantle(state, at.id), s.day.dismantled, 'click', at);
+        if (this.apply(dismantle(state, at.id), s.day.dismantled, 'click', calmMotion() ? undefined : at) && !calmMotion()) {
+          this.dismantling.push({ device: at, age: 0 });
+        }
       }
       return;
     }
