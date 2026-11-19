@@ -132,7 +132,7 @@ export const en: Strings = {
     shed: { planks: 'Stack of planks', mesh: 'Rolls of wire mesh', bench: 'Workbench', drawers: 'Seed drawers', toolwall: 'Tool wall' },
     garage: { workbench: 'Workbench', locker: 'Steel locker', storeroom: 'Store room', shelves: 'Parts shelves', toolchest: 'Tool chest', wreck: 'Wreck on the lift', crossbow: 'Canvas case' },
     hardware: { timber: 'Timber rack', meshrolls: 'Wire mesh by the metre', springbin: 'Spring bin', shelves: 'Shelves', counter: 'Counter' },
-    grocery: { batteries: 'Battery stand', crates: 'Crates', fridge: 'Fridge', trolley: 'Trolley', backroom: 'Back room' },
+    grocery: { batteries: 'Battery stand', crates: 'Crates', fridge: 'Fridge', trolley: 'Trolley', backroom: 'Back room', records: 'Crate of records' },
     post: { parcels: 'Parcel trolley', string: 'String and wire', cage: 'Registered-mail cage', sacks: 'Mail sacks', bicycle: 'Delivery bicycle' },
     police: { radios: 'Radio chargers', barriers: 'Barriers', locker: 'Evidence locker', cell: 'Cell', desk: 'Chief’s desk' },
     townhall: { boards: 'Election boards', pa: 'PA system', sideboard: 'Ceremonial sideboard', chairs: 'Folding chairs', leaflets: 'Boxes of leaflets' },

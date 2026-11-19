@@ -1,4 +1,4 @@
-import { circuit, padlock, pairs, riddle, scale, timing, type PuzzleBook } from '../core/scavenge';
+import { circuit, padlock, pairs, records, riddle, scale, timing, type PuzzleBook } from '../core/scavenge';
 import type { scavengeFr } from './scavenge-fr';
 
 export const scavengeEn: typeof scavengeFr = {
@@ -20,6 +20,9 @@ export const scavengeEn: typeof scavengeFr = {
   catchRing: 'Catch ring', ringCount: '{n} of 3 rings set', slipped: 'The ring slipped. The lock reset.',
   lockOpen: 'The shackle is open.', take: 'Take supplies',
   riddle: 'Pick an answer.', wrongSum: 'That adds up to {n}. Try another pair.',
+  records: 'Pick a record you can bear to part with.',
+  recordAim: 'Where do you toss “{album}”?',
+  recordClear: 'The baskets rattle. It heads for the door, and the shelf is clear.',
   spots: {
     shed: {
       planks: scale('Measure twice, nick once', 'The good boards are already cut. Two offcuts need to span the gap marked on the sawhorse.', 'dm'),
@@ -50,6 +53,11 @@ export const scavengeEn: typeof scavengeFr = {
       fridge: riddle('The yoghurt knows', 'Three pots, labelled MON, TUE and WED. One still rattles with spare parts. The grocer ate the oldest. The youngest just asked for a spoon. Which do you open?', ['TUE', 'MON', 'WED'], 'The oldest pot is empty. Give the youngest some privacy.'),
       trolley: timing('The fourth wheel', 'Three wheels obey. The fourth wants to go to the sea. Stamp the brake each time it swings into line.', 'Stamp brake'),
       backroom: circuit('The bottle return', 'The bottle chute pays out in old batteries. Turn its elbows so the last bottle can reach the till.'),
+      records: records(
+        'One last spin', 'An infected is blocking the shelf. A clatter inside the shop would draw it away. The street is full of them.',
+        ['Ballads for a Wet Sunday', 'The Turnip Polka', 'Midnight at the Laundrette'],
+        'Empty metal baskets', [['Flour sacks', 'The flour swallows the sound. It stays by the shelf.'], ['Shop window', 'The glass breaks. Now the whole street is listening.']],
+      ),
     },
     post: {
       parcels: riddle('Return to sender', 'The snails have eaten their street name. The postcode ends in an even digit, the house number is odd, and the trail goes upstairs. Which label belongs on the parcel?', ['7 · 35002 · Floor 1', '8 · 35002 · Floor 1', '7 · 35001 · Ground'], 'Check the house number and the last digit of the postcode.'),

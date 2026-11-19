@@ -69,6 +69,11 @@
     "w": 1280,
     "h": 853
   },
+  "plate_records": {
+    "file": "plates/plate_records.webp",
+    "w": 640,
+    "h": 960
+  },
   "plate_loc_post": {
     "file": "plates/plate_loc_post.webp",
     "w": 1280,

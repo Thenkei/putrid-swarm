@@ -1,4 +1,4 @@
-import { circuit, padlock, pairs, riddle, scale, timing, type PuzzleBook } from '../core/scavenge';
+import { circuit, padlock, pairs, records, riddle, scale, timing, type PuzzleBook } from '../core/scavenge';
 
 export const scavengeFr = {
   back: 'Laisser tomber', cost: '{h} h par tentative · dès le premier geste', target: 'Commande', loaded: 'Charge',
@@ -19,6 +19,9 @@ export const scavengeFr = {
   catchRing: 'Bloquer la bague', ringCount: '{n} bagues sur 3 en place', slipped: 'La bague a glissé. Le cadenas s’est refermé.',
   lockOpen: 'L’anse est ouverte.', take: 'Récupérer le matériel',
   riddle: 'Choisissez une réponse.', wrongSum: 'Ça fait {n}. Essayez une autre paire.',
+  records: 'Choisissez un disque que vous êtes prêt à sacrifier.',
+  recordAim: 'Où lancer « {album} » ?',
+  recordClear: 'Les paniers s’entrechoquent. Il file vers la porte et libère le rayon.',
   spots: {
     shed: {
       planks: scale('Mesurer deux fois, piquer une fois', 'Les bonnes planches sont déjà débitées. Deux chutes doivent couvrir l’écart marqué sur le tréteau.', 'dm'),
@@ -49,6 +52,11 @@ export const scavengeFr = {
       fridge: riddle('Le yaourt sait', 'Trois pots marqués LUN, MAR et MER. L’un ferraille encore quand on le secoue. L’épicier a mangé le plus vieux. Le plus frais réclame une cuillère. Lequel ouvrez-vous ?', ['MAR', 'LUN', 'MER'], 'Le plus vieux est vide. Laissez le plus frais déjeuner en paix.'),
       trolley: timing('La quatrième roue', 'Trois roues obéissent. La quatrième veut voir la mer. Écrasez le frein chaque fois qu’elle rentre dans le rang.', 'Freiner'),
       backroom: circuit('Retour de consigne', 'La consigne rend la monnaie en vieilles piles. Tournez les coudes du conduit pour guider la dernière bouteille jusqu’à la caisse.'),
+      records: records(
+        'Un dernier tour', 'Un infecté bloque le rayon. Un bruit dans la boutique le ferait bouger. La rue en est pleine.',
+        ['Ballades pour un dimanche pluvieux', 'La polka du navet', 'Minuit à la laverie'],
+        'Paniers métalliques vides', [['Sacs de farine', 'La farine étouffe le bruit. Il reste devant le rayon.'], ['Vitrine', 'La vitre éclate. Toute la rue a entendu.']],
+      ),
     },
     post: {
       parcels: riddle('Retour à l’expéditeur', 'Les escargots ont mangé le nom de leur rue. Le code postal finit par un chiffre pair, le numéro de rue est impair et la traînée monte à l’étage. Quelle étiquette coller ?', ['7 · 35002 · 1er étage', '8 · 35002 · 1er étage', '7 · 35001 · RDC'], 'Vérifiez le numéro de rue et le dernier chiffre du code postal.'),

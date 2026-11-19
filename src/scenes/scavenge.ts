@@ -11,6 +11,7 @@ export class ScavengePanel {
   readonly root = el('div', { class: 'modal scavenge' });
   private readonly board = el('div', { class: 'salvage-board' });
   private readonly status = el('div', { class: 'salvage-status' });
+  private readonly instruction = el('p', { class: 'salvage-instruction' });
   private advance: ((dt: number) => void) | null = null;
 
   private started = false;
@@ -25,10 +26,15 @@ export class ScavengePanel {
     const photo = el('aside', { class: 'salvage-photo', style: { backgroundPosition: `${spot.x * 100}% ${spot.y * 100}%` } }, [
       el('div', { class: 'salvage-caption' }, [el('strong', { text: spotName }), el('small', { text: fmt(s.cost, { h: hours(SEARCH_HOURS) }) })]),
     ]);
-    const url = spot.fatalMiss === 'lift' ? assetUrl('plate_lift_raised') ?? assetUrl(plate) : assetUrl(plate);
+    const closeUp = puzzle.kind === 'records' ? 'plate_records' : spot.fatalMiss === 'lift' ? 'plate_lift_raised' : null;
+    const url = (closeUp && assetUrl(closeUp)) || assetUrl(plate);
     if (spot.fatalMiss === 'lift') photo.style.backgroundPosition = '54% center';
+    if (puzzle.kind === 'records') {
+      photo.style.backgroundPosition = 'center';
+      photo.classList.add('records-photo');
+    }
     if (url) photo.style.backgroundImage = `url("${url}")`;
-    const method = s[puzzle.kind];
+    this.instruction.textContent = s[puzzle.kind];
     this.root.setAttribute('role', 'dialog');
     this.root.setAttribute('aria-modal', 'true');
     this.root.setAttribute('aria-label', puzzle.title);
@@ -37,7 +43,7 @@ export class ScavengePanel {
     this.root.append(el('div', { class: 'salvage-case' }, [photo, el('div', { class: 'salvage-sheet' }, [
       el('h2', { text: puzzle.title }), el('p', { class: 'salvage-clue', text: puzzle.clue }),
       spot.fatalMiss ? el('strong', { class: 'salvage-danger', text: s.liftWarning }) : null,
-      el('p', { class: 'salvage-instruction', text: method }), this.board, this.status,
+      this.instruction, this.board, this.status,
       el('button', { class: 'salvage-back', text: s.back, onClick: cancel }),
     ])]));
     switch (puzzle.kind) {
@@ -46,6 +52,7 @@ export class ScavengePanel {
       case 'circuit': this.circuit(rng); break;
       case 'padlock': this.padlock(rng); break;
       case 'timing': this.timing(puzzle.action, rng); break;
+      case 'records': this.records(puzzle, rng); break;
       case 'riddle':
         for (const index of shuffled([0, 1, 2], rng)) {
           const button = this.button(puzzle.answers[index]!, () => {
@@ -102,6 +109,53 @@ export class ScavengePanel {
     this.advance = null;
     audio.play('deny');
     this.onFailure(message);
+  }
+
+  private records(puzzle: Extract<Puzzle, { kind: 'records' }>, rng: Rng): void {
+    const albums = el('div', { class: 'record-albums' });
+    for (const [cover, album] of puzzle.albums.entries()) {
+      const button = this.button(album, () => this.chooseRecordTarget(puzzle, album, rng));
+      button.dataset.cover = String(cover);
+      albums.append(button);
+    }
+    this.board.append(albums);
+  }
+
+  private chooseRecordTarget(puzzle: Extract<Puzzle, { kind: 'records' }>, album: string, rng: Rng): void {
+    const s = S().scavenge;
+    const targets = shuffled([
+      { label: puzzle.target, miss: null, sound: 'tin' },
+      { label: puzzle.decoys[0][0], miss: puzzle.decoys[0][1], sound: 'thud' },
+      { label: puzzle.decoys[1][0], miss: puzzle.decoys[1][1], sound: 'broken' },
+    ] as const, rng);
+    const lane = el('div', { class: 'record-lane' });
+    const buttons = el('div', { class: 'record-targets' }, targets.map((target, index) => this.button(target.label, () => {
+      this.finished = true;
+      for (const button of buttons.querySelectorAll('button')) button.disabled = true;
+      const disc = el('span', { class: 'record-flight' });
+      disc.style.setProperty('--record-landing', `${(index + 0.5) * 100 / targets.length}%`);
+      let remaining = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 0.58;
+      lane.append(disc);
+      audio.play('fling', 0.6);
+      this.advance = (dt) => {
+        remaining -= dt;
+        if (remaining > 0) return;
+        this.advance = null;
+        this.instruction.hidden = true;
+        audio.play(target.sound);
+        if (target.miss !== null) {
+          this.miss(target.miss);
+          return;
+        }
+        const take = el('button', { class: 'salvage-piece', text: s.take, onClick: this.solved });
+        this.board.replaceChildren(take);
+        this.status.textContent = s.recordClear;
+        take.focus();
+      };
+    })));
+    this.instruction.textContent = fmt(s.recordAim, { album });
+    this.board.replaceChildren(lane, buttons);
+    this.focus();
   }
 
   private scale(unit: string, rng: Rng): void {

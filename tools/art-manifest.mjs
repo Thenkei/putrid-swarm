@@ -328,6 +328,10 @@ export const ART = [
     ),
   },
   {
+    id: 'plate_records', kind: 'plate', w: 640, refs: [REF_TOWN],
+    prompt: `Portrait 2:3 close-up in the closed grocery. A stack of old vinyl sleeves in a red plastic milk crate, a black record halfway out of a blue illustrated sleeve, and galvanized shopping baskets near the shop door in the background. ${STYLE}`,
+  },
+  {
     id: 'plate_loc_post',
     kind: 'plate',
     w: 1280,

@@ -134,7 +134,7 @@ export const fr = {
     shed: { planks: 'Pile de planches', mesh: 'Rouleaux de grillage', bench: 'Établi', drawers: 'Tiroirs à graines', toolwall: 'Mur d’outils' },
     garage: { workbench: 'Établi', locker: 'Armoire métallique', storeroom: 'Réserve', shelves: 'Étagères de pièces', toolchest: 'Servante à outils', wreck: 'Épave sur le pont', crossbow: 'Housse en toile' },
     hardware: { timber: 'Rayon bois', meshrolls: 'Grillage au mètre', springbin: 'Bac à ressorts', shelves: 'Étagères', counter: 'Comptoir' },
-    grocery: { batteries: 'Présentoir à piles', crates: 'Cagettes', fridge: 'Frigo', trolley: 'Caddie', backroom: 'Arrière-boutique' },
+    grocery: { batteries: 'Présentoir à piles', crates: 'Cagettes', fridge: 'Frigo', trolley: 'Caddie', backroom: 'Arrière-boutique', records: 'Bac à vinyles' },
     post: { parcels: 'Chariot de colis', string: 'Ficelle et fil', cage: 'Cage à recommandés', sacks: 'Sacs postaux', bicycle: 'Vélo de tournée' },
     police: { radios: 'Chargeurs radio', barriers: 'Barrières', locker: 'Casier à scellés', cell: 'Cellule', desk: 'Bureau du chef' },
     townhall: { boards: 'Panneaux électoraux', pa: 'Sono', sideboard: 'Buffet d’apparat', chairs: 'Chaises pliantes', leaflets: 'Cartons de tracts' },
