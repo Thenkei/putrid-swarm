@@ -1,0 +1,19 @@
+{
+  "id": "vo_looted_again_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[irritated] Bon. La prochaine fois, j’embarque tout au premier voyage.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-19T13:01:40.803Z",
+  "bytes": 61065,
+  "sha256": "c21bd6a4365f7501acbda23cc7f357be00226bf084e8db33bcffbfb13a146ff7"
+}

@@ -1,0 +1,19 @@
+{
+  "id": "vo_looted_again_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[dry] Ils auraient pu laisser un mot de remerciement.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-19T13:01:40.512Z",
+  "bytes": 36823,
+  "sha256": "9d86bd512609416edb6ae15581318dbb66a3fcc184376df4951f10dc67123efd"
+}

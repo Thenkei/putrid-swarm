@@ -1193,6 +1193,30 @@
     "seconds": 4.153,
     "gain": 1
   },
+  "vo_looted": {
+    "file": "vo_looted.mp3",
+    "kind": "voice",
+    "seconds": 3.788,
+    "gain": 1
+  },
+  "vo_looted_again": {
+    "file": "vo_looted_again.mp3",
+    "kind": "voice",
+    "seconds": 3.866,
+    "gain": 1
+  },
+  "vo_looted_again_2": {
+    "file": "vo_looted_again_2.mp3",
+    "kind": "voice",
+    "seconds": 1.855,
+    "gain": 1
+  },
+  "vo_looted_again_3": {
+    "file": "vo_looted_again_3.mp3",
+    "kind": "voice",
+    "seconds": 3.396,
+    "gain": 1
+  },
   "vo_car": {
     "file": "vo_car.mp3",
     "kind": "voice",

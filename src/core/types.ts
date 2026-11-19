@@ -140,6 +140,10 @@ export interface NightReport {
 export interface LocationProgress {
   /** Indices of the search spots already emptied. */
   readonly searched: readonly number[];
+  /** Which of those spots were emptied while the player was away. */
+  readonly looted: readonly number[];
+  /** Last visit after collecting loot here, or null before taking any. */
+  readonly lootCheckedDay: number | null;
   readonly visits: number;
 }
 
@@ -260,6 +264,8 @@ export interface Outing {
   readonly marks: readonly OutingMark[];
   /** The last stretch is blocked by infected and must be played before unloading. */
   readonly crossbowStop?: true;
+  /** Pending arrival remark, numbered across the run. */
+  readonly lootNotice?: number;
 }
 
 // ───────────────────────────── The orchard ─────────────────────────────

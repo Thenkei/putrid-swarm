@@ -32,6 +32,7 @@ export const HOME_PIN = { x: 0.22, y: 0.72 } as const;
 export const DAY_HOURS = 12;
 export const DAY_START_HOUR = 7;
 export const SEARCH_HOURS = 0.5;
+export const DAILY_LOOT_CHANCE = 0.25;
 
 /** The night each neighbour comes back as a boss. They are met alive on every day up to and including that one. */
 export const BOSS_NIGHT: Readonly<Record<NeighborId, number>> = {

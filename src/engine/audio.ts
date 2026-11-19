@@ -128,6 +128,8 @@ interface Sample {
   /** Encoded bytes, kept until an AudioContext exists to decode them. */
   data: ArrayBuffer | null;
   buffer: AudioBuffer | null;
+  download: Promise<void> | null;
+  decoding: Promise<void> | null;
 }
 
 interface Playing {
@@ -233,6 +235,7 @@ class AudioEngine {
   private birdTimer: number | null = null;
   private lastPlayed = new Map<Sfx, number>();
   private readonly samples = new Map<string, Sample>();
+  private manifestReady: Promise<string[]> | null = null;
   private sfxBus: GainNode | null = null;
   private bedBus: GainNode | null = null;
   private voiceBus: GainNode | null = null;
@@ -274,27 +277,7 @@ class AudioEngine {
    * an AudioContext exists. Music is streamed on demand and is not fetched here.
    */
   async preload(): Promise<void> {
-    let manifest: Record<string, SampleEntry>;
-    try {
-      const response = await fetch(`${BASE}manifest.json`);
-      if (!response.ok) {
-        console.warn(`[audio] manifest.json returned ${response.status}; using synthesised sound only`);
-        return;
-      }
-      manifest = (await response.json()) as Record<string, SampleEntry>;
-    } catch (error) {
-      console.warn('[audio] manifest.json unavailable; using synthesised sound only', error);
-      return;
-    }
-    const opening: string[] = [];
-    const later: string[] = [];
-    for (const [id, entry] of Object.entries(manifest)) {
-      this.samples.set(id, { entry, data: null, buffer: null });
-      if (entry.kind !== 'music') (OPENING_SAMPLES.has(id) ? opening : later).push(id);
-    }
-    // The title may already be visible. Start whichever track the current scene asked for.
-    this.startRequestedMusic();
-    const queue = [...opening, ...later];
+    const queue = await (this.manifestReady ??= this.readManifest());
     let next = 0;
     async function worker(engine: AudioEngine): Promise<void> {
       for (let id = queue[next++]; id !== undefined; id = queue[next++]) {
@@ -304,34 +287,67 @@ class AudioEngine {
     await Promise.all(Array.from({ length: AUDIO_LOAD_LIMIT }, () => worker(this)));
   }
 
-  private async loadSample(id: string): Promise<void> {
+  private async readManifest(): Promise<string[]> {
+    let manifest: Record<string, SampleEntry>;
+    try {
+      const response = await fetch(`${BASE}manifest.json`);
+      if (!response.ok) {
+        console.warn(`[audio] manifest.json returned ${response.status}; using synthesised sound only`);
+        return [];
+      }
+      manifest = (await response.json()) as Record<string, SampleEntry>;
+    } catch (error) {
+      console.warn('[audio] manifest.json unavailable; using synthesised sound only', error);
+      return [];
+    }
+    const opening: string[] = [];
+    const later: string[] = [];
+    for (const [id, entry] of Object.entries(manifest)) {
+      this.samples.set(id, { entry, data: null, buffer: null, download: null, decoding: null });
+      if (entry.kind !== 'music') (OPENING_SAMPLES.has(id) ? opening : later).push(id);
+    }
+    // The title may already be visible. Start whichever track the current scene asked for.
+    this.startRequestedMusic();
+    return [...opening, ...later];
+  }
+
+  private async loadSample(id: string, priority: 'high' | 'low' = OPENING_SAMPLES.has(id) ? 'high' : 'low'): Promise<void> {
     const sample = this.samples.get(id);
     if (!sample) return;
+    await (sample.download ??= this.downloadSample(id, sample, priority));
+    await this.decode(id, sample);
+  }
+
+  private async downloadSample(id: string, sample: Sample, priority: 'high' | 'low'): Promise<void> {
     try {
-      const response = await fetch(BASE + sample.entry.file, { priority: OPENING_SAMPLES.has(id) ? 'high' : 'low' });
+      const response = await fetch(BASE + sample.entry.file, { priority });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       sample.data = await response.arrayBuffer();
-      if (this.ctx) await this.decode(id, sample);
     } catch (error) {
       console.warn(`[audio] ${id} unavailable`, error);
     }
   }
 
-  private async decode(id: string, sample: Sample): Promise<void> {
-    if (!this.ctx || !sample.data || sample.buffer) return;
+  private decode(id: string, sample: Sample): Promise<void> | undefined {
+    if (sample.decoding) return sample.decoding;
+    const ctx = this.ctx;
+    if (!ctx || !sample.data || sample.buffer) return;
     const data = sample.data;
     sample.data = null;
-    try {
-      sample.buffer = await this.ctx.decodeAudioData(data);
-      // A bed that was requested before its recording was ready takes over from the synthesised one.
-      if (id === `amb_${this.ambienceKind}`) {
-        const kind = this.ambienceKind;
-        this.ambienceKind = 'none';
-        this.setAmbience(kind);
-      }
-    } catch (error) {
-      console.warn(`[audio] could not decode ${id}`, error);
-    }
+    sample.decoding = Promise.resolve()
+      .then(() => ctx.decodeAudioData(data))
+      .then((buffer) => {
+        sample.buffer = buffer;
+        // A bed requested before its recording was ready takes over from the synthesised one.
+        if (id === `amb_${this.ambienceKind}`) {
+          const kind = this.ambienceKind;
+          this.ambienceKind = 'none';
+          this.setAmbience(kind);
+        }
+      })
+      .catch((error) => console.warn(`[audio] could not decode ${id}`, error))
+      .finally(() => { sample.decoding = null; });
+    return sample.decoding;
   }
 
   /** Browsers only allow audio after a user gesture; call this from the first click or key press. */
@@ -525,6 +541,13 @@ class AudioEngine {
   }
 
   // ───────────────────────────── Voices ─────────────────────────────
+
+  /** A resumed scene can request its line before the background audio queue reaches it. */
+  async waitForVoice(id: string): Promise<void> {
+    if (!this.enabled) return;
+    await this.manifestReady;
+    await this.loadSample(id, 'high');
+  }
 
   /**
    * Speaks a recorded line and returns how long it lasts in seconds, so the caller can time a

@@ -477,6 +477,7 @@ function close(state: GameState, outing: Outing, encounter: Encounter, closing: 
           [dispute.location]: {
             ...state.locations[dispute.location],
             searched: [...new Set([...state.locations[dispute.location].searched, dispute.spot])],
+            lootCheckedDay: units(gained) > 0 ? state.day : state.locations[dispute.location].lootCheckedDay,
           },
         }
       : state.locations,

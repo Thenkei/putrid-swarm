@@ -1,7 +1,7 @@
 // Save-game (de)serialisation. Parsing is defensive: a corrupt or foreign blob yields null,
 // never a half-valid GameState.
 
-import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, ChapterFate, Fate, Fight, GameState, Intel, Inventory, NightHighlight, OrchardChapter, Outing, Phase, RivalId, SectorId, ShedChapter, Stance, Standing, TrapTally } from './types';
+import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, ChapterFate, Fate, Fight, GameState, Intel, Inventory, LocationId, LocationProgress, NightHighlight, OrchardChapter, Outing, Phase, RivalId, SectorId, ShedChapter, Stance, Standing, TrapTally } from './types';
 import { chapterOfFate, chapterWaiting } from './chapters';
 import { CALLERS, ENDINGS as RADIO_ENDINGS, QUIET_RADIO, optionOf, rollCall, type AnswerId, type Call, type CallerId, type Ending as RadioEnding, type RadioStage } from './radio';
 import { createRng } from './rng';
@@ -67,6 +67,23 @@ const isStock = (v: unknown): v is Inventory => isRecord(v) && RESOURCE_IDS.ever
 const isCost = (v: unknown): v is Cost => isRecord(v) && Object.entries(v).every(([id, n]) => RESOURCE_IDS.includes(id as (typeof RESOURCE_IDS)[number]) && isCount(n));
 const isFraction = (v: unknown): v is number => isNumber(v) && v >= 0 && v <= 1;
 
+function parseLocations(v: unknown, day: number): GameState['locations'] | null {
+  if (!isRecord(v)) return null;
+  const locations = {} as Record<LocationId, LocationProgress>;
+  for (const id of LOCATION_IDS) {
+    const progress = v[id];
+    if (!isRecord(progress) || !Array.isArray(progress['searched'])) return null;
+    const searched = [...new Set(progress['searched'].filter((index) => isCount(index) && index < LOCATIONS[id].spots.length))];
+    const rawLooted = progress['looted'];
+    const looted = Array.isArray(rawLooted) ? searched.filter((index) => rawLooted.includes(index)) : [];
+    const checked = progress['lootCheckedDay'];
+    // Older saves know what was emptied, but not when. Start counting from the saved day.
+    const lootCheckedDay = checked === undefined && searched.length > 0 ? day : isCount(checked) && checked >= 1 && checked <= day ? checked : null;
+    locations[id] = { searched, looted, lootCheckedDay, visits: isCount(progress['visits']) ? progress['visits'] : 0 };
+  }
+  return locations;
+}
+
 const isFight = (v: unknown): v is Fight =>
   isRecord(v) &&
   Array.isArray(v['stances']) &&
@@ -119,9 +136,11 @@ function parseAmbush(v: Record<string, unknown>): Ambush | null {
 function parseOuting(v: unknown, onRoad: boolean): Outing | null {
   if (!isRecord(v) || !isLocation(v['to']) || !isStock(v['trunk']) || !isStock(v['parted'])) return null;
   const marks = Array.isArray(v['marks']) ? v['marks'].filter((m) => isRecord(m) && typeof m['who'] === 'string' && typeof m['outcome'] === 'string') : [];
+  const lootNotice = v['lootNotice'];
   return {
     to: v['to'], trunk: v['trunk'], parted: v['parted'], major: v['major'] === true, marks: marks as Outing['marks'],
     ...(onRoad && v['crossbowStop'] === true ? { crossbowStop: true } : {}),
+    ...(!onRoad && isCount(lootNotice) && lootNotice > 0 ? { lootNotice } : {}),
   };
 }
 
@@ -253,14 +272,12 @@ export function deserialize(raw: string): GameState | null {
   const barricades = yard['barricades'];
   if (!isRecord(barricades) || !SECTOR_IDS.every((s) => isRecord(barricades[s]) && isNumber((barricades[s] as Record<string, unknown>)['hp']))) return null;
 
-  const locations = data['locations'];
-  if (!isRecord(locations) || !LOCATION_IDS.every((id) => isRecord(locations[id]) && Array.isArray((locations[id] as Record<string, unknown>)['searched']))) {
-    return null;
-  }
+  const locations = parseLocations(data['locations'], data['day']);
+  if (!locations) return null;
   if (!isRecord(data['flags']) || !isRecord(data['totals'])) return null;
 
   // A night in progress is not resumable: restart that night from the evening.
-  const parsed = { ...data, phase } as unknown as GameState;
+  const parsed = { ...data, phase, locations } as unknown as GameState;
   // Reports saved before automatic traps existed have no count for them.
   const lastNight = parsed.lastNight && {
     ...parsed.lastNight,

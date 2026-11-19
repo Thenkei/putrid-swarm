@@ -1354,6 +1354,17 @@ button:disabled {
   color: #8d8271;
 }
 
+.spot.looted .ring {
+  border-color: #a66453;
+  color: #ffc0aa;
+}
+
+.spot.looted .tag small {
+  display: block;
+  margin-top: 3px;
+  color: #ffc0aa;
+}
+
 .spot.blocked .ring {
   border-color: #a2382a;
   animation: none;
@@ -4366,8 +4377,8 @@ button:disabled {
   opacity: 1;
 }
 
-/* Town searches. Keep the arrival subtitles clear of the working surface. */
-#stage:has(.scavenge, .crossbow-modal) #subtitle { bottom: 16px; }
+/* Keep arrival subtitles clear of looted spots and puzzle controls. */
+#stage:has(.spot.looted, .scavenge, .crossbow-modal) #subtitle { bottom: 16px; }
 .equipment-chip {
   padding: 4px 10px;
   border: 1px solid #806338;

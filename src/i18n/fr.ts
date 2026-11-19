@@ -269,6 +269,7 @@ export const fr = {
   loc: {
     search: 'Fouiller · {h} h',
     searched: 'Déjà fouillé',
+    looted: 'Pillé',
     found: 'Trouvé',
     leave: 'Rentrer au refuge',
     leaveCost: 'retour {h} h',
@@ -1008,6 +1009,10 @@ export const fr = {
     vo_egg_corner: 'Pile dans le coin.',
     vo_egg_mire: 'La mire. Ça, c’était de la télé.',
     vo_day1: 'Douze heures de jour. Fouiller, clouer, et rentrer avant la nuit.',
+    vo_looted: 'Attends… J’avais laissé du matériel ici. Quelqu’un est passé.',
+    vo_looted_again: 'Encore ? Les sales voisins… Je parie que c’est eux.',
+    vo_looted_again_2: 'Ils auraient pu laisser un mot de remerciement.',
+    vo_looted_again_3: 'Bon. La prochaine fois, j’embarque tout au premier voyage.',
     vo_car: 'Allez, ma vieille. Encore un tour.',
     vo_car_2: 'Démarre. S’il te plaît, démarre.',
     vo_car_3: 'Un plein, quatre pneus, zéro voisin. Ça ira.',
