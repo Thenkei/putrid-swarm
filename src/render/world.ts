@@ -22,7 +22,7 @@ import { drawStand, prepareForest, projectStand } from './forest';
 import { windAt } from './wind';
 import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
-import { drawDepartingCar, type DepartingCar } from './car-departure';
+import { drawDepartingCar, drawHeadlightPools, type DepartingCar } from './car-departure';
 import { approachDepth, drawApproachOpening, drawApproachingHero, type ApproachingHero } from './hero-approach';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
@@ -661,6 +661,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   for (const cast of casts) cast();
 
   drawDecals(ctx, view, frame.decals);
+  if (frame.departingCar) drawHeadlightPools(ctx, view, frame.departingCar);
   drawGroundOverlays(ctx, view, frame);
 
   drawables.sort((a, b) => a.depth - b.depth);

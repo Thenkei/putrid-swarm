@@ -2,7 +2,7 @@ import { GRID_W, PARKED_CAR } from '../core/map';
 import { sprite, type Sprite } from '../engine/assets';
 import { clamp01, smoothstep } from './noise';
 import { PROP_FEET } from './registration';
-import type { Point } from './projection';
+import { groundMatrix, type Point, type View } from './projection';
 import { roadCentre } from './terrainfield';
 
 // Seconds spent approaching, opening the door, ducking in, then pulling it shut.
@@ -85,7 +85,7 @@ interface DepartureShot {
 
 export type DepartingCar = { readonly position: Point } & (
   | { readonly kind: 'boarding'; readonly picture: CarArt; readonly pose: number }
-  | { readonly kind: 'driving'; readonly driver: Sprite; readonly turn: Sprite; readonly yaw: number; readonly shake: number }
+  | { readonly kind: 'driving'; readonly driver: Sprite; readonly turn: Sprite; readonly yaw: number; readonly shake: number; readonly headlights: number }
 );
 
 export function carDepartureShot(oneArmed: boolean): DepartureShot | null {
@@ -113,12 +113,38 @@ export function carDepartureShot(oneArmed: boolean): DepartureShot | null {
   };
 }
 
-export function departingCar(shot: DepartureShot, time: number): DepartingCar {
+export function departingCar(shot: DepartureShot, time: number, dusk: number): DepartingCar {
   const pose = shot.poseEnds.findIndex((end) => time < end);
   if (pose >= 0) return { kind: 'boarding', position: PARKED, picture: shot.boarding, pose };
   const crank = time - shot.ignitionAt;
   const shake = crank >= 0 && time < shot.rollAt ? Math.sin(crank * 75) * (1 - crank / (ROLL_DELAY - IGNITION_DELAY)) : 0;
-  return { kind: 'driving', driver: shot.driver, turn: shot.turn, ...carManeuver(time - shot.rollAt), shake };
+  const headlights = smoothstep(0.78, 0.96, dusk) * smoothstep(0, 0.17, crank);
+  return { kind: 'driving', driver: shot.driver, turn: shot.turn, ...carManeuver(time - shot.rollAt), shake, headlights };
+}
+
+/** Paint the two low beams on the ground before the props and the wagon are drawn. */
+export function drawHeadlightPools(ctx: CanvasRenderingContext2D, view: View, car: DepartingCar): void {
+  if (car.kind !== 'driving' || car.headlights <= 0) return;
+  const s = Math.sin(car.yaw);
+  const c = Math.cos(car.yaw);
+  ctx.save();
+  ctx.transform(...groundMatrix(view));
+  ctx.transform(c, s, -s, c, car.position.x, car.position.y);
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = car.headlights;
+  for (const lamp of [-0.42, 0.42]) {
+    ctx.save();
+    ctx.translate(lamp, 1.36);
+    ctx.scale(1, 2.5);
+    const pool = ctx.createRadialGradient(0, 0.68, 0.05, 0, 1.03, 1.07);
+    pool.addColorStop(0, 'rgba(255, 222, 155, 0.45)');
+    pool.addColorStop(0.48, 'rgba(255, 187, 111, 0.24)');
+    pool.addColorStop(1, 'rgba(255, 174, 95, 0)');
+    ctx.fillStyle = pool;
+    ctx.fillRect(-1.07, -0.04, 2.14, 2.14);
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 /** The rack and wheelbase are registered to the same point as the parked yard sprite. */
@@ -148,6 +174,14 @@ const TURN_TYRES = [
   { maxTurn: 56, front: { x: 379, y: 499 }, rear: { x: 379, y: 327 }, side: 0 },
   { maxTurn: 78, front: { x: 346, y: 499 }, rear: { x: 212, y: 319 }, side: -1 },
   { maxTurn: Infinity, front: { x: 402, y: 499 }, rear: { x: 166, y: 347 }, side: -1 },
+] as const;
+// Lamp centres in the same source cels as the axle landmarks.
+const DRIVER_LAMPS = [[146, 720], [434, 805]] as const;
+const TURN_LAMPS = [
+  [[207, 381], [350, 420]],
+  [[292, 418], [464, 418]],
+  [[422, 415], [585, 386]],
+  [[497, 397], [634, 360]],
 ] as const;
 const DRIVER_HEIGHT = 1029;
 const WHEELBASE = (DRIVER_TYRES.rear.x - DRIVER_TYRES.front.x) / DRIVER_HEIGHT;
@@ -185,5 +219,20 @@ function drawDrivingCar(ctx: CanvasRenderingContext2D, car: Extract<DepartingCar
   ctx.transform(scale + correctionX * axleX, correctionY * axleX, correctionX * axleY, scale + correctionY * axleY, x, y);
   ctx.drawImage(art.img, (cel % columns) * sourceW, Math.floor(cel / columns) * sourceH, sourceW, sourceH,
     -tyreX, -tyreY, cellW, cellH);
+  if (car.headlights > 0) {
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = car.headlights;
+    const radius = pose < 0 ? 62 : 32;
+    for (const [sourceX, sourceY] of TURN_LAMPS[pose] ?? DRIVER_LAMPS) {
+      const lx = sourceX - tyreX;
+      const ly = sourceY - tyreY;
+      const glow = ctx.createRadialGradient(lx, ly, 0, lx, ly, radius);
+      glow.addColorStop(0, '#ffe4a0');
+      glow.addColorStop(0.45, 'rgba(255, 202, 116, 0.65)');
+      glow.addColorStop(1, 'rgba(255, 180, 90, 0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(lx - radius, ly - radius, radius * 2, radius * 2);
+    }
+  }
   ctx.restore();
 }

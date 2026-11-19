@@ -206,19 +206,20 @@ export class TravelScene implements Scene {
         : departureView(smoothstep(shot.rollAt - 0.12, shot.forwardAt + 0.45, boardingTime));
       const { yard } = departure;
       const houseHpRatio = yard.houseHp / HOUSE_MAX_HP;
+      const dusk = 1 - departure.hoursLeft / DAY_HOURS;
       drawWorld(ctx, view, {
         time: this.app.time,
         night: false,
         houseHpRatio,
         carPresent: true,
-        ...(onFoot ? { approachingHero: sampleApproach(onFoot, this.time) } : { departingCar: departingCar(shot, boardingTime) }),
+        ...(onFoot ? { approachingHero: sampleApproach(onFoot, this.time) } : { departingCar: departingCar(shot, boardingTime, dusk) }),
         devices: yard.devices.map((d) => dayDeviceVisual(d)),
         barricades: yard.barricades,
         decals: yard.decals,
         enemies: [],
         particles: gravelDust(boardingTime - shot.rollAt, shot.forwardAt - shot.rollAt),
       });
-      applyDaylight(ctx, view, 1 - departure.hoursLeft / DAY_HOURS, houseLights(view.rot, yard.barricades, houseHpRatio), this.app.time);
+      applyDaylight(ctx, view, dusk, houseLights(view.rot, yard.barricades, houseHpRatio), this.app.time);
       paintFade(ctx, smoothstep(shot.duration - DEPARTURE_FADE_OUT, shot.duration, boardingTime));
       return;
     }
