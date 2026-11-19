@@ -1,0 +1,19 @@
+{
+  "id": "vo_looted",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[puzzled] Attends… J’avais laissé du matériel ici. Quelqu’un est passé.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-19T13:01:39.306Z",
+  "bytes": 66498,
+  "sha256": "b3f2dbf1fa92d341f335863ae85a62acdfac6cacd43c56c67e1ba6e8f0597c12"
+}

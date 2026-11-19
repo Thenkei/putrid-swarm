@@ -12,6 +12,7 @@ import { audio } from '../engine/audio';
 import { rememberEnding } from '../engine/progress';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
+import { hush, say } from '../engine/voice';
 import { calmMotion } from '../render/lighting';
 import { smoothstep } from '../render/noise';
 import { carDeparture, heroArt, costLine, drawPlate, inventoryBar, lootSfx, oneArmed, platePoint } from './common';
@@ -22,6 +23,8 @@ import { hasCrossbow } from '../core/crossbow';
 import { shouldStopAtDusk } from '../core/crossbow-road';
 
 const SEARCH_DUST_SECONDS = 0.78;
+
+const LOOTING_GRUMBLES = ['vo_looted_again', 'vo_looted_again_2', 'vo_looted_again_3'] as const;
 
 export class LocationScene implements Scene {
   private hud!: HTMLElement;
@@ -66,8 +69,22 @@ export class LocationScene implements Scene {
       later: () => this.refresh(),
     });
     this.refresh();
+    const lootNotice = this.state.outing?.lootNotice;
+    if (lootNotice) void this.reactToLooting(lootNotice);
     if (this.meeting) this.showMeeting(this.meeting);
     else if (this.dispute) this.panel.show();
+  }
+
+  private async reactToLooting(notice: number): Promise<void> {
+    const line = notice === 1 ? 'vo_looted' : LOOTING_GRUMBLES[(notice - 2) % LOOTING_GRUMBLES.length]!;
+    await audio.waitForVoice(line);
+    const state = this.app.state;
+    if (state?.where !== this.id || state.outing?.lootNotice !== notice) return;
+    const { lootNotice, ...outing } = state.outing;
+    hush();
+    say(line);
+    this.app.state = { ...state, outing };
+    this.app.save();
   }
 
   private refresh(): void {
@@ -106,6 +123,7 @@ export class LocationScene implements Scene {
         ]);
       }
       const done = progress.searched.includes(index);
+      const looted = progress.looted.includes(index);
       const blocked = !done && (!canStillSearch || this.escorted);
       const hint = el(
         'span',
@@ -120,13 +138,16 @@ export class LocationScene implements Scene {
       return el(
         'button',
         {
-          class: `spot ${done ? 'done' : ''} ${blocked ? 'blocked' : ''}`,
+          class: `spot ${done ? 'done' : ''} ${looted ? 'looted' : ''} ${blocked ? 'blocked' : ''}`,
           style: { left: `${p.x}px`, top: `${p.y}px` },
-          title: done ? s.loc.searched : fmt(s.loc.search, { h: hours(SEARCH_HOURS) }),
+          title: looted ? s.loc.looted : done ? s.loc.searched : fmt(s.loc.search, { h: hours(SEARCH_HOURS) }),
           data: { spot: String(index) },
           onClick: () => this.search(index, p),
         },
-        [el('span', { class: 'ring', text: done ? '✓' : '?' }), el('span', { class: 'tag' }, [name, done ? null : hint])],
+        [
+          el('span', { class: 'ring', text: looted ? '×' : done ? '✓' : '?' }),
+          el('span', { class: 'tag' }, [name, looted ? el('small', { text: s.loc.looted }) : done ? null : hint]),
+        ],
       );
     });
 

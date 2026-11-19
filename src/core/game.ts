@@ -2,7 +2,7 @@
 // Every transition is a pure function; scenes never mutate GameState.
 
 import { BARRICADE, HOUSE_MAX_HP } from './data/devices';
-import { BOSS_NIGHT, DAY_HOURS, LOCATIONS, SEARCH_HOURS, type LocationDef } from './data/locations';
+import { BOSS_NIGHT, DAILY_LOOT_CHANCE, DAY_HOURS, LOCATIONS, SEARCH_HOURS, type LocationDef } from './data/locations';
 import { shouldStopAtDusk } from './crossbow-road';
 import { LAST_NIGHT } from './data/waves';
 import type { NightSim } from './night';
@@ -12,7 +12,7 @@ import { chapterWaiting, dawnOf, openChapters, type ChapterId } from './chapters
 import { SHED, awaitsShed, isShedFate, type ShedResult } from './shed';
 import { QUIET_RADIO, aftermathOf, awaitsRadio, rivalOf, stockAfter, type RadioResult } from './radio';
 import { acquaintance } from './encounters';
-import { createRng } from './rng';
+import { createRng, type Rng } from './rng';
 import type { Cost, DeviceInstance, GameState, Inventory, LocationId, LocationProgress, NeighborId, NightReport, OutingMark, ResourceId, Result } from './types';
 import { LOCATION_IDS, RESOURCE_IDS, err, ok } from './types';
 import { DEVICES } from './data/devices';
@@ -50,7 +50,7 @@ const STARTING_DEVICES: readonly Omit<DeviceInstance, 'id' | 'hp' | 'broken' | '
 ];
 
 export function newGame(seed: number): GameState {
-  const emptyProgress: LocationProgress = { searched: [], visits: 0 };
+  const emptyProgress: LocationProgress = { searched: [], looted: [], lootCheckedDay: null, visits: 0 };
   const locations = Object.fromEntries(LOCATION_IDS.map((id) => [id, emptyProgress])) as Record<LocationId, LocationProgress>;
   const devices = STARTING_DEVICES.map((d, i) => ({ ...d, id: i + 1, facing: 0 as const, hp: DEVICES[d.type].maxHp, broken: false }));
   const barricade = { hp: BARRICADE.maxHp[0], level: 0 } as const;
@@ -135,6 +135,19 @@ export function plannedSearches(state: GameState, location: LocationDef): number
   return Math.max(0, Math.min(Math.floor((time + 1e-9) / SEARCH_HOURS), remaining, visitSearchLimit(location, state.day)));
 }
 
+/** Discover at most one missing lot per visit. A resident keeps watch until their night. */
+function rollLooting(state: GameState, location: LocationDef, rng: Rng): number | undefined {
+  const { lootCheckedDay, searched } = state.locations[location.id];
+  if (lootCheckedDay === null || searched.length >= location.spots.length) return;
+  const guardedThrough = location.neighbor ? BOSS_NIGHT[location.neighbor] : 0;
+  const daysExposed = state.day - Math.max(lootCheckedDay, guardedThrough);
+  if (daysExposed <= 0) return;
+  // Equipment puzzles such as the crossbow case have no material lot to steal.
+  const lots = location.spots.flatMap((spot, index) => Object.keys(spot.loot).length > 0 && !searched.includes(index) ? [index] : []);
+  if (lots.length === 0 || !rng.chance(1 - (1 - DAILY_LOOT_CHANCE) ** daysExposed)) return;
+  return rng.pick(lots);
+}
+
 export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome, DayError> {
   if (state.phase !== 'day') return err({ code: 'wrong_phase' });
   if (state.where !== 'home') return err({ code: 'not_home' });
@@ -143,14 +156,33 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
   const needed = roundTripHours(location);
   if (state.hoursLeft + 1e-9 < needed) return err({ code: 'no_time', needed });
 
+  const progress = state.locations[id];
+  const rng = createRng(state.rng);
+  const looted = rollLooting(state, location, rng);
+  const outing = { to: id, trunk: NO_STOCK, parted: NO_STOCK, major: false, marks: [] };
+  const visit = { ...progress, visits: progress.visits + 1, lootCheckedDay: progress.lootCheckedDay === null ? null : state.day };
   let next: GameState = {
     ...state,
     where: id,
     hoursLeft: state.hoursLeft - location.travelHours,
-    outing: { to: id, trunk: NO_STOCK, parted: NO_STOCK, major: false, marks: [] },
+    outing,
     encounter: null,
-    locations: { ...state.locations, [id]: { ...state.locations[id], visits: state.locations[id].visits + 1 } },
+    locations: { ...state.locations, [id]: visit },
   };
+
+  if (looted !== undefined) {
+    const lootNotice = (state.flags['looting'] ?? 0) + 1;
+    return ok({
+      state: {
+        ...next,
+        rng: rng.state(),
+        flags: { ...state.flags, looting: lootNotice },
+        outing: { ...outing, lootNotice },
+        locations: { ...next.locations, [id]: { ...visit, searched: [...visit.searched, looted], looted: [...visit.looted, looted] } },
+      },
+      meeting: null,
+    });
+  }
 
   let meeting: NeighborMeeting | null = null;
   const neighbor = location.neighbor;
@@ -158,7 +190,6 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
   if (neighbor && neighborAtHome) {
     const key = flagKey('met', neighbor, state.day);
     const first = !next.flags[key];
-    const rng = createRng(next.rng);
     let gift: Cost = {};
     const hoursLost = greetingHours(state, location);
     if (first) {
@@ -179,7 +210,6 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
     }
     next = {
       ...next,
-      rng: rng.state(),
       outing: next.outing && { ...next.outing, trunk: gain(next.outing.trunk, gift) },
       hoursLeft: next.hoursLeft - hoursLost,
       flags: { ...next.flags, [key]: 1 },
@@ -188,7 +218,6 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
   }
 
   // Where nobody minds the place any more, somebody else may have had the same idea.
-  const rng = createRng(next.rng);
   const dispute = rollDispute(next, location, neighborAtHome, rng);
   next = { ...next, rng: rng.state() };
   if (dispute && next.outing) next = { ...next, encounter: dispute.encounter, flags: dispute.flags, outing: { ...next.outing, major: true } };
@@ -254,7 +283,7 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
         ...paid,
         rng: rng.state(),
         outing: { ...outing, trunk: gain(outing.trunk, loot) },
-        locations: { ...state.locations, [location.id]: { ...progress, searched: [...progress.searched, spotIndex] } },
+        locations: { ...state.locations, [location.id]: { ...progress, searched: [...progress.searched, spotIndex], lootCheckedDay: state.day } },
         totals: { ...state.totals, searches: state.totals.searches + 1 },
       },
     },

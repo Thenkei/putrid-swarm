@@ -862,6 +862,74 @@ describe('campaign', () => {
     expect(home.hoursLeft).toBe(state.hoursLeft - 2 * LOCATIONS.hardware.travelHours - 0.5);
   });
 
+  it('discovers a stolen lot on return, persists it, and counts each discovery once', () => {
+    const there = unwrap(travelTo(newGame(7), 'hardware')).state;
+    const searched = unwrap(searchSpot(there, 0)).state;
+    const home = unwrap(arriveHome(unwrap(leaveLocation(searched)).state)).state;
+    const dayTwo = startNextDay({ ...home, phase: 'morning', rng: 7 });
+    const back = unwrap(travelTo(dayTwo, 'hardware')).state;
+    expect(back.outing?.lootNotice).toBe(1);
+    expect(back.encounter).toBeNull();
+    expect(back.totals).toEqual(dayTwo.totals);
+    expect(back.inventory).toEqual(dayTwo.inventory);
+    expect(Object.values(back.outing!.trunk)).toEqual([0, 0, 0, 0, 0]);
+
+    const progress = back.locations.hardware;
+    expect(progress.looted).toHaveLength(1);
+    const stolen = progress.looted[0]!;
+    expect(stolen).not.toBe(0);
+    expect(progress.searched).toEqual([0, stolen]);
+    const resumed = deserialize(serialize(back))!;
+    expect(resumed).toEqual(back);
+    expect(prepareSearch(resumed, stolen)).toMatchObject({ ok: false, error: { code: 'already_searched' } });
+    const open = LOCATIONS.hardware.spots.findIndex((_, index) => !progress.searched.includes(index));
+    expect(prepareSearch(resumed, open).ok).toBe(true);
+
+    const returned = unwrap(arriveHome(unwrap(leaveLocation(resumed)).state)).state;
+    expect(plannedSearches(returned, LOCATIONS.hardware)).toBe(3);
+    expect(unwrap(travelTo({ ...returned, rng: 7 }, 'hardware')).state.outing?.lootNotice).toBeUndefined();
+    const dayThree = startNextDay({ ...returned, phase: 'morning', rng: 7 });
+    const repeat = unwrap(travelTo(dayThree, 'hardware')).state;
+    expect(repeat.outing?.lootNotice).toBe(2);
+    expect(repeat.locations.hardware.looted).toHaveLength(2);
+  });
+
+  it('rolls only for partially scavenged, unattended locations and raises the odds over time', () => {
+    // Seed 0 starts with a roll between the one-day and two-day chances.
+    const base = newGame(0);
+    const partial = { ...base.locations.hardware, searched: [0], lootCheckedDay: 1 };
+    const locations = { ...base.locations, hardware: partial, shed: partial };
+    const returned = (state: GameState, id: 'hardware' | 'shed' | 'grocery' = 'hardware') => unwrap(travelTo(state, id)).state.outing?.lootNotice;
+    expect(returned({ ...base, locations, day: 2 })).toBeUndefined();
+    expect(returned({ ...base, locations, day: 3 })).toBe(1);
+    expect(returned({ ...base, locations, day: 3, rng: 7 }, 'grocery')).toBeUndefined();
+    expect(returned({ ...base, locations, day: 2, rng: 7 }, 'shed')).toBeUndefined();
+    expect(returned({ ...base, locations, day: 3, rng: 7 }, 'shed')).toBe(1);
+    const spent = { ...partial, searched: [0, 1, 2, 3, 4] };
+    expect(returned({ ...base, locations: { ...locations, hardware: spent }, day: 3, rng: 7 })).toBeUndefined();
+  });
+
+  it('starts counting from the saved day for partially searched legacy locations', () => {
+    const base = newGame(7);
+    const save = { ...base, day: 2, locations: { ...base.locations, hardware: { visits: 1, searched: [0] } } };
+    const upgraded = deserialize(JSON.stringify(save))!;
+    expect(upgraded.locations.hardware).toEqual({ visits: 1, searched: [0], looted: [], lootCheckedDay: 2 });
+    expect(unwrap(travelTo(upgraded, 'hardware')).state.outing?.lootNotice).toBeUndefined();
+    const nextDay = startNextDay({ ...upgraded, phase: 'morning' });
+    expect(unwrap(travelTo(nextDay, 'hardware')).state.outing?.lootNotice).toBe(1);
+  });
+
+  it('leaves the garage equipment case searchable when the material lots are gone', () => {
+    const base = newGame(7);
+    const caseIndex = LOCATIONS.garage.spots.findIndex((spot) => spot.key === 'crossbow');
+    const searched = LOCATIONS.garage.spots.map((_, index) => index).filter((index) => index !== caseIndex);
+    const garage = { ...base.locations.garage, searched, lootCheckedDay: 4 };
+    const { state } = unwrap(travelTo({ ...base, day: 5, locations: { ...base.locations, garage } }, 'garage'));
+    expect(state.outing?.lootNotice).toBeUndefined();
+    expect(state.locations.garage.searched).not.toContain(caseIndex);
+    expect(prepareSearch(state, caseIndex).ok).toBe(true);
+  });
+
   it('keeps the price of a miss across reload and charges the next attempt once', () => {
     const start = unwrap(travelTo(newGame(5), 'garage')).state;
     const miss = unwrap(prepareSearch(start, 0)).failure;

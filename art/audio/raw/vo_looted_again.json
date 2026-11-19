@@ -1,0 +1,19 @@
+{
+  "id": "vo_looted_again",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/text-to-speech/DbbNuBL7lf62XwY7arQb",
+  "request": {
+    "text": "[grumbling] Encore ? Les sales voisins… Je parie que c’est eux.",
+    "model_id": "eleven_v4",
+    "language_code": "fr",
+    "voice_settings": {
+      "stability": 0.45,
+      "similarity_boost": 0.8
+    }
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-19T13:01:39.209Z",
+  "bytes": 69006,
+  "sha256": "67a116700193110ff0392a438135f4fb88c5b0e5e5b6c1814cd069477b5ba4ce"
+}

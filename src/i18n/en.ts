@@ -267,6 +267,7 @@ export const en: Strings = {
   loc: {
     search: 'Search · {h} h',
     searched: 'Already searched',
+    looted: 'Looted',
     found: 'Found',
     leave: 'Drive home',
     leaveCost: 'drive home {h} h',
@@ -999,6 +1000,10 @@ export const en: Strings = {
     vo_egg_corner: 'Right in the corner.',
     vo_egg_mire: 'The test card. Now that was television.',
     vo_day1: 'Twelve hours of daylight. Search, nail, and be home before dark.',
+    vo_looted: 'Hang on… I left something here. Someone’s been through.',
+    vo_looted_again: 'Again? Those bloody neighbours… I bet it was them.',
+    vo_looted_again_2: 'They could’ve left a thank-you note.',
+    vo_looted_again_3: 'Right. Next time I take everything on the first trip.',
     vo_car: 'Come on, old girl. One more trip.',
     vo_car_2: 'Start. Please, start.',
     vo_car_3: 'A full tank, four tyres, no neighbours. It will do.',
