@@ -215,6 +215,7 @@ export const en: Strings = {
     tonightFrom: 'Fresh tracks on the {sectors} side.',
     covered: '{n} trap(s) on the way',
     uncovered: 'no trap on the way',
+    noDoorPaths: 'No predicted paths to this door.',
     tagAuto: 'AUTO',
     tagManual: 'BY HAND',
     tagPassive: 'OBSTACLE',
