@@ -1186,6 +1186,23 @@ button:disabled {
   color: var(--cream-dim);
 }
 
+.siren-forecast {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px;
+  border: 1px solid #806141;
+  border-radius: 4px;
+  background: #252116;
+  color: #ebd1a0;
+}
+.siren-forecast strong { font-size: 19px; }
+.siren-forecast .btn { min-height: 30px; padding: 3px 8px; font-size: 15px; }
+.siren-controls { display: flex; gap: 5px; }
+.siren-controls .btn { flex: 1; }
+.siren-controls [aria-pressed='true'] { border-color: #e3b365; color: #ffdfa0; }
+.siren-armed { color: #d5e6a3; }
+
 .hint {
   position: absolute;
   left: 304px;

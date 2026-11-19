@@ -87,6 +87,7 @@ export const scavengeEn: typeof scavengeFr = {
       sideboard: riddle('Dinner with the bust', 'The bronze mayor wants a place setting. “On my left lies the fork. On my right lies the knife. Who faces me and tells the truth?”', ['His reflection in the plate', 'The fork', 'The knife'], 'The plate is polished silver. Both utensils are beside him.'),
       chairs: timing('Musical chairs, quorum of one', 'The council chairs keep folding shut on the downbeat. Pull out a hinge pin each time the seats line up.', 'Pull pin'),
       leaflets: pairs('A recount of the dead', 'Even the dead have voted twice. Pair the identical ballot signatures to free the boxes of leaflets.', ['A. Ghost', 'I. Croaked', 'Dee Ceased']),
+      siren: circuit('The Wednesday Test', 'The test schedule is still stuck to the case. Follow the two brass contacts across the damaged controller board and it’s yours.'),
     },
   } satisfies PuzzleBook,
 };

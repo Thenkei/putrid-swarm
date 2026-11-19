@@ -154,6 +154,7 @@ const destinations = {
       { key: 'sideboard', x: 0.62, y: 0.36, loot: { wire: [4, 5] } },
       { key: 'chairs', x: 0.47, y: 0.55, loot: { scrap: [4, 5], springs: [2, 3] } },
       { key: 'leaflets', x: 0.74, y: 0.72, loot: { wood: [3, 4], scrap: [1, 1] } },
+      { key: 'siren', x: 0.33, y: 0.56, loot: {} },
     ],
   },
 } as const satisfies Readonly<Record<LocationId, LocationDef>>;

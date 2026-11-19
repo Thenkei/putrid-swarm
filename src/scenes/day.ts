@@ -6,7 +6,8 @@ import { DAY_HOURS } from '../core/data/locations';
 import { ORCHARD, hasLeftArm } from '../core/orchard';
 import { SHED, briefingFor, type Briefing } from '../core/shed';
 import { allyFor, guestOf, lookoutFor } from '../core/radio';
-import { LAST_NIGHT, planForNight } from '../core/data/waves';
+import { LAST_NIGHT, planForNight, SIREN_SECTORS, sirenPackFor, type SirenSector } from '../core/data/waves';
+import { canPlanSiren, scheduleSiren, SIREN_COST, sirenForNight } from '../core/siren';
 import { bossOfNight, clockLabel, startNight } from '../core/game';
 import { ENTRIES, GRID_H, GRID_W, SPAWN_CELLS, idx } from '../core/map';
 import { computeField, traceRoute } from '../core/pathing';
@@ -136,6 +137,7 @@ export class DayScene implements Scene {
   private reinforcementPreview: SectorId | null = null;
   private readonly reinforceButtons = new Map<SectorId, HTMLButtonElement>();
   private showRoutes = true;
+  private sirenPreview: SirenSector | null = null;
   private sceneryAction: SceneryAction | null = null;
   private time = 0;
   private reveal: number;
@@ -363,6 +365,7 @@ export class DayScene implements Scene {
       el('b', { text: `${s.day.tonight} · ${fmt(s.night.night, { n: state.day })}` }),
       el('div', { text: fmt(s.day.tonightFrom, { sectors: expected.map((sector) => s.sector[sector]).join(', ') }) }),
       el('div', { class: 'muted', text: boss ? fmt(s.day.tonightBoss, { name: s.neighbor[boss].name }) : s.day.tonightUnknown }),
+      this.sirenPanel(),
       this.briefing(briefingFor(state)),
       this.radioBriefing(),
     ]);
@@ -389,6 +392,48 @@ export class DayScene implements Scene {
     this.panelDoor = SECTOR_IDS.find((_, index) => doorRows[index]?.matches(':hover')) ?? null;
     this.updateHover(this.app.pointer, true);
     this.maybeHint();
+  }
+
+  private sirenPanel(): HTMLElement | null {
+    const state = this.state;
+    const armed = sirenForNight(state);
+    const pack = sirenPackFor(state.day);
+    if (!pack || (!armed && !canPlanSiren(state))) return null;
+    const { siren: s, sector } = S();
+    const selected = armed ?? this.sirenPreview;
+    const detail = selected ? fmt(s.moved, { wave: pack.wave, n: pack.pack.count, from: sector[pack.pack.sector], to: sector[selected] }) : s.pick;
+    const afford = state.inventory.battery >= SIREN_COST.battery;
+    const controls = armed
+      ? [el('button', { class: 'btn', text: s.inspect, onClick: () => this.previewSiren(armed) })]
+      : SIREN_SECTORS.map(id => {
+          const button = el('button', { class: `btn ${selected === id ? 'sel' : ''}`, data: { sirenRoute: id }, text: sector[id], onClick: () => this.previewSiren(id) });
+          button.setAttribute('aria-pressed', String(selected === id));
+          return button;
+        });
+    return el('section', { class: 'siren-forecast' }, [
+      el('strong', { text: s.title }),
+      el('span', { class: 'siren-route', text: detail }),
+      el('div', { class: 'siren-controls' }, controls),
+      armed ? el('span', { class: 'siren-armed', text: s.armed }) : el('button', {
+        class: 'btn btn-primary',
+        text: afford ? s.arm : s.empty,
+        disabled: !selected || !afford,
+        onClick: () => {
+          if (!selected) return;
+          const next = scheduleSiren(this.state, selected);
+          if (next) this.apply(ok(next), s.armed, 'click');
+        },
+      }),
+    ]);
+  }
+
+  private previewSiren(sector: SirenSector): void {
+    this.sirenPreview = sector;
+    this.mode = { kind: 'idle' };
+    this.showRoutes = true;
+    this.showDoor(sector);
+    this.refresh();
+    this.root.querySelector<HTMLButtonElement>(`[data-siren-route="${sector}"]`)?.focus();
   }
 
   /** What the morning on the radio left for tonight: someone at a door, someone in the shed, where they will come from. */
@@ -834,7 +879,7 @@ export class DayScene implements Scene {
 
   /** The approaches tonight's infected come from: the tracks the protagonist found this morning. */
   private expectedSectors(): SectorId[] {
-    const seen = new Set(planForNight(this.state.day).waves.flatMap((wave) => wave.groups.map((group) => group.sector)));
+    const seen = new Set(planForNight(this.state.day, sirenForNight(this.state) ?? this.sirenPreview).waves.flatMap((wave) => wave.groups.map((group) => group.sector)));
     return SECTOR_IDS.filter((sector) => seen.has(sector));
   }
 
@@ -873,7 +918,7 @@ export class DayScene implements Scene {
     const removing = this.mode.kind === 'dismantle' && this.hoverDevice && !this.hoverDevice.broken && DEVICES[this.hoverDevice.type].blocks
       ? this.hoverDevice
       : null;
-    const focus = this.mode.kind === 'build' ? null : this.inspectedDoor;
+    const focus = this.mode.kind === 'build' ? null : this.inspectedDoor ?? this.sirenPreview;
     const forecast = this.showRoutes || this.mode.kind === 'build' ? this.forecast(removing) : null;
     const overlay = focus ? forecast?.byDoor[focus] : forecast;
     const placing = this.currentGhost().ghost;

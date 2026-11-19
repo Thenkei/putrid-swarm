@@ -135,7 +135,7 @@ export const en: Strings = {
     grocery: { batteries: 'Battery stand', crates: 'Crates', fridge: 'Fridge', trolley: 'Trolley', backroom: 'Back room', records: 'Crate of records' },
     post: { parcels: 'Parcel trolley', string: 'String and wire', cage: 'Registered-mail cage', sacks: 'Mail sacks', bicycle: 'Delivery bicycle', minitel: 'Minitel terminal' },
     police: { radios: 'Radio chargers', barriers: 'Barriers', locker: 'Evidence locker', cell: 'Cell', desk: 'Chief’s desk' },
-    townhall: { boards: 'Election boards', pa: 'PA system', sideboard: 'Ceremonial sideboard', chairs: 'Folding chairs', leaflets: 'Boxes of leaflets' },
+    townhall: { boards: 'Election boards', pa: 'PA system', sideboard: 'Ceremonial sideboard', chairs: 'Folding chairs', leaflets: 'Boxes of leaflets', siren: 'Siren controller' },
   },
   crossing: {
     title: 'The Crossing',
@@ -303,6 +303,17 @@ export const en: Strings = {
     noTime: 'Keep enough time to drive home.',
     trunk: 'In the boot',
     disputed: 'This lot is settled with whoever is standing on it.',
+  },
+  siren: {
+    title: 'The Wednesday Test',
+    found: 'Siren controller recovered. Set a route from the refuge.',
+    pick: 'Preview an approach before spending a battery.',
+    moved: 'Wave {wave} · {n} infected move from {from} to {to}.',
+    armed: 'Test scheduled',
+    arm: 'Schedule test · 1 battery',
+    empty: 'Needs 1 battery',
+    inspect: 'Show the diverted route',
+    firing: 'Siren test · movement from {sector}',
   },
   night: {
     detector: {
