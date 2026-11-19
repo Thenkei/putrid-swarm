@@ -137,6 +137,36 @@ function drawGlows(ctx: CanvasRenderingContext2D, view: View, lights: readonly L
 
 const mix = (a: number, b: number, t: number): number => a + (b - a) * t;
 
+/** The color of the outdoor light, shared by the yard and illustrations drawn in daylight. */
+export function applyDayGrade(ctx: CanvasRenderingContext2D, frame: Pick<View, 'x' | 'y' | 'w' | 'h'>, dusk: number): void {
+  paintDayGrade(ctx, frame, dusk, smoothstep(0.88, 1, dusk));
+}
+
+function paintDayGrade(ctx: CanvasRenderingContext2D, frame: Pick<View, 'x' | 'y' | 'w' | 'h'>, dusk: number, blue: number): void {
+  ctx.save();
+  // The colour of the light, multiplied in: white at noon, amber late, slate at the very end.
+  const gold = smoothstep(0.3, 0.86, dusk);
+  const r = mix(mix(255, 255, gold), 164, blue);
+  const g = mix(mix(251, 204, gold), 152, blue);
+  const b = mix(mix(243, 150, gold), 190, blue);
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+  ctx.fillRect(frame.x, frame.y, frame.w, frame.h);
+
+  // A low sun rakes in from the upper left.
+  const sun = gold * (1 - blue);
+  if (sun > 0.01) {
+    ctx.globalCompositeOperation = 'lighter';
+    const rake = ctx.createLinearGradient(frame.x, frame.y, frame.x + frame.w * 0.75, frame.y + frame.h);
+    rake.addColorStop(0, `rgba(255, 150, 60, ${0.2 * sun})`);
+    rake.addColorStop(0.55, `rgba(255, 120, 50, ${0.05 * sun})`);
+    rake.addColorStop(1, 'rgba(255, 110, 40, 0)');
+    ctx.fillStyle = rake;
+    ctx.fillRect(frame.x, frame.y, frame.w, frame.h);
+  }
+  ctx.restore();
+}
+
 /**
  * The hour of the day over the yard. `dusk` runs from 0 (morning) to 1 (the last of the light):
  * the picture warms through the afternoon, goes gold, then blue, and the lamps of the house
@@ -148,28 +178,8 @@ export function applyDaylight(ctx: CanvasRenderingContext2D, view: View, dusk: n
   ctx.rect(view.x, view.y, view.w, view.h);
   ctx.clip();
 
-  // The colour of the light, multiplied in: white at noon, amber late, slate at the very end.
-  const gold = smoothstep(0.3, 0.86, dusk);
   const blue = smoothstep(0.88, 1, dusk);
-  const r = mix(mix(255, 255, gold), 164, blue);
-  const g = mix(mix(251, 204, gold), 152, blue);
-  const b = mix(mix(243, 150, gold), 190, blue);
-  ctx.globalCompositeOperation = 'multiply';
-  ctx.fillStyle = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
-  ctx.fillRect(view.x, view.y, view.w, view.h);
-
-  // A low sun rakes in from the upper left.
-  const sun = gold * (1 - blue);
-  if (sun > 0.01) {
-    ctx.globalCompositeOperation = 'lighter';
-    const rake = ctx.createLinearGradient(view.x, view.y, view.x + view.w * 0.75, view.y + view.h);
-    rake.addColorStop(0, `rgba(255, 150, 60, ${0.2 * sun})`);
-    rake.addColorStop(0.55, `rgba(255, 120, 50, ${0.05 * sun})`);
-    rake.addColorStop(1, 'rgba(255, 110, 40, 0)');
-    ctx.fillStyle = rake;
-    ctx.fillRect(view.x, view.y, view.w, view.h);
-  }
-
+  paintDayGrade(ctx, view, dusk, blue);
   drawGlows(ctx, view, lamps, time, dusk);
 
   // The corners fall off a little, as they do through any lens.
