@@ -508,6 +508,7 @@ export const fr = {
       share: { label: 'Partager', hint: 'Chacun son tour, le plus rare d’abord. L’autre commence.' },
       trade: { label: 'Échanger', hint: 'Tout le lot, contre ce qu’on vous demande.' },
       play: { label: 'Jouer aux rondelles', hint: 'Trois lancers chacun, le meilleur emporte tout. Égalité : on partage.' },
+      appraise: { label: 'Estimer le prix du poste', hint: 'Une estimation. Le plus proche sans dépasser emporte le lot.' },
       threaten: { label: 'Insister', hint: 'Hausser le ton pour tout prendre. Ça ne s’oubliera pas.' },
       concede: { label: 'Laisser le lot', hint: 'Vous repartez sans. Un geste pareil ne s’oublie pas.' },
       backDown: { label: 'Reculer', hint: 'Le lot reste où il est. La menace, elle, a été entendue.' },
@@ -548,6 +549,14 @@ export const fr = {
       theirTurn: '{name} lance.',
       yourTurn: 'À vous : arrêtez la rondelle où vous la voulez.',
       scored: { tin: 'Dans la boîte !', ring: 'Dans le cercle.', plank: 'Sur la planche.', off: 'Par terre.' },
+    },
+    appraisal: {
+      title: 'Le Dernier Prix',
+      rules: 'La Brocanteuse pose un poste en boîte et replie son estimation. Lisez les deux étiquettes. Le plus proche sans dépasser emporte le lot.',
+      sticker: 'Prix d’origine',
+      markdown: 'Remise manuscrite',
+      francs: '{n} F',
+      reveal: 'Le poste était soldé à {correct} F. Vous avez dit {yours} F. Elle avait écrit {dealer} F.',
     },
     pay: {
       title: 'Que donnez-vous ?',

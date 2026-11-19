@@ -247,6 +247,10 @@ export const ART = [
 
   // ───────────────────────────── Generated plates ─────────────────────────────
   {
+    id: 'plate_appraisal_radio', kind: 'plate', w: 640, refs: [REF_TOWN],
+    prompt: `Portrait 2:3 still life of an ordinary black portable radio half out of its faded cardboard box on a French flea-market table. Two blank paper tags and checked red cloth. No lettering or branding. ${STYLE}`,
+  },
+  {
     id: 'plate_crossbow', kind: 'plate', w: 1280, refs: [REF_GARAGE],
     prompt: `Wide 16:9 garage close-up. A closed olive canvas case on a teal workbench, two feathered wings embroidered on its cream shoulder strap, a worn motorcycle glove and a swallow-shaped key tag. Leave the lower edge in shadow for the caption. ${STYLE}`,
   },

@@ -267,7 +267,7 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
   const { encounter, outing } = state;
   if (!outing) return err({ code: 'not_there' });
   if (encounter?.kind === 'dispute') {
-    if (encounter.stage === 'game' || encounter.stage === 'fight') return err({ code: 'busy' });
+    if (encounter.stage === 'game' || encounter.stage === 'price' || encounter.stage === 'fight') return err({ code: 'busy' });
     if (encounter.spot === spotIndex) return err({ code: 'disputed' });
   }
   // The drive home must still fit after the search.

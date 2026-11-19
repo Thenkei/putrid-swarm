@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { radioAppraisal } from '../src/core/appraisal';
 import { HARDWARE_SPRING_BIN, LOCATIONS } from '../src/core/data/locations';
 import { ENCOUNTER, WASHERS } from '../src/core/data/rivals';
 import { NO_STOCK, act, choicesOf, fightHours, greetingOf, seize, splitLot, units, washerScore, type Action, type Step } from '../src/core/encounters';
@@ -65,6 +66,39 @@ const play = (state: GameState, ...actions: Action[]): Step => {
 };
 
 const trunkOf = (state: GameState): Inventory => state.outing?.trunk ?? NO_STOCK;
+
+describe('Le Dernier Prix', () => {
+  it('keeps the radio clue and guesses stable after a reload and resolves each outcome once', () => {
+    const offered = disputed();
+    const begun = play(offered, { type: 'appraise' }).state;
+    const loaded = deserialize(serialize(begun))!;
+    expect(loaded).toEqual(begun);
+    expect(fail(searchSpot(loaded, 0))).toBe('busy');
+    expect(fail(act(loaded, { type: 'estimate', francs: -1 }))).toBe('not_offered');
+    const round = radioAppraisal(loaded, loaded.encounter as Dispute);
+    expect(round).toEqual(radioAppraisal(begun, begun.encounter as Dispute));
+    for (const [guess, outcome, springs] of [
+      [round.correct, 'game_won', 3],
+      [round.dealer, 'game_tied', 1],
+      [round.correct + 10, 'game_lost', 0],
+    ] as const) {
+      const result = play(loaded, { type: 'estimate', francs: guess });
+      expect(result.resolution).toMatchObject({ outcome, appraisal: { correct: round.correct, yours: guess } });
+      expect(trunkOf(result.state).springs).toBe(springs);
+      expect(result.state.hoursLeft).toBe(offered.hoursLeft - ENCOUNTER.hours.game);
+      expect(fail(act(result.state, { type: 'estimate', francs: guess }))).toBe('no_encounter');
+      expect(choicesOf(disputed({}, { flags: result.state.flags })).some(choice => choice.id === 'appraise')).toBe(false);
+    }
+  });
+
+  it('leaves a started wager to the dealer when driving away', () => {
+    const begun = play(disputed(), { type: 'appraise' }).state;
+    const left = unwrap(leaveLocation(begun));
+    expect(left.forfeit?.outcome).toBe('game_lost');
+    expect(trunkOf(left.state)).toEqual(NO_STOCK);
+    expect(left.state.hoursLeft).toBe(begun.hoursLeft - ENCOUNTER.hours.game - LOCATIONS.hardware.travelHours);
+  });
+});
 
 describe('lots', () => {
   it('shares a lot piece by piece, rarest first, the rival picking first', () => {
@@ -526,12 +560,15 @@ describe('every branch', () => {
       check(state, path);
       return 1;
     }
-    const actions: Action[] =
-      encounter.kind === 'dispute' && encounter.stage === 'game'
-        ? [{ type: 'throw', aim: WASHERS.tin }, { type: 'throw', aim: 0.1 }]
-        : choicesOf(state)
-            .filter((c) => !c.blocked)
-            .map((c): Action => (c.id === 'pay' ? { type: 'pay', payment: seize(trunkOf(state), (encounter as Ambush).toll, (encounter as Ambush).accepts) } : { type: c.id }));
+    let actions: Action[];
+    if (encounter.kind === 'dispute' && encounter.stage === 'game') {
+      actions = [{ type: 'throw', aim: WASHERS.tin }, { type: 'throw', aim: 0.1 }];
+    } else if (encounter.kind === 'dispute' && encounter.stage === 'price') {
+      actions = radioAppraisal(state, encounter).bids.map(francs => ({ type: 'estimate', francs }));
+    } else {
+      actions = choicesOf(state).filter(c => !c.blocked).map((c): Action =>
+        c.id === 'pay' ? { type: 'pay', payment: seize(trunkOf(state), (encounter as Ambush).toll, (encounter as Ambush).accepts) } : { type: c.id });
+    }
     expect(actions.length).toBeGreaterThan(0);
     return actions.reduce((ends, action) => ends + explore(unwrap(act(state, action)).state, check, [...path, action.type]), 0);
   };

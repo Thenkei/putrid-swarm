@@ -106,7 +106,8 @@ function parseDispute(v: Record<string, unknown>): Dispute | null {
     typeof v['yields'] === 'boolean' &&
     typeof v['plays'] === 'boolean' &&
     (v['receiptAnswered'] === undefined || (v['receiptAnswered'] === true && v['rival'] === 'dealer')) &&
-    ['open', 'refused', 'game', 'fight'].includes(v['stage'] as string) &&
+    ['open', 'refused', 'game', 'price', 'fight'].includes(v['stage'] as string) &&
+    (v['stage'] !== 'price' || v['rival'] === 'dealer') &&
     isRecord(game) &&
     Array.isArray(game['theirs']) &&
     game['theirs'].length === ENCOUNTER.throws &&
