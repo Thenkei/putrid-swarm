@@ -64,6 +64,16 @@
     "w": 1280,
     "h": 853
   },
+  "plate_vachette": {
+    "file": "plates/plate_vachette.webp",
+    "w": 900,
+    "h": 507
+  },
+  "vachette_cow": {
+    "file": "sprites/vachette_cow.webp",
+    "w": 450,
+    "h": 300
+  },
   "plate_loc_grocery": {
     "file": "plates/plate_loc_grocery.webp",
     "w": 1280,

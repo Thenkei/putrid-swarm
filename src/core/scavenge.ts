@@ -16,7 +16,8 @@ export const riddle = (title: string, clue: string, answers: Three, hint: string
 export const records = (title: string, clue: string, albums: Three, target: string, decoys: readonly [readonly [string, string], readonly [string, string]]) =>
   ({ kind: 'records' as const, title, clue, albums, target, decoys });
 export const directory = (title: string, clue: string, entries: Three) => ({ kind: 'directory' as const, title, clue, entries });
-export type Puzzle = ReturnType<typeof scale | typeof pairs | typeof circuit | typeof timing | typeof padlock | typeof riddle | typeof records | typeof directory>;
+export const vachette = (title: string, clue: string) => ({ kind: 'vachette' as const, title, clue });
+export type Puzzle = ReturnType<typeof scale | typeof pairs | typeof circuit | typeof timing | typeof padlock | typeof riddle | typeof records | typeof directory | typeof vachette>;
 export type PuzzleBook = { readonly [L in LocationId]: Record<SpotKey<L>, Puzzle> };
 
 export function spotRng(seed: number, location: LocationId, key: string): Rng {

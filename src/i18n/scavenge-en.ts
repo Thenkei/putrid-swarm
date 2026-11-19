@@ -1,4 +1,4 @@
-import { circuit, directory, padlock, pairs, records, riddle, scale, timing, type PuzzleBook } from '../core/scavenge';
+import { circuit, directory, padlock, pairs, records, riddle, scale, timing, vachette, type PuzzleBook } from '../core/scavenge';
 import type { scavengeFr } from './scavenge-fr';
 
 export const scavengeEn: typeof scavengeFr = {
@@ -28,6 +28,13 @@ export const scavengeEn: typeof scavengeFr = {
   records: 'Pick a record you can bear to part with.',
   recordAim: 'Where do you toss “{album}”?',
   recordClear: 'The baskets rattle. It heads for the door, and the shelf is clear.',
+  vachette: 'Close each gate when the marker is inside the striped band.',
+  fairground: {
+    start: 'Run the course', untimed: 'Play untimed', gate: 'Gate {n} of {total}', close: 'Close gate',
+    early: 'Too early. She turns back through the chute.',
+    late: 'Too late. She bolts back into the ring.',
+    clear: 'She’s in the pen. The prize stall is clear.',
+  },
   spots: {
     shed: {
       planks: scale('Measure twice, nick once', 'The good boards are already cut. Two offcuts need to span the gap marked on the sawhorse.', 'dm'),
@@ -65,6 +72,7 @@ export const scavengeEn: typeof scavengeFr = {
         ['Ballads for a Wet Sunday', 'The Turnip Polka', 'Midnight at the Laundrette'],
         'Empty metal baskets', [['Flour sacks', 'The flour swallows the sound. It stays by the shelf.'], ['Shop window', 'The glass breaks. Now the whole street is listening.']],
       ),
+      vachette: vachette('La Vachette', 'Behind the grocery, an infected heifer blocks the prize stall. The old course has three gates leading to a pen.'),
     },
     post: {
       parcels: riddle('Return to sender', 'The snails have eaten their street name. The postcode ends in an even digit, the house number is odd, and the trail goes upstairs. Which label belongs on the parcel?', ['7 · 35002 · Floor 1', '8 · 35002 · Floor 1', '7 · 35001 · Ground'], 'Check the house number and the last digit of the postcode.'),
