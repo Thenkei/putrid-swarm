@@ -1,7 +1,6 @@
 // The night: a desk, four cameras, and traps fired by hand.
 // The simulation runs on its own clock; this scene only chooses which part of it to look at.
 
-import { PauseMenu } from './pause';
 import { BARRICADE, COMBAT, DEVICES, HOUSE_MAX_HP, isAuto, isManual } from '../core/data/devices';
 import { concludeNight } from '../core/game';
 import { HOUSE, sectorOf } from '../core/map';
@@ -26,6 +25,7 @@ import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, trapKeyLabels } from '../eng
 import { drawPlate, oneArmed } from './common';
 import { goFinale, goMorning, goNight, goTitle } from './flow';
 import { HandGauge, cameraAwaitingHand, handCoachSeen, markHandCoachSeen, trapsAwaitingHand } from './hand';
+import { PauseMenu } from './pause';
 
 const MAIN = { x: 12, y: 54, w: 884, h: 497 } as const;
 const MINI = { x: 906, w: 362, h: 159, ys: [54, 223, 392] } as const;
