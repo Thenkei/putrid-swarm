@@ -85,6 +85,12 @@ const REF_HOMESTEAD = C('01-day-night-homestead.png');
 const REF_PROJECTION = C('03-2d-projection-comparison.png');
 const YARD_STYLE_REFS = ['art/raw/obj_trees.png', 'art/raw/obj_house_front.png'];
 const CAR_SPRITE_REF = 'public/assets/sprites/obj_car_front.webp';
+const DRIVE_PLATE_BRIEF =
+  'Use case: illustration-story. An original full-bleed landscape 16:9 in-game travel illustration for Putrid Swarm. Match ' +
+  'the linked game\'s detailed hand-inked drawing, fine dark contours, distressed painterly colours, dusty old France and ' +
+  'rural autumn. Soft neutral mid-afternoon daylight, muted forest greens and warm ochre. Keep the main focal information in ' +
+  'the central upper two-thirds, with a dark or low-detail lower quarter for the game\'s destination overlay. Clean artwork, ' +
+  'no text, logos, brands, watermarks, caption, border, or UI.';
 const CAR_BOARDING_BRIEF =
   'Use case: stylized-concept, production animation sprites for the original game Putrid Swarm. Deliver one wide 3:2 sprite ' +
   'atlas, EXACTLY a perfectly regular 2×2 grid of four distinct frames, each composition wholly inside its cell with generous ' +
@@ -110,6 +116,56 @@ export const ART = [
   { id: 'plate_trunk', kind: 'plate', w: 1280, source: { concept: C('09-car-trunk-resources.png') } },
   { id: 'plate_return', kind: 'plate', w: 1280, source: { concept: C('10-return-before-night.png') } },
   { id: 'plate_village', kind: 'plate', w: 1280, source: { concept: C('05-neighborhood-scavenging.png') } },
+
+  // Outbound travel, shown in rotation across confirmed outings.
+  {
+    id: 'plate_drive_road', kind: 'plate', w: 1280, refs: ['art/raw/car_driver.png', REF_VILLAGE, REF_TRUNK],
+    prompt: DRIVE_PLATE_BRIEF + ' ' +
+      'A cinematic wide exterior from above the roadside verge, showing the exact old mustard-yellow 1980s station wagon with its ' +
+      'mismatched red left driver\'s door, muddy tires and roof rack of strapped planks. Car is rolling along the centre of a ' +
+      'winding pale gravel road away from a dark autumn woodland into a French countryside valley. See the left side and front ' +
+      'three-quarter silhouette, the road disappearing between hedges into the distance. A light streak of loose dust behind the ' +
+      'rear wheels. The windshield reflects the sky so no hands or body parts can be distinguished. One car only, no people ' +
+      'outside, no animals. Place car at 44% of image width and 50% height, keep the car well clear of crop boundaries. Apply the ' +
+      'actual worn, inked vehicle design from image 1 and the village art style from image 2.' +
+      '\n\nFinal direction retouch: ' +
+      'Use case: precise-object-edit, landscape 16:9 travel painting for the original game Putrid Swarm. Image 1 is the exact ' +
+      'painting to edit. Keep its original countryside, forest, gravel curve, village on upper right hillside, framing, light, ' +
+      'ink work, colour and subdued lower quarter. Only reverse the DIRECTION OF TRAVEL of the painted car. Redraw the rusty ' +
+      'mustard-yellow 1980s station wagon in the same foreground position on the exact same road, seen from the rear ' +
+      'three-quarter, clearly driving AWAY from the viewer toward the upper-right curve and the village. Its closed rear tailgate ' +
+      'and dull red tail-lights are the closest part and point toward the bottom left. Its bonnet and front wheels point toward ' +
+      'the upper right, parallel to the curve that continues to the town. The road behind the car is bottom-left, and the light ' +
+      'dust trail also falls toward the bottom left only. Preserve the black roof rack with the strapped planks and the iconic ' +
+      'red left driver\'s door if that side is visible. Image 2 is a supporting reference for the precise car\'s shape and worn ' +
+      'rear details; in the travel painting its rear hatch is closed, with shallow sky reflections, and the car is moving with ' +
+      'nobody visible inside or out. Do not put the village behind the vehicle; its front points toward the village. No legible ' +
+      'text, no overlays. Maintain source aspect ratio.',
+  },
+  {
+    id: 'plate_drive_cabin', kind: 'plate', w: 1280, refs: ['art/raw/car_driver.png', REF_VILLAGE],
+    prompt: DRIVE_PLATE_BRIEF + ' ' +
+      'A driver\'s-eye view from INSIDE the same 1980s French left-hand-drive station wagon through its windshield as it travels a ' +
+      'narrow empty country road. The windshield fills most of the frame: oncoming bend, French stone boundary wall covered with ' +
+      'ivy and a distant few terracotta roofs, leaves along the road. See scuffed mustard-painted A-pillars at edges, aged black ' +
+      'textured dash, rearview mirror at top reflecting only sky, an instrument hood and only the top rim of the aged left-hand ' +
+      'steering wheel along the very bottom. No person, clothing, arms or hands are in frame. The only car is the one enclosing ' +
+      'the camera. Clear layered depth between interior and road. The same car\'s worn dark dashboard, faded tan trim and ' +
+      'mustard-painted exterior are the design reference. No modern tech, no signs with legible lettering. Wide visible ' +
+      'windshield guides the eye into the road.',
+  },
+  {
+    id: 'plate_drive_radio', kind: 'plate', w: 1280, refs: ['art/raw/car_driver.png', REF_TRUNK],
+    prompt: DRIVE_PLATE_BRIEF + ' ' +
+      'Close passenger-seat view of an old car radio set into the scuffed matte charcoal dashboard of this exact 1980s station ' +
+      'wagon. Only the console, amber-lit analog frequency scale, fluted knobs and a little daylight through the windscreen are ' +
+      'visible. The tuner is a wide HORIZONTAL straight inset glass scale, almost front-on, at mid-height around 51 percent down, ' +
+      'spanning from about 34 to 66 percent of the image width. Put only fine cream tick marks on this dark flat amber-brown ' +
+      'band, no letters, no numerals, no frequency pointer inside the band because the game will draw its own moving needle. The ' +
+      'AM/FM radio appears integrated into the aged dashboard with discrete knobs under the scale, with dormant subtle green ' +
+      'pilot lamp. Show a blurred sliver of autumn road in the windshield in the upper background. No faces, bodies, hands or ' +
+      'limbs. Keep a dark low-detail lower quarter. Preserve worn brown plastic and illustrated ink textures of the references.',
+  },
 
   // ───────────────────────────── The protagonist with one arm ─────────────────────────────
   // Once the orchard has taken his left arm, every picture he is in is shown from its twin below:

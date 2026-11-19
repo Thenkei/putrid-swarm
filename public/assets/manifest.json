@@ -2122,5 +2122,20 @@
     "file": "plates/plate_crossing.webp",
     "w": 1280,
     "h": 720
+  },
+  "plate_drive_road": {
+    "file": "plates/plate_drive_road.webp",
+    "w": 1280,
+    "h": 721
+  },
+  "plate_drive_cabin": {
+    "file": "plates/plate_drive_cabin.webp",
+    "w": 1280,
+    "h": 720
+  },
+  "plate_drive_radio": {
+    "file": "plates/plate_drive_radio.webp",
+    "w": 1280,
+    "h": 720
   }
 }

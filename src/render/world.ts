@@ -17,7 +17,7 @@ import { calmMotion, drawCloudShadows, drawMist, type Light } from './lighting';
 import { hash2, smoothstep } from './noise';
 import { TH, TW, depthOf, groundMatrix, inView, project, unproject, viewX, viewY, type Rot, type View } from './projection';
 import { BOTTOM_CENTRE, HOUSE_PAINT_SCALE, PROP_FEET, houseOffset, propRoot, spriteRect, type Foot } from './registration';
-import { WIND_TREES } from './scenery';
+import { DEPTH_SORTED_TREES } from './scenery';
 import { drawStand, prepareForest, projectStand } from './forest';
 import { windAt } from './wind';
 import type { BrushPassage } from './brush';
@@ -462,9 +462,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     return 1 - 0.75 * reveal;
   };
 
-  // The first stems are sorted with actors so infected can emerge between them. Beyond
-  // this fringe the wood is baked into continuous canopy tiles to the limits of the view.
-  for (const tree of WIND_TREES) {
+  // Sort the fringe and the stands along the road with the actors passing between them.
+  for (const tree of DEPTH_SORTED_TREES) {
     const stand = projectStand(view, tree);
     if (!stand || !onScreen(stand, Math.max(100, stand.h / z))) continue;
     const depth = depthOf(view.rot, tree.gx, tree.gy);

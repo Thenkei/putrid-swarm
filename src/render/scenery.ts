@@ -2,7 +2,7 @@
 // so moving a camera, evicting a tile or drawing the opposite side yields the same wood.
 import { GRID_H, GRID_W } from '../core/map';
 import { hash2, valueNoise } from './noise';
-import { onTrack } from './terrainfield';
+import { onTrack, roadCentre } from './terrainfield';
 
 type Species = 'fir' | 'firpair' | 'beech' | 'birch' | 'oak' | 'coppice';
 export interface Tree {
@@ -17,6 +17,7 @@ export interface Tree {
 }
 export const TREE_ROWS = 4;
 const SPACING = 1.75;
+const FRINGE = 8;
 const HEIGHT: Record<Species, number> = { fir: 172, firpair: 177, beech: 148, birch: 149, oak: 154, coppice: 83 };
 const conifers: readonly Species[] = ['fir', 'fir', 'firpair', 'fir', 'birch', 'beech'];
 const broadleaf: readonly Species[] = ['oak', 'beech', 'birch', 'beech', 'oak', 'coppice', 'fir'];
@@ -53,6 +54,13 @@ export function treesIn(x0: number, y0: number, x1: number, y1: number): Tree[] 
   return trees;
 }
 
-/** The collar is finite for the handful of wind-animated trees; the canopy beyond it is sampled on demand. */
-export const TREES = treesIn(-8, -8, GRID_W + 8, GRID_H + 8);
-export const WIND_TREES = TREES.filter(tree => tree.row === 0);
+/** Near the clearing and along the barn road, moving actors can pass behind individual stands. */
+export function isDepthSortedTree(tree: Tree): boolean {
+  return tree.row === 0 || (
+    tree.gx > GRID_W && tree.gx <= GRID_W + FRINGE && Math.abs(tree.gy - roadCentre('barn', tree.gx)) <= 4.75
+  );
+}
+
+/** The fringe is finite. The woodland beyond it is sampled on demand for the canopy tiles. */
+export const TREES = treesIn(-FRINGE, -FRINGE, GRID_W + FRINGE, GRID_H + FRINGE);
+export const DEPTH_SORTED_TREES = TREES.filter(isDepthSortedTree);
