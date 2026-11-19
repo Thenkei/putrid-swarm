@@ -217,6 +217,7 @@ export const fr = {
     tonightFrom: 'Traces fraîches côté {sectors}.',
     covered: '{n} piège(s) sur le passage',
     uncovered: 'aucun piège sur le passage',
+    noDoorPaths: 'Aucun trajet prévu vers cette porte.',
     tagAuto: 'AUTO',
     tagManual: 'À LA MAIN',
     tagPassive: 'OBSTACLE',
