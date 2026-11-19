@@ -2092,5 +2092,10 @@
     "file": "plates/plate_crossbow_road.webp",
     "w": 1280,
     "h": 720
+  },
+  "boss_mower_gait": {
+    "file": "sprites/boss_mower_gait.webp",
+    "w": 1920,
+    "h": 1944
   }
 }

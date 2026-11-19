@@ -251,13 +251,17 @@ pnpm art:gen       # art/raw/<id>.png, one codex call per entry of tools/art-man
 pnpm art:process   # public/assets/ + manifest.json (chroma key, cut, resize)
 ```
 
-Every infected and every neighbour has an animation sheet per view: three poses of a walk cycle and one action pose (attack, wind-up, speech), generated with the character's own turnaround as reference and cut so that all poses share one scale and one centre line. The renderer plays them at each kind's cadence (a limp, a sprint, a gallop), and falls back to the single turnaround sprite wherever a pose is missing.
+Upgraded infected use 16-cel, distance-driven gaits in both camera views. Each character's sheet is baked from its own painted poses and timing profile. The Mower has separate walk and charge cycles with a fixed handbar and independent foot tracks. The finale reuses the gait cels for its approaching horde.
+
+The bosses' signature gestures follow the simulation. The Mower revs and throws clippings, the Mechanic swings the load on its chain, the Mail Carrier knocks twice and scatters envelopes, the Chief plants his shield and whistles, and the Mayor declaims through her megaphone. Reduced motion keeps the silhouettes and action poses readable with steadier transforms and fewer effects.
+
+Use `pnpm art:process --only mob_gaits,boss_mower_gait` to rebuild the gait atlases from the processed cels, or pass a single ID such as `mob_gait_runner`.
 
 The title desk is a retouch of a first pass (`edit:` entries): the painted smoke, the mug and the joint were taken out because the game draws its own, and the sticky note was moved off the glass and signed.
 
 Every picture the protagonist is in has a one-armed twin made the same way (`<plate>_one_arm`: the control room, the morning, the garage, the town, the boot, the return, the village, the van, the swarmed mower, and the rider on it). `heroArt` in `src/scenes/common.ts` picks the twin once the arm is gone, through `drawPlate(…, { oneArmed })`; a missing twin falls back on the original.
 
-`tools/art-manifest.mjs` is the single list of every image, its prompt and its references. The game tolerates missing art and draws placeholders, so one sprite can be regenerated without touching code. Generated images are derivatives of the concepts, not recovered originals; the old `Thendeo/PutridSwarm` ArtWorks folder is still unrecovered.
+`tools/art-manifest.mjs` lists the generated images, their prompts and references. The game tolerates missing art and draws placeholders, so one sprite can be regenerated without touching code. Generated images are derivatives of the concepts, not recovered originals; the old `Thendeo/PutridSwarm` ArtWorks folder is still unrecovered.
 
 ## Sound
 

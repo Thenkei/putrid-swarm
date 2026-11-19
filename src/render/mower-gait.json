@@ -1,0 +1,11 @@
+{
+  "columns": 8,
+  "cycleFrames": 16,
+  "cellWidth": 320,
+  "cellHeight": 288,
+  "atlasScale": 0.75,
+  "renderHeight": 82,
+  "standingHeight": 251,
+  "walkStride": 1.2,
+  "chargeStride": 1.65
+}

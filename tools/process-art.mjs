@@ -17,6 +17,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 import { ART } from './art-manifest.mjs';
+import { buildMowerGait } from './mower-gait.mjs';
+import { buildMobGaits } from './mob-gaits.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const RAW_DIR = join(ROOT, 'art', 'raw');
@@ -395,12 +397,17 @@ async function processPoses(entry, source) {
       .extract({ left: box.x0, top: box.y0, width, height })
       .extend({ left, right: Math.max(0, half * 2 - left - width), top: 2, bottom: 0, background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .toBuffer({ resolveWithObject: true })
-      .then(({ data, info: raw }) =>
-        sharp(data, { raw: { width: raw.width, height: raw.height, channels: 4 } })
+      .then(async ({ data, info: raw }) => {
+        // These boss effects are drawn in motion. Strip the loose painted
+        // clippings, envelopes and sound lines while preserving the figure.
+        if (name === 'x' && /^boss_(mower|mail|chief|mayor)_/.test(entry.base)) {
+          keepMechanism(data, raw.width, raw.height);
+        }
+        return sharp(data, { raw: { width: raw.width, height: raw.height, channels: 4 } })
           .resize({ height: Math.max(1, Math.round(raw.height * scale)), kernel: 'lanczos3' })
           .webp({ quality: 90, alphaQuality: 95, effort: 5 })
-          .toFile(join(OUT_DIR, file)),
-      );
+          .toFile(join(OUT_DIR, file));
+      });
     manifest[`${entry.base}_${name}`] = { file, w: info.width, h: info.height };
   }
 }
@@ -446,6 +453,25 @@ for (const entry of ART) {
   } catch (error) {
     failed.push(entry.id);
     console.error(`✗ ${entry.id}: ${error.message}`);
+  }
+}
+
+if (!only || only.includes('boss_mower_gait')) {
+  try {
+    manifest.boss_mower_gait = await buildMowerGait(OUT_DIR);
+    console.log('✓ boss_mower_gait');
+  } catch (error) {
+    failed.push('boss_mower_gait');
+    console.error(`✗ boss_mower_gait: ${error.message}`);
+  }
+}
+
+if (!only || only.some((id) => id === 'mob_gaits' || id.startsWith('mob_gait_'))) {
+  try {
+    await buildMobGaits(OUT_DIR, only);
+  } catch (error) {
+    failed.push('mob_gaits');
+    console.error(`✗ mob_gaits: ${error.message}`);
   }
 }
 
