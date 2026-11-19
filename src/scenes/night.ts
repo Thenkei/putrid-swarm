@@ -38,6 +38,8 @@ const MAX_STEPS_PER_FRAME = 5;
 const END_HOLD_SECONDS = 3;
 const COACH_KEY = 'putrid-swarm.coach';
 
+const powerPercent = (energy: number): number => energy * 100 / COMBAT.nightEnergy;
+
 /** What each neighbour still mutters, and the protagonist's reaction on seeing them. */
 const BOSS_BARK: Readonly<Partial<Record<NeighborId, VoiceId>>> = { mechanic: 'bark_mechanic', mail: 'bark_mail', chief: 'bark_chief' };
 const BOSS_SIGHTING: Readonly<Record<NeighborId, VoiceId>> = {
@@ -116,6 +118,7 @@ export class NightScene implements Scene {
   private readonly logReactions = new LogReactions();
   private readonly impactFeedback: SimEvent[] = [];
   private readonly houseBreaks: HouseBreak[] = [];
+  private hoverFeedDevice: number | null = null;
   private hoverDevice: number | null = null;
 
   private readonly minis = new Map<SectorId, HTMLCanvasElement>();
@@ -128,6 +131,7 @@ export class NightScene implements Scene {
   private energyEl!: HTMLElement;
   private energyFill!: HTMLElement;
   private energyTrace!: HTMLElement;
+  private energyPreview!: HTMLElement;
   private energyShown: number | null = null;
   private tracePeak = 0;
   private trace: Animation | null = null;
@@ -191,7 +195,8 @@ export class NightScene implements Scene {
     this.energyEl = el('span');
     this.energyFill = el('i');
     this.energyTrace = el('i', { class: 'power-trace' });
-    const powerMeter = el('span', { class: 'meter night-power' }, [this.energyFill, this.energyTrace]);
+    this.energyPreview = el('i', { class: 'power-preview' });
+    const powerMeter = el('span', { class: 'meter night-power' }, [this.energyFill, this.energyTrace, this.energyPreview]);
     powerMeter.setAttribute('aria-hidden', 'true');
     this.clockEl = el('span');
     this.pipsEl = el('span', { class: 'pips' });
@@ -378,7 +383,7 @@ export class NightScene implements Scene {
     audio.play('camera');
     this.endCoach('switch');
     this.cam = sector;
-    this.hoverDevice = null;
+    this.hoverFeedDevice = null;
     this.retuneAt = this.time;
     this.layoutMinis();
     this.syncHud(true);
@@ -410,6 +415,7 @@ export class NightScene implements Scene {
     const traps = this.camTraps();
     const rot = this.viewFor(this.cam, MAIN, MAIN_ZOOM).rot;
     const children: HTMLElement[] = traps.map((device, index) => {
+      const draw = powerPercent(DEVICES[device.type].energy);
       const art = deviceArt(device.type, device.facing, 'armed', rot);
       const url = assetUrl(art.key);
       const img = el('img');
@@ -419,8 +425,14 @@ export class NightScene implements Scene {
       const fill = el('span', { class: 'fill' });
       const root = el(
         'button',
-        { class: 'trap', onClick: () => this.fire(device.id), onEnter: () => (this.hoverDevice = device.id), onLeave: () => (this.hoverDevice = null) },
-        [el('span', { class: 'key' }, [el('b', { text: labels[index] ?? '' }), s.device[device.type].name]), img, status, fill],
+        { class: 'trap', onClick: () => this.fire(device.id) },
+        [
+          el('span', { class: 'key' }, [el('b', { text: labels[index] ?? '' }), s.device[device.type].name]),
+          img,
+          status,
+          draw > 0 ? el('span', { class: 'power-cost', text: fmt(s.night.powerCost, { p: draw }) }) : null,
+          fill,
+        ],
       );
       this.trapButtons.set(device.id, { root, status, fill, lastClass: '', lastStatus: '' });
       return root;
@@ -440,8 +452,7 @@ export class NightScene implements Scene {
     const previous = this.energyShown;
     if (previous === energy) return;
     this.energyShown = energy;
-    const percent = (amount: number): number => amount / COMBAT.nightEnergy * 100;
-    const remaining = percent(energy);
+    const remaining = powerPercent(energy);
     this.energyFill.style.width = `${remaining}%`;
     if (previous === null || energy >= previous) return;
 
@@ -450,7 +461,7 @@ export class NightScene implements Scene {
     this.tracePeak = peak;
     this.trace?.cancel();
     this.energyTrace.style.left = `${remaining}%`;
-    this.energyTrace.style.width = `${percent(peak) - remaining}%`;
+    this.energyTrace.style.width = `${powerPercent(peak) - remaining}%`;
     this.trace = this.energyTrace.animate([{ opacity: 0.85 }, { opacity: 0 }], { duration: 360, easing: 'ease-out' });
   }
 
@@ -524,6 +535,16 @@ export class NightScene implements Scene {
       this.trapSignature = signature;
       this.buildTrapBar();
     }
+    this.hoverDevice = this.hoverFeedDevice;
+    for (const [id, button] of this.trapButtons) {
+      if (button.root.matches(':hover')) {
+        this.hoverDevice = id;
+        break;
+      }
+    }
+    const hovered = this.hoverDevice !== null && this.trapButtons.has(this.hoverDevice);
+    const focused = document.activeElement;
+    let previewCost = 0;
     for (const [id, button] of this.trapButtons) {
       const device = sim.device(id);
       if (!device) continue;
@@ -542,6 +563,7 @@ export class NightScene implements Scene {
         status = fmt(s.night.seconds, { s: String(Math.ceil(device.timer)).padStart(2, '0') });
         fill = 1 - device.timer / def.rearmSeconds;
       } else if (sim.energy < def.energy) {
+        cls += ' low-power';
         status = s.night.noEnergy;
       } else if (blind) {
         // The trap still answers; what is under it is anyone's guess.
@@ -557,6 +579,9 @@ export class NightScene implements Scene {
         status = s.night.hand.coming;
       }
       if (this.hoverDevice === id) cls += ' focus';
+      if ((hovered ? this.hoverDevice === id : button.root === focused) && device.state === 'armed' && sim.energy >= def.energy) {
+        previewCost = def.energy;
+      }
       if (button.root.classList.contains('shake')) cls += ' shake';
       if (button.lastClass !== cls) {
         button.root.className = cls;
@@ -568,6 +593,8 @@ export class NightScene implements Scene {
       }
       button.fill.style.width = `${Math.max(0, Math.min(1, fill)) * 100}%`;
     }
+    this.energyPreview.style.left = `${powerPercent(sim.energy - previewCost)}%`;
+    this.energyPreview.style.width = `${powerPercent(previewCost)}%`;
   }
 
   private banner(text: string, kind: '' | 'bad' | 'good' = ''): void {
@@ -699,10 +726,12 @@ export class NightScene implements Scene {
   }
 
   onPointerMove(pointer: Pointer): void {
-    if (this.paused || this.ending || this.isDark(this.cam)) return;
+    if (this.paused || this.ending) return;
+    this.hoverFeedDevice = null;
+    if (!pointer.overCanvas || this.isDark(this.cam)) return;
     const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
     const picked = pickDevice(view, this.deviceVisuals(null).filter((d) => isManual(d.type)), pointer.x, pointer.y);
-    this.hoverDevice = picked?.id ?? null;
+    this.hoverFeedDevice = picked?.id ?? null;
   }
 
   onPointerDown(pointer: Pointer): void {
@@ -840,7 +869,7 @@ export class NightScene implements Scene {
           audio.play('signal_lost');
           this.remark('vo_cam_lost', 60, true);
           this.banner(fmt(s.night.cameraLost, { i: String(SECTOR_IDS.indexOf(event.sector) + 1).padStart(2, '0'), name: s.sector[event.sector] }), 'bad');
-          this.hoverDevice = null;
+          this.hoverFeedDevice = null;
           this.lostAt = this.time;
           this.lastSignalClock = this.cameraTimestamp(this.deskClock());
           this.syncHud(true);
