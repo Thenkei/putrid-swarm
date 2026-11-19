@@ -4341,7 +4341,45 @@ button:disabled {
 }
 
 /* Town searches. Keep the arrival subtitles clear of the working surface. */
-#stage:has(.scavenge) #subtitle { bottom: 16px; }
+#stage:has(.scavenge, .crossbow-modal) #subtitle { bottom: 16px; }
+.equipment-chip {
+  padding: 4px 10px;
+  border: 1px solid #806338;
+  border-radius: 4px;
+  color: #ffd58c;
+}
+.crossbow-reveal {
+  position: relative;
+  display: grid;
+  align-items: end;
+  width: 896px;
+  height: 544px;
+  overflow: hidden;
+  border: 2px solid #786045;
+  border-radius: 6px;
+  background: var(--ink);
+  box-shadow: 0 20px 80px #000;
+}
+.crossbow-art {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.crossbow-caption {
+  position: relative;
+  padding: 88px 36px 26px;
+  background: linear-gradient(transparent, #14100bf5 46%);
+}
+.crossbow-caption h2 { margin: 0; font: bold 44px/1.05 var(--slab-font); }
+.crossbow-caption p { margin: 9px 0 16px; font-size: 21px; }
+.crossbow-caption .crossbow-kicker {
+  margin-bottom: 8px;
+  color: #ffd58c;
+  font-size: 15px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
 .salvage-case {
   display: grid;
   grid-template-columns: 240px 560px;

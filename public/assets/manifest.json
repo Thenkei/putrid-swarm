@@ -2077,5 +2077,10 @@
     "file": "sprites/dev_back_floodlight_broken.webp",
     "w": 191,
     "h": 230
+  },
+  "plate_crossbow": {
+    "file": "plates/plate_crossbow.webp",
+    "w": 1280,
+    "h": 720
   }
 }

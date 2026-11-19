@@ -209,7 +209,7 @@ export function rollDispute(state: GameState, location: LocationDef, neighborAtH
   if (flags[flagToday('dispute', location.id, day)]) return null;
 
   const searched = state.locations[location.id].searched;
-  const open = location.spots.map((spot, index) => ({ spot, index })).filter(({ index }) => !searched.includes(index));
+  const open = location.spots.map((spot, index) => ({ spot, index })).filter(({ spot, index }) => !searched.includes(index) && expectedWorth(spot) > 0);
   if (open.length === 0) return null;
 
   const candidates = RIVAL_IDS.filter((id) => RIVALS[id].fromDay <= day && !flags[flagToday('rival', id, day)]);

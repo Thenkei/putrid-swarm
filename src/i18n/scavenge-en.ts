@@ -5,6 +5,12 @@ export const scavengeEn: typeof scavengeFr = {
   back: 'Leave it', cost: '{h} h per attempt · paid on your first move', target: 'Wanted', loaded: 'Loaded',
   retry: 'Retry · {h} h', spent: 'Attempt lost · {h} h spent.', routeTest: 'Test the route', routeBroken: 'The line breaks before the exit.',
   hideLabels: 'Turn the labels face down', liftWarning: 'Fatal risk · A mistimed pull drops the car on you.',
+  crossbow: {
+    name: 'The Quiet Rider',
+    title: 'Crossbow found',
+    text: 'Two faded wings on the strap. Three bolts in the case. Whoever rode with this liked to travel quiet.',
+    take: 'Stow in the car',
+  },
   scale: 'Pick exactly two tags that add up to the order. Tap a tag again to put it back.',
   pairs: 'Study the labels, then turn them face down. Match all three pairs. One mismatch ends the attempt.', matched: '{n} / 3 pairs', label: 'Label {n}',
   mismatch: 'Those labels were different.',
@@ -29,6 +35,7 @@ export const scavengeEn: typeof scavengeFr = {
       shelves: pairs('Separated at the factory', 'The parts man insists that nothing leaves his shop single. Reunite the labels on three pairs of spares.', ['Piston', 'Gasket', 'Hub']),
       toolchest: circuit('Socket labyrinth', 'Loose elbows from a socket set have wedged the drawer shut. Line them up so the pull rod can pass.'),
       wreck: timing('Going down', 'The lift shudders under the wreck. Two crates are still underneath. Pull each clear while the needle is in the striped band.', 'Pull crate'),
+      crossbow: riddle('The rider’s case', 'Three claim tags hang on the zip. The mechanic’s note reads, “Two wings, no engine.” Which tag opens the case?', ['The swallow', 'The motorbike', 'The spare wheel'], 'Find the one that can fly under its own power.'),
     },
     hardware: {
       timber: scale('Sold by the metre', 'The cutting slip calls for two lengths. Find a pair that fills the order exactly and the timber is yours.', 'm'),

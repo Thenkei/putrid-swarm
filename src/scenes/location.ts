@@ -18,6 +18,7 @@ import { carDeparture, heroArt, costLine, drawPlate, inventoryBar, lootSfx, oneA
 import { EncounterPanel, memoryLine, nameOf, roadPlate } from './encounter';
 import { goAmbush, goEnd, goHomeStretch, goTravel } from './flow';
 import { ScavengePanel } from './scavenge';
+import { hasCrossbow } from '../core/crossbow';
 
 const SEARCH_DUST_SECONDS = 0.78;
 
@@ -83,6 +84,7 @@ export class LocationScene implements Scene {
       el('span', { class: 'meter' }, [el('i', { style: { width: `${(state.hoursLeft / DAY_HOURS) * 100}%` } })]),
       el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { h: hours(state.hoursLeft) }) }),
       el('span', { class: 'grow' }),
+      hasCrossbow(state) ? el('span', { class: 'equipment-chip', text: s.scavenge.crossbow.name }) : null,
       el('span', { class: 'muted', text: s.loc.trunk }),
       state.outing ? inventoryBar(state.outing.trunk) : null,
     ]);
@@ -252,6 +254,7 @@ export class LocationScene implements Scene {
   }
 
   private collect(result: SearchOutcome, at: { x: number; y: number }): void {
+    const foundCrossbow = !hasCrossbow(this.state) && hasCrossbow(result.state);
     audio.play('rummage');
     const found = lootSfx(result.loot);
     if (found) window.setTimeout(() => audio.play(found), 380);
@@ -259,9 +262,50 @@ export class LocationScene implements Scene {
     this.app.save();
     this.refresh();
     if (!calmMotion()) this.searchDust = { ...at, age: 0 };
+    if (foundCrossbow) {
+      this.revealCrossbow();
+      return;
+    }
     const pop = el('div', { class: 'loot-pop', style: { left: `${at.x}px`, top: `${at.y - 34}px` } }, [costLine(result.loot, undefined, '+')]);
     this.hud.append(pop);
     window.setTimeout(() => pop.remove(), 1900);
+  }
+
+  private revealCrossbow(): void {
+    const s = S().scavenge.crossbow;
+    const art = assetUrl('plate_crossbow');
+    const close = el('button', { class: 'btn btn-primary', text: s.take, onClick: () => {
+      audio.play('click');
+      reveal.remove();
+      this.hud.inert = false;
+      this.hud.querySelector<HTMLButtonElement>('.loc-leave button')?.focus();
+    } });
+    const panel = el('div', { class: 'crossbow-reveal' }, [
+      art ? el('img', { class: 'crossbow-art' }) : null,
+      el('div', { class: 'crossbow-caption' }, [
+        el('p', { class: 'crossbow-kicker', text: s.title }),
+        el('h2', { text: s.name }),
+        el('p', { text: s.text }),
+        close,
+      ]),
+    ]);
+    const img = panel.querySelector('img');
+    if (img && art) {
+      img.src = art;
+      img.alt = '';
+    }
+    const reveal = el('div', { class: 'modal crossbow-modal' }, [panel]);
+    reveal.setAttribute('role', 'dialog');
+    reveal.setAttribute('aria-modal', 'true');
+    reveal.setAttribute('aria-label', s.title);
+    reveal.addEventListener('keydown', event => {
+      if (event.code === 'Escape') close.click();
+      if (event.code === 'Tab') event.preventDefault();
+    });
+    this.hud.inert = true;
+    this.overlay.append(reveal);
+    audio.play('loot');
+    close.focus();
   }
 
   private leave(): void {
