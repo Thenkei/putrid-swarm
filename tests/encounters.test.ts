@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { LOCATIONS } from '../src/core/data/locations';
+import { HARDWARE_SPRING_BIN, LOCATIONS } from '../src/core/data/locations';
 import { ENCOUNTER, WASHERS } from '../src/core/data/rivals';
 import { NO_STOCK, act, choicesOf, fightHours, greetingOf, seize, splitLot, units, washerScore, type Action, type Step } from '../src/core/encounters';
-import { arriveHome, leaveLocation, newGame, searchSpot, startNextDay, travelTo } from '../src/core/game';
+import { arriveHome, leaveLocation, newGame, searchSpot, startNextDay, takeSpringReceipt, travelTo } from '../src/core/game';
 import { deserialize, serialize } from '../src/core/save';
 import type { Ambush, Dispute, Fight, GameState, Inventory, Stance } from '../src/core/types';
 import { RESOURCE_IDS } from '../src/core/types';
@@ -92,6 +92,51 @@ describe('lots', () => {
 });
 
 describe('meeting someone at a lot', () => {
+  it('lets the player keep the wire once and follow the marked springs to the dealer', () => {
+    const first = unwrap(travelTo(newGame(7), 'hardware')).state;
+    const searched = unwrap(searchSpot(first, 0)).state;
+    const home = unwrap(arriveHome(unwrap(leaveLocation(searched)).state)).state;
+    const dayTwo = startNextDay({ ...home, phase: 'morning', rng: 7, flags: { disputes: 1 } });
+    const shop = unwrap(travelTo(dayTwo, 'hardware')).state;
+    expect(shop.locations.hardware.looted).toEqual([HARDWARE_SPRING_BIN]);
+    expect(shop.springReceipt).toBe('left');
+    expect(trunkOf(shop)).toEqual(NO_STOCK);
+
+    const savedShop = deserialize(serialize(shop))!;
+    const receipt = takeSpringReceipt(savedShop);
+    expect(receipt.springReceipt).toBe('held');
+    expect(trunkOf(receipt)).toEqual(stock({ wire: 1 }));
+    expect(receipt.hoursLeft).toBe(shop.hoursLeft);
+    expect(takeSpringReceipt(deserialize(serialize(receipt))!)).toEqual(receipt);
+    const unloaded = unwrap(arriveHome(unwrap(leaveLocation(receipt)).state));
+    expect(unloaded.brought).toEqual(stock({ wire: 1 }));
+
+    // Seed 4 would miss a normal repeat encounter. The receipt brings up the dealer.
+    const nextTrip = { ...unloaded.state, rng: 4 };
+    expect(unwrap(travelTo({ ...nextTrip, springReceipt: 'none' }, 'grocery')).state.encounter).toBeNull();
+    const market = unwrap(travelTo(nextTrip, 'grocery')).state;
+    expect(market.encounter).toMatchObject({ kind: 'dispute', rival: 'dealer', stage: 'open' });
+    expect(choicesOf(market).some((choice) => choice.id === 'showReceipt')).toBe(true);
+    expect(fail(act({ ...market, springReceipt: 'none' }, { type: 'showReceipt' }))).toBe('not_offered');
+
+    const leftUnshown = unwrap(arriveHome(unwrap(leaveLocation(market)).state)).state;
+    const later = startNextDay({ ...leftUnshown, phase: 'morning', rng: 4 });
+    expect(later.springReceipt).toBe('held');
+    expect(unwrap(travelTo(later, 'grocery')).state.encounter).toBeNull();
+    const ordinaryMeeting = unwrap(travelTo({ ...later, rng: 7 }, 'grocery')).state;
+    expect(ordinaryMeeting.encounter).toMatchObject({ kind: 'dispute', rival: 'dealer' });
+    expect(choicesOf(ordinaryMeeting).some((choice) => choice.id === 'showReceipt')).toBe(true);
+
+    const { state: answered, resolution } = unwrap(act(market, { type: 'showReceipt' }));
+    expect(resolution).toBeNull();
+    expect(answered).toMatchObject({ springReceipt: 'answered', encounter: { ...market.encounter, receiptAnswered: true } });
+    expect(answered.outing).toBe(market.outing);
+    expect(answered.hoursLeft).toBe(market.hoursLeft);
+    expect(deserialize(serialize(answered))).toEqual(answered);
+    expect(fail(act(answered, { type: 'showReceipt' }))).toBe('not_offered');
+    expect(act(answered, { type: 'share' }).ok).toBe(true);
+  });
+
   it('lets the first rummage go undisturbed, then puts the dealer on the best lot left', () => {
     const first = unwrap(travelTo(newGame(1), 'hardware')).state;
     expect(first.encounter).toBeNull();

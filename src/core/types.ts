@@ -147,6 +147,9 @@ export interface LocationProgress {
   readonly visits: number;
 }
 
+/** The note left in the hardware shop, taken along, then shown to the dealer. */
+export type SpringReceipt = 'none' | 'left' | 'held' | 'answered';
+
 // ───────────────────────────── Outings and encounters ─────────────────────────────
 
 /** How a survivor stands with the player. One favour is owed at most, and a grudge is not a score. */
@@ -198,6 +201,7 @@ export interface Dispute {
   readonly yields: boolean;
   /** Whether they will settle it with washers. */
   readonly plays: boolean;
+  readonly receiptAnswered?: true;
   /** `refused`: a threat was made and did not work. */
   readonly stage: 'open' | 'refused' | 'game' | 'fight';
   readonly game: WasherGame;
@@ -316,6 +320,7 @@ export interface GameState {
   readonly people: Readonly<Partial<Record<RivalId, Acquaintance>>>;
   readonly yard: YardState;
   readonly locations: Readonly<Record<LocationId, LocationProgress>>;
+  readonly springReceipt: SpringReceipt;
   readonly flags: Readonly<Record<string, number>>;
   readonly lastNight: NightReport | null;
   readonly orchard: OrchardChapter;

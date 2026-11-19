@@ -281,6 +281,17 @@ export const fr = {
     stayHome: 'Rester au refuge',
   },
   scavenge: scavengeFr,
+  springReceipt: {
+    found: 'Un reçu laissé ici',
+    title: 'Un reçu manuscrit',
+    note: 'Ressorts marqués en rouge prélevés. Un rouleau de fil laissé en échange. Toute réclamation doit être déposée en mairie.',
+    reaction: '« Même à la fin du monde, ils ont réussi à en faire un formulaire. »',
+    take: 'Prendre le fil et le reçu',
+    leave: 'Les laisser ici',
+    show: 'Montrer le reçu',
+    clue: 'Deux ressorts dans son sac portent une trace de peinture rouge. Comme sur le reçu.',
+    answer: '« Le Campeur. Il me les a échangés contre une pile. Il m’a même demandé de signer. »',
+  },
   loc: {
     search: 'Fouiller · {h} h',
     searched: 'Déjà fouillé',

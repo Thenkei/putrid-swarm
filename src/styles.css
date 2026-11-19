@@ -1369,6 +1369,29 @@ button:disabled {
   color: #ffc0aa;
 }
 
+.spot.has-receipt .tag small {
+  color: #ffd58c;
+}
+
+.spring-receipt {
+  width: 560px;
+  padding: 18px 22px;
+}
+
+.spring-receipt h2 {
+  font-size: 30px;
+}
+
+.spring-receipt blockquote {
+  margin: 12px 0;
+  padding: 14px 16px;
+  background: #ede0bf;
+  border: 1px solid #ab9164;
+  color: #3d2d1d;
+  font-family: var(--slab-font);
+  line-height: 1.45;
+}
+
 .spot.blocked .ring {
   border-color: #a2382a;
   animation: none;
