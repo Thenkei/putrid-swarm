@@ -2,6 +2,25 @@ import { describe, expect, it } from 'vitest';
 import { GATE_HALF_ANGLE, Padlock } from '../src/core/padlock';
 import { createRng } from '../src/core/rng';
 import { circuitTiles, traceCircuit } from '../src/core/scavenge';
+import { hasCrossbow } from '../src/core/crossbow';
+import { LOCATIONS } from '../src/core/data/locations';
+import { newGame, prepareSearch, travelTo } from '../src/core/game';
+import { deserialize, serialize } from '../src/core/save';
+
+it('grants the garage crossbow once, only on a successful search, and keeps it across a reload', () => {
+  const visit = travelTo(newGame(12), 'garage');
+  if (!visit.ok) throw new Error('Garage is reachable on day one');
+  const garage = visit.value.state;
+  const index = LOCATIONS.garage.spots.findIndex(spot => spot.key === 'crossbow');
+  const attempt = prepareSearch(garage, index);
+  if (!attempt.ok) throw new Error('The canvas case is searchable');
+  expect(hasCrossbow(garage)).toBe(false);
+  expect(hasCrossbow(attempt.value.failure)).toBe(false);
+  expect(attempt.value.success.loot).toEqual({});
+  const loaded = deserialize(serialize(attempt.value.success.state))!;
+  expect(hasCrossbow(loaded)).toBe(true);
+  expect(prepareSearch(loaded, index)).toMatchObject({ ok: false, error: { code: 'already_searched' } });
+});
 
 describe('salvage circuits', () => {
   it('only powers pieces joined to the inlet and stops at a broken connection', () => {

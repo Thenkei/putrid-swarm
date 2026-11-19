@@ -72,6 +72,7 @@ const destinations = {
       { key: 'shelves', x: 0.88, y: 0.31, loot: { scrap: [4, 5], springs: [1, 1] } },
       { key: 'toolchest', x: 0.83, y: 0.44, loot: { springs: [2, 3], scrap: [3, 3] } },
       { key: 'wreck', fatalMiss: 'lift', x: 0.6, y: 0.5, loot: { battery: [1, 1], springs: [3, 3] } },
+      { key: 'crossbow', x: 0.36, y: 0.55, loot: {} },
     ],
   },
   hardware: {

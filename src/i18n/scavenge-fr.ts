@@ -4,6 +4,12 @@ export const scavengeFr = {
   back: 'Laisser tomber', cost: '{h} h par tentative · dès le premier geste', target: 'Commande', loaded: 'Charge',
   retry: 'Réessayer · {h} h', spent: 'Tentative ratée · {h} h dépensée.', routeTest: 'Tester le passage', routeBroken: 'Le passage est coupé avant la sortie.',
   hideLabels: 'Retourner les étiquettes', liftWarning: 'Danger mortel · Si vous tirez au mauvais moment, la voiture vous tombe dessus.',
+  crossbow: {
+    name: 'Le Motard silencieux',
+    title: 'Arbalète trouvée',
+    text: 'Deux ailes délavées sur la sangle. Trois carreaux dans la housse. Celui qui roulait avec aimait passer sans bruit.',
+    take: 'Ranger dans le break',
+  },
   scale: 'Choisissez deux étiquettes dont la somme correspond à la commande. Retouchez une étiquette pour la reposer.',
   pairs: 'Mémorisez les étiquettes, puis retournez-les. Retrouvez les trois paires. Une erreur met fin à la tentative.', matched: '{n} / 3 paires', label: 'Étiquette {n}',
   mismatch: 'Les deux étiquettes étaient différentes.',
@@ -28,6 +34,7 @@ export const scavengeFr = {
       shelves: pairs('Séparés à l’usine', 'Le magasinier refuse de laisser partir une pièce célibataire. Rassemblez les étiquettes de trois paires.', ['Piston', 'Joint', 'Moyeu']),
       toolchest: circuit('Le dédale à douilles', 'Des coudes de clé à douille coincent le tiroir. Alignez-les pour laisser passer la tige de la poignée.'),
       wreck: timing('Fin de course', 'Le pont tremble sous l’épave. Deux caisses sont restées dessous. Tirez-les une à une quand l’aiguille passe dans la bande hachurée.', 'Tirer la caisse'),
+      crossbow: riddle('La housse du motard', 'Trois étiquettes pendent à la fermeture. Le mécano a griffonné « Deux ailes, pas de moteur ». Laquelle ouvre la housse ?', ['L’hirondelle', 'La moto', 'La roue de secours'], 'Cherchez ce qui peut voler tout seul.'),
     },
     hardware: {
       timber: scale('Vendu au mètre', 'Le bon de coupe réclame deux longueurs. Trouvez la paire qui remplit la commande au mètre près.', 'm'),
