@@ -20,6 +20,7 @@ import { BrushPassage } from '../render/brush';
 import { DefenseMotion, deviceArt, floodlightEmitter } from '../render/defenses';
 import { THRESHOLDS, doorStance, houseDamageStage } from '../render/house';
 import { HOUSE_BREAK_SECONDS, type HouseBreak } from '../render/house-debris';
+import { drawRetune } from '../render/lighting';
 import { LogReactions } from '../render/log-sweep';
 import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
 import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
@@ -108,6 +109,7 @@ export class NightScene implements Scene {
   private speed = 1;
   private ending: { survived: boolean; t: number } | null = null;
   private flash = 0;
+  private retuneAt = -Infinity;
   private readonly particles: Particle[] = [];
   private readonly fallen: Fallen[] = [];
   private readonly logReactions = new LogReactions();
@@ -356,7 +358,7 @@ export class NightScene implements Scene {
     this.endCoach('switch');
     this.cam = sector;
     this.hoverDevice = null;
-    this.flash = Math.max(this.flash, 0.12);
+    this.retuneAt = this.time;
     this.layoutMinis();
     this.syncHud(true);
   }
@@ -1011,6 +1013,7 @@ export class NightScene implements Scene {
       drawWorld(ctx, view, frame);
       applyNight(ctx, view, this.lights(view.rot), frame.time);
       applyCctv(ctx, view, frame.time, 0.85);
+      drawRetune(ctx, view, this.time - this.retuneAt);
     }
 
     if (this.flash > 0) {

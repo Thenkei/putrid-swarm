@@ -318,3 +318,24 @@ export function applyCctv(ctx: CanvasRenderingContext2D, view: View, time: numbe
   ctx.fillRect(view.x, view.y, view.w, view.h);
   ctx.restore();
 }
+
+/** One roll as the monitor locks onto the new feed. The picture underneath is already live. */
+export function drawRetune(ctx: CanvasRenderingContext2D, view: View, age: number): void {
+  const duration = 0.2;
+  if (age < 0 || age >= duration || calmMotion()) return;
+  const thickness = 58;
+  const y = view.y - thickness + (view.h + thickness * 2) * age / duration;
+  const top = Math.max(view.y, y - thickness);
+  const bottom = Math.min(view.y + view.h, y + thickness);
+  if (bottom <= top) return;
+  const band = ctx.createLinearGradient(0, y - thickness, 0, y + thickness);
+  band.addColorStop(0, 'transparent');
+  band.addColorStop(0.47, 'rgba(7,15,20,0.42)');
+  band.addColorStop(0.52, 'rgba(135,168,166,0.26)');
+  band.addColorStop(0.61, 'rgba(7,15,20,0.36)');
+  band.addColorStop(1, 'transparent');
+  ctx.save();
+  ctx.fillStyle = band;
+  ctx.fillRect(view.x, top, view.w, bottom - top);
+  ctx.restore();
+}
