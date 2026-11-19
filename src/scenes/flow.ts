@@ -14,6 +14,7 @@ import { DayScene, type DayOptions } from './day';
 import { EndScene, type EndOptions } from './end';
 import { FinaleScene, type FinaleOptions } from './finale';
 import { AmbushScene } from './encounter';
+import { CrossbowRoadScene } from './crossbow-road';
 import { LocationScene } from './location';
 import { MapScene } from './map';
 import { MorningScene } from './morning';
@@ -71,6 +72,10 @@ export function goHomeStretch(app: App, sub = ''): void {
     goDay(app);
     return;
   }
+  if (outing.crossbowStop) {
+    app.go(() => new CrossbowRoadScene(app, sub));
+    return;
+  }
   const s = S();
   const buildable = affordableDevices(state.inventory, outing.trunk, state.hoursLeft).map((type) => s.device[type].name);
   goTravel(app, {
@@ -91,7 +96,11 @@ export function resumeGame(app: App, state: GameState): void {
     case 'day':
       if (state.where === 'home') goDay(app);
       // A save made on the road: whoever barred it is still there; otherwise the drive is simply over.
-      else if (state.where === 'road') state.encounter ? goAmbush(app) : unload(app);
+      else if (state.where === 'road') {
+        if (state.encounter) goAmbush(app);
+        else if (state.outing?.crossbowStop) goHomeStretch(app);
+        else unload(app);
+      }
       else goLocation(app, state.where, null);
       break;
     case 'morning':

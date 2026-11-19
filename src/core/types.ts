@@ -258,6 +258,8 @@ export interface Outing {
   /** Whether an encounter with something at stake was already met on this trip. */
   readonly major: boolean;
   readonly marks: readonly OutingMark[];
+  /** The last stretch is blocked by infected and must be played before unloading. */
+  readonly crossbowStop?: true;
 }
 
 // ───────────────────────────── The orchard ─────────────────────────────

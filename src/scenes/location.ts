@@ -19,6 +19,7 @@ import { EncounterPanel, memoryLine, nameOf, roadPlate } from './encounter';
 import { goAmbush, goEnd, goHomeStretch, goTravel } from './flow';
 import { ScavengePanel } from './scavenge';
 import { hasCrossbow } from '../core/crossbow';
+import { shouldStopAtDusk } from '../core/crossbow-road';
 
 const SEARCH_DUST_SECONDS = 0.78;
 
@@ -147,8 +148,12 @@ export class LocationScene implements Scene {
       }),
     ]);
     // Driving off leaves the lot to whoever is standing on it: said on the button, not after the fact.
-    const leaveNote = dispute ? `${fmt(s.loc.leaveCost, { h: hours(location.travelHours) })} · ${fmt(s.encounter.leaveKeeps, { name: nameOf(dispute.rival) })}` : fmt(s.loc.leaveCost, { h: hours(location.travelHours) });
-    const leave = el('div', { class: 'loc-leave' }, [el('button', { class: 'btn btn-primary', onClick: () => this.leave() }, [s.loc.leave, el('small', { text: leaveNote })])]);
+    const drive = fmt(s.loc.leaveCost, { h: hours(location.travelHours) });
+    const leaveNote = dispute ? `${drive} · ${fmt(s.encounter.leaveKeeps, { name: nameOf(dispute.rival) })}` : drive;
+    const dusk = shouldStopAtDusk(state, state.hoursLeft - location.travelHours);
+    const leave = el('div', { class: 'loc-leave' }, [el('button', { class: 'btn btn-primary', onClick: () => this.leave() }, [
+      s.loc.leave, el('small', { text: leaveNote }), dusk ? el('small', { class: 'road-warning', text: s.crossbowRoad.warning }) : null,
+    ])]);
 
     this.hud.replaceChildren(topbar, stash, ...spots, title, leave);
   }
