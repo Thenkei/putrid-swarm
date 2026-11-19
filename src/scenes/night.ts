@@ -139,6 +139,9 @@ export class NightScene implements Scene {
   private pipsEl!: HTMLElement;
   private camLabel!: HTMLElement;
   private camClock!: HTMLElement;
+  private camDoor!: HTMLElement;
+  private camDoorStatus!: HTMLElement;
+  private camDoorFill!: HTMLElement;
   private camFrame!: HTMLElement;
   private lastSignalClock: string | null = null;
   private trapBar!: HTMLElement;
@@ -216,9 +219,15 @@ export class NightScene implements Scene {
 
     this.camLabel = el('span');
     this.camClock = el('div', { class: 'cam-clock' });
+    this.camDoorStatus = el('span');
+    this.camDoorFill = el('i');
+    const camDoorMeter = el('span', { class: 'door-bar' }, [this.camDoorFill]);
+    camDoorMeter.setAttribute('aria-hidden', 'true');
+    this.camDoor = el('div', { class: 'cam-door' }, [this.camDoorStatus, camDoorMeter]);
     this.camFrame = el('div', { class: 'cam-frame', style: { left: `${MAIN.x - 3}px`, top: `${MAIN.y - 3}px`, width: `${MAIN.w + 6}px`, height: `${MAIN.h + 6}px` } }, [
       el('div', { class: 'cam-label' }, [el('span', { class: 'rec' }), this.camLabel]),
       this.camClock,
+      this.camDoor,
     ]);
 
     const minis: HTMLElement[] = [];
@@ -513,6 +522,16 @@ export class NightScene implements Scene {
     setText(this.alertButton, `${s.night.space} · ${alertText}`);
 
     for (const { sector, threat, doorRatio: ratio, dark, cue } of cameras) {
+      if (sector === this.cam) {
+        const percent = Math.ceil(ratio * 100);
+        setText(this.camDoorStatus, threat.breached ? s.night.doorOpen : fmt(s.night.doorCondition, { p: percent }));
+        this.camDoor.classList.toggle('critical', ratio <= 0.25);
+        this.camDoor.classList.toggle('breached', threat.breached);
+        this.camDoorFill.style.width = `${ratio * 100}%`;
+        const hitAt = this.defenseMotion.at(sector)?.hitAt ?? -Infinity;
+        const impact = Math.max(0, 1 - (sim.time - hitAt) / 0.3);
+        this.camDoor.style.setProperty('--door-impact', String(impact));
+      }
       const mini = this.miniEls.get(sector)!;
       const danger = dark ? threat.atDoor > 0 : threat.atDoor > 0 || threat.boss !== null || (threat.breached && threat.count > 0);
       const cls = `mini ${danger ? 'danger' : !dark && threat.count > 0 ? 'alert' : ''}${cue ? ' cue' : ''}${alert?.sector === sector ? ' priority' : ''}${dark ? ' dark' : ''}${lookAwaited === sector ? ' queued' : ''}`;

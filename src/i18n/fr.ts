@@ -285,6 +285,8 @@ export const fr = {
     wave: 'Vague {i} / {n}',
     energy: 'Énergie {p} %',
     powerCost: '−{p} %',
+    doorCondition: 'Barricade {p} %',
+    doorOpen: 'Barricade cédée',
     cam: 'CAM {i} · {name}',
     cameras: '1-4 · Caméras',
     space: 'Espace',

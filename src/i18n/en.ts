@@ -283,6 +283,8 @@ export const en: Strings = {
     wave: 'Wave {i} / {n}',
     energy: 'Power {p}%',
     powerCost: '−{p}%',
+    doorCondition: 'Barricade {p}%',
+    doorOpen: 'Barricade breached',
     cam: 'CAM {i} · {name}',
     cameras: '1-4 · Cameras',
     space: 'Space',
