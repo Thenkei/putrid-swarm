@@ -84,6 +84,8 @@ export interface WorldFrame {
   readonly houseHpRatio: number;
   readonly houseBreaks?: readonly HouseBreak[];
   readonly carPresent: boolean;
+  /** Seconds since the car shut off after returning from an outing. */
+  readonly exhaustAge?: number;
   readonly sceneryAction?: SceneryAction | null;
   readonly devices: readonly DeviceVisual[];
   readonly defenseMotion?: DefenseMotion;
@@ -512,6 +514,9 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       draw: () => {
         const drawn = drawSprite(ctx, key, p.x, p.y, art.h * z, false, opacity, lean, foot);
         if (!drawn) placeholder(ctx, p.x, p.y, 40 * z, 40 * z, '#5a6a4a', prop.kind);
+        if (drawn && prop.kind === 'car' && frame.exhaustAge !== undefined) {
+          drawExhaust(ctx, drawn, view.rot, z, frame.exhaustAge);
+        }
         const action = frame.sceneryAction;
         if (drawn && action?.kind === prop.kind) {
           ctx.save();
@@ -633,6 +638,26 @@ function softPuff(): HTMLCanvasElement {
     pctx.fillRect(0, 0, 64, 64);
   }
   return puff;
+}
+
+function drawExhaust(ctx: CanvasRenderingContext2D, car: { x: number; y: number; w: number; h: number }, rot: Rot, zoom: number, age: number): void {
+  if (age < 0 || age >= 1.55 || calmMotion()) return;
+  const direction = rot === 0 ? 1 : -1;
+  const x = car.x + car.w * (rot === 0 ? 0.97 : 0.12);
+  const y = car.y + car.h * (rot === 0 ? 0.49 : 0.91);
+  const blob = softPuff();
+  ctx.save();
+  const opacity = ctx.globalAlpha;
+  for (let i = 0; i < 3; i++) {
+    const t = (age + 0.12 - i * 0.14) / 1.25;
+    if (t <= 0 || t >= 1) continue;
+    const size = (4 + 13 * t) * zoom;
+    const px = x + direction * (6 + 25 * t) * zoom;
+    const py = y - (4 * t + 17 * t * t) * zoom;
+    ctx.globalAlpha = opacity * smoothstep(0, 0.16, t) * (1 - t) ** 1.45 * 0.74;
+    ctx.drawImage(blob, px - size, py - size * 0.8, size * 2, size * 1.6);
+  }
+  ctx.restore();
 }
 
 const SMOKE_PUFFS = 7;

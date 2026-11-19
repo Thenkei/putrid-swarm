@@ -116,6 +116,11 @@ export function yardErrorText(error: YardError): string {
   }
 }
 
+export interface DayOptions {
+  readonly reveal?: boolean;
+  readonly arrivedByCar?: boolean;
+}
+
 export class DayScene implements Scene {
   private rot: Rot = 0;
   private zoom = 0.69;
@@ -160,7 +165,7 @@ export class DayScene implements Scene {
 
   constructor(
     private readonly app: App,
-    options: { reveal?: boolean } = {},
+    private readonly options: DayOptions = {},
   ) {
     this.reveal = options.reveal ? 2.8 : 0;
   }
@@ -846,6 +851,7 @@ export class DayScene implements Scene {
       time: this.time,
       night: false,
       carPresent: true,
+      ...(this.options.arrivedByCar && { exhaustAge: this.time }),
       sceneryAction: this.sceneryAction,
       devices,
       barricades: state.yard.barricades,
