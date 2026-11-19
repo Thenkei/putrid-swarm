@@ -44,7 +44,7 @@ import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { sayAny, sayOnce } from '../engine/voice';
-import { applyDaylight, cameraView, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, WELL_CLINK_AT, type DeviceVisual, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
+import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
 import { deviceArt } from '../render/defenses';
 import { calmMotion } from '../render/lighting';
 import { VISIBLE_DOORS } from '../render/house';
@@ -76,13 +76,7 @@ const panLimit = (value: number, size: number): number => Math.min(size - PAN_IN
 /** How close a predicted route must pass for a device there to do anything. A barrier only holds what walks into it. */
 const coverReach = (type: DeviceTypeId): number => (type === 'barrier' ? 0.5 : DEVICES[type].reach);
 
-function dayDeviceVisual(d: DeviceInstance, highlight = false, silent = false): DeviceVisual {
-  return {
-    id: d.id, type: d.type, x: d.x, y: d.y, facing: d.facing,
-    state: d.broken ? 'broken' : 'idle', hpRatio: d.hp / DEVICES[d.type].maxHp, highlight, silent,
-  };
-}
-
+/** Where the infected are predicted to walk: sample routes to draw, and every cell stepped on per door. */
 interface RouteOverlay {
   readonly routes: Cell[][];
   /** How many of the predicted routes step on each cell: the worn ground the overlay paints. */

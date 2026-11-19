@@ -5,18 +5,49 @@ import { describe, expect, it } from 'vitest';
 import sharp from 'sharp';
 import { newGame } from '../src/core/game';
 import { NightSim } from '../src/core/night';
-import { GRID_H, GRID_W, HOUSE, HOUSE_CENTER, LANES, PROPS, SPAWN_CELLS } from '../src/core/map';
+import { GRID_H, GRID_W, HOUSE, HOUSE_CENTER, LANES, PARKED_CAR, PROPS, SPAWN_CELLS } from '../src/core/map';
 import { DEVICE_TYPE_IDS, SECTOR_IDS } from '../src/core/types';
+import { carManeuver } from '../src/render/car-departure';
 import { deviceArt, floodlightEmitter } from '../src/render/defenses';
 import { fbm, hash2, periodicFbm, seeded, smoothstep, valueNoise } from '../src/render/noise';
 import { cameraView, depthOf, groundMatrix, project, unproject, viewBounds, type Rot, type View } from '../src/render/projection';
 import { TREES, TREE_ROWS, treesIn } from '../src/render/scenery';
-import { FIELD_MARGIN, GROUND_TERRAINS, buildTerrainField, groundTerrainAt, layerAlpha, onTrack, vergeCover, weightAt } from '../src/render/terrainfield';
+import { FIELD_MARGIN, GROUND_TERRAINS, buildTerrainField, groundTerrainAt, layerAlpha, onTrack, roadCentre, vergeCover, weightAt } from '../src/render/terrainfield';
 import { pickDoor, propSpriteKey } from '../src/render/world';
 import { DOOR_OPENINGS, VISIBLE_DOORS, THRESHOLDS, doorStance } from '../src/render/house';
 import { HOUSE_PAINT_SCALE, PROP_FEET, houseOffset, propRoot, spriteRect } from '../src/render/registration';
 
 const view = (rot: Rot, zoom = 1, cx = 11, cy = 11): View => ({ rot, zoom, cx, cy, x: 292, y: 56, w: 976, h: 652 });
+
+describe('departure maneuver', () => {
+  it('reverses clear of the parking spot and pauses before making the left-hand turn', () => {
+    const parked = carManeuver(0);
+    expect(parked.position).toEqual({ x: PARKED_CAR.x + PARKED_CAR.w / 2, y: PARKED_CAR.y + PARKED_CAR.h / 2 });
+    const reverse = carManeuver(0.5);
+    expect(reverse.position.y).toBeLessThan(parked.position.y);
+    expect(reverse.yaw).toBeLessThan(parked.yaw);
+    const shifted = carManeuver(1.2);
+    expect(shifted).toEqual(carManeuver(1.15));
+    const moving = carManeuver(1.85);
+    expect(moving.position.x).toBeGreaterThan(shifted.position.x);
+    expect(moving.position.y).toBeGreaterThan(shifted.position.y);
+    expect(moving.yaw).toBeLessThan(shifted.yaw);
+  });
+
+  it('stays on gravel and follows the barn road past the tree line', () => {
+    for (let frame = 0; frame <= 240; frame++) {
+      const { position: { x, y } } = carManeuver(frame / 60);
+      expect(groundTerrainAt(x, y)).toBe('gravel');
+    }
+    const road = carManeuver(2.6);
+    const outside = carManeuver(4);
+    expect(road.position.y).toBe(roadCentre('barn', road.position.x));
+    expect(road.yaw).toBeCloseTo(-Math.PI / 2);
+    expect(outside.position.x).toBeGreaterThan(GRID_W);
+    expect(outside.position.y).toBe(roadCentre('barn', outside.position.x));
+    expect(onTrack(outside.position.x, outside.position.y)).toBe(true);
+  });
+});
 
 describe('noise', () => {
   it('gives the same value for the same place, within 0..1', () => {

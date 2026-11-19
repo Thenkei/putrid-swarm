@@ -4,7 +4,7 @@
 import { BARRICADE, DEVICES } from '../core/data/devices';
 import { ENTRIES, GRID_H, GRID_W, HOUSE_CENTER, PROPS, propAt, sectorOf, type PropKind } from '../core/map';
 import type { DeviceRuntimeState, Enemy, LogTarget } from '../core/night';
-import type { Cell, Decal, DeviceTypeId, Facing, SectorId } from '../core/types';
+import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { sprite } from '../engine/assets';
 import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseMotion, type LogLayer } from './defenses';
@@ -22,6 +22,7 @@ import { drawStand, prepareForest, projectStand } from './forest';
 import { windAt } from './wind';
 import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
+import { drawDepartingCar, type DepartingCar } from './car-departure';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
 export { applyCctv, applyDaylight, applyNight, type Light } from './lighting';
@@ -47,6 +48,13 @@ export interface DeviceVisual {
   readonly cue?: boolean;
   /** By day: a working trap that never went off last night. Marked, so the yard says which ones to move. */
   readonly silent?: boolean;
+}
+
+export function dayDeviceVisual(d: DeviceInstance, highlight = false, silent = false): DeviceVisual {
+  return {
+    id: d.id, type: d.type, x: d.x, y: d.y, facing: d.facing,
+    state: d.broken ? 'broken' : 'idle', hpRatio: d.hp / DEVICES[d.type].maxHp, highlight, silent,
+  };
 }
 
 export interface Particle {
@@ -84,6 +92,7 @@ export interface WorldFrame {
   readonly houseHpRatio: number;
   readonly houseBreaks?: readonly HouseBreak[];
   readonly carPresent: boolean;
+  readonly departingCar?: DepartingCar;
   /** Seconds since the car shut off after returning from an outing. */
   readonly exhaustAge?: number;
   readonly sceneryAction?: SceneryAction | null;
@@ -502,11 +511,14 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   // Scenery.
   for (const prop of PROPS) {
     if (prop.kind === 'car' && !frame.carPresent) continue;
+    const departure = prop.kind === 'car' ? frame.departingCar : undefined;
     const art = PROP_ART[prop.kind];
-    const p = propRoot(view, prop);
+    const gx = departure?.position.x ?? prop.x + prop.w / 2;
+    const gy = departure?.position.y ?? prop.y + prop.h / 2;
+    const p = project(view, gx, gy);
     const foot = PROP_FEET[prop.kind][view.rot];
     const key = propSpriteKey(prop.kind, view.rot);
-    const centreDepth = depthOf(view.rot, prop.x + prop.w / 2, prop.y + prop.h / 2) + 0.4;
+    const centreDepth = depthOf(view.rot, gx, gy) + 0.4;
     const lean = SWAYS.has(prop.kind) ? windAt(frame.time, prop.x, prop.y, hash2(prop.x, prop.y, 3), view.rot) * (prop.kind === 'bush' ? 0.092 : 0.035) : 0;
     let opacity = 1;
     if (SWAYS.has(prop.kind) && sightlines.length) {
@@ -517,6 +529,10 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     drawables.push({
       depth: centreDepth,
       draw: () => {
+        if (departure) {
+          drawDepartingCar(ctx, departure, p, art.h * z);
+          return;
+        }
         const drawn = drawSprite(ctx, key, p.x, p.y, art.h * z, false, opacity, lean, foot);
         if (!drawn) placeholder(ctx, p.x, p.y, 40 * z, 40 * z, '#5a6a4a', prop.kind);
         if (drawn && prop.kind === 'car' && frame.exhaustAge !== undefined) {
@@ -535,7 +551,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     // The car comes and goes; everything else that is fixed has its shadow in the ground already.
     if (prop.kind === 'car') {
       const ground = PROP_SHADOW.car;
-      contacts.push({ gx: prop.x + prop.w / 2, gy: prop.y + prop.h / 2, rx: ground.rx, ry: ground.ry, alpha: ground.contact });
+      contacts.push({ gx, gy, rx: ground.rx, ry: ground.ry, alpha: ground.contact });
     }
   }
 

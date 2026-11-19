@@ -34,12 +34,14 @@ export type Sfx =
   /** The one hand going from the trap row to the camera keys, or back. */
   | 'hand'
   | 'engine'
+  | 'engine_depart'
   | 'news'
   | 'exhale'
   | 'dawn'
   | 'lost'
   | 'broken'
   | 'car_door'
+  | 'car_latch'
   | 'groan'
   | 'engine_stop'
   | 'loot_wood'
@@ -155,8 +157,10 @@ const VARIANTS: Partial<Record<Sfx, readonly string[]>> = {
   loot_wire: numbered('loot_wire', 2, false),
   loot_battery: numbered('loot_battery', 2, false),
   engine: numbered('engine', 5),
+  engine_depart: ['engine_2'],
   engine_stop: numbered('engine_stop', 3, false),
   car_door: numbered('car_door', 3),
+  car_latch: ['car_door'],
   washer: numbered('washer', 3, false),
   tin: numbered('tin', 3, false),
   scuffle: numbered('scuffle', 3, false),
@@ -904,6 +908,10 @@ class AudioEngine {
         this.noise('bandpass', 1800, 900, 0.22, 0.12, 0, 0.8);
         this.noise('bandpass', 900, 1400, 0.16, 0.08, 0.08, 0.8);
         break;
+      case 'engine_depart':
+        this.noise('bandpass', 500, 160, 0.28, 0.22);
+        this.tone('sawtooth', 66, 54, 0.85, 0.18, 0.22);
+        break;
       case 'engine':
         // The old break: three laboured turns of the starter, then it catches.
         for (let i = 0; i < 3; i++) {
@@ -971,6 +979,7 @@ class AudioEngine {
         this.noise('bandpass', 1600, 500, 0.3, 0.4, 0, 1.5);
         this.tone('square', 160, 60, 0.2, 0.2, 0.05);
         break;
+      case 'car_latch':
       case 'car_door':
         this.tone('sine', 120, 50, 0.14, 0.4);
         this.noise('lowpass', 600, 200, 0.1, 0.3);

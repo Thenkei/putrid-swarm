@@ -2097,5 +2097,25 @@
     "file": "sprites/boss_mower_gait.webp",
     "w": 1920,
     "h": 1944
+  },
+  "car_boarding": {
+    "file": "sprites/car_boarding.webp",
+    "w": 1152,
+    "h": 768
+  },
+  "car_boarding_one_arm": {
+    "file": "sprites/car_boarding_one_arm.webp",
+    "w": 1152,
+    "h": 768
+  },
+  "car_driver": {
+    "file": "sprites/car_driver.webp",
+    "w": 676,
+    "h": 511
+  },
+  "car_turn_road": {
+    "file": "sprites/car_turn_road.webp",
+    "w": 1152,
+    "h": 768
   }
 }
