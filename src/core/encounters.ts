@@ -217,8 +217,10 @@ export function rollDispute(state: GameState, location: LocationDef, neighborAtH
 
   // The first one is certain, and is the dealer: she is the one who offers every way out.
   const first = !flags['disputes'];
-  if (!first && !rng.chance(ENCOUNTER.disputeChance)) return null;
-  const rival = first && candidates.includes('dealer') ? 'dealer' : rng.pick(candidates);
+  // Give the receipt one reliable follow-up. Later meetings use the ordinary odds even if it went unshown.
+  const receiptMeeting = state.springReceipt === 'held' && !flags['spring-receipt:dealer'] && candidates.includes('dealer');
+  if (!first && !receiptMeeting && !rng.chance(ENCOUNTER.disputeChance)) return null;
+  const rival = receiptMeeting || (first && candidates.includes('dealer')) ? 'dealer' : rng.pick(candidates);
   const def = RIVALS[rival];
   const who = acquaintance(state, rival);
 
@@ -252,6 +254,7 @@ export function rollDispute(state: GameState, location: LocationDef, neighborAtH
     encounter,
     flags: {
       ...flags,
+      ...(receiptMeeting ? { 'spring-receipt:dealer': 1 } : {}),
       disputes: (flags['disputes'] ?? 0) + 1,
       [majorsKey(day)]: (flags[majorsKey(day)] ?? 0) + 1,
       [flagToday('dispute', location.id, day)]: 1,
@@ -306,7 +309,7 @@ export function rollAmbush(state: GameState, rng: Rng): Meeting<Ambush> | null {
 
 // ───────────────────────────── Choices ─────────────────────────────
 
-export type ChoiceId = 'share' | 'trade' | 'favor' | 'play' | 'threaten' | 'concede' | 'fight' | 'pay' | 'bargain' | 'detour' | 'defend' | FightMove;
+export type ChoiceId = 'share' | 'trade' | 'favor' | 'play' | 'threaten' | 'concede' | 'fight' | 'pay' | 'bargain' | 'detour' | 'defend' | 'showReceipt' | FightMove;
 
 export interface Choice {
   readonly id: ChoiceId;
@@ -359,6 +362,7 @@ export function choicesOf(state: GameState): readonly Choice[] {
     switch (encounter.stage) {
       case 'open': {
         const list: Choice[] = [];
+        if (encounter.rival === 'dealer' && state.springReceipt === 'held') list.push(choice('showReceipt', 0));
         if (acquaintance(state, encounter.rival).standing === 'owes') list.push(choice('favor', H.favor, { gains: lot }));
         list.push(choice('share', H.share, { gains: splitLot(lot).yours }));
         list.push(choice('trade', H.trade, { gains: lot, gives: encounter.price }));
@@ -551,6 +555,8 @@ function actOnDispute(state: GameState, outing: Outing, dispute: Dispute, action
   if (offered.blocked) return err(offered.blocked);
 
   switch (action.type) {
+    case 'showReceipt':
+      return going({ ...state, springReceipt: 'answered', encounter: { ...dispute, receiptAnswered: true } });
     case 'share':
       // A fair share settles an old score, no more.
       return close(state, outing, dispute, { outcome: 'shared', gained: split.yours, hours: H.share, standing: who.standing === 'grudge' ? 'stranger' : who.standing });

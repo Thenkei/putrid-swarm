@@ -279,6 +279,17 @@ export const en: Strings = {
     stayHome: 'Stay at the refuge',
   },
   scavenge: scavengeEn,
+  springReceipt: {
+    found: 'Receipt left here',
+    title: 'A handwritten receipt',
+    note: 'Red-marked springs collected. One roll of wire left in exchange. All complaints must be filed at the town hall.',
+    reaction: '“Even at the end of the world, they still found a way to make it paperwork.”',
+    take: 'Take the wire and receipt',
+    leave: 'Leave them here',
+    show: 'Show the receipt',
+    clue: 'There’s red paint on two springs in her bag. Just like the receipt says.',
+    answer: '“The Camper. He traded them to me for a battery. Even asked me to sign for them.”',
+  },
   loc: {
     search: 'Search · {h} h',
     searched: 'Already searched',

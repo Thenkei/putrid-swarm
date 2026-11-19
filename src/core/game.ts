@@ -2,7 +2,7 @@
 // Every transition is a pure function; scenes never mutate GameState.
 
 import { BARRICADE, HOUSE_MAX_HP } from './data/devices';
-import { BOSS_NIGHT, DAILY_LOOT_CHANCE, DAY_HOURS, LOCATIONS, SEARCH_HOURS, type LocationDef } from './data/locations';
+import { BOSS_NIGHT, DAILY_LOOT_CHANCE, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER, type LocationDef } from './data/locations';
 import { shouldStopAtDusk } from './crossbow-road';
 import { LAST_NIGHT } from './data/waves';
 import type { NightSim } from './night';
@@ -75,6 +75,7 @@ export function newGame(seed: number): GameState {
       decals: [],
     },
     locations,
+    springReceipt: 'none',
     flags: {},
     lastNight: null,
     orchard: 'quiet',
@@ -152,7 +153,8 @@ function rollLooting(state: GameState, location: LocationDef, rng: Rng): number 
   // Equipment puzzles such as the crossbow case have no material lot to steal.
   const lots = location.spots.flatMap((spot, index) => !spot.requiresDirectory && Object.keys(spot.loot).length > 0 && !searched.includes(index) ? [index] : []);
   if (lots.length === 0 || !rng.chance(1 - (1 - DAILY_LOOT_CHANCE) ** daysExposed)) return;
-  return rng.pick(lots);
+  const leavesReceipt = location.id === 'hardware' && state.springReceipt === 'none' && lots.includes(HARDWARE_SPRING_BIN);
+  return rng.pick(leavesReceipt ? [HARDWARE_SPRING_BIN] : lots);
 }
 
 export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome, DayError> {
@@ -186,6 +188,7 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
         flags: { ...state.flags, looting: lootNotice },
         outing: { ...outing, lootNotice },
         locations: { ...next.locations, [id]: { ...visit, searched: [...visit.searched, looted], looted: [...visit.looted, looted] } },
+        springReceipt: id === 'hardware' && looted === HARDWARE_SPRING_BIN && next.springReceipt === 'none' ? 'left' : next.springReceipt,
       },
       meeting: null,
     });
@@ -229,6 +232,13 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
   next = { ...next, rng: rng.state() };
   if (dispute && next.outing) next = { ...next, encounter: dispute.encounter, flags: dispute.flags, outing: { ...next.outing, major: true } };
   return ok({ state: next, meeting });
+}
+
+/** The wire was left in plain sight, so collecting it takes no daylight. */
+export function takeSpringReceipt(state: GameState): GameState {
+  const { outing } = state;
+  if (state.phase !== 'day' || state.where !== 'hardware' || outing?.to !== 'hardware' || state.springReceipt !== 'left') return state;
+  return { ...state, springReceipt: 'held', outing: { ...outing, trunk: gain(outing.trunk, SPRING_RECEIPT_OFFER) } };
 }
 
 export interface SearchOutcome {

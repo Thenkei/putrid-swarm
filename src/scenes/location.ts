@@ -1,8 +1,8 @@
 // A searchable interior. Each hotspot costs daylight and is emptied for good; what is found
 // rides in the boot until the refuge. Someone else may already be standing at the best lot.
 
-import { DAY_HOURS, LOCATIONS, SEARCH_HOURS } from '../core/data/locations';
-import { clockLabel, leaveLocation, neighborStatus, prepareSearch, visitSearchLimit, type NeighborMeeting, type SearchOutcome } from '../core/game';
+import { DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER } from '../core/data/locations';
+import { clockLabel, leaveLocation, neighborStatus, prepareSearch, takeSpringReceipt, visitSearchLimit, type NeighborMeeting, type SearchOutcome } from '../core/game';
 import { spotRng, type Puzzle } from '../core/scavenge';
 import { spotRevealed } from '../core/planque';
 import type { Dispute, GameState, LocationId } from '../core/types';
@@ -127,6 +127,7 @@ export class LocationScene implements Scene {
       }
       const done = progress.searched.includes(index);
       const looted = progress.looted.includes(index);
+      const receipt = looted && this.id === 'hardware' && index === HARDWARE_SPRING_BIN && state.springReceipt === 'left';
       const blocked = !done && (!canStillSearch || this.escorted);
       const hint = el(
         'span',
@@ -141,15 +142,15 @@ export class LocationScene implements Scene {
       return el(
         'button',
         {
-          class: `spot ${done ? 'done' : ''} ${looted ? 'looted' : ''} ${blocked ? 'blocked' : ''}`,
+          class: `spot ${done ? 'done' : ''} ${looted ? 'looted' : ''} ${blocked ? 'blocked' : ''} ${receipt ? 'has-receipt' : ''}`,
           style: { left: `${p.x}px`, top: `${p.y}px` },
-          title: looted ? s.loc.looted : done ? s.loc.searched : fmt(s.loc.search, { h: hours(SEARCH_HOURS) }),
+          title: receipt ? s.springReceipt.found : looted ? s.loc.looted : done ? s.loc.searched : fmt(s.loc.search, { h: hours(SEARCH_HOURS) }),
           data: { spot: String(index) },
-          onClick: () => this.search(index, p),
+          onClick: () => receipt ? this.showSpringReceipt() : this.search(index, p),
         },
         [
           el('span', { class: 'ring', text: looted ? '×' : done ? '✓' : '?' }),
-          el('span', { class: 'tag' }, [name, looted ? el('small', { text: s.loc.looted }) : done ? null : hint]),
+          el('span', { class: 'tag' }, [name, looted ? el('small', { text: receipt ? s.springReceipt.found : s.loc.looted }) : done ? null : hint]),
         ],
       );
     });
@@ -187,6 +188,48 @@ export class LocationScene implements Scene {
 
     this.hud.replaceChildren(topbar, stash, ...spots.filter(spot => spot !== null), title, leave);
     if (thought) this.hud.append(thought);
+  }
+
+  private showSpringReceipt(): void {
+    if (this.panel.open || this.hud.inert) return;
+    const s = S().springReceipt;
+    const close = (): void => {
+      modal.remove();
+      this.hud.inert = false;
+      this.hud.querySelector<HTMLButtonElement>(`[data-spot="${HARDWARE_SPRING_BIN}"]`)?.focus();
+    };
+    const leave = el('button', { class: 'btn', text: s.leave, onClick: close });
+    const take = el('button', { class: 'btn btn-primary', onClick: () => {
+      const state = this.state;
+      const next = takeSpringReceipt(state);
+      if (next !== state) {
+        this.app.state = next;
+        this.app.save();
+        this.refresh();
+        audio.play('loot');
+      }
+      close();
+    } }, [s.take, el('small', {}, [costLine(SPRING_RECEIPT_OFFER, undefined, '+')])]);
+    const card = el('div', { class: 'card spring-receipt' }, [
+      el('h2', { text: s.title }),
+      el('blockquote', { text: s.note }),
+      el('p', { class: 'note', text: s.reaction }),
+      el('div', { class: 'actions' }, [leave, take]),
+    ]);
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    card.setAttribute('aria-label', s.title);
+    card.addEventListener('keydown', (event) => {
+      if (event.code === 'Escape') close();
+      if (event.code === 'Tab') {
+        event.preventDefault();
+        (document.activeElement === take ? leave : take).focus();
+      }
+    });
+    const modal = el('div', { class: 'modal' }, [card]);
+    this.hud.inert = true;
+    this.overlay.append(modal);
+    take.focus();
   }
 
   private showMeeting(meeting: NeighborMeeting): void {

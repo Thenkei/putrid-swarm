@@ -161,6 +161,7 @@ export class EncounterPanel {
     this.resolution = step.resolution;
     this.sound(choice, step);
     this.render();
+    if (choice.id === 'showReceipt') this.modal?.querySelector<HTMLElement>('.receipt-answer')?.focus();
   }
 
   private sound(choice: Choice, step: Step): void {
@@ -247,26 +248,33 @@ export class EncounterPanel {
   }
 
   private disputeView(dispute: Dispute): (HTMLElement | null)[] {
-    const s = S().encounter;
+    const { encounter: s, springReceipt } = S();
     const lines = s.rival[dispute.rival];
     const spotNames = S().spot[dispute.location] as Readonly<Record<string, string>>;
     const spotKey = LOCATIONS[dispute.location].spots[dispute.spot]?.key ?? '';
     const refused = dispute.stage === 'refused';
     this.keys = [];
-    const buttons = choicesOf(this.state).map((choice, index) => {
+    const choices = choicesOf(this.state);
+    const receipt = choices.find((choice) => choice.id === 'showReceipt');
+    const buttons = choices.filter((choice) => choice !== receipt).map((choice, index) => {
       const text = choice.id === 'concede' && refused ? s.choice.backDown : s.choice[choice.id as keyof typeof s.choice];
       return this.choiceButton(index, choice, text.label, text.hint);
     });
     const later = this.host.later;
+    const answer = !refused && dispute.receiptAnswered ? el('p', { class: 'note receipt-answer', text: springReceipt.answer }) : null;
+    if (answer) answer.tabIndex = -1;
     return [
       el('h2', { text: lines.name }),
       el('p', { text: refused ? lines.refused : lines.greeting[greetingOf(acquaintance(this.state, dispute.rival))] }),
       el('p', { class: 'stake' }, [el('b', { text: `${s.lot} · ${spotNames[spotKey] ?? spotKey}` }), costLine(dispute.lot)]),
       refused ? el('p', { class: 'memory', text: fmt(s.standing.grudge, { name: lines.name }) }) : el('p', { class: 'note', text: dispute.yields ? lines.cue.nervous : lines.cue.firm }),
+      receipt ? el('p', { class: 'note', text: springReceipt.clue }) : null,
+      answer,
       el('div', { class: 'choices' }, buttons),
-      !refused && later
+      !refused && (later || receipt)
         ? el('div', { class: 'actions' }, [
-            el('button', {
+            receipt ? el('button', { class: 'btn btn-primary', text: springReceipt.show, onClick: () => this.choose(receipt) }) : null,
+            later ? el('button', {
               class: 'btn',
               text: s.later,
               onClick: () => {
@@ -274,7 +282,7 @@ export class EncounterPanel {
                 this.hide();
                 later();
               },
-            }),
+            }) : null,
           ])
         : null,
     ];

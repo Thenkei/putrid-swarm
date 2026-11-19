@@ -7,7 +7,7 @@ import { CALLERS, ENDINGS as RADIO_ENDINGS, QUIET_RADIO, optionOf, rollCall, typ
 import { createRng } from './rng';
 import { facingsOf } from './data/devices';
 import { ENCOUNTER } from './data/rivals';
-import { LOCATIONS } from './data/locations';
+import { HARDWARE_SPRING_BIN, LOCATIONS } from './data/locations';
 import { GROUP_IDS, INTEL_IDS, LOCATION_IDS, RESOURCE_IDS, RIVAL_IDS, SECTOR_IDS } from './types';
 
 export const SAVE_VERSION = 1;
@@ -105,6 +105,7 @@ function parseDispute(v: Record<string, unknown>): Dispute | null {
     isCost(v['price']) &&
     typeof v['yields'] === 'boolean' &&
     typeof v['plays'] === 'boolean' &&
+    (v['receiptAnswered'] === undefined || (v['receiptAnswered'] === true && v['rival'] === 'dealer')) &&
     ['open', 'refused', 'game', 'fight'].includes(v['stage'] as string) &&
     isRecord(game) &&
     Array.isArray(game['theirs']) &&
@@ -277,7 +278,9 @@ export function deserialize(raw: string): GameState | null {
   if (!isRecord(data['flags']) || !isRecord(data['totals'])) return null;
 
   // A night in progress is not resumable: restart that night from the evening.
-  const parsed = { ...data, phase, locations } as unknown as GameState;
+  const receipt = data['springReceipt'];
+  const springReceipt = locations.hardware.looted.includes(HARDWARE_SPRING_BIN) && (receipt === 'left' || receipt === 'held' || receipt === 'answered') ? receipt : 'none';
+  const parsed = { ...data, phase, locations, springReceipt } as unknown as GameState;
   // Reports saved before automatic traps existed have no count for them.
   const lastNight = parsed.lastNight && {
     ...parsed.lastNight,

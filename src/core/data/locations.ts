@@ -160,3 +160,6 @@ const destinations = {
 
 export type SpotKey<L extends LocationId> = (typeof destinations)[L]['spots'][number]['key'];
 export const LOCATIONS: Readonly<Record<LocationId, LocationDef>> = destinations;
+
+export const HARDWARE_SPRING_BIN = destinations.hardware.spots.findIndex((spot) => spot.key === 'springbin');
+export const SPRING_RECEIPT_OFFER = { wire: 1 };
