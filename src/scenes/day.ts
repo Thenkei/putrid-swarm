@@ -983,7 +983,7 @@ export class DayScene implements Scene {
       ...(overlay && { routes: overlay.routes, traffic: overlay.traffic }),
       hoverCell: reaching ? { x: reaching.x, y: reaching.y } : this.hover,
       hoverRadius: !barrier && reachDef && reachDef.mode !== 'passive' ? Math.max(reachDef.radius, reachDef.reach) : 0,
-      hoverBarrier: barrier && (reaching !== null || ghost?.ok === true),
+      hoverBarrier: barrier && (ghost?.ok === true || (this.mode.kind === 'idle' && reaching !== null)),
       showBuildable: this.mode.kind === 'build',
       doorHighlight: this.inspectedDoor,
       doorRepairHp: this.previewHp ?? null,

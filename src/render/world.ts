@@ -833,7 +833,6 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
     ctx.setLineDash([]);
   }
 
-
   // Where they are predicted to walk: every cell some route steps on, darker where more of them do.
   if (frame.traffic) {
     // Laid as soft patches that run into each other: trodden ground, not a grid of red tiles.
