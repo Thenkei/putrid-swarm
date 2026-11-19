@@ -11,6 +11,7 @@ export interface SearchSpot {
   readonly y: number;
   readonly loot: LootTable;
   readonly fatalMiss?: 'lift';
+  readonly requiresDirectory?: true;
 }
 
 export interface LocationDef {
@@ -57,6 +58,7 @@ const destinations = {
       { key: 'bench', x: 0.22, y: 0.52, loot: { scrap: [2, 3], springs: [2, 3] } },
       { key: 'drawers', x: 0.66, y: 0.4, loot: { springs: [2, 3], wire: [1, 1] } },
       { key: 'toolwall', x: 0.33, y: 0.22, loot: { scrap: [3, 4], wood: [2, 3] } },
+      { key: 'parcel-cache', x: 0.48, y: 0.69, requiresDirectory: true, loot: { battery: [2, 2], springs: [2, 2] } },
     ],
   },
   garage: {
@@ -120,6 +122,7 @@ const destinations = {
       { key: 'cage', x: 0.83, y: 0.28, loot: { battery: [2, 3], scrap: [3, 3] } },
       { key: 'sacks', x: 0.5, y: 0.32, loot: { wire: [2, 3], wood: [2, 3] } },
       { key: 'bicycle', x: 0.33, y: 0.8, loot: { scrap: [3, 4], springs: [1, 1] } },
+      { key: 'minitel', x: 0.65, y: 0.60, loot: {} },
     ],
   },
   police: {

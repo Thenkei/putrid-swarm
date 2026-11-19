@@ -1,4 +1,4 @@
-import { circuit, padlock, pairs, records, riddle, scale, timing, type PuzzleBook } from '../core/scavenge';
+import { circuit, directory, padlock, pairs, records, riddle, scale, timing, type PuzzleBook } from '../core/scavenge';
 import type { scavengeFr } from './scavenge-fr';
 
 export const scavengeEn: typeof scavengeFr = {
@@ -20,6 +20,11 @@ export const scavengeEn: typeof scavengeFr = {
   catchRing: 'Catch ring', ringCount: '{n} of 3 rings set', slipped: 'The ring slipped. The lock reset.',
   lockOpen: 'The shackle is open.', take: 'Take supplies',
   riddle: 'Pick an answer.', wrongSum: 'That adds up to {n}. Try another pair.',
+  directory: 'Look up the delivery stop in the local directory.',
+  directoryOpen: 'Open directory',
+  directoryMiss: 'That delivery doesn’t match the slip.',
+  directoryCache: 'Unclaimed parcel at the Mower’s shed. Check under the rain barrel.',
+  directoryMark: 'Mark the shed on the map',
   records: 'Pick a record you can bear to part with.',
   recordAim: 'Where do you toss “{album}”?',
   recordClear: 'The baskets rattle. It heads for the door, and the shelf is clear.',
@@ -30,6 +35,7 @@ export const scavengeEn: typeof scavengeFr = {
       bench: timing('The runaway washer', 'A washer is rolling round the rim of a rusty bowl. Catch it at the chipped lip, then catch its little sister.', 'Catch'),
       drawers: pairs('Heirloom hardware', 'The gardener filed his spares under vegetables. Each seed label has a twin on a drawer of fittings.', ['Leek', 'Turnip', 'Pea']),
       toolwall: riddle('Employee of the month', 'A chalk outline has two jaws, one movable, and no teeth. Hang its owner back up to release the tool board.', ['Adjustable spanner', 'Handsaw', 'Garden fork'], 'One jaw slides to fit the nut.'),
+      'parcel-cache': riddle('Sorry we missed you', 'The directory said to check under the rain barrel. Three packages are wedged there. Which one was on route B, stop 12?', ['B / 12', 'B / 17', 'D / 12'], 'Match both parts of the delivery slip.'),
     },
     garage: {
       workbench: timing('The hiccuping vice', 'Every time the compressor hiccups, the vice opens a crack. Pull a part free on each of the next two good hiccups.', 'Pull free'),
@@ -65,6 +71,7 @@ export const scavengeEn: typeof scavengeFr = {
       cage: padlock('Registered lock', 'The postman sent the cage key to himself by registered mail. You can see the envelope through the bars.'),
       sacks: scale('Last collection', 'The hook on the parcel scale holds two sacks. Make up the weight on the dispatch slip.', 'kg'),
       bicycle: timing('One last delivery', 'The upturned bike is still pedalling. Grab a spoke at the chalk mark twice to bring it to a standstill.', 'Catch spoke'),
+      minitel: directory('3615 PLANQUE', 'An old parcel slip is tucked under the terminal. Route B, stop 12. The postman kept an offline copy of the delivery directory.', ['B / 12', 'B / 17', 'D / 12']),
     },
     police: {
       radios: circuit('Dispatch on hold', 'The charging rack is playing hold music through a loose lead. Connect its two sockets to eject the batteries.'),
