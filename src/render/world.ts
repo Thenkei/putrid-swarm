@@ -145,7 +145,7 @@ interface HouseLamp {
   readonly flicker: number;
   readonly glazedDoor?: SectorId;
   readonly atticWindow?: boolean;
-  readonly attractsMoths?: boolean;
+  readonly barnLantern?: true;
 }
 
 /** What is painted on each side of the house that gives light or smoke. */
@@ -157,7 +157,7 @@ const HOUSE_ART: Readonly<Record<Rot, { readonly key: string; readonly chimney: 
       { x: 242, y: 321, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25, atticWindow: true },
       { x: 533, y: 364, radius: 1.5, strength: 0.5, glow: 0.45, flicker: 0.25 },
       // The lantern by the barn door.
-      { x: 472, y: 562, radius: 2.3, strength: 0.85, glow: 0.9, flicker: 0.55, attractsMoths: true },
+      { x: 472, y: 562, radius: 2.3, strength: 0.85, glow: 0.9, flicker: 0.55, barnLantern: true },
     ],
   },
   1: {
@@ -172,7 +172,7 @@ const HOUSE_ART: Readonly<Record<Rot, { readonly key: string; readonly chimney: 
 };
 
 /** The lit windows and the lantern of the house, for the side a view looks from. */
-export function houseLights(rot: Rot, barricades: WorldFrame['barricades'], houseHpRatio = 1): readonly Light[] {
+export function houseLights(rot: Rot, barricades: WorldFrame['barricades'], houseHpRatio = 1, barnLanternIntensity = 1): readonly Light[] {
   const stage = houseDamageStage(houseHpRatio);
   const lights: Light[] = [];
   for (const lamp of HOUSE_ART[rot].lamps) {
@@ -186,6 +186,7 @@ export function houseLights(rot: Rot, barricades: WorldFrame['barricades'], hous
       color: `rgba(255, 198, 118, ${lamp.strength * (halfPane ? 0.6 : 1)})`,
       glow: lamp.glow * (halfPane ? 0.55 : 1),
       flicker: lamp.flicker,
+      ...(lamp.barnLantern && { intensity: barnLanternIntensity }),
       round: true,
     });
   }
@@ -481,7 +482,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           drawChimneySmoke(ctx, root.x + chimney.dx * z, root.y - chimney.lift * z, view, frame.time);
           if (frame.night && !calmMotion()) {
             for (const lamp of side.lamps) {
-              if (!lamp.attractsMoths) continue;
+              if (!lamp.barnLantern) continue;
               const point = houseOffset(view.rot, lamp.x, lamp.y);
               drawLanternMoths(ctx, root.x + point.dx * z, root.y - point.lift * z, z, frame.time);
             }
