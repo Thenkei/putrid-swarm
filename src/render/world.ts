@@ -120,6 +120,8 @@ export interface WorldFrame {
   readonly doorHighlight?: SectorId | null;
   /** HP after one affordable repair on the highlighted door. */
   readonly doorRepairHp?: number | null;
+  /** Which intact barricade is previewing its reinforced artwork during upkeep. */
+  readonly doorReinforcement?: SectorId | null;
   readonly dismantleTarget?: number | null;
 }
 
@@ -897,7 +899,8 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
   const barricade = frame.barricades[sector];
   const max = BARRICADE.maxHp[barricade.level];
   const ratio = barricade.hp / max;
-  const state = doorPose(ratio, barricade.level);
+  const reinforcing = frame.doorReinforcement === sector;
+  const state = doorPose(ratio, reinforcing ? 1 : barricade.level);
   const door = DOOR_OPENINGS[sector];
   const onLeftFace = door.rise > 0;
   const p = doorSill(view, sector);
@@ -925,13 +928,16 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
           ctx.save(); ctx.translate(2 * z, z); ctx.scale(art.flip ? -1 : 1, 1); ctx.globalAlpha *= 0.43;
           ctx.drawImage(shade, -sw / 2, art.lift * z - sh, sw, sh); ctx.restore();
         }
+        if (reinforcing) ctx.globalAlpha *= 0.78;
         const drawn = drawDefense(ctx, 0, 0, z, { kind: 'barricade', art, rot: view.rot, previous, hpRatio: ratio, maxHp: max, id: sector, time: frame.time, motion: frame.defenseMotion });
         ctx.restore();
         if (!drawn) placeholder(ctx, p.x, p.y, 30 * z, 50 * z, '#7a5a35', 'door');
         if (frame.doorHighlight === sector) {
           ctx.strokeStyle = '#f2a531';
           ctx.lineWidth = 2;
-          ctx.save(); ctx.translate(p.x, p.y); ctx.transform(1, door.rise * k / width, 0, 1, 0, 0);
+          ctx.save();
+          if (reinforcing) ctx.setLineDash([5 * z, 4 * z]);
+          ctx.translate(p.x, p.y); ctx.transform(1, door.rise * k / width, 0, 1, 0, 0);
           ctx.strokeRect(-width * z / 2, -(door.h + 6) * k * z, width * z, (door.h + 8) * k * z); ctx.restore();
         }
         // Door health: always in sight by night, it is the thing being defended. By day a sound
