@@ -39,7 +39,8 @@ async function boot(): Promise<void> {
   app.start(loading);
 
   // Sound loads alongside the art but never holds the game back: a failure only means synthesised effects.
-  const [report] = await Promise.all([loadAssets((done, total) => loading.progress(done, total)), resolveKeyLabels(), audio.preload()]);
+  void audio.preload().catch(error => console.warn('[audio] preload failed; using available audio', error));
+  const [report] = await Promise.all([loadAssets((done, total) => loading.progress(done, total)), resolveKeyLabels()]);
   if (report.failed.length > 0) console.warn(`[assets] ${report.failed.length} asset(s) missing, using placeholders:`, report.failed);
 
   const title = (): Scene => new TitleScene(app);

@@ -113,6 +113,8 @@ const MUSIC_KEY = 'putrid-swarm.music';
 const VOLUME_KEY = 'putrid-swarm.volume';
 const BASE = `${import.meta.env.BASE_URL}assets/audio/`;
 const MASTER_GAIN = 0.7;
+const AUDIO_LOAD_LIMIT = 6;
+const OPENING_SAMPLES = new Set(['amb_room', 'news', 'vo_broadcast', 'vo_later', 'crt_on', 'crt_off', 'knob', 'exhale']);
 
 interface SampleEntry {
   readonly file: string;
@@ -284,21 +286,35 @@ class AudioEngine {
       console.warn('[audio] manifest.json unavailable; using synthesised sound only', error);
       return;
     }
-    await Promise.all(
-      Object.entries(manifest).map(async ([id, entry]) => {
-        const sample: Sample = { entry, data: null, buffer: null };
-        this.samples.set(id, sample);
-        if (entry.kind === 'music') return;
-        try {
-          const response = await fetch(BASE + entry.file);
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          sample.data = await response.arrayBuffer();
-          if (this.ctx) await this.decode(id, sample);
-        } catch (error) {
-          console.warn(`[audio] ${id} unavailable`, error);
-        }
-      }),
-    );
+    const opening: string[] = [];
+    const later: string[] = [];
+    for (const [id, entry] of Object.entries(manifest)) {
+      this.samples.set(id, { entry, data: null, buffer: null });
+      if (entry.kind !== 'music') (OPENING_SAMPLES.has(id) ? opening : later).push(id);
+    }
+    // The title may already be visible. Start whichever track the current scene asked for.
+    this.startRequestedMusic();
+    const queue = [...opening, ...later];
+    let next = 0;
+    async function worker(engine: AudioEngine): Promise<void> {
+      for (let id = queue[next++]; id !== undefined; id = queue[next++]) {
+        await engine.loadSample(id);
+      }
+    }
+    await Promise.all(Array.from({ length: AUDIO_LOAD_LIMIT }, () => worker(this)));
+  }
+
+  private async loadSample(id: string): Promise<void> {
+    const sample = this.samples.get(id);
+    if (!sample) return;
+    try {
+      const response = await fetch(BASE + sample.entry.file, { priority: OPENING_SAMPLES.has(id) ? 'high' : 'low' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      sample.data = await response.arrayBuffer();
+      if (this.ctx) await this.decode(id, sample);
+    } catch (error) {
+      console.warn(`[audio] ${id} unavailable`, error);
+    }
   }
 
   private async decode(id: string, sample: Sample): Promise<void> {
@@ -663,11 +679,20 @@ class AudioEngine {
     if (kind === this.musicKind) return;
     this.musicKind = kind;
     this.retireMusic();
-    const sample = kind === 'none' ? undefined : this.samples.get(`mus_${kind}`);
-    if (sample) {
-      this.musicBase = sample.entry.gain;
-      this.startMusic(BASE + sample.entry.file);
-    }
+    this.startRequestedMusic();
+    if (this.dying.length > 0) this.ensureMusicTimer();
+  }
+
+  private startRequestedMusic(): void {
+    if (this.musicEl || this.musicKind === 'none') return;
+    const sample = this.samples.get(`mus_${this.musicKind}`);
+    if (!sample) return;
+    this.musicBase = sample.entry.gain;
+    this.startMusic(BASE + sample.entry.file);
+    this.ensureMusicTimer();
+  }
+
+  private ensureMusicTimer(): void {
     if (this.musicTimer === null) this.musicTimer = window.setInterval(() => this.fadeMusic(), MUSIC_TICK_MS);
   }
 
