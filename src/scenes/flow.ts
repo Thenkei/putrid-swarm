@@ -10,7 +10,7 @@ import type { GameState, LocationId } from '../core/types';
 import type { App, Scene } from '../engine/app';
 import { S, fmt } from '../engine/i18n';
 import { tripLine } from './common';
-import { DayScene } from './day';
+import { DayScene, type DayOptions } from './day';
 import { EndScene, type EndOptions } from './end';
 import { FinaleScene, type FinaleOptions } from './finale';
 import { AmbushScene } from './encounter';
@@ -25,7 +25,7 @@ import { TitleScene } from './title';
 import { TravelScene, type TravelOptions } from './travel';
 
 export const goTitle = (app: App): void => app.go(() => new TitleScene(app));
-export const goDay = (app: App, options: { reveal?: boolean } = {}): void => app.go(() => new DayScene(app, options));
+export const goDay = (app: App, options: DayOptions = {}): void => app.go(() => new DayScene(app, options));
 export const goMap = (app: App): void => app.go(() => new MapScene(app));
 export const goLocation = (app: App, id: LocationId, meeting: NeighborMeeting | null): void => app.go(() => new LocationScene(app, id, meeting));
 export const goAmbush = (app: App): void => app.go(() => new AmbushScene(app));
@@ -51,14 +51,12 @@ export const goFinale = (app: App, options: FinaleOptions = {}): void => app.go(
 /** Pulls into the yard: the load joins the refuge's stock, and the day goes on from there. */
 function unload(app: App): void {
   const state = app.state;
-  if (state) {
-    const arrival = arriveHome(state);
-    if (arrival.ok) {
-      app.state = arrival.value.state;
-      app.save();
-    }
+  const arrival = state ? arriveHome(state) : null;
+  if (arrival?.ok) {
+    app.state = arrival.value.state;
+    app.save();
   }
-  goDay(app);
+  goDay(app, { arrivedByCar: arrival?.ok === true });
   if (state) tripLine('home', state);
 }
 
