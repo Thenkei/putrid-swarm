@@ -120,6 +120,14 @@ export interface TravelOutcome {
 }
 
 const flagKey = (kind: string, id: string, day: number): string => `${kind}:${id}:${day}`;
+const visitKeyFor = (state: GameState, id: LocationId): string => `${flagKey('searches', id, state.day)}:${state.locations[id].visits}`;
+
+/** Names the next paid search at the current location; it changes after every attempt, retries included. */
+export function searchAttemptKey(state: GameState): string {
+  if (state.where === 'home' || state.where === 'road') return '';
+  const visitKey = visitKeyFor(state, state.where);
+  return `${visitKey}:${state.flags[visitKey] ?? 0}`;
+}
 
 /** The mower's first guided tour each day uses a quarter hour, up to the time available before the return drive. */
 function greetingHours(state: GameState, location: LocationDef): number {
@@ -151,8 +159,8 @@ export function concealableSpots(state: GameState): readonly number[] {
   const location = LOCATIONS[where];
   if (state.hoursLeft + 1e-9 < CONCEAL_HOURS + location.travelHours) return [];
   if (encounter?.kind === 'dispute' && encounter.stage !== 'open' && encounter.stage !== 'refused') return [];
-  const { covered, searched, visits } = state.locations[where];
-  const visitKey = `${flagKey('searches', where, state.day)}:${visits}`;
+  const { covered, searched } = state.locations[where];
+  const visitKey = visitKeyFor(state, where);
   if ((state.flags[visitKey] ?? 0) >= visitSearchLimit(location, state.day)) return [];
   if (covered.some((index) => !searched.includes(index))) return [];
   return location.spots.flatMap((spot, index) => {
@@ -313,7 +321,7 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
   const needed = searchHours + location.travelHours;
   if (state.hoursLeft + 1e-9 < needed) return err({ code: 'no_time', needed });
 
-  const visitKey = flagKey('searches', location.id, state.day) + `:${progress.visits}`;
+  const visitKey = visitKeyFor(state, location.id);
   const searchesThisVisit = state.flags[visitKey] ?? 0;
   if (searchesThisVisit >= visitSearchLimit(location, state.day)) {
     return err({ code: 'escorted_out' });

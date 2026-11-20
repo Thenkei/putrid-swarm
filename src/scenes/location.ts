@@ -2,7 +2,7 @@
 // rides in the boot until the refuge. Someone else may already be standing at the best lot.
 
 import { CONCEAL_HOURS, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER } from '../core/data/locations';
-import { clockLabel, concealableSpots, concealSpot, leaveLocation, neighborStatus, prepareSearch, takeSpringReceipt, visitSearchLimit, type NeighborMeeting, type SearchOutcome } from '../core/game';
+import { clockLabel, concealableSpots, concealSpot, leaveLocation, neighborStatus, prepareSearch, searchAttemptKey, takeSpringReceipt, visitSearchLimit, type NeighborMeeting, type SearchOutcome } from '../core/game';
 import { hasViceLeftovers } from '../core/garage-vice';
 import { spotRng, type Puzzle } from '../core/scavenge';
 import { spotRevealed } from '../core/planque';
@@ -356,7 +356,7 @@ export class LocationScene implements Scene {
     };
     const attempt = result.value;
     this.puzzle = new ScavengePanel(
-      puzzles[spot.key]!, names[spot.key]!, spot, heroArt(location.plate, oneArmed(this.state)), spotRng(this.state.seed, this.id, spot.key),
+      puzzles[spot.key]!, names[spot.key]!, spot, heroArt(location.plate, oneArmed(this.state)), spotRng(this.state.seed, this.id, spot.key, searchAttemptKey(this.state)),
       () => {
         close();
         this.collect(attempt.success, at);

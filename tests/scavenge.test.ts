@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { GATE_HALF_ANGLE, Padlock } from '../src/core/padlock';
 import { createRng } from '../src/core/rng';
-import { circuitTiles, traceCircuit } from '../src/core/scavenge';
+import { circuitTiles, spotRng, traceCircuit } from '../src/core/scavenge';
 import { hasCrossbow } from '../src/core/crossbow';
 import { LOCATIONS, SEARCH_HOURS } from '../src/core/data/locations';
 import { GATE_WINDOW, gateResult } from '../src/core/fairground';
-import { newGame, prepareSearch, travelTo } from '../src/core/game';
+import { newGame, prepareSearch, searchAttemptKey, travelTo } from '../src/core/game';
 import { deserialize, serialize } from '../src/core/save';
 
 it('grants the garage crossbow once, only on a successful search, and keeps it across a reload', () => {
@@ -25,33 +25,72 @@ it('grants the garage crossbow once, only on a successful search, and keeps it a
 
 describe('salvage circuits', () => {
   it('only powers pieces joined to the inlet and stops at a broken connection', () => {
-    const board = [3, 6, 3, 10, 10, 10, 5, 3, 6];
+    const board = { tiles: [3, 6, 3, 10, 10, 10, 5, 3, 6], inlet: 1, outlet: 1 };
     expect(traceCircuit(board)).toEqual({ lit: new Set([3, 4, 5]), complete: true });
-    board[4] = 5;
+    board.tiles[4] = 5;
     expect(traceCircuit(board)).toEqual({ lit: new Set([3]), complete: false });
+  });
+
+  it('follows a route that doubles back between terminals on different rows', () => {
+    // Top-left in, down the left column, along the bottom, then back up into the middle-right outlet.
+    const board = { tiles: [12, 3, 3, 5, 3, 6, 3, 10, 9], inlet: 0, outlet: 1 };
+    expect(traceCircuit(board)).toEqual({ lit: new Set([0, 3, 6, 7, 8, 5]), complete: true });
+    board.tiles[5] = 3;
+    expect(traceCircuit(board)).toEqual({ lit: new Set([0, 3, 6, 7, 8]), complete: false });
   });
 
   it('gives the player an unfinished board with a rotatable path to the outlet', () => {
     for (let seed = 0; seed < 300; seed++) {
-      const tiles = circuitTiles(createRng(seed));
-      expect(traceCircuit(tiles).complete).toBe(false);
-      // Walk all simple paths independently of the generator. A straight can only
-      // continue along its inlet axis, an elbow can only turn onto the other axis.
-      function canConnect(cell: number, from: number, visited: number): boolean {
-        if (visited & (1 << cell)) return false;
-        const straight = tiles[cell] === 5 || tiles[cell] === 10;
-        const exits = straight ? [(from + 2) % 4] : [(from + 1) % 4, (from + 3) % 4];
-        return exits.some(direction => {
-          if (cell === 5 && direction === 1) return true;
-          const x = cell % 3 + [0, 1, 0, -1][direction]!;
-          const y = Math.floor(cell / 3) + [-1, 0, 1, 0][direction]!;
-          return x >= 0 && x < 3 && y >= 0 && y < 3 && canConnect(y * 3 + x, (direction + 2) % 4, visited | (1 << cell));
-        });
-      }
-      expect(canConnect(3, 3, 0)).toBe(true);
+      const board = circuitTiles(createRng(seed));
+      expect(traceCircuit(board).complete).toBe(false);
+      // `solve` walks the rotations independently of the generator.
+      expect(solve(board).length).toBeGreaterThanOrEqual(5);
     }
   });
+
+  it('varies the terminals and the solution route from one board to the next', () => {
+    const terminals = new Set<string>();
+    const routes = new Set<string>();
+    for (let seed = 0; seed < 300; seed++) {
+      const board = circuitTiles(createRng(seed));
+      terminals.add(`${board.inlet}>${board.outlet}`);
+      routes.add(solve(board).join('>'));
+    }
+    expect(terminals.size).toBe(9);
+    expect(routes.size).toBeGreaterThan(40);
+  });
+
+  it('deals a new board for a retry, but not for reopening the same attempt', () => {
+    const visit = travelTo(newGame(7), 'hardware');
+    if (!visit.ok) throw new Error('The hardware store is reachable on day one');
+    const town = visit.value.state;
+    const index = LOCATIONS.hardware.spots.findIndex(spot => spot.key === 'meshrolls');
+    const attempt = prepareSearch(town, index);
+    if (!attempt.ok) throw new Error('The mesh rolls are searchable');
+    const deal = (state: typeof town) => circuitTiles(spotRng(state.seed, 'hardware', 'meshrolls', searchAttemptKey(state)));
+    expect(deal(town)).toEqual(deal(town));
+    expect(deal(attempt.value.failure)).not.toEqual(deal(town));
+  });
 });
+
+/** First rotatable route from inlet to outlet, as the ordered cells it lights. */
+function solve({ tiles, inlet, outlet }: { tiles: number[]; inlet: number; outlet: number }): number[] {
+  const walk = (cell: number, from: number, path: number[]): number[] | null => {
+    if (path.includes(cell)) return null;
+    const straight = tiles[cell] === 5 || tiles[cell] === 10;
+    for (const direction of straight ? [(from + 2) % 4] : [(from + 1) % 4, (from + 3) % 4]) {
+      if (cell === outlet * 3 + 2 && direction === 1) return [...path, cell];
+      const x = cell % 3 + [0, 1, 0, -1][direction]!;
+      const y = Math.floor(cell / 3) + [-1, 0, 1, 0][direction]!;
+      const found = x >= 0 && x < 3 && y >= 0 && y < 3 ? walk(y * 3 + x, (direction + 2) % 4, [...path, cell]) : null;
+      if (found) return found;
+    }
+    return null;
+  };
+  const route = walk(inlet * 3, 3, []);
+  if (!route) throw new Error('Unsolvable board');
+  return route;
+}
 
 describe('padlock rings', () => {
   it('accepts either edge of twelve o’clock and keeps earlier catches through a miss', () => {
