@@ -51,22 +51,12 @@ export class ScavengePanel {
     ])]));
     switch (puzzle.kind) {
       case 'scale': this.scale(puzzle.unit, rng); break;
-      case 'pairs': this.pairs(puzzle.faces, rng); break;
       case 'circuit': this.circuit(rng); break;
       case 'padlock': this.padlock(rng); break;
       case 'timing': this.timing(puzzle.action, rng); break;
       case 'records': this.records(puzzle, rng); break;
       case 'directory': this.directory(puzzle.entries, rng); break;
       case 'vachette': this.vachette(); break;
-      case 'riddle':
-        for (const index of shuffled([0, 1, 2], rng)) {
-          const button = this.button(puzzle.answers[index]!, () => {
-            if (index === 0) return this.solved();
-            this.miss(puzzle.hint);
-          });
-          this.board.append(button);
-        }
-        break;
     }
   }
 
@@ -292,61 +282,20 @@ export class ScavengePanel {
     this.board.append(dial, pieces);
   }
 
-  private pairs(faces: readonly string[], rng: Rng): void {
-    const s = S().scavenge;
-    const deck = shuffled([...faces, ...faces], rng);
-    let first: HTMLButtonElement | null = null;
-    let count = 0;
-    const progress = () => fmt(s.matched, { n: count });
-    const cards = deck.map(face => {
-      const button = this.button(face, () => {
-        if (first === button) return;
-        button.textContent = face;
-        button.setAttribute('aria-label', face);
-        button.classList.add('face-up');
-        if (!first) {
-          first = button;
-          return;
-        }
-        if (first.textContent !== face) return this.miss(s.mismatch);
-        first.disabled = true;
-        button.disabled = true;
-        first = null;
-        count++;
-        if (count === faces.length) return this.solved();
-        this.status.textContent = progress();
-        this.focus();
-      });
-      button.disabled = true;
-      button.classList.add('face-up');
-      return button;
-    });
-    const hide = this.button(s.hideLabels, () => {
-      hide.remove();
-      cards.forEach((button, i) => {
-        button.disabled = false;
-        button.textContent = String(i + 1);
-        button.setAttribute('aria-label', fmt(s.label, { n: i + 1 }));
-        button.classList.remove('face-up');
-      });
-      this.status.textContent = progress();
-      this.focus();
-    });
-    hide.classList.add('study-pairs');
-    this.board.append(...cards, hide);
-  }
-
   private circuit(rng: Rng): void {
-    const tiles = circuitTiles(rng);
+    const board = circuitTiles(rng);
+    const { tiles } = board;
     const s = S().scavenge;
     const grid = el('div', { class: 'wire-grid' });
+    grid.style.setProperty('--inlet-row', String(board.inlet));
+    grid.style.setProperty('--outlet-row', String(board.outlet));
     const buttons = tiles.map((_, index) => this.button('', () => {
       tiles[index] = turnTile(tiles[index]!);
       draw();
     }));
     let previousRoute: string | null = null;
     const draw = (): void => {
-      const trace = traceCircuit(tiles);
+      const trace = traceCircuit(board);
       const order = [...trace.lit];
       const route = order.map(index => `${index}:${tiles[index]}`).join(',');
       const traceChange = previousRoute !== null && route !== previousRoute;
@@ -369,7 +318,7 @@ export class ScavengePanel {
     draw();
     grid.append(...buttons);
     this.board.append(grid, this.button(s.routeTest, () => {
-      if (traceCircuit(tiles).complete) this.solved();
+      if (traceCircuit(board).complete) this.solved();
       else this.miss(s.routeBroken);
     }));
   }
