@@ -13,7 +13,12 @@ export const scavengeEn: typeof scavengeFr = {
   },
   scale: 'Pick exactly two tags that add up to the number asked for. Tap a tag again to put it back.',
   circuit: 'Turn the pieces to make one continuous line between the two arrows, then test it.', tile: 'Piece {n}', directions: ['up', 'right', 'down', 'left'],
-  timing: 'Catch the needle inside the striped band twice.', caught: '{n} / 2 catches', missed: 'Just missed. Watch the striped band.',
+  timing: {
+    slide: 'Catch the needle inside the striped band twice.',
+    swing: 'Catch the pendulum inside the green wedge twice.',
+    rise: 'Catch the marker inside the striped band twice.',
+  },
+  caught: '{n} / 2 catches', missed: 'Just missed. Watch the striped band.',
   padlock: 'Catch each moving notch inside the brass mark at twelve o’clock. Work from the outside in.',
   catchRing: 'Catch ring', ringCount: '{n} of 3 rings set', slipped: 'The ring slipped. The lock reset.',
   lockOpen: 'The shackle is open.', take: 'Take supplies',

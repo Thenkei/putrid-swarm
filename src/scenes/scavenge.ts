@@ -37,7 +37,7 @@ export class ScavengePanel {
       photo.classList.add('records-photo');
     }
     if (url) photo.style.backgroundImage = `url("${url}")`;
-    this.instruction.textContent = s[puzzle.kind];
+    this.instruction.textContent = puzzle.kind === 'timing' ? s.timing[puzzle.motion] : s[puzzle.kind];
     this.root.setAttribute('role', 'dialog');
     this.root.setAttribute('aria-modal', 'true');
     this.root.setAttribute('aria-label', puzzle.title);
