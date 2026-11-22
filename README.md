@@ -16,6 +16,7 @@ pnpm dev        # http://localhost:5173
 ```
 
 `/puzzles.html` on the dev server opens every scavenging puzzle in town, in French or English, with a fresh deal on each opening. It is a development page and is not part of the build.
+`pnpm puzzles:shots [outDir]` tours it with a dev server running (`PS_URL` for another port): each spot in both languages, failing on a panel that overflows the stage, clipped text or a page error, with one screenshot per spot per language.
 
 ```bash
 pnpm test       # simulation and campaign rules (Vitest)

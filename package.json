@@ -16,7 +16,8 @@
     "art:process": "node tools/process-art.mjs",
     "balance": "tsx tools/balance.ts",
     "audio:gen": "node tools/gen-audio.mjs",
-    "audio:process": "node tools/process-audio.mjs"
+    "audio:process": "node tools/process-audio.mjs",
+    "puzzles:shots": "node tools/puzzle-shots.mjs"
   },
   "devDependencies": {
     "playwright-core": "^1.65.1",
