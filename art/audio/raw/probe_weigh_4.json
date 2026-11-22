@@ -1,0 +1,15 @@
+{
+  "id": "probe_weigh_4",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A heavy cardboard box raised from a wooden floor and set down again: the box creaks under its weight and lands with a soft dull thud. Very close, quiet, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-22T14:23:15.736Z",
+  "bytes": 15089,
+  "sha256": "609669a72fa7edf754a6ce87545df4954cd11669508072bcc57daf1de7a1f3d9"
+}

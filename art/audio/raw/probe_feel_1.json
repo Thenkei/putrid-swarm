@@ -1,0 +1,15 @@
+{
+  "id": "probe_feel_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Fingers squeezing a thick sealed plastic bag: a crisp crackle of plastic. Very close, quiet, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-22T14:23:16.719Z",
+  "bytes": 13835,
+  "sha256": "aa0b2cbd178c9cff22a5cd3c457b5c11e5cd980b0143b2182ec4cfaffbffb52c"
+}

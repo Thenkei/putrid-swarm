@@ -434,7 +434,8 @@ export class ScavengePanel {
       const loud = probeCost(item) > 1;
       const probe = this.button(loud ? `${puzzle.probe} ●●` : puzzle.probe, () => {
         if (!pile.probe(item)) return;
-        audio.play(pile.reveal(item).good ? 'tin' : 'thud', 0.5);
+        // The spot's own gesture, louder for the containers the game calls loud.
+        audio.play(`probe_${puzzle.sound}`, loud ? 0.7 : 0.5);
         paint();
       });
       const take = this.button(s.rummageTake, () => {

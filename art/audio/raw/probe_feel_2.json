@@ -1,0 +1,15 @@
+{
+  "id": "probe_feel_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A hand patting and kneading a plastic evidence bag: plastic crinkling and rustling under the fingertips. Very close, quiet, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-22T14:23:17.094Z",
+  "bytes": 13835,
+  "sha256": "8aee3a9da921c3b589ec9d9fed9598b0e232c982d3d99d9392ede8b7e9ce4b4c"
+}

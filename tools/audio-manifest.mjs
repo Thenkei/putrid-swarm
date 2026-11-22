@@ -124,6 +124,20 @@ export const AUDIO = [
   sfx('scuffle_3', 1.2, 'A brief struggle over a wooden crate: two people pulling, feet stamping, wood creaking, a sharp exhale. No words, dry.', { gain: 0.8 }),
   sfx('crate_1', 1.2, 'A wooden crate full of loose metal parts being wrenched away and hugged to the chest: wood scraping, springs and bolts rattling. Close, dry.', { gain: 0.8 }),
   sfx('crate_2', 1.1, 'A heavy wooden crate of ironmongery dragged off a shop floor and lifted with a grunt: scrape, metal jangle. Close, dry.', { gain: 0.8 }),
+  // Rummage puzzles: a container tested before it is taken, by the verb its spot uses. Heard over and
+  // over on one board, under the button click: short, quiet, and four of each.
+  sfx('probe_shake_1', 0.8, 'A small cardboard box picked up and shaken twice by hand: a few small loose things inside rattle and slide. Very close, quiet, dry, nothing else.', { gain: 0.55 }),
+  sfx('probe_shake_2', 0.8, 'A small closed tin box shaken quickly next to the ear: a short muffled rattle of loose contents against thin metal. Very close, quiet, dry, nothing else.', { gain: 0.55 }),
+  sfx('probe_shake_3', 0.8, 'A string-tied brown paper parcel shaken once: paper crinkling and something shifting inside with a soft knock. Very close, quiet, dry, nothing else.', { gain: 0.55 }),
+  sfx('probe_shake_4', 1.0, 'A lidded glass jar shaken twice by hand, then held still: a short dry rattle of small loose things against the glass, then silence. Very close, dry, nothing else.', { gain: 0.55 }),
+  sfx('probe_weigh_1', 0.9, 'A cardboard box lifted off a wooden shelf in both hands and set back down: a cardboard creak and one soft muffled thump. Very close, quiet, dry, nothing else.', { gain: 0.55 }),
+  sfx('probe_weigh_2', 0.9, 'A small wooden crate hefted a few centimetres and lowered back onto planks: a dry wood creak and a dull knock. Very close, quiet, dry, nothing else.', { gain: 0.55 }),
+  sfx('probe_weigh_3', 0.9, 'A taped carton slid along a shelf, weighed in the hands and put back: a cardboard scrape, a creak, a soft bump. Very close, quiet, dry, nothing else.', { gain: 0.55 }),
+  sfx('probe_weigh_4', 0.9, 'A heavy cardboard box raised from a wooden floor and set down again: the box creaks under its weight and lands with a soft dull thud. Very close, quiet, dry, nothing else.', { gain: 0.55 }),
+  sfx('probe_feel_1', 0.8, 'Fingers squeezing a thick sealed plastic bag: a crisp crackle of plastic. Very close, quiet, dry, nothing else.', { gain: 0.55 }),
+  sfx('probe_feel_2', 0.8, 'A hand patting and kneading a plastic evidence bag: plastic crinkling and rustling under the fingertips. Very close, quiet, dry, nothing else.', { gain: 0.55 }),
+  sfx('probe_feel_3', 0.8, 'Fingertips running over a padded bubble envelope: a soft plastic crackle and a muffled shift of what is inside. Very close, quiet, dry, nothing else.', { gain: 0.55, tail: 0.25 }),
+  sfx('probe_feel_4', 0.8, 'A thin plastic bag pressed and turned over in the hands: a short burst of crackling plastic, then it settles. Very close, quiet, dry, nothing else.', { gain: 0.55 }),
   // The orchard, the morning after night 2: a camera that went dark, and what had chewed its cable.
   sfx('signal_lost', 1.6, 'An old CCTV monitor losing its video signal: a harsh burst of static, a short descending electronic whine, then a quiet steady hiss of white noise that fades out.', { gain: 0.75, tail: 0.5 }),
   sfx('step_grass_1', 0.6, 'One single slow footstep in tall wet grass: a soft swish and a damp squelch. Very close, dry, nothing else.', { gain: 0.6 }),

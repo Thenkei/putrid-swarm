@@ -1,0 +1,15 @@
+{
+  "id": "probe_weigh_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A taped carton slid along a shelf, weighed in the hands and put back: a cardboard scrape, a creak, a soft bump. Very close, quiet, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.9,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-22T14:23:15.476Z",
+  "bytes": 15089,
+  "sha256": "32297865b528c3db3ece947279fc6456bb6eac562d930a6e54496d7aba093721"
+}

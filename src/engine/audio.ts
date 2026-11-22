@@ -60,6 +60,10 @@ export type Sfx =
   | 'tin'
   | 'scuffle'
   | 'crate'
+  /** Testing a container in a rummage puzzle, by the spot's verb (see `ProbeSound`). */
+  | 'probe_shake'
+  | 'probe_weigh'
+  | 'probe_feel'
   | 'signal_lost'
   | 'step_grass'
   | 'chew'
@@ -167,6 +171,9 @@ const VARIANTS: Partial<Record<Sfx, readonly string[]>> = {
   tin: numbered('tin', 3, false),
   scuffle: numbered('scuffle', 3, false),
   crate: numbered('crate', 2, false),
+  probe_shake: numbered('probe_shake', 4, false),
+  probe_weigh: numbered('probe_weigh', 4, false),
+  probe_feel: numbered('probe_feel', 4, false),
   step_grass: numbered('step_grass', 4, false),
   chew: numbered('chew', 3, false),
   scream: numbered('scream', 2, false),
@@ -186,7 +193,7 @@ const VARIANTS: Partial<Record<Sfx, readonly string[]>> = {
   radio_squelch: numbered('radio_squelch', 3, false),
 };
 /** Effects heard many times in a row: a little pitch drift keeps them from sounding stamped. */
-const PITCH_DRIFT: Partial<Record<Sfx, number>> = { hit: 0.1, kill: 0.08, door: 0.06, spikes: 0.05, groan: 0.1, build: 0.05, rummage: 0.05, loot: 0.06, car_door: 0.04, engine: 0.03, washer: 0.08, tin: 0.06, scuffle: 0.05, step_grass: 0.08, chew: 0.06, pain: 0.05, yank: 0.06, saw: 0.06, heartbeat: 0.03, hand: 0.06, step_shed: 0.08, chain: 0.06, snarl: 0.06, cry: 0.04, gulp: 0.05, radio_knob: 0.08, radio_ptt: 0.04, radio_squelch: 0.06 };
+const PITCH_DRIFT: Partial<Record<Sfx, number>> = { hit: 0.1, kill: 0.08, door: 0.06, spikes: 0.05, groan: 0.1, build: 0.05, rummage: 0.05, loot: 0.06, car_door: 0.04, engine: 0.03, washer: 0.08, tin: 0.06, scuffle: 0.05, probe_shake: 0.07, probe_weigh: 0.05, probe_feel: 0.07, step_grass: 0.08, chew: 0.06, pain: 0.05, yank: 0.06, saw: 0.06, heartbeat: 0.03, hand: 0.06, step_shed: 0.08, chain: 0.06, snarl: 0.06, cry: 0.04, gulp: 0.05, radio_knob: 0.08, radio_ptt: 0.04, radio_squelch: 0.06 };
 /** Minimum seconds between two plays of the same effect. */
 const MIN_GAP: Partial<Record<Sfx, number>> = { hit: 0.09, kill: 0.14, door: 0.35, spikes: 0.08, groan: 1.5 };
 const LOOPING_MUSIC: ReadonlySet<Music> = new Set<Music>(['title', 'day', 'night', 'boss', 'orchard', 'shed', 'panic']);
@@ -959,6 +966,16 @@ class AudioEngine {
       case 'crate':
         this.noise('bandpass', 700, 300, 0.25, 0.3, 0, 1.4);
         this.noise('highpass', 3000, 3000, 0.08, 0.15, 0.12);
+        break;
+      case 'probe_shake':
+        for (let i = 0; i < 2; i++) this.noise('bandpass', 2400 + Math.random() * 1200, 1600, 0.08, 0.12, i * 0.14, 2);
+        break;
+      case 'probe_weigh':
+        this.noise('lowpass', 900, 300, 0.18, 0.1);
+        this.tone('sine', 120, 70, 0.12, 0.12, 0.1);
+        break;
+      case 'probe_feel':
+        for (let i = 0; i < 4; i++) this.noise('highpass', 4500, 3500, 0.04, 0.06, i * 0.07 + Math.random() * 0.03);
         break;
       case 'sip':
         this.noise('bandpass', 2400, 900, 0.5, 0.12, 0, 1.2);
