@@ -1,0 +1,15 @@
+{
+  "id": "probe_feel_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "Fingertips running over a padded bubble envelope: a soft plastic crackle and a muffled shift of what is inside. Very close, quiet, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-22T14:23:17.857Z",
+  "bytes": 13835,
+  "sha256": "65e0c834c33c7740c376618df19f8dcb2aafbac11e3a01dbec3d89a2668fccf0"
+}

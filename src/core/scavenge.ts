@@ -12,12 +12,14 @@ export const circuit = (title: string, clue: string) => ({ kind: 'circuit' as co
 /** `slide` runs along a bench, `swing` hangs from a pivot, `rise` lifts and drops. */
 export type CatchMotion = 'slide' | 'swing' | 'rise';
 export const timing = (title: string, clue: string, action: string, motion: CatchMotion = 'slide') => ({ kind: 'timing' as const, title, clue, action, motion });
+/** What a rummage test sounds like: a container rattled, lifted and set down, or plastic felt through. */
+export type ProbeSound = 'shake' | 'weigh' | 'feel';
 /**
- * Six containers to probe with `probe` (shake, weigh, feel). The loot sounds like `good`; the rest like
- * one of `junk`. See `Rummage` for the rules.
+ * Six containers to probe with `probe` (shake, weigh, feel), heard as `sound`. The loot sounds like
+ * `good`; the rest like one of `junk`. See `Rummage` for the rules.
  */
-export const rummage = (title: string, clue: string, probe: string, items: Six, good: string, junk: readonly [string, string]) =>
-  ({ kind: 'rummage' as const, title, clue, probe, items, good, junk });
+export const rummage = (title: string, clue: string, probe: string, items: Six, good: string, junk: readonly [string, string], sound: ProbeSound) =>
+  ({ kind: 'rummage' as const, title, clue, probe, items, good, junk, sound });
 export const padlock = (title: string, clue: string) => ({ kind: 'padlock' as const, title, clue });
 /** The distraction lands at a safe target, or at one of two targets with distinct consequences. */
 export const records = (title: string, clue: string, albums: Three, target: string, decoys: readonly [readonly [string, string], readonly [string, string]]) =>

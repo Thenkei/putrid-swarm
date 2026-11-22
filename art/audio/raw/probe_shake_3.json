@@ -1,0 +1,15 @@
+{
+  "id": "probe_shake_3",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A string-tied brown paper parcel shaken once: paper crinkling and something shifting inside with a soft knock. Very close, quiet, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-22T14:23:13.411Z",
+  "bytes": 13835,
+  "sha256": "1ca526440bc7589e560dd6d562d43e58d0590912363babb01c1c3da50f06959c"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "probe_feel_4",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A thin plastic bag pressed and turned over in the hands: a short burst of crackling plastic, then it settles. Very close, quiet, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-22T14:23:18.251Z",
+  "bytes": 13835,
+  "sha256": "73dc0c7f8898e1e6b5bdf0514687793058a00128c524427a49fbc3901161d113"
+}

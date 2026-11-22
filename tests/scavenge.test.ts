@@ -9,6 +9,8 @@ import { LOCATIONS, SEARCH_HOURS } from '../src/core/data/locations';
 import { GATE_WINDOW, gateResult } from '../src/core/fairground';
 import { newGame, prepareSearch, searchAttemptKey, travelTo } from '../src/core/game';
 import { deserialize, serialize } from '../src/core/save';
+import { scavengeEn } from '../src/i18n/scavenge-en';
+import { scavengeFr } from '../src/i18n/scavenge-fr';
 
 it('grants the garage crossbow once, only on a successful search, and keeps it across a reload', () => {
   const visit = travelTo(newGame(12), 'garage');
@@ -193,5 +195,16 @@ describe('rummage', () => {
     expect(pile.probe(0)).toEqual(pile.reveal(0));
     const junk = pile.order.find(item => !pile.reveal(item).good)!;
     expect(pile.take(junk)).toBe('wrong');
+  });
+
+  it('sounds the same in both languages, with several recordings of every gesture', () => {
+    const recorded = Object.keys(Object.values(import.meta.glob<Record<string, unknown>>('../public/assets/audio/manifest.json', { eager: true, import: 'default' }))[0] ?? {});
+    const sounds = (book: typeof scavengeFr) =>
+      Object.values(book.spots).flatMap(spots => Object.entries(spots).flatMap(([key, puzzle]) => (puzzle.kind === 'rummage' ? [`${key}:${puzzle.sound}`] : [])));
+    expect(sounds(scavengeEn)).toEqual(sounds(scavengeFr));
+    expect(sounds(scavengeFr)).toHaveLength(5);
+    for (const sound of new Set(sounds(scavengeFr).map(entry => entry.split(':')[1]))) {
+      expect(recorded.filter(id => id.startsWith(`probe_${sound}_`)).length).toBeGreaterThanOrEqual(4);
+    }
   });
 });

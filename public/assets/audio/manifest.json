@@ -461,6 +461,78 @@
     "seconds": 1.097,
     "gain": 0.8
   },
+  "probe_shake_1": {
+    "file": "probe_shake_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.731,
+    "gain": 0.55
+  },
+  "probe_shake_2": {
+    "file": "probe_shake_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.784,
+    "gain": 0.55
+  },
+  "probe_shake_3": {
+    "file": "probe_shake_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.653,
+    "gain": 0.55
+  },
+  "probe_shake_4": {
+    "file": "probe_shake_4.mp3",
+    "kind": "sfx",
+    "seconds": 0.836,
+    "gain": 0.55
+  },
+  "probe_weigh_1": {
+    "file": "probe_weigh_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.496,
+    "gain": 0.55
+  },
+  "probe_weigh_2": {
+    "file": "probe_weigh_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.888,
+    "gain": 0.55
+  },
+  "probe_weigh_3": {
+    "file": "probe_weigh_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.81,
+    "gain": 0.55
+  },
+  "probe_weigh_4": {
+    "file": "probe_weigh_4.mp3",
+    "kind": "sfx",
+    "seconds": 0.731,
+    "gain": 0.55
+  },
+  "probe_feel_1": {
+    "file": "probe_feel_1.mp3",
+    "kind": "sfx",
+    "seconds": 0.81,
+    "gain": 0.55
+  },
+  "probe_feel_2": {
+    "file": "probe_feel_2.mp3",
+    "kind": "sfx",
+    "seconds": 0.81,
+    "gain": 0.55
+  },
+  "probe_feel_3": {
+    "file": "probe_feel_3.mp3",
+    "kind": "sfx",
+    "seconds": 0.731,
+    "gain": 0.55
+  },
+  "probe_feel_4": {
+    "file": "probe_feel_4.mp3",
+    "kind": "sfx",
+    "seconds": 0.81,
+    "gain": 0.55
+  },
   "signal_lost": {
     "file": "signal_lost.mp3",
     "kind": "sfx",

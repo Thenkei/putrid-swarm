@@ -1,0 +1,15 @@
+{
+  "id": "probe_shake_2",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A small closed tin box shaken quickly next to the ear: a short muffled rattle of loose contents against thin metal. Very close, quiet, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-22T14:23:11.860Z",
+  "bytes": 13835,
+  "sha256": "0e33ffcfed2e1eecd0525c057b44fab76f60d32ab69b5383a7fb2618bd1a5af3"
+}

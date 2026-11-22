@@ -1,0 +1,15 @@
+{
+  "id": "probe_shake_1",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "endpoint": "/v1/sound-generation",
+  "request": {
+    "text": "A small cardboard box picked up and shaken twice by hand: a few small loose things inside rattle and slide. Very close, quiet, dry, nothing else.",
+    "model_id": "eleven_text_to_sound_v3",
+    "duration_seconds": 0.8,
+    "prompt_influence": 0.45
+  },
+  "generatedAt": "2026-11-22T14:23:12.129Z",
+  "bytes": 13835,
+  "sha256": "042649444428d2aa52c12d5adb3fa685541f7759ede86776df149b09f0df5b41"
+}
