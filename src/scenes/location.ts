@@ -2,11 +2,12 @@
 // rides in the boot until the refuge. Someone else may already be standing at the best lot.
 
 import { CONCEAL_HOURS, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER } from '../core/data/locations';
-import { clockLabel, concealableSpots, concealSpot, leaveLocation, neighborStatus, prepareSearch, searchAttemptKey, takeSpringReceipt, visitSearchLimit, type NeighborMeeting, type SearchOutcome } from '../core/game';
+import { clockLabel, concealableSpots, concealSpot, leaveLocation, neighborStatus, prepareSearch, searchAttemptKey, searchStop, takeSpringReceipt, type NeighborMeeting, type SearchOutcome, type SearchStop } from '../core/game';
 import { hasViceLeftovers } from '../core/garage-vice';
 import { spotRng, type Puzzle } from '../core/scavenge';
 import { puzzleLevel } from '../core/difficulty';
 import { spotRevealed } from '../core/planque';
+import { makeNoise, NOISE_PER_LOST_SEARCH, searchesLostToNoise, streetNoise } from '../core/street-noise';
 import type { Cost, Dispute, GameState, LocationId } from '../core/types';
 import { RESOURCE_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
@@ -38,11 +39,13 @@ export class LocationScene implements Scene {
   private puzzle: ScavengePanel | null = null;
   private concealing = false;
   private searchDust: { readonly x: number; readonly y: number; age: number } | null = null;
-  private get escorted(): boolean {
-    const location = LOCATIONS[this.id];
-    const state = this.state;
-    const key = `searches:${this.id}:${state.day}:${state.locations[this.id].visits}`;
-    return (state.flags[key] ?? 0) >= visitSearchLimit(location, state.day);
+  /** Whether this visit's searching is over, and why. */
+  private get stop(): SearchStop | null {
+    return searchStop(this.state, LOCATIONS[this.id]);
+  }
+
+  private get stopLine(): string {
+    return this.stop === 'noise' ? S().streetNoise.tooLoud : S().loc.escorted;
   }
 
   constructor(
@@ -136,7 +139,7 @@ export class LocationScene implements Scene {
       const opened = !done && hasViceLeftovers(state, this.id, index);
       const coverTarget = this.concealing && coverTargets.includes(index);
       const receipt = looted && this.id === 'hardware' && index === HARDWARE_SPRING_BIN && state.springReceipt === 'left';
-      const blocked = !done && !opened && !this.concealing && (!canStillSearch || this.escorted);
+      const blocked = !done && !opened && !this.concealing && (!canStillSearch || this.stop !== null);
       const status = coverTarget ? s.stashCover.target
         : receipt ? covered ? s.stashCover.tornReceipt : s.springReceipt.found
         : covered ? looted ? s.stashCover.torn : s.stashCover.intact
@@ -179,7 +182,7 @@ export class LocationScene implements Scene {
     const hoursOnReturn = state.hoursLeft - location.travelHours;
     const dusk = shouldStopAtDusk(state, hoursOnReturn);
     const lastSearchBeforeDusk =
-      !dusk && canStillSearch && !this.escorted &&
+      !dusk && canStillSearch && this.stop === null &&
       shouldStopAtDusk(state, hoursOnReturn - SEARCH_HOURS) &&
       spots.some((spot, index) => spot !== null && index !== dispute?.spot && !progress.searched.includes(index) && !hasViceLeftovers(state, this.id, index));
     const title = el('div', { class: 'panel loc-title' }, [
@@ -189,8 +192,8 @@ export class LocationScene implements Scene {
           ? fmt(s.encounter.spotted, { spot: claimedSpot })
           : gone && neighbor
             ? s.neighbor[neighbor].gone
-            : this.escorted
-              ? s.loc.escorted
+            : this.stop
+              ? this.stopLine
               : !canStillSearch
                 ? s.loc.noTime
                 : fmt(s.loc.search, { h: hours(SEARCH_HOURS) }),
@@ -209,7 +212,7 @@ export class LocationScene implements Scene {
     ])]);
     const thought = lastSearchBeforeDusk ? el('p', { class: 'panel last-search-thought', text: s.crossbowRoad.lastSearch }) : null;
 
-    this.hud.replaceChildren(topbar, stash, ...spots.filter(spot => spot !== null), title, leave);
+    this.hud.replaceChildren(topbar, stash, this.noiseGauge(), ...spots.filter(spot => spot !== null), title, leave);
     if (thought) this.hud.append(thought);
   }
 
@@ -332,7 +335,7 @@ export class LocationScene implements Scene {
       }
       audio.play('deny');
       if (code === 'escorted_out') {
-        this.app.toast(s.loc.escorted, 'error');
+        this.app.toast(this.stopLine, 'error');
         this.refresh();
       } else if (code === 'no_time') this.app.toast(s.loc.noTime, 'error');
       else this.app.toast(s.err.generic, 'error');
@@ -356,12 +359,30 @@ export class LocationScene implements Scene {
       this.hud.querySelector<HTMLButtonElement>(`[data-spot="${index}"]`)?.focus();
     };
     const attempt = result.value;
+    // Noise the panel reports rides on whichever outcome the attempt settles into.
+    let heard = 0;
+    const withNoise = (state: GameState): GameState => {
+      const next = makeNoise(state, heard);
+      heard = 0;
+      return next;
+    };
     this.puzzle = new ScavengePanel(
       puzzles[spot.key]!, names[spot.key]!, spot, heroArt(location.plate, oneArmed(this.state)), spotRng(this.state.seed, this.id, spot.key, searchAttemptKey(this.state)), puzzleLevel(this.state),
       () => {
         close();
-        this.collect(attempt.success, at);
-      }, close,
+        this.collect({ ...attempt.success, state: withNoise(attempt.success.state) }, at);
+        this.noticeLostSearch(attempt.paid);
+      },
+      () => {
+        // Walking away from a started attempt does not unmake what the street already heard.
+        if (heard > 0) {
+          this.app.state = withNoise(this.state);
+          this.app.save();
+          this.refresh();
+          this.noticeLostSearch(attempt.paid);
+        }
+        close();
+      },
       () => {
         this.app.state = attempt.paid;
         this.app.save();
@@ -375,21 +396,49 @@ export class LocationScene implements Scene {
           goEnd(this.app, { firstTime: rememberEnding('town.lift'), playLiftCollapse: true });
           return;
         }
+        this.app.state = withNoise(attempt.failure);
+        this.app.save();
+        this.refresh();
+        this.noticeLostSearch(attempt.paid);
         const next = prepareSearch(this.state, index);
         if (next.ok) this.puzzle?.showFailure(message, () => {
           close();
           this.search(index, at, true);
         });
         else {
-          const reason = next.error.code === 'escorted_out' ? s.loc.escorted : s.loc.noTime;
+          const reason = next.error.code === 'escorted_out' ? this.stopLine : s.loc.noTime;
           this.puzzle?.showFailure(`${message} ${reason}`, null);
         }
+      },
+      amount => {
+        heard += amount;
       },
     );
     this.hud.inert = true;
     this.overlay.append(this.puzzle.root);
     if (retry) this.puzzle.start();
     this.puzzle.focus();
+  }
+
+  /** Says so when the noise since `before` has just cost this visit a search. */
+  private noticeLostSearch(before: GameState): void {
+    if (searchesLostToNoise(this.state, this.id) > searchesLostToNoise(before, this.id)) this.app.toast(S().streetNoise.heard, 'error');
+  }
+
+  /** The street-noise gauge: one dot per noise towards the next lost search, and the searches already lost. */
+  private noiseGauge(): HTMLElement {
+    const s = S().streetNoise;
+    const state = this.state;
+    const lost = searchesLostToNoise(state, this.id);
+    const filled = streetNoise(state) % NOISE_PER_LOST_SEARCH;
+    const lostLine = lost > 0 ? fmt(s.lost, { n: lost }) : null;
+    const gauge = el('span', { class: 'street-noise', title: s.hint }, [
+      s.label,
+      el('b', { text: '●'.repeat(filled) + '○'.repeat(NOISE_PER_LOST_SEARCH - filled) }),
+      lostLine ? el('small', { text: lostLine }) : null,
+    ]);
+    gauge.setAttribute('aria-label', `${s.label} ${filled}/${NOISE_PER_LOST_SEARCH}${lostLine ? ` · ${lostLine}` : ''}`);
+    return gauge;
   }
 
   private collect(result: SearchOutcome, at: { x: number; y: number }): void {

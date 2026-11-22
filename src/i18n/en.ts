@@ -322,6 +322,13 @@ export const en: Strings = {
     trunk: 'In the boot',
     disputed: 'This lot is settled with whoever is standing on it.',
   },
+  streetNoise: {
+    label: 'Noise',
+    hint: 'What the street has heard on this visit. Every third noise costs one search.',
+    lost: 'searches −{n}',
+    heard: 'The street heard that. One search fewer this visit.',
+    tooLoud: 'Too much noise here. Better head home and come back later.',
+  },
   registeredLetter: {
     slip: 'Missed delivery',
     notice: 'The rain has washed out the sender’s name. Yours is still legible. “Second attempt tomorrow. Signature required at the front gate.”',

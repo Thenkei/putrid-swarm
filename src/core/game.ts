@@ -15,6 +15,7 @@ import { QUIET_RADIO, aftermathOf, awaitsRadio, rivalOf, stockAfter, type RadioR
 import { acquaintance } from './encounters';
 import { createRng, type Rng } from './rng';
 import { spotRevealed } from './planque';
+import { FAILED_ATTEMPT_NOISE, makeNoise, searchesLostToNoise } from './street-noise';
 import type { Cost, DeviceInstance, GameState, Inventory, LocationId, LocationProgress, NeighborId, NightReport, OutingMark, ResourceId, Result } from './types';
 import { LOCATION_IDS, RESOURCE_IDS, err, ok } from './types';
 import { DEVICES } from './data/devices';
@@ -142,6 +143,29 @@ export function visitSearchLimit(location: LocationDef, day: number): number {
 export function remainingSearches(state: GameState, location: LocationDef): number {
   const { searched } = state.locations[location.id];
   return location.spots.filter((spot, index) => spotRevealed(state, spot) && !searched.includes(index)).length;
+}
+
+/** Searches the chief still allows on this visit; Infinity where nobody counts them. */
+function chiefAllowance(state: GameState, location: LocationDef): number {
+  return visitSearchLimit(location, state.day) - (state.flags[visitKeyFor(state, location.id)] ?? 0);
+}
+
+/**
+ * Searches this visit can still pay for: the chief's allowance or the lots left, whichever runs out
+ * first, less one for every `NOISE_PER_LOST_SEARCH` the street has heard.
+ */
+export function visitSearchesLeft(state: GameState, location: LocationDef): number {
+  const allowed = Math.min(chiefAllowance(state, location), remainingSearches(state, location));
+  return Math.max(0, allowed - searchesLostToNoise(state, location.id));
+}
+
+/** What ends searching on this visit: the chief walking the player out, or lots left that are now too loud to reach. */
+export type SearchStop = 'escorted' | 'noise';
+
+/** Null while this visit can still search, or when the place is simply emptied. */
+export function searchStop(state: GameState, location: LocationDef): SearchStop | null {
+  if (chiefAllowance(state, location) <= 0) return 'escorted';
+  return visitSearchesLeft(state, location) === 0 && remainingSearches(state, location) > 0 ? 'noise' : null;
 }
 
 /** Search limit and yard daylight after a trip at that limit, before any encounters. */
@@ -297,6 +321,7 @@ export const CHIEF_SEARCH_LIMIT = 2;
 /** Immutable outcomes of one eligible attempt, all based on the same daylight payment. */
 export interface SearchAttempt {
   readonly paid: GameState;
+  /** A miss is heard in the street (see core/street-noise.ts). */
   readonly failure: GameState;
   readonly success: SearchOutcome;
 }
@@ -321,11 +346,9 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
   const needed = searchHours + location.travelHours;
   if (state.hoursLeft + 1e-9 < needed) return err({ code: 'no_time', needed });
 
+  if (visitSearchesLeft(state, location) === 0) return err({ code: 'escorted_out' });
   const visitKey = visitKeyFor(state, location.id);
   const searchesThisVisit = state.flags[visitKey] ?? 0;
-  if (searchesThisVisit >= visitSearchLimit(location, state.day)) {
-    return err({ code: 'escorted_out' });
-  }
 
   const rng = createRng(state.rng);
   const loot: Partial<Record<ResourceId, number>> = {};
@@ -343,9 +366,10 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
       ...(!opened && isGarageVice(location.id, spotIndex) ? { [VICE_ATTEMPT_DAY]: state.day } : {}),
     },
   };
+  const failed = makeNoise(paid, FAILED_ATTEMPT_NOISE);
   return ok({
     paid,
-    failure: spot.fatalMiss ? { ...paid, phase: 'lost', fate: spot.fatalMiss, outing: null, encounter: null } : paid,
+    failure: spot.fatalMiss ? { ...failed, phase: 'lost', fate: spot.fatalMiss, outing: null, encounter: null } : failed,
     success: {
       loot,
       state: {
