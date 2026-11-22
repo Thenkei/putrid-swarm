@@ -1,10 +1,11 @@
 import { SEARCH_HOURS, type SearchSpot } from '../core/data/locations';
 import { COURSE, GATE_WINDOW, gateResult } from '../core/fairground';
 import { GATE_HALF_ANGLE, Padlock } from '../core/padlock';
-import { catchBands, CATCH_WIDTH, inBand } from '../core/catch';
+import { catchBands, inBand, NEEDLE_PACE, needleAt } from '../core/catch';
+import { PUZZLE_CURVE, type PuzzleLevel } from '../core/difficulty';
 import type { Rng } from '../core/rng';
 import { probeCost, Rummage, RUMMAGE } from '../core/rummage';
-import { circuitTiles, PORTS, shuffled, traceCircuit, turnTile, type CatchMotion, type Puzzle } from '../core/scavenge';
+import { circuitTiles, PORTS, scaleWeights, shuffled, traceCircuit, turnTile, type CatchMotion, type CircuitShape, type Puzzle, type ScaleShape } from '../core/scavenge';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { fmt, hours, S } from '../engine/i18n';
@@ -21,7 +22,7 @@ export class ScavengePanel {
   private finished = false;
 
   constructor(
-    puzzle: Puzzle, spotName: string, spot: SearchSpot, plate: string, rng: Rng,
+    puzzle: Puzzle, spotName: string, spot: SearchSpot, plate: string, rng: Rng, level: PuzzleLevel,
     private readonly solved: () => void, readonly cancel: () => void,
     private readonly onStart: () => void, private readonly onFailure: (message: string) => void,
   ) {
@@ -51,11 +52,12 @@ export class ScavengePanel {
       this.instruction, this.board, this.status,
       el('button', { class: 'salvage-back', text: s.back, onClick: cancel }),
     ])]));
+    const tuning = PUZZLE_CURVE[level];
     switch (puzzle.kind) {
-      case 'scale': this.scale(puzzle.unit, puzzle.gauge, rng); break;
-      case 'circuit': this.circuit(rng); break;
-      case 'padlock': this.padlock(rng); break;
-      case 'timing': this.timing(puzzle.action, puzzle.motion, rng); break;
+      case 'scale': this.scale(puzzle.unit, puzzle.gauge, tuning.scale, rng); break;
+      case 'circuit': this.circuit(tuning.circuit, rng); break;
+      case 'padlock': this.padlock(tuning.ringPace, rng); break;
+      case 'timing': this.timing(puzzle.action, puzzle.motion, tuning.catchWidth, rng); break;
       case 'rummage': this.rummage(puzzle, rng); break;
       case 'records': this.records(puzzle, rng); break;
       case 'directory': this.directory(puzzle.entries, rng); break;
@@ -252,23 +254,23 @@ export class ScavengePanel {
     this.focus();
   }
 
-  private scale(unit: string, gauge: string, rng: Rng): void {
+  private scale(unit: string, gauge: string, shape: ScaleShape, rng: Rng): void {
     const s = S().scavenge;
-    const weights = shuffled([1, 2, 3, 4, 5, 6, 7, 8], rng).slice(0, 5);
-    const target = weights[0]! + weights[1]!;
+    const { weights, target } = scaleWeights(rng, shape);
     const selected = new Set<number>();
     const load = el('b');
     const dial = el('div', { class: 'salvage-readout' }, [
       el('span', {}, [gauge, el('b', { class: 'scale-target', text: `${target} ${unit}` })]), el('span', {}, [s.loaded, load]),
     ]);
     const pieces = el('div', { class: 'salvage-weights' });
+    pieces.style.setProperty('--tags', String(weights.length));
     const update = (): number => {
       const sum = [...selected].reduce((n, value) => n + value, 0);
       load.textContent = `${sum} ${unit}`;
       for (const btn of pieces.querySelectorAll('button')) btn.setAttribute('aria-pressed', String(selected.has(Number(btn.value))));
       return sum;
     };
-    for (const weight of shuffled(weights, rng)) {
+    for (const weight of weights) {
       const button = this.button(`${weight} ${unit}`, () => {
         if (selected.has(weight)) selected.delete(weight);
         else selected.add(weight);
@@ -285,15 +287,16 @@ export class ScavengePanel {
     this.board.append(dial, pieces);
   }
 
-  private circuit(rng: Rng): void {
-    const board = circuitTiles(rng);
+  private circuit(shape: CircuitShape, rng: Rng): void {
+    const board = circuitTiles(rng, shape);
     const { tiles } = board;
     const s = S().scavenge;
     const grid = el('div', { class: 'wire-grid' });
+    grid.style.setProperty('--side', String(board.side));
     grid.style.setProperty('--inlet-row', String(board.inlet));
     grid.style.setProperty('--outlet-row', String(board.outlet));
     // The arrows are drawn by CSS; the instruction says where they are for anyone who cannot see them.
-    this.instruction.textContent = `${s.circuit} ${fmt(s.circuitEnds, { a: s.rows[board.inlet]!, b: s.rows[board.outlet]! })}`;
+    this.instruction.textContent = `${s.circuit} ${fmt(s.circuitEnds, { a: s.rows[board.side][board.inlet]!, b: s.rows[board.side][board.outlet]! })}`;
     const buttons = tiles.map((_, index) => this.button('', () => {
       tiles[index] = turnTile(tiles[index]!);
       draw();
@@ -328,8 +331,8 @@ export class ScavengePanel {
     }));
   }
 
-  private padlock(rng: Rng): void {
-    const lock = new Padlock(rng);
+  private padlock(pace: number, rng: Rng): void {
+    const lock = new Padlock(rng, pace);
     const s = S().scavenge;
     const rings = lock.angles.map(() => el('i', { class: 'lock-ring' }));
     const dial = el('div', { class: 'lock-dial' }, [...rings, el('i', { class: 'lock-spindle' }), el('i', { class: 'lock-guide' })]);
@@ -376,13 +379,13 @@ export class ScavengePanel {
     this.board.append(housing, el('div', { class: 'lock-controls' }, [progress, action]));
   }
 
-  private timing(action: string, motion: CatchMotion, rng: Rng): void {
+  private timing(action: string, motion: CatchMotion, width: number, rng: Rng): void {
     const s = S().scavenge;
     const needle = el('i', { class: 'catch-needle' });
     const band = el('i', { class: 'catch-band' });
     const track = el('div', { class: `catch-track catch-${motion}` }, [band, needle]);
     track.setAttribute('aria-hidden', 'true');
-    const bands = catchBands(rng);
+    const bands = catchBands(rng, width);
     let count = 0;
     let phase = rng.next() * 2;
     let position = 0;
@@ -390,18 +393,16 @@ export class ScavengePanel {
       const start = bands[count]!;
       if (motion === 'swing') {
         // Conic angles run clockwise from twelve; the pendulum hangs at six and sweeps 45° either way.
-        track.style.setProperty('--band-from', `${225 - 90 * (start + CATCH_WIDTH)}deg`);
+        track.style.setProperty('--band-from', `${225 - 90 * (start + width)}deg`);
         track.style.setProperty('--band-to', `${225 - 90 * start}deg`);
       } else {
         band.style.setProperty('--band-start', `${(start * 100).toFixed(1)}%`);
-        band.style.setProperty('--band-size', `${(CATCH_WIDTH * 100).toFixed(1)}%`);
+        band.style.setProperty('--band-size', `${(width * 100).toFixed(1)}%`);
       }
     };
     this.advance = dt => {
-      phase = (phase + dt * 0.62) % 2;
-      const sweep = 1 - Math.abs(phase - 1);
-      // A hanging load slows at the ends of its swing; a slide or a lift keeps an even pace.
-      position = motion === 'swing' ? (1 - Math.cos(sweep * Math.PI)) / 2 : sweep;
+      phase = (phase + dt * NEEDLE_PACE) % 2;
+      position = needleAt(phase, motion);
       if (motion === 'swing') needle.style.transform = `rotate(${45 - 90 * position}deg)`;
       else needle.style.setProperty('--needle', `${position * 100}%`);
     };
@@ -409,7 +410,7 @@ export class ScavengePanel {
     placeBand();
     this.status.textContent = fmt(s.caught, { n: 0 });
     this.board.append(track, this.button(action, () => {
-      if (!inBand(position, bands[count]!)) {
+      if (!inBand(position, bands[count]!, width)) {
         this.miss(`${fmt(s.caught, { n: count })} · ${s.missed[motion]}`);
         return;
       }

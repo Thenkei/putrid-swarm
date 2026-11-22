@@ -1,6 +1,8 @@
 // Puzzle lab: every scavenging puzzle in town, opened on demand with a fresh deal each time.
 // Development only, served at /puzzles.html by `vite`; it plays the real ScavengePanel without a run.
 import { LOCATIONS } from '../core/data/locations';
+import { LAST_NIGHT } from '../core/data/waves';
+import { PUZZLE_LEVELS, puzzleLevel, type PuzzleLevel } from '../core/difficulty';
 import { LOCATION_IDS, type LocationId } from '../core/types';
 import { spotRng, type Puzzle } from '../core/scavenge';
 import { loadAssets } from '../engine/assets';
@@ -18,6 +20,7 @@ const toast = document.getElementById('toast')!;
 let panel: ScavengePanel | null = null;
 let opened: { location: LocationId; index: number } | null = null;
 let deals = 0;
+let level: PuzzleLevel = 0;
 
 Object.assign(lab.style, {
   position: 'fixed', inset: '0 auto 0 0', width: `${SIDEBAR}px`, overflow: 'auto', padding: '14px 16px', zIndex: '5',
@@ -56,7 +59,7 @@ function open(location: LocationId, index: number): void {
   // A fresh seed per opening stands in for a new paid attempt in the game.
   const rng = spotRng((Date.now() ^ (++deals * 0x9e3779b1)) >>> 0, location, spot.key, `lab:${deals}`);
   opened = { location, index };
-  const current: ScavengePanel = new ScavengePanel(puzzle, name, spot, def.plate, rng,
+  const current: ScavengePanel = new ScavengePanel(puzzle, name, spot, def.plate, rng, level,
     () => { say(getLang() === 'fr' ? 'Réussi' : 'Solved', true); close(); },
     close,
     () => {},
@@ -80,6 +83,20 @@ function render(): void {
       render();
     },
   });
+  // Each level is labelled with the campaign days that play it, read from the curve itself.
+  const levelButton = (value: PuzzleLevel) => {
+    const days = Array.from({ length: LAST_NIGHT }, (_, i) => i + 1).filter(day => puzzleLevel({ day }) === value);
+    return el('button', {
+      text: `${fr ? 'J' : 'D'}${days[0]}${days.length > 1 ? `–${days[days.length - 1]}` : ''}`,
+      title: `${fr ? 'Niveau' : 'Level'} ${value}`,
+      style: { padding: '4px 10px', marginRight: '6px', background: level === value ? '#b98a46' : '#3b2f20', color: '#fff3d6', borderRadius: '3px' },
+      onClick: () => {
+        level = value;
+        if (opened && panel) open(opened.location, opened.index);
+        render();
+      },
+    });
+  };
   const groups = LOCATION_IDS.map(id => {
     const book = s.scavenge.spots[id] as Readonly<Record<string, Puzzle>>;
     const names = s.spot[id] as Readonly<Record<string, string>>;
@@ -102,6 +119,9 @@ function render(): void {
     el('h2', { text: 'Puzzle Lab', style: { margin: '0 0 4px', font: 'bold 22px/1.2 system-ui, sans-serif' } }),
     el('p', { text: fr ? 'Chaque ouverture tire une nouvelle donne. Un échec propose de réessayer.' : 'Every opening deals a fresh board. A failure offers a retry.', style: { margin: '0 0 10px', color: '#a8977a' } }),
     el('div', {}, [langButton('fr', 'FR'), langButton('en', 'EN')]),
+    el('div', { style: { marginTop: '8px' } }, [
+      el('span', { text: fr ? 'Difficulté · ' : 'Difficulty · ', style: { color: '#a8977a' } }), ...PUZZLE_LEVELS.map(levelButton),
+    ]),
     ...groups,
   );
 }

@@ -6,11 +6,14 @@ const RING_SPEEDS = [94, -116, 142] as const;
 
 export class Padlock {
   readonly angles: number[];
+  /** Degrees per second, signed: each ring turns `pace` times as fast as on the opening days. */
+  readonly speeds: readonly number[];
   setRings = 0;
 
-  constructor(rng: Rng) {
+  constructor(rng: Rng, pace: number) {
     // Every ring starts away from the gate so each catch needs a deliberate turn.
     this.angles = RING_SPEEDS.map(() => rng.int(65, 295));
+    this.speeds = RING_SPEEDS.map(speed => speed * pace);
   }
 
   get open(): boolean {
@@ -25,7 +28,7 @@ export class Padlock {
   advance(seconds: number): void {
     if (this.open) return;
     const index = this.setRings;
-    const angle = this.angles[index]! + RING_SPEEDS[index]! * seconds;
+    const angle = this.angles[index]! + this.speeds[index]! * seconds;
     this.angles[index] = ((angle % 360) + 360) % 360;
   }
 
