@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { GATE_HALF_ANGLE, Padlock } from '../src/core/padlock';
 import { createRng } from '../src/core/rng';
+import { catchBands, CATCH_WIDTH } from '../src/core/catch';
+import { probeCost, Rummage, RUMMAGE, type TakeResult } from '../src/core/rummage';
 import { circuitTiles, spotRng, traceCircuit } from '../src/core/scavenge';
 import { hasCrossbow } from '../src/core/crossbow';
 import { LOCATIONS, SEARCH_HOURS } from '../src/core/data/locations';
@@ -135,5 +137,61 @@ describe('the fairground', () => {
     expect(state.hoursLeft).toBe(grocery.hoursLeft - 2 * SEARCH_HOURS);
     expect(loot).toEqual({ wire: 2, battery: 2 });
     expect(prepareSearch(deserialize(serialize(state))!, index)).toMatchObject({ ok: false, error: { code: 'already_searched' } });
+  });
+});
+
+describe('timing bands', () => {
+  it('keeps both bands on the track, apart, and moves the second one between attempts', () => {
+    const seconds = new Set<number>();
+    for (let seed = 0; seed < 300; seed++) {
+      const [first, second] = catchBands(createRng(seed));
+      for (const start of [first, second]) {
+        expect(start).toBeGreaterThanOrEqual(0.05 - 1e-9);
+        expect(start + CATCH_WIDTH).toBeLessThanOrEqual(0.95 + 1e-9);
+      }
+      expect(Math.abs(second - first)).toBeGreaterThanOrEqual(CATCH_WIDTH + 0.08 - 1e-9);
+      seconds.add(second);
+    }
+    expect(seconds.size).toBeGreaterThan(20);
+  });
+});
+
+describe('rummage', () => {
+  /** Tests in `plan` order while noise lasts, then grabs what the results prove; null when it must guess. */
+  function play(seed: number, plan: (pile: Rummage) => number[]): TakeResult[] | null {
+    const pile = new Rummage(createRng(seed));
+    const good: number[] = [];
+    for (const item of plan(pile)) {
+      if (good.length === RUMMAGE.wanted) break;
+      const result = pile.probe(item);
+      if (result?.good) good.push(item);
+    }
+    const unknown = pile.order.filter(item => !pile.isProbed(item));
+    const missing = RUMMAGE.wanted - good.length;
+    if (missing > 0 && unknown.length !== missing) return null;
+    return [...good, ...(missing > 0 ? unknown : [])].map(item => pile.take(item));
+  }
+
+  it('always lets a player who tests the quiet containers first find both good ones', () => {
+    const quietFirst = (pile: Rummage) => [...pile.order].sort((a, b) => probeCost(a) - probeCost(b));
+    for (let seed = 0; seed < 300; seed++) expect(play(seed, quietFirst)).toEqual(['kept', 'done']);
+  });
+
+  it('can leave a guess to a player who tests the noisy containers first', () => {
+    const loudFirst = (pile: Rummage) => [...pile.order].sort((a, b) => probeCost(b) - probeCost(a));
+    const guesses = Array.from({ length: 300 }, (_, seed) => play(seed, loudFirst)).filter(result => result === null);
+    expect(guesses.length).toBeGreaterThan(30);
+  });
+
+  it('refuses a test the noise cannot cover and ends the attempt on a wrong grab', () => {
+    const pile = new Rummage(createRng(5));
+    for (const item of [0, 1, 2]) expect(pile.probe(item)).not.toBeNull();
+    expect(pile.noiseLeft).toBe(1);
+    expect(pile.canProbe(3)).toBe(true);
+    pile.probe(3);
+    expect(pile.probe(4)).toBeNull();
+    expect(pile.probe(0)).toEqual(pile.reveal(0));
+    const junk = pile.order.find(item => !pile.reveal(item).good)!;
+    expect(pile.take(junk)).toBe('wrong');
   });
 });

@@ -1,8 +1,10 @@
 import { SEARCH_HOURS, type SearchSpot } from '../core/data/locations';
 import { COURSE, GATE_WINDOW, gateResult } from '../core/fairground';
 import { GATE_HALF_ANGLE, Padlock } from '../core/padlock';
+import { catchBands, CATCH_WIDTH, inBand } from '../core/catch';
 import type { Rng } from '../core/rng';
-import { circuitTiles, PORTS, shuffled, traceCircuit, turnTile, type Puzzle } from '../core/scavenge';
+import { probeCost, Rummage, RUMMAGE } from '../core/rummage';
+import { circuitTiles, PORTS, shuffled, traceCircuit, turnTile, type CatchMotion, type Puzzle } from '../core/scavenge';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { fmt, hours, S } from '../engine/i18n';
@@ -50,10 +52,11 @@ export class ScavengePanel {
       el('button', { class: 'salvage-back', text: s.back, onClick: cancel }),
     ])]));
     switch (puzzle.kind) {
-      case 'scale': this.scale(puzzle.unit, rng); break;
+      case 'scale': this.scale(puzzle.unit, puzzle.gauge, rng); break;
       case 'circuit': this.circuit(rng); break;
       case 'padlock': this.padlock(rng); break;
-      case 'timing': this.timing(puzzle.action, rng); break;
+      case 'timing': this.timing(puzzle.action, puzzle.motion, rng); break;
+      case 'rummage': this.rummage(puzzle, rng); break;
       case 'records': this.records(puzzle, rng); break;
       case 'directory': this.directory(puzzle.entries, rng); break;
       case 'vachette': this.vachette(); break;
@@ -249,14 +252,14 @@ export class ScavengePanel {
     this.focus();
   }
 
-  private scale(unit: string, rng: Rng): void {
+  private scale(unit: string, gauge: string, rng: Rng): void {
     const s = S().scavenge;
     const weights = shuffled([1, 2, 3, 4, 5, 6, 7, 8], rng).slice(0, 5);
     const target = weights[0]! + weights[1]!;
     const selected = new Set<number>();
     const load = el('b');
     const dial = el('div', { class: 'salvage-readout' }, [
-      el('span', {}, [s.target, el('b', { class: 'scale-target', text: `${target} ${unit}` })]), el('span', {}, [s.loaded, load]),
+      el('span', {}, [gauge, el('b', { class: 'scale-target', text: `${target} ${unit}` })]), el('span', {}, [s.loaded, load]),
     ]);
     const pieces = el('div', { class: 'salvage-weights' });
     const update = (): number => {
@@ -289,6 +292,8 @@ export class ScavengePanel {
     const grid = el('div', { class: 'wire-grid' });
     grid.style.setProperty('--inlet-row', String(board.inlet));
     grid.style.setProperty('--outlet-row', String(board.outlet));
+    // The arrows are drawn by CSS; the instruction says where they are for anyone who cannot see them.
+    this.instruction.textContent = `${s.circuit} ${fmt(s.circuitEnds, { a: s.rows[board.inlet]!, b: s.rows[board.outlet]! })}`;
     const buttons = tiles.map((_, index) => this.button('', () => {
       tiles[index] = turnTile(tiles[index]!);
       draw();
@@ -371,37 +376,100 @@ export class ScavengePanel {
     this.board.append(housing, el('div', { class: 'lock-controls' }, [progress, action]));
   }
 
-  private timing(action: string, rng: Rng): void {
+  private timing(action: string, motion: CatchMotion, rng: Rng): void {
     const s = S().scavenge;
     const needle = el('i', { class: 'catch-needle' });
     const band = el('i', { class: 'catch-band' });
-    const track = el('div', { class: 'catch-track' }, [band, needle]);
+    const track = el('div', { class: `catch-track catch-${motion}` }, [band, needle]);
+    track.setAttribute('aria-hidden', 'true');
+    const bands = catchBands(rng);
     let count = 0;
-    let phase = rng.next();
+    let phase = rng.next() * 2;
     let position = 0;
-    const width = 0.23;
-    let start = rng.int(15, 35) / 100;
-    const placeBand = () => {
-      band.style.left = `${start * 100}%`;
-      band.style.width = `${width * 100}%`;
+    const placeBand = (): void => {
+      const start = bands[count]!;
+      if (motion === 'swing') {
+        // Conic angles run clockwise from twelve; the pendulum hangs at six and sweeps 45° either way.
+        track.style.setProperty('--band-from', `${225 - 90 * (start + CATCH_WIDTH)}deg`);
+        track.style.setProperty('--band-to', `${225 - 90 * start}deg`);
+      } else {
+        band.style.setProperty('--band-start', `${(start * 100).toFixed(1)}%`);
+        band.style.setProperty('--band-size', `${(CATCH_WIDTH * 100).toFixed(1)}%`);
+      }
     };
     this.advance = dt => {
       phase = (phase + dt * 0.62) % 2;
-      position = 1 - Math.abs(phase - 1);
-      needle.style.left = `${position * 100}%`;
+      const sweep = 1 - Math.abs(phase - 1);
+      // A hanging load slows at the ends of its swing; a slide or a lift keeps an even pace.
+      position = motion === 'swing' ? (1 - Math.cos(sweep * Math.PI)) / 2 : sweep;
+      if (motion === 'swing') needle.style.transform = `rotate(${45 - 90 * position}deg)`;
+      else needle.style.setProperty('--needle', `${position * 100}%`);
     };
     this.advance(0);
     placeBand();
     this.status.textContent = fmt(s.caught, { n: 0 });
     this.board.append(track, this.button(action, () => {
-      if (position < start || position > start + width) {
+      if (!inBand(position, bands[count]!)) {
         this.miss(`${fmt(s.caught, { n: count })} · ${s.missed}`);
         return;
       }
-      if (++count === 2) return this.solved();
-      start = 0.72;
+      if (++count === bands.length) return this.solved();
       placeBand();
       this.status.textContent = fmt(s.caught, { n: count });
     }));
+  }
+
+  private rummage(puzzle: Extract<Puzzle, { kind: 'rummage' }>, rng: Rng): void {
+    const s = S().scavenge;
+    const pile = new Rummage(rng);
+    const meter = el('span', { class: 'rummage-noise' });
+    const grid = el('div', { class: 'rummage-pile' });
+    const said = (item: number): string => {
+      const result = pile.reveal(item);
+      return result.good ? puzzle.good : puzzle.junk[result.found];
+    };
+    const cards = pile.order.map(item => {
+      const name = puzzle.items[item]!;
+      const reveal = el('small', { class: 'rummage-reveal', text: s.rummageUnknown });
+      const loud = probeCost(item) > 1;
+      const probe = this.button(loud ? `${puzzle.probe} ●●` : puzzle.probe, () => {
+        if (!pile.probe(item)) return;
+        audio.play(pile.reveal(item).good ? 'tin' : 'thud', 0.5);
+        paint();
+      });
+      const take = this.button(s.rummageTake, () => {
+        const result = pile.take(item);
+        if (result === 'wrong') return this.miss(fmt(s.rummageWrong, { item: name, what: said(item) }));
+        audio.play('ready');
+        if (result === 'done') return this.solved();
+        paint();
+        this.focus();
+      });
+      probe.setAttribute('aria-label', `${puzzle.probe} · ${name}${loud ? ` · ${s.rummageLoud}` : ''}`);
+      take.setAttribute('aria-label', `${s.rummageTake} · ${name}`);
+      const card = el('div', { class: loud ? 'rummage-item loud' : 'rummage-item' }, [
+        el('strong', { text: name }), loud ? el('em', { class: 'rummage-loud', text: s.rummageLoud }) : null, reveal,
+        el('div', { class: 'rummage-actions' }, [probe, take]),
+      ]);
+      return { item, card, reveal, probe, take };
+    });
+    const paint = (): void => {
+      for (const { item, card, reveal, probe, take } of cards) {
+        const known = pile.isProbed(item);
+        reveal.textContent = known ? said(item) : s.rummageUnknown;
+        card.dataset.state = pile.isTaken(item) ? 'taken' : known ? (pile.reveal(item).good ? 'good' : 'junk') : 'unknown';
+        probe.disabled = !pile.canProbe(item);
+        // Something already heard to be junk is not worth a grab.
+        take.disabled = pile.isTaken(item) || (known && !pile.reveal(item).good);
+      }
+      const left = pile.noiseLeft;
+      const used = RUMMAGE.noise - left;
+      meter.textContent = `${fmt(s.rummageNoise, { n: used, max: RUMMAGE.noise })} ${'●'.repeat(used)}${'○'.repeat(left)}`;
+      const stuck = cards.every(({ item }) => !pile.canProbe(item));
+      this.status.textContent = `${fmt(s.rummageFound, { n: pile.found, total: RUMMAGE.wanted })}${stuck ? ` · ${s.rummageQuiet}` : ''}`;
+    };
+    grid.append(...cards.map(({ card }) => card));
+    paint();
+    this.board.append(meter, grid);
   }
 }

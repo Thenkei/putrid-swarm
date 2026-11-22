@@ -15,6 +15,8 @@ pnpm install
 pnpm dev        # http://localhost:5173
 ```
 
+`/puzzles.html` on the dev server opens every scavenging puzzle in town, in French or English, with a fresh deal on each opening. It is a development page and is not part of the build.
+
 ```bash
 pnpm test       # simulation and campaign rules (Vitest)
 pnpm typecheck
