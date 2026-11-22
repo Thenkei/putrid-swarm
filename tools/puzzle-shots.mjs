@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Regression tour of every scavenging puzzle in town: opens each spot of /puzzles.html in French then English,
+// Regression tour of every scavenging puzzle in town: opens each spot of /puzzles.html at every difficulty level, in French then English,
 // checks that the panel fits the stage and that no text overflows or is clipped, collects page errors,
 // console errors and failed requests, saves one screenshot per spot per language, and exits 1 on any failure.
 //   node tools/puzzle-shots.mjs [outDir] [baseUrl]
@@ -188,13 +188,21 @@ async function check(spot, lang, file) {
   await page.locator('#stage').screenshot({ path: join(OUT, file) });
 }
 
-for (const [n, spot] of spots.entries()) {
-  for (const lang of LANGS) {
-    context = `${spot.place} / ${spot.name} (${spot.kind}, ${lang})`;
-    checks++;
-    // One broken spot must not hide the others: record it and carry on.
-    await check(spot, lang, `${String(n + 1).padStart(2, '0')}-${slug(spot.place)}-${slug(spot.name)}-${lang}.png`)
-      .catch((error) => fail(`the tour broke: ${error.message.split('\n')[0]}`));
+// Later campaign days deal larger boards (a 4×4 wire grid, more scale tags): every level is toured.
+const levels = await page.locator('#lab button[title]').evaluateAll((buttons) =>
+  buttons.map((b) => /^(?:Niveau|Level) (\d+)$/.exec(b.title)?.[1]).filter(Boolean).map(Number));
+if (levels.length === 0) levels.push(0);
+for (const level of levels) {
+  const levelButton = page.locator(`#lab button[title$=" ${level}"]`);
+  if (await levelButton.count()) await levelButton.first().click();
+  for (const [n, spot] of spots.entries()) {
+    for (const lang of LANGS) {
+      context = `${spot.place} / ${spot.name} (${spot.kind}, ${lang}, level ${level})`;
+      checks++;
+      // One broken spot must not hide the others: record it and carry on.
+      await check(spot, lang, `L${level}-${String(n + 1).padStart(2, '0')}-${slug(spot.place)}-${slug(spot.name)}-${lang}.png`)
+        .catch((error) => fail(`the tour broke: ${error.message.split('\n')[0]}`));
+    }
   }
 }
 context = 'teardown';
@@ -203,5 +211,5 @@ await browser.close();
 console.log(`screenshots in ${OUT}`);
 for (const line of failures) console.log(`FAIL ${line}`);
 if (tightest) console.log(`tightest fit: ${tightest.spare}px to spare above and below the case, ${tightest.where}`);
-console.log(`${spots.length} spots × ${LANGS.length} languages = ${checks} checks, ${failures.length} failure${failures.length === 1 ? '' : 's'}`);
+console.log(`${spots.length} spots × ${LANGS.length} languages × ${levels.length} levels = ${checks} checks, ${failures.length} failure${failures.length === 1 ? '' : 's'}`);
 process.exit(failures.length ? 1 : 0);
