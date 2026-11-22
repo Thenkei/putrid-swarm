@@ -410,7 +410,7 @@ export class ScavengePanel {
     this.status.textContent = fmt(s.caught, { n: 0 });
     this.board.append(track, this.button(action, () => {
       if (!inBand(position, bands[count]!)) {
-        this.miss(`${fmt(s.caught, { n: count })} · ${s.missed}`);
+        this.miss(`${fmt(s.caught, { n: count })} · ${s.missed[motion]}`);
         return;
       }
       if (++count === bands.length) return this.solved();

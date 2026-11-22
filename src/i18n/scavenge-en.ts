@@ -18,7 +18,12 @@ export const scavengeEn: typeof scavengeFr = {
     swing: 'Catch the pendulum inside the green wedge twice.',
     rise: 'Catch the marker inside the striped band twice.',
   },
-  caught: '{n} / 2 catches', missed: 'Just missed. Watch the striped band.',
+  caught: '{n} / 2 catches',
+  missed: {
+    slide: 'Just missed. Watch the striped band.',
+    swing: 'Just missed. Watch the green wedge.',
+    rise: 'Just missed. Watch the striped band.',
+  },
   padlock: 'Catch each moving notch inside the brass mark at twelve o’clock. Work from the outside in.',
   catchRing: 'Catch ring', ringCount: '{n} of 3 rings set', slipped: 'The ring slipped. The lock reset.',
   lockOpen: 'The shackle is open.', take: 'Take supplies',
