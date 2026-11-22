@@ -40,7 +40,7 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Day | point at a trap | what it did last night, and how far it reaches |
 | Day | wheel, drag | zoom, pan |
 | Outing | click a spot | read the clue for free. The first move spends half an hour. Solve the puzzle to load the find into the boot. Click a face to talk about a claimed lot. |
-| Scavenging | click or use `Tab` and `Enter` | a failed attempt gives no loot. Retry for another half-hour if the drive home still fits. Leaving with `Esc` keeps any time already spent. A missed pull beneath the garage lift ends the run. |
+| Scavenging | click or use `Tab` and `Enter` | a failed attempt gives no loot. Retry for another half-hour if the drive home still fits. Leaving with `Esc` keeps any time already spent. A missed pull beneath the garage lift ends the run. The street hears a failed attempt, a broken window or a rummage that spends nearly all its noise: every third noise costs one search on that visit (the top bar shows the gauge), and the next visit starts quiet. |
 | Encounter | `1`–`6` | pick a way out (each shows what it costs before it is chosen) |
 | Encounter | `Space` or click the plank | throw a washer where the marker is |
 | Night | `1`–`4`, `Tab` | switch camera (or click a thumbnail) |

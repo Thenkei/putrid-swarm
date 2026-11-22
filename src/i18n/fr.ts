@@ -324,6 +324,13 @@ export const fr = {
     trunk: 'Dans le coffre',
     disputed: 'Ce lot se règle avec la personne qui est dessus.',
   },
+  streetNoise: {
+    label: 'Bruit',
+    hint: 'Ce que la rue a entendu pendant cette visite. Tous les trois bruits, une fouille de moins.',
+    lost: 'fouilles −{n}',
+    heard: 'La rue a entendu. Une fouille de moins pour cette visite.',
+    tooLoud: 'Trop de bruit ici. Mieux vaut rentrer et revenir plus tard.',
+  },
   registeredLetter: {
     slip: 'Avis de passage',
     notice: 'La pluie a effacé le nom de l’expéditeur. Le vôtre est encore lisible. « Deuxième présentation demain. Remise en main propre au portail. »',

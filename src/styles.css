@@ -2583,6 +2583,7 @@ button:disabled {
 
 /* ───────── Encounters on outings ───────── */
 
+.street-noise,
 .stash {
   position: absolute;
   right: 12px;
@@ -2598,6 +2599,22 @@ button:disabled {
   border: 1px solid var(--edge-soft);
   border-radius: 6px;
   opacity: 0.9;
+}
+
+.street-noise {
+  right: auto;
+  left: 12px;
+}
+
+.street-noise b {
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  color: #ffd58c;
+}
+
+.street-noise small {
+  font-size: inherit;
+  color: #ff9a7a;
 }
 
 .spot.claimed .ring {

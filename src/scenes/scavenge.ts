@@ -6,6 +6,7 @@ import { PUZZLE_CURVE, type PuzzleLevel } from '../core/difficulty';
 import type { Rng } from '../core/rng';
 import { probeCost, Rummage, RUMMAGE } from '../core/rummage';
 import { circuitTiles, PORTS, scaleWeights, shuffled, traceCircuit, turnTile, type CatchMotion, type CircuitShape, type Puzzle, type ScaleShape } from '../core/scavenge';
+import { RECORD_DECOY_NOISE, rummageNoise } from '../core/street-noise';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { fmt, hours, S } from '../engine/i18n';
@@ -25,6 +26,8 @@ export class ScavengePanel {
     puzzle: Puzzle, spotName: string, spot: SearchSpot, plate: string, rng: Rng, level: PuzzleLevel,
     private readonly solved: () => void, readonly cancel: () => void,
     private readonly onStart: () => void, private readonly onFailure: (message: string) => void,
+    /** Street noise made during the attempt, reported as it happens; a failure's own noise is the caller's. */
+    private readonly onNoise: (amount: number) => void = () => {},
   ) {
     const s = S().scavenge;
     const photo = el('aside', { class: 'salvage-photo', style: { backgroundPosition: `${spot.x * 100}% ${spot.y * 100}%` } }, [
@@ -220,9 +223,9 @@ export class ScavengePanel {
   private chooseRecordTarget(puzzle: Extract<Puzzle, { kind: 'records' }>, album: string, rng: Rng): void {
     const s = S().scavenge;
     const targets = shuffled([
-      { label: puzzle.target, miss: null, sound: 'tin' },
-      { label: puzzle.decoys[0][0], miss: puzzle.decoys[0][1], sound: 'thud' },
-      { label: puzzle.decoys[1][0], miss: puzzle.decoys[1][1], sound: 'broken' },
+      { label: puzzle.target, miss: null, sound: 'tin', noise: 0 },
+      { label: puzzle.decoys[0][0], miss: puzzle.decoys[0][1], sound: 'thud', noise: RECORD_DECOY_NOISE[0] },
+      { label: puzzle.decoys[1][0], miss: puzzle.decoys[1][1], sound: 'broken', noise: RECORD_DECOY_NOISE[1] },
     ] as const, rng);
     const lane = el('div', { class: 'record-lane' });
     const buttons = el('div', { class: 'record-targets' }, targets.map((target, index) => this.button(target.label, () => {
@@ -240,6 +243,7 @@ export class ScavengePanel {
         this.instruction.hidden = true;
         audio.play(target.sound);
         if (target.miss !== null) {
+          this.onNoise(target.noise);
           this.miss(target.miss);
           return;
         }
@@ -434,7 +438,10 @@ export class ScavengePanel {
       const reveal = el('small', { class: 'rummage-reveal', text: s.rummageUnknown });
       const loud = probeCost(item) > 1;
       const probe = this.button(loud ? `${puzzle.probe} ●●` : puzzle.probe, () => {
+        const heard = rummageNoise(RUMMAGE.noise - pile.noiseLeft);
         if (!pile.probe(item)) return;
+        const louder = rummageNoise(RUMMAGE.noise - pile.noiseLeft) - heard;
+        if (louder > 0) this.onNoise(louder);
         // The spot's own gesture, louder for the containers the game calls loud.
         audio.play(`probe_${puzzle.sound}`, loud ? 0.7 : 0.5);
         paint();
