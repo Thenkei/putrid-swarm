@@ -5003,9 +5003,46 @@ button:disabled {
 }
 
 .board-timing { text-align: center; }
-.catch-track { position: relative; height: 42px; margin: 9px 12px 18px; border-bottom: 2px solid #ae9973; background: repeating-linear-gradient(90deg, #787565 0 1px, transparent 1px 5%) bottom/100% 8px no-repeat; }
-.catch-band { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, #80945a 0 5px, #52673e 5px 9px); border-inline: 2px solid #b9d18c; }
-.catch-needle { position: absolute; top: -4px; bottom: -4px; width: 4px; transform: translateX(-50%); background: #ffcf72; box-shadow: 0 0 0 1px #382512; }
+.catch-track { position: relative; }
+.catch-band { position: absolute; background: repeating-linear-gradient(135deg, #80945a 0 5px, #52673e 5px 9px); }
+.catch-needle { position: absolute; background: #ffcf72; box-shadow: 0 0 0 1px #382512; }
+/* Along a bench: the band and needle run left to right. */
+.catch-slide { height: 42px; margin: 9px 12px 18px; border-bottom: 2px solid #ae9973; background: repeating-linear-gradient(90deg, #787565 0 1px, transparent 1px 5%) bottom/100% 8px no-repeat; }
+.catch-slide .catch-band { top: 0; bottom: 0; left: var(--band-start); width: var(--band-size); border-inline: 2px solid #b9d18c; }
+.catch-slide .catch-needle { top: -4px; bottom: -4px; left: var(--needle); width: 4px; transform: translateX(-50%); }
+/* A lid or a load going up and down: the same track stood on end. */
+.catch-rise { width: 72px; height: 150px; margin: 4px auto 16px; border-left: 2px solid #ae9973; background: repeating-linear-gradient(0deg, #787565 0 1px, transparent 1px 10%) left/10px 100% no-repeat; }
+.catch-rise .catch-band { left: 0; right: 0; bottom: var(--band-start); height: var(--band-size); border-block: 2px solid #b9d18c; }
+.catch-rise .catch-needle { left: -6px; right: -6px; bottom: var(--needle); height: 4px; transform: translateY(50%); }
+/* Something hanging from a pivot: the band is a slice of the arc it sweeps. */
+.catch-swing {
+  width: 300px;
+  height: 150px;
+  margin: 4px auto 16px;
+  border-radius: 0 0 150px 150px;
+  background:
+    conic-gradient(from 0deg at 50% 0%, transparent 0 var(--band-from), #6f8a4cdd var(--band-from) var(--band-to), transparent var(--band-to)),
+    conic-gradient(from 0deg at 50% 0%, transparent 0 135deg, #ffffff14 135deg 225deg, transparent 225deg);
+}
+.catch-swing .catch-band { display: none; }
+.catch-swing .catch-needle { left: calc(50% - 2px); top: 0; width: 4px; height: 138px; transform-origin: 50% 0; }
+.catch-swing .catch-needle::after { content: ''; position: absolute; left: 50%; bottom: -8px; width: 16px; height: 16px; border-radius: 50%; transform: translateX(-50%); background: inherit; box-shadow: 0 0 0 1px #382512; }
+.catch-swing::before { content: ''; position: absolute; left: calc(50% - 6px); top: -6px; width: 12px; height: 12px; border-radius: 50%; background: #ae9973; }
+
+/* A rummage: six containers, a noise meter, and two buttons per container. */
+.rummage-noise { display: block; margin-bottom: 10px; color: #ffe1a8; font: bold 20px/1.2 var(--hud-font); letter-spacing: .04em; }
+.rummage-pile { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.rummage-item { display: grid; gap: 4px; padding: 8px; border: 1px dashed #8d7b5c; border-radius: 4px; background: #2b2d25; }
+.rummage-item strong { font-size: 17px; line-height: 1.1; }
+.rummage-loud { color: #f0a85a; font-size: 13px; font-style: normal; text-transform: uppercase; letter-spacing: .06em; }
+.rummage-item.loud { border-color: #b77b3c; }
+.rummage-reveal { min-height: 2.2em; color: #c9bb98; font-size: 15px; line-height: 1.1; }
+.rummage-item[data-state='good'] { border: 1px solid #b9d18c; }
+.rummage-item[data-state='good'] .rummage-reveal { color: #cfe6a3; }
+.rummage-item[data-state='junk'] { opacity: .62; }
+.rummage-item[data-state='taken'] { border: 1px solid #ffcf72; background: #4a3d25; }
+.rummage-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.rummage-actions .salvage-piece { min-height: 34px; padding: 4px 2px; font-size: 15px; }
 
 /* A cutaway padlock. The fixed brass sector and the catch test share one tolerance. */
 .board-padlock {

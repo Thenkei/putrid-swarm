@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Puzzle Lab</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <!-- Development only: Vite builds index.html alone, so this page never ships. -->
+    <aside id="lab"></aside>
+    <div id="viewport">
+      <div id="stage">
+        <canvas id="game" width="1280" height="720"></canvas>
+        <div id="ui"></div>
+        <div id="toast"></div>
+        <div id="subtitle" aria-live="polite"></div>
+      </div>
+    </div>
+    <script type="module" src="/src/dev/puzzle-lab.ts"></script>
+  </body>
+</html>
