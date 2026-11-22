@@ -12,7 +12,17 @@ export const scavengeFr = {
   },
   scale: 'Choisissez deux étiquettes dont la somme donne le chiffre demandé. Retouchez une étiquette pour la reposer.',
   circuit: 'Tournez les pièces pour former une ligne continue entre les deux flèches, puis testez le passage.', tile: 'Pièce {n}', directions: ['haut', 'droite', 'bas', 'gauche'],
-  timing: 'Attrapez deux fois l’aiguille dans la bande hachurée.', caught: '{n} / 2 prises', missed: 'Raté de peu. Surveillez la bande hachurée.',
+  timing: {
+    slide: 'Attrapez deux fois l’aiguille dans la bande hachurée.',
+    swing: 'Attrapez deux fois le balancier dans le secteur vert.',
+    rise: 'Attrapez deux fois le repère dans la bande hachurée.',
+  },
+  caught: '{n} / 2 prises',
+  missed: {
+    slide: 'Raté de peu. Surveillez la bande hachurée.',
+    swing: 'Raté de peu. Surveillez le secteur vert.',
+    rise: 'Raté de peu. Surveillez la bande hachurée.',
+  },
   padlock: 'Bloquez chaque encoche mobile sous le repère en laiton, à midi. Commencez par la bague extérieure.',
   catchRing: 'Bloquer la bague', ringCount: '{n} bagues sur 3 en place', slipped: 'La bague a glissé. Le cadenas s’est refermé.',
   lockOpen: 'L’anse est ouverte.', take: 'Récupérer le matériel',
