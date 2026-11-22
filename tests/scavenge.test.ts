@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { GATE_HALF_ANGLE, Padlock } from '../src/core/padlock';
 import { createRng } from '../src/core/rng';
-import { catchBands, CATCH_WIDTH } from '../src/core/catch';
+import { catchBands, inBand, NEEDLE_PACE, needleAt } from '../src/core/catch';
+import { PUZZLE_CURVE, PUZZLE_LEVELS, puzzleLevel, type PuzzleLevel } from '../src/core/difficulty';
 import { probeCost, Rummage, RUMMAGE, type TakeResult } from '../src/core/rummage';
-import { circuitTiles, spotRng, traceCircuit } from '../src/core/scavenge';
+import { circuitTiles, scaleWeights, spotRng, traceCircuit, type CatchMotion, type CircuitBoard } from '../src/core/scavenge';
+import { LAST_NIGHT } from '../src/core/data/waves';
 import { hasCrossbow } from '../src/core/crossbow';
 import { LOCATIONS, SEARCH_HOURS } from '../src/core/data/locations';
 import { GATE_WINDOW, gateResult } from '../src/core/fairground';
@@ -11,6 +13,11 @@ import { newGame, prepareSearch, searchAttemptKey, travelTo } from '../src/core/
 import { deserialize, serialize } from '../src/core/save';
 import { scavengeEn } from '../src/i18n/scavenge-en';
 import { scavengeFr } from '../src/i18n/scavenge-fr';
+
+/** The app never advances a frame by more than this (`MAX_FRAME` in engine/app.ts). */
+const SLOWEST_FRAME = 0.1;
+/** The shortest window a timed press may get, in seconds: a deliberate press, never a lucky one. */
+const FAIR_WINDOW = 0.16;
 
 it('grants the garage crossbow once, only on a successful search, and keeps it across a reload', () => {
   const visit = travelTo(newGame(12), 'garage');
@@ -29,7 +36,7 @@ it('grants the garage crossbow once, only on a successful search, and keeps it a
 
 describe('salvage circuits', () => {
   it('only powers pieces joined to the inlet and stops at a broken connection', () => {
-    const board = { tiles: [3, 6, 3, 10, 10, 10, 5, 3, 6], inlet: 1, outlet: 1 };
+    const board: CircuitBoard = { side: 3, tiles: [3, 6, 3, 10, 10, 10, 5, 3, 6], inlet: 1, outlet: 1 };
     expect(traceCircuit(board)).toEqual({ lit: new Set([3, 4, 5]), complete: true });
     board.tiles[4] = 5;
     expect(traceCircuit(board)).toEqual({ lit: new Set([3]), complete: false });
@@ -37,31 +44,40 @@ describe('salvage circuits', () => {
 
   it('follows a route that doubles back between terminals on different rows', () => {
     // Top-left in, down the left column, along the bottom, then back up into the middle-right outlet.
-    const board = { tiles: [12, 3, 3, 5, 3, 6, 3, 10, 9], inlet: 0, outlet: 1 };
+    const board: CircuitBoard = { side: 3, tiles: [12, 3, 3, 5, 3, 6, 3, 10, 9], inlet: 0, outlet: 1 };
     expect(traceCircuit(board)).toEqual({ lit: new Set([0, 3, 6, 7, 8, 5]), complete: true });
     board.tiles[5] = 3;
     expect(traceCircuit(board)).toEqual({ lit: new Set([0, 3, 6, 7, 8]), complete: false });
   });
 
-  it('gives the player an unfinished board with a rotatable path to the outlet', () => {
+  it('reaches the outlet column on a four-by-four board', () => {
+    const board: CircuitBoard = { side: 4, tiles: [5, 5, 5, 5, 10, 10, 10, 10, 5, 5, 5, 5, 5, 5, 5, 5], inlet: 1, outlet: 1 };
+    expect(traceCircuit(board)).toEqual({ lit: new Set([4, 5, 6, 7]), complete: true });
+    expect(traceCircuit({ ...board, outlet: 2 }).complete).toBe(false);
+  });
+
+  it.each(PUZZLE_LEVELS)('gives the player an unfinished board with a rotatable path to the outlet at level %i', level => {
+    const shape = PUZZLE_CURVE[level].circuit;
     for (let seed = 0; seed < 300; seed++) {
-      const board = circuitTiles(createRng(seed));
+      const board = circuitTiles(createRng(seed), shape);
+      expect(board.tiles).toHaveLength(shape.side * shape.side);
       expect(traceCircuit(board).complete).toBe(false);
-      // `solve` walks the rotations independently of the generator.
-      expect(solve(board).length).toBeGreaterThanOrEqual(5);
+      // `solve` walks the rotations independently of the generator; no board is a straight dash.
+      expect(solve(board).length).toBeGreaterThanOrEqual(shape.side + 2);
     }
   });
 
-  it('varies the terminals and the solution route from one board to the next', () => {
+  it.each([[0, 40], [1, 25], [2, 150]] as const)('varies the terminals and the solution route from one board to the next at level %i', (level, variety) => {
+    const shape = PUZZLE_CURVE[level].circuit;
     const terminals = new Set<string>();
     const routes = new Set<string>();
     for (let seed = 0; seed < 300; seed++) {
-      const board = circuitTiles(createRng(seed));
+      const board = circuitTiles(createRng(seed), shape);
       terminals.add(`${board.inlet}>${board.outlet}`);
       routes.add(solve(board).join('>'));
     }
-    expect(terminals.size).toBe(9);
-    expect(routes.size).toBeGreaterThan(40);
+    expect(terminals.size).toBe(shape.side * shape.side);
+    expect(routes.size).toBeGreaterThan(variety);
   });
 
   it('deals a new board for a retry, but not for reopening the same attempt', () => {
@@ -71,34 +87,34 @@ describe('salvage circuits', () => {
     const index = LOCATIONS.hardware.spots.findIndex(spot => spot.key === 'meshrolls');
     const attempt = prepareSearch(town, index);
     if (!attempt.ok) throw new Error('The mesh rolls are searchable');
-    const deal = (state: typeof town) => circuitTiles(spotRng(state.seed, 'hardware', 'meshrolls', searchAttemptKey(state)));
+    const deal = (state: typeof town) => circuitTiles(spotRng(state.seed, 'hardware', 'meshrolls', searchAttemptKey(state)), PUZZLE_CURVE[puzzleLevel(state)].circuit);
     expect(deal(town)).toEqual(deal(town));
     expect(deal(attempt.value.failure)).not.toEqual(deal(town));
   });
 });
 
 /** First rotatable route from inlet to outlet, as the ordered cells it lights. */
-function solve({ tiles, inlet, outlet }: { tiles: number[]; inlet: number; outlet: number }): number[] {
+function solve({ side, tiles, inlet, outlet }: CircuitBoard): number[] {
   const walk = (cell: number, from: number, path: number[]): number[] | null => {
     if (path.includes(cell)) return null;
     const straight = tiles[cell] === 5 || tiles[cell] === 10;
     for (const direction of straight ? [(from + 2) % 4] : [(from + 1) % 4, (from + 3) % 4]) {
-      if (cell === outlet * 3 + 2 && direction === 1) return [...path, cell];
-      const x = cell % 3 + [0, 1, 0, -1][direction]!;
-      const y = Math.floor(cell / 3) + [-1, 0, 1, 0][direction]!;
-      const found = x >= 0 && x < 3 && y >= 0 && y < 3 ? walk(y * 3 + x, (direction + 2) % 4, [...path, cell]) : null;
+      if (cell === outlet * side + side - 1 && direction === 1) return [...path, cell];
+      const x = cell % side + [0, 1, 0, -1][direction]!;
+      const y = Math.floor(cell / side) + [-1, 0, 1, 0][direction]!;
+      const found = x >= 0 && x < side && y >= 0 && y < side ? walk(y * side + x, (direction + 2) % 4, [...path, cell]) : null;
       if (found) return found;
     }
     return null;
   };
-  const route = walk(inlet * 3, 3, []);
+  const route = walk(inlet * side, 3, []);
   if (!route) throw new Error('Unsolvable board');
   return route;
 }
 
 describe('padlock rings', () => {
   it('accepts either edge of twelve o’clock and keeps earlier catches through a miss', () => {
-    const lock = new Padlock(createRng(12));
+    const lock = new Padlock(createRng(12), 1);
     expect(lock.catchRing()).toBe(false);
     lock.advance((360 - GATE_HALF_ANGLE - lock.angles[0]!) / 94);
     expect(lock.catchRing()).toBe(true);
@@ -111,6 +127,20 @@ describe('padlock rings', () => {
     expect(lock.open).toBe(true);
     expect(lock.angles).toEqual([0, 0, 0]);
     expect(lock.catchRing()).toBe(false);
+  });
+
+  it.each(PUZZLE_LEVELS)('keeps every gate open long enough, and opens for a player on the slowest frames, at level %i', level => {
+    const pace = PUZZLE_CURVE[level].ringPace;
+    for (const speed of new Padlock(createRng(0), pace).speeds) expect((2 * GATE_HALF_ANGLE) / Math.abs(speed)).toBeGreaterThanOrEqual(FAIR_WINDOW);
+    for (let seed = 0; seed < 300; seed++) {
+      const lock = new Padlock(createRng(seed), pace);
+      // Presses on the first frame the notch shows inside the guide: no ring can jump the gate between two frames.
+      for (let frame = 0; frame < 100 && !lock.open; frame++) {
+        lock.advance(SLOWEST_FRAME);
+        if (lock.aligned) expect(lock.catchRing()).toBe(true);
+      }
+      expect(lock.open).toBe(true);
+    }
   });
 });
 
@@ -143,18 +173,37 @@ describe('the fairground', () => {
 });
 
 describe('timing bands', () => {
-  it('keeps both bands on the track, apart, and moves the second one between attempts', () => {
+  it.each(PUZZLE_LEVELS)('keeps both bands on the track, apart, and moves the second one between attempts at level %i', level => {
+    const width = PUZZLE_CURVE[level].catchWidth;
     const seconds = new Set<number>();
     for (let seed = 0; seed < 300; seed++) {
-      const [first, second] = catchBands(createRng(seed));
+      const [first, second] = catchBands(createRng(seed), width);
       for (const start of [first, second]) {
         expect(start).toBeGreaterThanOrEqual(0.05 - 1e-9);
-        expect(start + CATCH_WIDTH).toBeLessThanOrEqual(0.95 + 1e-9);
+        expect(start + width).toBeLessThanOrEqual(0.95 + 1e-9);
       }
-      expect(Math.abs(second - first)).toBeGreaterThanOrEqual(CATCH_WIDTH + 0.08 - 1e-9);
+      expect(Math.abs(second - first)).toBeGreaterThanOrEqual(width + 0.08 - 1e-9);
       seconds.add(second);
     }
     expect(seconds.size).toBeGreaterThan(20);
+  });
+
+  it.each(PUZZLE_LEVELS)('holds the needle in any band long enough, and never lets it skip one, at level %i', level => {
+    const width = PUZZLE_CURVE[level].catchWidth;
+    const starts = new Set<number>();
+    for (let seed = 0; seed < 300; seed++) for (const start of catchBands(createRng(seed), width)) starts.add(start);
+    const motions: readonly CatchMotion[] = ['slide', 'swing', 'rise'];
+    const samples = 4000;
+    for (const motion of motions) {
+      // The outward half-sweep, finely sampled; the way back mirrors it.
+      const track = Array.from({ length: samples + 1 }, (_, i) => needleAt(i / samples, motion));
+      for (const start of starts) {
+        const dwell = track.filter(position => inBand(position, start, width)).length / samples / NEEDLE_PACE;
+        expect(dwell).toBeGreaterThanOrEqual(FAIR_WINDOW);
+      }
+      const longestStep = Math.max(...track.map((position, i) => Math.abs(needleAt(i / samples + SLOWEST_FRAME * NEEDLE_PACE, motion) - position)));
+      expect(longestStep).toBeLessThan(width);
+    }
   });
 });
 
@@ -206,5 +255,51 @@ describe('rummage', () => {
     for (const sound of new Set(sounds(scavengeFr).map(entry => entry.split(':')[1]))) {
       expect(recorded.filter(id => id.startsWith(`probe_${sound}_`)).length).toBeGreaterThanOrEqual(4);
     }
+  });
+});
+
+describe('scale tags', () => {
+  it.each(PUZZLE_LEVELS)('shows distinct tags, two of which always make up the target, at level %i', level => {
+    const shape = PUZZLE_CURVE[level].scale;
+    for (let seed = 0; seed < 300; seed++) {
+      const { weights, target } = scaleWeights(createRng(seed), shape);
+      expect(weights).toHaveLength(shape.tags);
+      expect(new Set(weights).size).toBe(shape.tags);
+      expect(Math.min(...weights)).toBeGreaterThanOrEqual(1);
+      expect(Math.max(...weights)).toBeLessThanOrEqual(shape.heaviest);
+      expect(weights.some((a, i) => weights.some((b, j) => i < j && a + b === target))).toBe(true);
+    }
+  });
+});
+
+describe('the puzzle difficulty curve', () => {
+  it('keeps the opening days at the first level and reaches the last on the final day', () => {
+    const levels = Array.from({ length: LAST_NIGHT }, (_, i) => puzzleLevel({ day: i + 1 }));
+    expect(levels).toEqual([0, 0, 0, 1, 1, 2, 2]);
+    expect(levels[LAST_NIGHT - 1]).toBe(PUZZLE_LEVELS[PUZZLE_LEVELS.length - 1]);
+  });
+
+  it('never makes a later level easier than an earlier one', () => {
+    for (const level of PUZZLE_LEVELS.slice(1)) {
+      const now = PUZZLE_CURVE[level];
+      const before = PUZZLE_CURVE[(level - 1) as PuzzleLevel];
+      expect(now.catchWidth).toBeLessThan(before.catchWidth);
+      expect(now.ringPace).toBeGreaterThan(before.ringPace);
+      expect(now.circuit.side).toBeGreaterThanOrEqual(before.circuit.side);
+      expect(now.circuit.minRoute).toBeGreaterThanOrEqual(before.circuit.minRoute);
+      expect(now.scale.tags).toBeGreaterThan(before.scale.tags);
+      expect(now.scale.heaviest).toBeGreaterThan(before.scale.heaviest);
+    }
+  });
+
+  it('deals the opening days exactly the boards they had before the curve', () => {
+    // Recorded from the generators before they took a difficulty.
+    const opening = PUZZLE_CURVE[0];
+    expect(circuitTiles(createRng(1), opening.circuit)).toEqual({ side: 3, tiles: [5, 9, 5, 6, 10, 10, 3, 3, 3], inlet: 1, outlet: 0 });
+    expect(circuitTiles(createRng(2), opening.circuit)).toEqual({ side: 3, tiles: [10, 3, 10, 3, 9, 10, 12, 5, 3], inlet: 2, outlet: 0 });
+    expect(catchBands(createRng(1), opening.catchWidth)).toEqual([0.28, 0.59]);
+    expect(new Padlock(createRng(1), opening.ringPace)).toMatchObject({ angles: [209, 65, 186], speeds: [94, -116, 142] });
+    expect(scaleWeights(createRng(1), opening.scale)).toEqual({ weights: [5, 3, 7, 2, 8], target: 5 });
+    expect(scaleWeights(createRng(2), opening.scale)).toEqual({ weights: [8, 7, 5, 4, 1], target: 6 });
   });
 });

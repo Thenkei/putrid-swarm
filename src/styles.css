@@ -4837,7 +4837,7 @@ button:disabled {
 .salvage-readout { display: flex; gap: 28px; padding-bottom: 14px; }
 .salvage-readout span { display: grid; gap: 2px; color: #dacaab; font-size: 16px; }
 .salvage-readout b { color: #ffe1a8; font: bold 28px/1.1 var(--hud-font); }
-.salvage-weights { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.salvage-weights { display: grid; grid-template-columns: repeat(var(--tags, 5), 1fr); gap: 6px; }
 .salvage-weights .salvage-piece { padding: 8px 2px; border-top: 5px solid #a08960; }
 .directory-screen {
   display: grid;
@@ -4964,12 +4964,12 @@ button:disabled {
 }
 @media (prefers-reduced-motion: reduce) { .record-flight { animation: none; } }
 .board-circuit { display: grid; justify-content: center; }
-.wire-grid { position: relative; display: grid; grid-template-columns: repeat(3, 48px); gap: 2px; }
+.wire-grid { --tile: 48px; --gap: 2px; position: relative; display: grid; grid-template-columns: repeat(var(--side, 3), var(--tile)); gap: var(--gap); }
 .wire-grid::before, .wire-grid::after { position: absolute; transform: translateY(-50%); content: '➜'; color: #f9bb5c; font-size: 30px; }
-/* Each terminal sits on the centre of its row: 48px pieces with a 2px gap. */
-.wire-grid::before { right: calc(100% + 6px); top: calc(var(--inlet-row, 1) * 50px + 24px); }
-.wire-grid::after { left: calc(100% + 6px); top: calc(var(--outlet-row, 1) * 50px + 24px); }
-.wire-grid button { position: relative; height: 48px; padding: 0; background: #33382e; border: 1px solid #78725c; box-shadow: none; color: #b5b09c; }
+/* Each terminal sits on the centre of its row, whatever the board's side. */
+.wire-grid::before { right: calc(100% + 6px); top: calc(var(--inlet-row, 1) * (var(--tile) + var(--gap)) + var(--tile) / 2); }
+.wire-grid::after { left: calc(100% + 6px); top: calc(var(--outlet-row, 1) * (var(--tile) + var(--gap)) + var(--tile) / 2); }
+.wire-grid button { position: relative; height: var(--tile); padding: 0; background: #33382e; border: 1px solid #78725c; box-shadow: none; color: #b5b09c; }
 .wire-grid button.connected { color: #ffbf54; background: #53422b; }
 .wire-grid button::after { content: ''; position: absolute; inset: calc(50% - 4px); border-radius: 50%; background: currentColor; }
 .lead { position: absolute; background: currentColor; }

@@ -5,6 +5,7 @@ import { CONCEAL_HOURS, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS,
 import { clockLabel, concealableSpots, concealSpot, leaveLocation, neighborStatus, prepareSearch, searchAttemptKey, takeSpringReceipt, visitSearchLimit, type NeighborMeeting, type SearchOutcome } from '../core/game';
 import { hasViceLeftovers } from '../core/garage-vice';
 import { spotRng, type Puzzle } from '../core/scavenge';
+import { puzzleLevel } from '../core/difficulty';
 import { spotRevealed } from '../core/planque';
 import type { Cost, Dispute, GameState, LocationId } from '../core/types';
 import { RESOURCE_IDS } from '../core/types';
@@ -356,7 +357,7 @@ export class LocationScene implements Scene {
     };
     const attempt = result.value;
     this.puzzle = new ScavengePanel(
-      puzzles[spot.key]!, names[spot.key]!, spot, heroArt(location.plate, oneArmed(this.state)), spotRng(this.state.seed, this.id, spot.key, searchAttemptKey(this.state)),
+      puzzles[spot.key]!, names[spot.key]!, spot, heroArt(location.plate, oneArmed(this.state)), spotRng(this.state.seed, this.id, spot.key, searchAttemptKey(this.state)), puzzleLevel(this.state),
       () => {
         close();
         this.collect(attempt.success, at);
