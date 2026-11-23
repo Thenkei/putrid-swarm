@@ -120,15 +120,18 @@ async function arcade(profile, motion, armless = false) {
   const canvas=page.locator('.vhs-track');
   await canvas.waitFor();
   // Observe only the real tape renderer. Each capture is the completed action frame, including
-  // lane motion and tracers. This also checks which variant reached the production canvas.
+  // lane motion and impacts. Check the aim and arm variant that reached the production canvas.
   await page.evaluate(() => {
     window.vhsFrames = {};
+    window.vhsAngles = {};
     const draw = CanvasRenderingContext2D.prototype.drawImage;
     CanvasRenderingContext2D.prototype.drawImage = function(image, ...args) {
       draw.call(this, image, ...args);
       if (!this.canvas.matches?.('.vhs-track') || !image.src?.includes('epic_vhs_hero') || args.length !== 8) return;
       const [x,y,w,h] = args;
       const id = (y / h) + '-' + (x / w);
+      const name = image.src.split('/').pop().split('.')[0];
+      window.vhsAngles[name + '-' + id] = true;
       if (window.vhsFrames[id] !== undefined) return;
       window.vhsFrames[id] = '';
       queueMicrotask(() => { window.vhsFrames[id] = this.canvas.toDataURL(); });
@@ -148,7 +151,16 @@ async function arcade(profile, motion, armless = false) {
     await canvas.tap({position:{x:box.width*.15,y:box.height*.6}});
   }
   await page.waitForFunction(()=>document.querySelector('.epic-night p').textContent.includes('gauche'));
+  await page.waitForFunction(row => window.vhsAngles['epic_vhs_hero-'+row+'-3'],row);
   await shot(motion+(armless ? '-one-arm' : '')+'-vhs');
+  if (profile.startsWith('phone')) {
+    const box=await canvas.boundingBox();
+    await canvas.tap({position:{x:box.width*.86,y:box.height*.6}});
+  } else {
+    await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
+  }
+  await page.waitForFunction(row => window.vhsAngles['epic_vhs_hero_left-'+row+'-3'],row);
+  assert.ok(await page.evaluate(row => !!window.vhsAngles['epic_vhs_hero_center-'+row+'-3'],row));
   const poses = motion === 'reduce' ? [0,3] : [0,1,2,3];
   await page.waitForFunction(({row,poses})=>poses.every(p=>window.vhsFrames[row+'-'+p]),{row,poses});
   const captures=await page.evaluate(()=>window.vhsFrames);

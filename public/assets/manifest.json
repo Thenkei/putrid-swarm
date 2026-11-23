@@ -2182,5 +2182,15 @@
     "file": "sprites/epic_vhs_hero.webp",
     "w": 1152,
     "h": 768
+  },
+  "epic_vhs_hero_center": {
+    "file": "sprites/epic_vhs_hero_center.webp",
+    "w": 1152,
+    "h": 768
+  },
+  "epic_vhs_hero_left": {
+    "file": "sprites/epic_vhs_hero_left.webp",
+    "w": 1152,
+    "h": 768
   }
 }

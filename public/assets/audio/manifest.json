@@ -14,8 +14,8 @@
   "epic_tape": {
     "file": "epic_tape.mp3",
     "kind": "sfx",
-    "seconds": 0.209,
-    "gain": 0.5
+    "seconds": 0.157,
+    "gain": 0.65
   },
   "epic_pack": {
     "file": "epic_pack.mp3",

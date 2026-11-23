@@ -800,7 +800,11 @@ class AudioEngine {
     switch (name) {
       case 'epic_flare': this.noise('lowpass', 2000, 420, .42, .2); break;
       case 'epic_mob': this.synth('engine', 1.3); break;
-      case 'epic_tape': this.tone('square', 680, 110, .075, .04); break;
+      case 'epic_tape':
+        this.noise('highpass', 1500, 1500, .026, .13);
+        this.tone('sine', 105, 105, .062, .095);
+        this.noise('bandpass', 2300, 2300, .023, .07, .026, 1.6);
+        break;
       case 'epic_pack': this.tone('sine', 430, 575, .55, .045); break;
       case 'click':
         this.tone('square', 660, 440, 0.05, 0.08);

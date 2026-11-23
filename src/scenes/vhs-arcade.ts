@@ -3,11 +3,13 @@ import { el } from '../engine/dom';
 import { sprite } from '../engine/assets';
 import { drawMobStride } from '../render/infected';
 import { calmMotion } from '../render/lighting';
+import { CASE_LIFETIME, drawVhsCasesAndSmoke, drawVhsMuzzle, type VhsShot } from '../render/vhs-gunfire';
+import { VhsImpacts } from '../render/vhs-impacts';
 import { line as L } from '../engine/i18n';
 import { heroArt } from './common';
 import './vhs-arcade.css';
 
-type Target = { lane: number; depth: number; speed: number; kind: 'runner' | 'brute' | 'cart' | 'mail'; hp: number };
+type Target = { lane: number; depth: number; speed: number; kind: 'runner' | 'brute' | 'cart' | 'mail'; hp: number; struck: number };
 type Impact = { x: number; y: number; at: number; points: number; armor: boolean };
 const PATTERN = [0, -1, 1, 0, 1, -1, 0, -1, 1, -1, 0, 1] as const;
 const DURATION = 28;
@@ -15,10 +17,23 @@ const W = 960, H = 412;
 const foot = (depth: number) => 103 + 274 * depth * depth;
 const across = (lane: number, depth: number) => W / 2 + lane * (39 + 204 * depth * depth);
 
-// Normalised against one 384×512 source cel. Keep feet and tracers on their painted anchors.
-const HERO_MUZZLE = [[.839,.101],[.85,.120],[.795,.098],[.820,.042]] as const;
-const HERO_HEIGHT = 151;
+// Each entry is painted looking inward from that lane. Each cel registers its muzzle and port.
+const FACINGS = [
+  { key: 'epic_vhs_hero', angle: -.331, mounts: [
+    [.916,.340,.763,.398], [.911,.337,.761,.394], [.914,.324,.764,.378], [.928,.350,.779,.410],
+  ] },
+  { key: 'epic_vhs_hero_center', angle: -1.51, mounts: [
+    [.672,.074,.664,.189], [.672,.074,.664,.189], [.672,.074,.664,.189], [.660,.106,.647,.218],
+  ] },
+  { key: 'epic_vhs_hero_left', angle: -2.58, mounts: [
+    [.076,.087,.298,.193], [.080,.087,.302,.193], [.080,.087,.302,.193], [.080,.087,.302,.193],
+  ] },
+] as const;
+const HERO_HEIGHT = 166;
 const HERO_WIDTH = HERO_HEIGHT * .75;
+const ROUND_INTERVAL = .115;
+const SHOT_PITCH = [1, .97, 1.035, 1.015, .985] as const;
+const ROAD_STRIKES = [.41, .31, .48, .36, .44] as const;
 
 export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElement, sleeve: boolean, armless: boolean, finish: (score: number) => void) {
   const canvas = el('canvas');
@@ -33,19 +48,21 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
   field.replaceChildren(canvas);
 
   const impacts: Impact[] = [];
+  const debris = new VhsImpacts();
+  const shots: VhsShot[] = [];
   const dusk = ctx.createLinearGradient(0, 0, 0, H);
   dusk.addColorStop(0, '#271b4188');
   dusk.addColorStop(1, '#171826cc');
   const sets = ['plate_town', 'plate_village', 'plate_return', 'plate_loc_garage'].map(key => heroArt(key, armless));
-  const hero = sprite('epic_vhs_hero');
-  const fallback = hero ? undefined : sprite(heroArt('hero_departure', armless));
+  const facings = FACINGS.map(facing => ({ ...facing, art: sprite(facing.key) }));
+  const fallback = sprite(heroArt('hero_departure', armless));
   const lanes = [L('gauche', 'left'), L('milieu', 'centre'), L('droite', 'right')];
   const targets: Target[] = [];
   let lane = 0, position = 0, elapsed = 0, nextSpawn = 0, serial = 0;
-  let fireAt = 0, tracer = 0, hitTime = 0, score = 0, combo = 0, misses = 0;
+  let fireAt = 0, lastShot = -Infinity, round = 0, hitTime = 0, score = 0, combo = 0, misses = 0;
   let keyFire = false, pointerFire = false, auto = false, done = false;
   let tapped = false;
-  let hitDepth = 0, impactX = 0, stride = 0;
+  let stride = 0;
   const flank = (direction: number) => { lane = Math.max(-1, Math.min(1, lane + direction)); };
   const btn = (text: string, click: () => void) => el('button', { class: 'btn', text, onClick: click });
   const left = btn(L('← Gauche', '← Left'), () => flank(-1));
@@ -69,7 +86,7 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
   dialog.addEventListener('keydown', (e) => {
     const direction = ['ArrowLeft', 'KeyA'].includes(e.code) ? -1 : ['ArrowRight', 'KeyD'].includes(e.code) ? 1 : 0;
     if (direction) { e.preventDefault(); if (!e.repeat) flank(direction); }
-    if (e.code === 'Space' && e.target === canvas) { e.preventDefault(); keyFire = tapped = true; }
+    if (e.code === 'Space' && e.target === canvas) { e.preventDefault(); if (!e.repeat) keyFire = tapped = true; }
   }, opts);
   dialog.addEventListener('keyup', (e) => { if (e.code === 'Space') keyFire = false; }, opts);
   canvas.addEventListener('blur', () => { keyFire = pointerFire = tapped = false; }, opts);
@@ -90,11 +107,19 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
   canvas.focus();
 
   function spawn() {
-    // Each camera has a tighter approach. Every cart leaves two lanes open.
+    // A staggered file rewards a held burst. Its wing gives the player somewhere to sweep.
+    const camera = Math.floor(elapsed / 7);
     const kind = serial % 8 === 6 ? 'mail' : serial % 4 === 3 ? 'cart' : serial % 5 === 4 ? 'brute' : 'runner';
-    targets.push({ kind, depth: .13, lane: PATTERN[serial % PATTERN.length]!, speed: .29 + .016 * Math.floor(elapsed / 7), hp: kind === 'brute' ? 3 : 1 });
+    const lead = PATTERN[serial % PATTERN.length]!;
+    const wing = lead === 0 ? (serial % 2 ? 1 : -1) : 0;
+    const speed = .29 + .016 * camera;
+    targets.push({ kind, depth: .22, lane: lead, speed, hp: kind === 'brute' ? 3 : 1, struck: -Infinity });
+    targets.push({ kind: 'runner', depth: .12, lane: wing, speed, hp: 1, struck: -Infinity });
+    if (kind !== 'cart' && (camera > 0 || serial % 2 === 0)) {
+      targets.push({ kind: 'runner', depth: .045, lane: lead, speed, hp: 1, struck: -Infinity });
+    }
     serial++;
-    nextSpawn += .92 - .07 * Math.floor(elapsed / 7);
+    nextSpawn += 1.13 - .08 * camera;
   }
 
   function step(dt: number) {
@@ -105,7 +130,8 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
     const distance = Math.min(Math.abs(lane - position), dt * 5);
     position += Math.sign(lane - position) * distance;
     stride += distance;
-    tracer = Math.max(0, tracer - dt);
+    debris.update(dt);
+    while (shots.length && elapsed - shots[0]!.at >= CASE_LIFETIME) shots.shift();
     hitTime = Math.max(0, hitTime - dt);
     for (let i = targets.length - 1; i >= 0; i--) {
       const t = targets[i]!;
@@ -124,24 +150,35 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
     // A quick tap may start and end between frames. Fire when the new lane is in reach.
     if ((auto || keyFire || pointerFire || tapped) && elapsed >= fireAt && (!tapped || Math.abs(position - lane) < .35)) {
       tapped = false;
-      fireAt = elapsed + .135;
-      audio.play('epic_tape', .7);
-      tracer = .09;
+      // Keep a held burst on the same beat across different refresh rates. After a rest,
+      // start a fresh beat rather than playing missed rounds on the first frame.
+      fireAt = (elapsed - lastShot <= ROUND_INTERVAL + dt ? fireAt : elapsed) + ROUND_INTERVAL;
+      lastShot = elapsed;
+      round++;
+      audio.play('epic_tape', .74, SHOT_PITCH[round % SHOT_PITCH.length]!);
+      const still = calmMotion();
+      if (!still) {
+        const { muzzleX, muzzleY, portX, portY } = heroPose(still);
+        shots.push({ at: elapsed, index: round, muzzleX, muzzleY, portX, portY });
+      }
       const hit = aimedTarget();
-      hitDepth = hit?.depth ?? .1;
-      impactX = hit?.lane ?? position;
       let award = 0;
+      if (hit) hit.struck = elapsed;
       if (hit && hit.kind !== 'cart' && --hit.hp <= 0) {
         combo++;
         award = (hit.kind === 'mail' ? (sleeve ? 400 : 200) : hit.kind === 'brute' ? 150 : 75) * Math.min(4, 1 + Math.floor(combo / 4));
         score += award;
         targets.splice(targets.indexOf(hit), 1);
-        audio.play('tin', .24, 1.25);
-      } else if (hit?.kind === 'cart') audio.play('washer', .19, 1.4);
-      if (hit) impacts.push({
-        x: across(hit.lane, hit.depth), y: foot(hit.depth) - 16 - 48 * hit.depth,
-        at: elapsed, points: award, armor: hit.kind === 'cart',
-      });
+        if (hit.kind === 'mail') audio.play('tin', .23, 1.2);
+      } else if (hit?.kind === 'cart' && round % 3 === 0) audio.play('washer', .15, 1.1);
+      const depth = hit?.depth ?? ROAD_STRIKES[round % ROAD_STRIKES.length]!;
+      const x = across(hit?.lane ?? position, depth) + (hit ? 0 : (round % 3 - 1) * 9);
+      const groundY = foot(depth);
+      const y = hit ? groundY - 16 - 48 * depth : groundY;
+      debris.trigger(hit?.kind ?? 'miss', x, y, groundY, depth, still, award > 0);
+      if (award || (hit?.kind === 'cart' && !impacts.some(i => i.armor && Math.abs(i.x - x) < 38 && elapsed - i.at < .28))) {
+        impacts.push({ x, y, at: elapsed, points: award, armor: !award });
+      }
     }
     while (impacts.length && elapsed - impacts[0]!.at > .55) impacts.shift();
     draw();
@@ -153,6 +190,28 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
       if (Math.abs(target.lane - position) < .48 && (!nearest || target.depth > nearest.depth)) nearest = target;
     }
     return nearest;
+  }
+
+  function heroPose(still: boolean) {
+    const age = elapsed - lastShot;
+    const moving = Math.abs(lane - position) > .045;
+    // Plant the feet for a whole burst. Only the shoulder kicks on each subsequent round.
+    const pose = moving && !still ? (Math.floor(stride * 3) % 2 ? 2 : 1) : age < ROUND_INTERVAL + .06 ? 3 : 0;
+    const row = armless ? 1 : 0;
+    const kick = still ? 0 : Math.max(0, 1 - age / .085);
+    const height = HERO_HEIGHT - 2.6 * kick;
+    const left = across(position, 1) - HERO_WIDTH * .51 - 21 * (1 - Math.abs(position));
+    const top = H - 5 - height * .965;
+    // Anchor the shear at the soles. Belt, receiver and flash move with the shoulder.
+    const desired = facings[Math.round(position) + 1]!;
+    const facing = desired.art ? desired : facings[0]!;
+    const lean = .026 * Math.cos(facing.angle) * kick;
+    const [mx, my, px, py] = facing.mounts[pose]!;
+    const muzzleX = left + HERO_WIDTH * mx + (my - .965) * height * lean;
+    const muzzleY = top + height * my;
+    const portX = left + HERO_WIDTH * px + (py - .965) * height * lean;
+    const portY = top + height * py;
+    return { row, pose, moving, left, top, height, lean, muzzleX, muzzleY, portX, portY, facing };
   }
 
   function draw() {
@@ -214,6 +273,9 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
         const name = t.kind === 'mail' ? 'boss_mail_front' : 'en_' + t.kind + '_front';
         ctx.save();
         ctx.translate(x, y);
+        if (!still && t.kind === 'brute' && elapsed - t.struck < .12) {
+          ctx.transform(1, 0, (1 - (elapsed - t.struck) / .12) * .14, 1, 0, 0);
+        }
         const phase = still ? 0 : (t.depth * (t.kind === 'brute' ? 4 : 7)) % 1;
         if (t.kind === 'mail') {
           ctx.fillStyle = '#262331';
@@ -273,79 +335,41 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
         ctx.fillText(locked.lane === -1 ? '→' : locked.lane === 1 ? '←' : '←   →', aimX, aimY - r - 4);
       }
     }
-    const moving = Math.abs(lane - position) > .045;
-    const firing = elapsed < fireAt && (keyFire || pointerFire || auto || tracer > 0);
-    const pose = moving && !still ? (Math.floor(stride * 3) % 2 ? 2 : 1) : firing ? 3 : 0;
-    const row = armless ? 1 : 0;
-    const left = across(position, 1) - HERO_WIDTH * .51;
-    const top = H - 5 - HERO_HEIGHT * .965;
-    const [sx, sy] = HERO_MUZZLE[pose]!;
-    const muzzleX = left + HERO_WIDTH * sx;
-    const muzzleY = top + HERO_HEIGHT * sy;
-
+    debris.draw(ctx);
+    const { row, pose, moving, left, top, height, lean, muzzleX, muzzleY, facing } = heroPose(still);
     ctx.fillStyle = '#16142088';
     ctx.beginPath();
     ctx.ellipse(left + HERO_WIDTH * .49, H - 6, moving ? 27 : 36, 5, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.save();
+    ctx.transform(1, 0, lean, 1, left - lean * height * .965, top);
+    const hero = facing.art;
     if (hero) {
       const cellW = hero.w / 4, cellH = hero.h / 2;
-      ctx.drawImage(hero.img, pose * cellW, row * cellH, cellW, cellH, left, top, HERO_WIDTH, HERO_HEIGHT);
+      ctx.drawImage(hero.img, pose * cellW, row * cellH, cellW, cellH, 0, 0, HERO_WIDTH, height);
     } else if (fallback) {
       // The normal evening hero is already loaded if an optional tape picture failed to load.
-      ctx.drawImage(fallback.img, 0, 0, fallback.w / 4, fallback.h * .44, left, top, HERO_WIDTH, HERO_HEIGHT);
+      ctx.drawImage(fallback.img, 0, 0, fallback.w / 4, fallback.h * .44, 0, 0, HERO_WIDTH, height);
     }
-    if (tracer > 0) {
-      const aimX = across(impactX, hitDepth), aimY = foot(hitDepth) - 22 - 38 * hitDepth;
-      ctx.strokeStyle = '#ffe5a1';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(muzzleX, muzzleY);
-      ctx.lineTo(aimX, aimY);
-      ctx.stroke();
-      if (!still && tracer > .055) {
-        ctx.save();
-        ctx.translate(muzzleX, muzzleY);
-        ctx.rotate(Math.atan2(aimY - muzzleY, aimX - muzzleX));
-        ctx.fillStyle = '#ffcf78';
-        ctx.beginPath();
-        ctx.moveTo(0, -2);
-        ctx.lineTo(15, -4);
-        ctx.lineTo(10, 0);
-        ctx.lineTo(15, 3);
-        ctx.lineTo(0, 2);
-        ctx.fill();
-        ctx.restore();
-      }
+    ctx.restore();
+    if (!still) {
+      drawVhsCasesAndSmoke(ctx, shots, elapsed, H - 5);
+      drawVhsMuzzle(ctx, muzzleX, muzzleY, facing.angle, elapsed - lastShot, round);
     }
     for (const impact of impacts) {
       const age = elapsed - impact.at;
       ctx.save();
       ctx.translate(impact.x, impact.y);
       ctx.globalAlpha = Math.max(0, 1 - age / .55);
-      if (!still) {
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = impact.armor ? '#f4ce7a' : '#d3b089';
-        for (let i = 0; i < 5; i++) {
-          const angle = .7 + i * 1.25;
-          const radius = 3 + age * 32;
-          const dx = Math.cos(angle), dy = Math.sin(angle);
-          ctx.beginPath();
-          ctx.moveTo(radius * dx, radius * dy + 18 * age * age);
-          ctx.lineTo((radius + 4) * dx, (radius + 4) * dy + 18 * age * age);
-          ctx.stroke();
-        }
-      }
-      if (impact.points || impact.armor) {
-        ctx.font = 'bold 16px monospace';
-        ctx.textAlign = 'center';
-        const tag = impact.armor ? '×' : '+' + impact.points;
-        const lift = still ? -10 : -10 - age * 24;
-        ctx.strokeStyle = '#201922';
-        ctx.lineWidth = 3;
-        ctx.strokeText(tag, 0, lift);
-        ctx.fillStyle = impact.armor ? '#e6b87b' : '#ffe7aa';
-        ctx.fillText(tag, 0, lift);
-      }
+      ctx.font = 'bold 16px monospace';
+      ctx.textAlign = 'center';
+      const tag = impact.armor ? '×' : '+' + impact.points;
+      const lift = still ? -10 : -10 - age * 24;
+      ctx.strokeStyle = '#201922';
+      ctx.lineWidth = 3;
+      ctx.strokeText(tag, 0, lift);
+      ctx.fillStyle = impact.armor ? '#e6b87b' : '#ffe7aa';
+      ctx.fillText(tag, 0, lift);
       ctx.restore();
     }
     if (hitTime > 0) {
