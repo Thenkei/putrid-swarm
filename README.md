@@ -79,6 +79,8 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 
 Each night from the second to the seventh has one special scene. Daytime clues change what you can do when it arrives. The pause button and `Esc` work throughout.
 
+[Watch the porch fire, VHS arcade, full moon and garden crossing with in-game audio (26 seconds)](docs/previews/epic-nights.mp4).
+
 | Night | At the desk |
 | --- | --- |
 | 2 | Brace the kitchen door under pressure. A sketch found in town unlocks a trip outside with the stove, followed by a timed return. |

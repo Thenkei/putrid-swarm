@@ -1,14 +1,57 @@
-import { calmMotion } from './lighting';
+import { calmMotion, type Light } from './lighting';
+import { unproject, type View } from './projection';
 
 const ORIGIN_X = 448;
 const ORIGIN_Y = 420;
 const BURST = .45;
 const fraction = (n: number) => n - Math.floor(n);
+const flameX = (aim: number, y: number) => ORIGIN_X + (aim - ORIGIN_X) * (ORIGIN_Y - y) / 290;
+const flameReach = (age: number, still: boolean) => still ? 1 : Math.min(1, .15 + age * 5 / BURST);
+export interface PorchBurst {
+  readonly age: number;
+  readonly aim: number;
+  readonly contacts: readonly { x: number; y: number }[];
+}
+
+/** Emit along the airborne flame and project its footprint onto the sloping yard. The night
+ * light map multiplies this irradiance into the painted ground, obstacles and silhouettes. */
+export function porchLights(view: View, burst: PorchBurst): Light[] {
+  const { age, aim, contacts } = burst;
+  if (age < 0 || age >= 1.05) return [];
+  const still = calmMotion();
+  const reach = flameReach(age, still);
+  const power = Math.min(1, .22 + age / .055) * Math.exp(-Math.max(0, age - BURST + .05) * 12);
+  const lights: Light[] = [];
+  const emit = (x: number, y: number, radius: number, intensity: number, color: string, lift = 0) => {
+    const { gx, gy } = unproject(view, x, y);
+    lights.push({ gx, gy, radius, intensity, color, lift });
+  };
+  // Each pool is flattened in isometric space. Their overlap makes a continuous amber
+  // reflection. The pale near-field falls away to red under the detached flame tips.
+  for (let i = 0; i < 7; i++) {
+    const depth = i / 6;
+    const y = ORIGIN_Y - depth * reach * 290;
+    const height = (8 + 23 * Math.sin(Math.PI * depth * .83)) * view.zoom;
+    const flutter = still ? 1 : .95 + .05 * Math.sin(age * 24 + depth * 5);
+    emit(flameX(aim, y), y + height, 1.65 + 1.08 * depth,
+      power * flutter * (.92 - depth * .31), depth < .35 ? 'rgba(255,174,83,.94)' : 'rgba(255,115,41,.90)');
+  }
+  for (const point of contacts) {
+    const distance = Math.max(0, Math.min(1, (ORIGIN_Y - point.y) / 290));
+    const arrival = distance * .095;
+    if (age < arrival) continue;
+    const since = age - arrival;
+    const bounce = Math.min(1, since / .045) * Math.exp(-Math.max(0, since - .23) * 6);
+    emit(point.x, point.y + 2, 1.37, bounce * .91, 'rgba(255,121,42,.92)');
+    emit(point.x, point.y, .80, bounce * .70, 'rgba(255,171,83,.92)', 14);
+  }
+  return lights;
+}
 
 /** The flame, sight and collision wedge share the same vanishing line on the porch camera. */
 export function porchFlame(ctx: CanvasRenderingContext2D, aim: number, firedAim: number, age: number,
   contacts: readonly { x: number; y: number }[] = []) {
-  const xAt = (x: number, y: number) => ORIGIN_X + (x - ORIGIN_X) * (ORIGIN_Y - y) / 290;
+  const xAt = flameX;
   const still = calmMotion();
   const firing = age >= 0 && age < BURST;
   const u = Math.min(1, Math.max(0, age / BURST));
@@ -26,7 +69,7 @@ export function porchFlame(ctx: CanvasRenderingContext2D, aim: number, firedAim:
     ctx.moveTo(cx, 123); ctx.lineTo(cx, 128); ctx.stroke();
   }
   if (firing) {
-    const reach = still ? 1 : Math.min(1, .15 + u * 5);
+    const reach = flameReach(age, still);
     const wave = still ? .2 : u;
     ctx.globalCompositeOperation = 'screen';
     // Convection bends the outer envelope more than the near-white inner stream.

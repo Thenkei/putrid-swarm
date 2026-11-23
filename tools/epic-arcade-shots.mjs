@@ -2,7 +2,7 @@
 /** Verify the garage retrieval, bladed wheel and arcade via the regular title and save flow.
  * Run against a dev or preview server: node tools/epic-arcade-shots.mjs <outDir> [URL]
  * Chrome additionally exercises real touch swipes through its input protocol. */
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import assert from 'node:assert/strict';
 import { tsImport } from 'tsx/esm/api';
@@ -111,14 +111,31 @@ async function garage(profile) {
   console.log(profile+' garage: cancel, retrieval, reload, 4/8 scrap returned, night launch and horn verified');
 }
 
-async function arcade(profile, motion) {
-  const save = {...newGame(37),day:4,hoursLeft:0,flags:{'epic.vhs':1}};
+async function arcade(profile, motion, armless = false) {
+  const save = {...newGame(37),day:4,hoursLeft:0,orchard:armless ? 'maimed' : 'quiet',flags:{'epic.vhs':1}};
   const {page,click,btn,shot,finish} = await openSave(profile,save,motion);
   await click(btn('Attendre la nuit'));
   await click(btn('Prendre le poste'));
   await click(btn('Lecture ▶'));
   const canvas=page.locator('.vhs-track');
   await canvas.waitFor();
+  // Observe only the real tape renderer. Each capture is the completed action frame, including
+  // lane motion and tracers. This also checks which variant reached the production canvas.
+  await page.evaluate(() => {
+    window.vhsFrames = {};
+    const draw = CanvasRenderingContext2D.prototype.drawImage;
+    CanvasRenderingContext2D.prototype.drawImage = function(image, ...args) {
+      draw.call(this, image, ...args);
+      if (!this.canvas.matches?.('.vhs-track') || !image.src?.includes('epic_vhs_hero') || args.length !== 8) return;
+      const [x,y,w,h] = args;
+      const id = (y / h) + '-' + (x / w);
+      if (window.vhsFrames[id] !== undefined) return;
+      window.vhsFrames[id] = '';
+      queueMicrotask(() => { window.vhsFrames[id] = this.canvas.toDataURL(); });
+    };
+  });
+  const row=armless ? 1 : 0;
+  await page.waitForFunction(row => window.vhsFrames[row+'-0'],row);
   if(profile.startsWith('phone')) await canvas.tap(); else { await page.keyboard.down('Space'); await page.waitForTimeout(450); await page.keyboard.up('Space'); }
   await page.waitForFunction(()=>/^[1-9]\d* pts/.test(document.querySelector('.epic-night p').textContent));
   await click(btn('Pause'));
@@ -131,7 +148,17 @@ async function arcade(profile, motion) {
     await canvas.tap({position:{x:box.width*.15,y:box.height*.6}});
   }
   await page.waitForFunction(()=>document.querySelector('.epic-night p').textContent.includes('gauche'));
-  await shot(motion+'-vhs');
+  await shot(motion+(armless ? '-one-arm' : '')+'-vhs');
+  const poses = motion === 'reduce' ? [0,3] : [0,1,2,3];
+  await page.waitForFunction(({row,poses})=>poses.every(p=>window.vhsFrames[row+'-'+p]),{row,poses});
+  const captures=await page.evaluate(()=>window.vhsFrames);
+  assert.ok(Object.keys(captures).every(k=>k.startsWith(row+'-')));
+  if(motion==='no-preference' && profile==='desktop') {
+    for(const pose of poses) {
+      const filename=(armless ? 'one-arm' : 'two-arm')+'-'+['ready','stride-left','stride-right','fire'][pose]+'.png';
+      writeFileSync(join(OUT,'vhs-'+filename),Buffer.from(captures[row+'-'+pose].split(',')[1],'base64'));
+    }
+  }
   await click(btn('Éjecter'));
   assert.ok(await page.evaluate(()=>Number(localStorage.getItem('putrid-swarm.vhs-best'))>0));
   await click(btn('Reprendre la veille'));
@@ -143,6 +170,7 @@ async function arcade(profile, motion) {
 try {
   await garage('desktop');
   await arcade('desktop','no-preference');
+  await arcade('desktop','no-preference',true);
   await arcade('desktop','reduce');
   if(BROWSER==='chrome') {
     for (const phone of ['phone','phone-wide']) { await garage(phone); await arcade(phone,'reduce'); }

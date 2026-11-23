@@ -1,7 +1,8 @@
 import { GardenEscort } from '../core/garden-escort';
 import { el } from '../engine/dom';
 import { audio } from '../engine/audio';
-import { drawGarden, gardenAftermath } from '../render/garden-feed';
+import { drawGarden } from '../render/garden-feed';
+import { gardenAftermath } from '../render/garden-scenery';
 import { line as L } from '../engine/i18n';
 
 const gardenNames = () => [
@@ -39,7 +40,7 @@ export function escortFeed(field: HTMLElement, note: HTMLElement, signal: HTMLBu
     if (report !== voice.textContent) voice.textContent = report;
     const status = names[game.garden] + ' · ' + (game.garden + 1) + '/3 · ' + situation + ' · ' + L('Soupçon ', 'Suspicion ') + alert + '%' + (feedbackFor > 0 ? ' · ' + feedback : '');
     if (status !== last) { note.textContent = status; last = status; }
-    drawGarden(canvas, game);
+    drawGarden(canvas, game, names[game.garden]!);
   };
   signal.onclick = () => { game.signal(); audio.play(lamp ? 'bulb' : 'rope_take', 0.32); sync(); };
   signal.focus();
@@ -63,6 +64,7 @@ export function escortFeed(field: HTMLElement, note: HTMLElement, signal: HTMLBu
       }
       if (event === 'next') {
         audio.play('car_latch', 0.33, 1.15);
+        audio.play('camera', 0.4);
         feedback = L('Au portail. Il attend ton signal.', 'At the gate. He waits for your signal.');
         feedbackFor = 3;
       }

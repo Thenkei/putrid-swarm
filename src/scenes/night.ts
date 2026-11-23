@@ -1,6 +1,7 @@
 // The night: a desk, four cameras, and traps fired by hand.
 // The simulation runs on its own clock; this scene only chooses which part of it to look at.
 
+import { porchLights } from '../render/porch-flame';
 import { drawMoped } from '../render/moped';
 import { project } from '../render/projection';
 import { EpicNight } from './epic-night';
@@ -307,13 +308,17 @@ export class NightScene implements Scene {
     this.coachEl = el('div', { class: 'coach' });
     this.root = el('div', {}, [topbar, this.camFrame, ...minis, this.trapBar, this.banners, this.coachEl, this.overlay]);
     this.app.ui.append(this.root, pauseOverlay);
-    this.epic = new EpicNight(this.app, this.sim, this.root, (canvas, sector) => {
+    this.epic = new EpicNight(this.app, this.sim, this.root, (canvas, sector, burst) => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       const view = this.viewFor(sector, { x: 0, y: 0, w: canvas.width, h: canvas.height }, 1.1);
       drawWorld(ctx, view, this.frame(sector, false));
-      applyNight(ctx, view, this.lights(view.rot), this.sim.time);
-      return this.sim.enemies.filter(e => e.alive).map(e => ({ id: e.id, ...project(view, e.x, e.y) }));
+      const lights = this.lights(view.rot);
+      if (burst) lights.push(...porchLights(view, burst));
+      applyNight(ctx, view, lights, this.sim.time);
+      return this.sim.enemies
+        .filter(e => e.alive && sectorOf(Math.floor(e.x), Math.floor(e.y)) === sector)
+        .map(e => ({ id: e.id, ...project(view, e.x, e.y) }));
     }, sector => this.switchCam(sector), () => this.togglePause());
     if (this.sim.handView()) this.hand = new HandGauge();
     this.layoutMinis();

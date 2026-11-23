@@ -15,39 +15,10 @@ const W = 960, H = 412;
 const foot = (depth: number) => 103 + 274 * depth * depth;
 const across = (lane: number, depth: number) => W / 2 + lane * (39 + 204 * depth * depth);
 
-// A hand-inked cartridge sprite. The coat, bandanna and pack stay registered as the boots swap.
-function bandannaHero(armless: boolean) {
-  const rows = [
-    '        xxxXXxx         ', '      xxHHHHHHHxx       ', '      xHhHHHHhHHx       ',
-    '     xxRRRRRRRRRx       ', '   xRRRxSSSSSSSxx       ', ' xRRRxxSSssSSSsxx       ',
-    '  RRxxXsSssssSx         ', '      xxGgSSggXxx       ', '    xxgggGggGGggxx      ',
-    '   xgGGaGggggGaGGgx     ', '  xggGaaGgKKgGaaGgGx    ', '  xGgGaakKKKKkaaGgGx    ',
-    '  xSssGakABBAkaaSssx    ', '  xSSsxakBBbBkaasSSx    ', '  xssxxakBBbBkaaxssx    ',
-    '   xSxxakBBbBkaaxSSx    ', '   xsxxaKKKKKkaaxSSx    ', '   xxxGaaaaaaaggxxxx    ',
-    '      xkkkBkkkBkkx      ', '      xGgGGggGgGgx      ', '      xgggGxxGgggx      ',
-  ];
-  const palette: Record<string, string> = {
-    x: '#211e27', X: '#38313a', H: '#3d3134', h: '#685040', R: '#cb4941',
-    S: '#c19065', s: '#966746', G: '#73704f', g: '#4d5142', a: '#b39b68',
-    K: '#474339', k: '#302f30', A: '#b09a69', B: '#88724f', b: '#725d45',
-  };
-  const cel = el('canvas');
-  cel.width = 24;
-  cel.height = rows.length;
-  const ink = cel.getContext('2d')!;
-  rows.forEach((row, y) => [...row].forEach((pixel, x) => {
-    if (armless && y >= 11 && y <= 16 && x <= 5) return;
-    const color = palette[pixel];
-    if (color) { ink.fillStyle = color; ink.fillRect(x, y, 1, 1); }
-  }));
-  if (armless) {
-    ink.fillStyle = palette.G!;
-    ink.fillRect(3,11,3,1);
-    ink.fillStyle = palette.x!;
-    ink.fillRect(3,12,3,1);
-  }
-  return cel;
-}
+// Normalised against one 384×512 source cel. Keep feet and tracers on their painted anchors.
+const HERO_MUZZLE = [[.839,.101],[.85,.120],[.795,.098],[.820,.042]] as const;
+const HERO_HEIGHT = 151;
+const HERO_WIDTH = HERO_HEIGHT * .75;
 
 export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElement, sleeve: boolean, armless: boolean, finish: (score: number) => void) {
   const canvas = el('canvas');
@@ -66,14 +37,15 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
   dusk.addColorStop(0, '#271b4188');
   dusk.addColorStop(1, '#171826cc');
   const sets = ['plate_town', 'plate_village', 'plate_return', 'plate_loc_garage'].map(key => heroArt(key, armless));
-  const hero = bandannaHero(armless);
+  const hero = sprite('epic_vhs_hero');
+  const fallback = hero ? undefined : sprite(heroArt('hero_departure', armless));
   const lanes = [L('gauche', 'left'), L('milieu', 'centre'), L('droite', 'right')];
   const targets: Target[] = [];
   let lane = 0, position = 0, elapsed = 0, nextSpawn = 0, serial = 0;
   let fireAt = 0, tracer = 0, hitTime = 0, score = 0, combo = 0, misses = 0;
   let keyFire = false, pointerFire = false, auto = false, done = false;
   let tapped = false;
-  let hitDepth = 0, impactX = 0;
+  let hitDepth = 0, impactX = 0, stride = 0;
   const flank = (direction: number) => { lane = Math.max(-1, Math.min(1, lane + direction)); };
   const btn = (text: string, click: () => void) => el('button', { class: 'btn', text, onClick: click });
   const left = btn(L('← Gauche', '← Left'), () => flank(-1));
@@ -130,7 +102,9 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
     elapsed += dt;
     if (elapsed >= DURATION) { end(); return; }
     if (elapsed >= nextSpawn) spawn();
-    position += Math.sign(lane - position) * Math.min(Math.abs(lane - position), dt * 5);
+    const distance = Math.min(Math.abs(lane - position), dt * 5);
+    position += Math.sign(lane - position) * distance;
+    stride += distance;
     tracer = Math.max(0, tracer - dt);
     hitTime = Math.max(0, hitTime - dt);
     for (let i = targets.length - 1; i >= 0; i--) {
@@ -299,43 +273,49 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
         ctx.fillText(locked.lane === -1 ? '→' : locked.lane === 1 ? '←' : '←   →', aimX, aimY - r - 4);
       }
     }
-    const x = across(position, 1), y = H - 22;
-    ctx.save();
-    ctx.translate(x, y);
-    const recoil = still ? 0 : tracer / .09;
-    ctx.rotate(still ? 0 : (lane - position) * .105);
-    const stride = still ? 0 : Math.round(Math.sin(elapsed * 14) * 3);
-    ctx.imageSmoothingEnabled = false;
-    for (const leg of [-1, 1]) {
-      const heel = leg * stride;
-      ctx.fillStyle = '#303632';
-      ctx.fillRect(leg * 9 - 7, -17, 14, 22 + heel);
-      ctx.fillStyle = '#77755c';
-      ctx.fillRect(leg * 9 - 5, -12, 6, 10 + heel);
-      ctx.fillStyle = '#302a2c';
-      ctx.fillRect(leg * 9 - 8, 2 + heel, 16, 7);
+    const moving = Math.abs(lane - position) > .045;
+    const firing = elapsed < fireAt && (keyFire || pointerFire || auto || tracer > 0);
+    const pose = moving && !still ? (Math.floor(stride * 3) % 2 ? 2 : 1) : firing ? 3 : 0;
+    const row = armless ? 1 : 0;
+    const left = across(position, 1) - HERO_WIDTH * .51;
+    const top = H - 5 - HERO_HEIGHT * .965;
+    const [sx, sy] = HERO_MUZZLE[pose]!;
+    const muzzleX = left + HERO_WIDTH * sx;
+    const muzzleY = top + HERO_HEIGHT * sy;
+
+    ctx.fillStyle = '#16142088';
+    ctx.beginPath();
+    ctx.ellipse(left + HERO_WIDTH * .49, H - 6, moving ? 27 : 36, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (hero) {
+      const cellW = hero.w / 4, cellH = hero.h / 2;
+      ctx.drawImage(hero.img, pose * cellW, row * cellH, cellW, cellH, left, top, HERO_WIDTH, HERO_HEIGHT);
+    } else if (fallback) {
+      // The normal evening hero is already loaded if an optional tape picture failed to load.
+      ctx.drawImage(fallback.img, 0, 0, fallback.w / 4, fallback.h * .44, left, top, HERO_WIDTH, HERO_HEIGHT);
     }
-    ctx.drawImage(hero, -36, -76 + Math.abs(stride) * .45, 72, 63);
-    ctx.fillStyle = '#282229';
-    ctx.fillRect(25, -59 + recoil * 3, 8, 36);
-    ctx.fillStyle = '#8c8c80';
-    ctx.fillRect(26, -59 + recoil * 3, 3, 13);
-    if (tracer > .035 && !still) {
-      ctx.fillStyle = '#ffcc72';
-      ctx.beginPath();
-      ctx.moveTo(29, -72);
-      ctx.lineTo(35, -56);
-      ctx.lineTo(23, -58);
-      ctx.fill();
-    }
-    ctx.restore();
     if (tracer > 0) {
+      const aimX = across(impactX, hitDepth), aimY = foot(hitDepth) - 22 - 38 * hitDepth;
       ctx.strokeStyle = '#ffe5a1';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(x + 29, y - 59);
-      ctx.lineTo(across(impactX, hitDepth), foot(hitDepth) - 22 - 38 * hitDepth);
+      ctx.moveTo(muzzleX, muzzleY);
+      ctx.lineTo(aimX, aimY);
       ctx.stroke();
+      if (!still && tracer > .055) {
+        ctx.save();
+        ctx.translate(muzzleX, muzzleY);
+        ctx.rotate(Math.atan2(aimY - muzzleY, aimX - muzzleX));
+        ctx.fillStyle = '#ffcf78';
+        ctx.beginPath();
+        ctx.moveTo(0, -2);
+        ctx.lineTo(15, -4);
+        ctx.lineTo(10, 0);
+        ctx.lineTo(15, 3);
+        ctx.lineTo(0, 2);
+        ctx.fill();
+        ctx.restore();
+      }
     }
     for (const impact of impacts) {
       const age = elapsed - impact.at;

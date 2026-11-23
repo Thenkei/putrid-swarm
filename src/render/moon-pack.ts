@@ -1,7 +1,7 @@
 import { PACK_GAP, PACK_RETURN, packPhase } from '../core/moon-pack';
 import { lightPool, patrolCel } from './epic-night-light';
 import { calmMotion } from './lighting';
-import { hash2 } from './noise';
+import { hash2, smoothstep } from './noise';
 import { sprite } from '../engine/assets';
 
 // Outlines stay in the cache between frames, including when the operator switches cameras.
@@ -65,8 +65,9 @@ function cub(ctx: CanvasRenderingContext2D, x: number, facing: number, time: num
   lightPool(ctx,x,339,32,6,'#11161cbb');
   const sheet = sprite('epic_pack_art');
   if (sheet) {
-    const frame = running && !calmMotion() ? Math.floor(time * 9) % 3 : 1;
-    ctx.save(); ctx.translate(x, 338); ctx.scale(facing, 1);
+    const frame = running ? (calmMotion() ? 1 : Math.floor(time * 9) % 3) : 2;
+    const breath = !running && !calmMotion() ? 1 + Math.sin(time * 3.2) * .015 : 1;
+    ctx.save(); ctx.translate(x, 338); ctx.scale(facing, breath);
     ctx.drawImage(sheet.img, frame * 384, 534, 384, 222, -53, -57, 107.52, 62.16);
     ctx.restore();
     return;
@@ -103,21 +104,65 @@ function paw(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number)
   ctx.restore();
 }
 
-export function moonFeed(canvas: HTMLCanvasElement, camera: number, subject: number, time: number, gate: boolean, lift: number, crossing: number) {
+/** The evidence reticle and the cub use the same ground anchor even in reduced motion. */
+export function trailCubX(time: number) {
+  return 490 + Math.sin((calmMotion() ? 0 : time) * .57) * 100;
+}
+
+function portcullis(ctx: CanvasRenderingContext2D, lift: number, time: number) {
+  // Registration on the painted uprights at x=228 and x=467 and on the pulley at (395,143).
+  ctx.save();
+  ctx.beginPath(); ctx.rect(224, 125, 245, 182); ctx.clip();
+  ctx.translate(0, -lift);
+  const iron = ctx.createLinearGradient(0,141,0,307);
+  iron.addColorStop(0,'#474847'); iron.addColorStop(.35,'#212b30'); iron.addColorStop(.83,'#58473b'); iron.addColorStop(1,'#262d32');
+  for (let x = 238; x <= 459; x += 22) {
+    ctx.fillStyle=iron;
+    ctx.beginPath();ctx.moveTo(x,152);ctx.lineTo(x+2,145);ctx.lineTo(x+5,152);ctx.lineTo(x+5,302);ctx.lineTo(x+3,307);ctx.lineTo(x,302);ctx.fill();
+    ctx.fillStyle='#a8a7a17a';ctx.fillRect(x+1,155,1,148);
+    for(let flake=0;flake<4;flake++){ctx.fillStyle='#9a704989';ctx.fillRect(x+1,169+hash2(x,flake,9)*105,2,2+flake%2);}
+  }
+  for(const y of [164,230,295]){
+    ctx.fillStyle=iron;ctx.fillRect(224,y,245,8);ctx.fillStyle='#a29a8987';ctx.fillRect(224,y,245,1);
+    for(let x=240;x<469;x+=22){ctx.fillStyle='#171f23';ctx.fillRect(x,y+3,3,3);ctx.fillStyle='#b5a182';ctx.fillRect(x,y+3,1,1);}
+  }
+  ctx.restore();
+  // Chain takes strain as the lift starts; its changing length tracks the ironwork.
+  ctx.save();ctx.strokeStyle='#22262c';ctx.lineWidth=1.7;
+  const offset=lift>0&&!calmMotion()?Math.sin(time*11)*.6:0;
+  for(const x of [267,436]){
+    ctx.beginPath();ctx.moveTo(395,145);ctx.lineTo(x+offset,164-lift);ctx.stroke();
+    ctx.setLineDash([2,3]);ctx.strokeStyle='#a39b87';ctx.lineWidth=1;ctx.stroke();
+    ctx.setLineDash([]);ctx.strokeStyle='#22262c';ctx.lineWidth=1.7;
+  }
+  ctx.restore();
+}
+
+function waitingAdult(ctx: CanvasRenderingContext2D, time: number, crossing: number) {
+  const settled = calmMotion() ? 1 : smoothstep(0, 2.2, time);
+  const x = 782 - settled * 129 - smoothstep(.55, 1, crossing) * 19;
+  const y = 311 + settled * 26;
+  const stride = settled < 1 ? Math.sin(time * 9) * (1 - settled) * 3 : 0;
+  const pose = crossing > .55 ? 2 : settled < .75 ? 0 : 1;
+  lightPool(ctx,x,y-4,83,22,'#b4c7d831');
+  lightPool(ctx,x,y,55,10,'#071018c0');
+  wolf(ctx, x, y + stride, 1.04 + settled *.51, -1, calmMotion()?0:time, pose);
+  if(!calmMotion()){
+    const exhale=(time*.52)%1;
+    lightPool(ctx,x-37-24*exhale,y-119-9*exhale,4+20*exhale,2+6*exhale,
+      'rgba(211,225,226,'+(Math.sin(exhale*Math.PI)*.21)+')');
+  }
+}
+
+export function moonFeed(canvas: HTMLCanvasElement, camera: number, subject: number, time: number, gate: boolean, lift: number, crossing: number, arrivalTime: number) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   ctx.clearRect(0, 0, 900, 420);
   const still=calmMotion(), air=still?0:time;
   const shade=ctx.createLinearGradient(0,0,0,420);
-  shade.addColorStop(0,'#0b1c35bd');shade.addColorStop(.52,'#253f5594');shade.addColorStop(1,'#101c26ad');
+  shade.addColorStop(0,'#07162a16');shade.addColorStop(.52,'#2949510d');shade.addColorStop(1,'#101d3033');
   ctx.fillStyle = shade;
   ctx.fillRect(0, 0, 900, 420);
-  if(camera!==1){
-    lightPool(ctx,704,70,95,83,'#e0e5d052');
-    ctx.save();ctx.beginPath();ctx.arc(704,70,19,0,Math.PI*2);ctx.clip();ctx.fillStyle='#e3e3cb';ctx.fillRect(684,50,40,40);
-    for(let i=0;i<16;i++){ctx.fillStyle=i%2?'#898f8a44':'#fff4c93b';ctx.beginPath();ctx.ellipse(686+hash2(i,1,3)*37,51+hash2(i,3,1)*37,2+hash2(i,4,6)*5,2+hash2(i,5,7)*4,.2,0,Math.PI*2);ctx.fill();}
-    ctx.restore();
-  }
   lightPool(ctx,498+Math.sin(air*.13)*30,337,249,28,'#a7bdc934');
   if(!still)for(let i=0;i<12;i++){
     const x=(hash2(i,0,3)*900+air*(4+i%4))%900;
@@ -137,28 +182,32 @@ export function moonFeed(canvas: HTMLCanvasElement, camera: number, subject: num
       for (let i = 0; i < 3; i++) infected(ctx, 145 + movement * 116 + i * 72, air + i);
       ctx.restore();
     }
-    lightPool(ctx,681,334,83,22,'#acbad22f');
-    lightPool(ctx,681,340,55,10,'#071018b3');
-    wolf(ctx, 681, 340, 1.28, -1, air, crossing > .45 ? 2 : 1);
-    ctx.fillStyle = '#141b20'; ctx.strokeStyle = '#65716c';
-    ctx.lineWidth = 1;
-    for (let x = 295; x < 555; x += 28) {
-      ctx.fillRect(x, 99 - lift, 6, 240);
-      ctx.strokeRect(x, 99 - lift, 6, 240);
-    }
-    ctx.fillRect(277, 330 - lift, 301, 12);
-    ctx.fillStyle='#a4a894';ctx.fillRect(277,330-lift,301,1.4);
-    for(const x of [295,350,405,460,515,558]){ctx.fillStyle='#a3aca2';ctx.beginPath();ctx.arc(x,335-lift,2,0,Math.PI*2);ctx.fill();}
+    portcullis(ctx,lift,air);
+    waitingAdult(ctx,arrivalTime,crossing);
     // The cub is caught at the foot of the gate, on the camera side of the bars.
     // A separate soft pool follows the pale ear and tail through the crossing.
-    const cubX = 427 + crossing * 166;
+    const hesitant = crossing === 0 && !still ? 3 * Math.sin(time * 1.7) : 0;
+    const cubX = 378 + smoothstep(0,1,crossing) * 171 + hesitant;
     lightPool(ctx, cubX, 320, 64, 27, '#a5becc3d');
-    for (let i = 0; i < 5; i++) if (crossing > (i + 1) / 6) paw(ctx,439+i*25,341+(i%2)*4,.7);
-    cub(ctx, cubX, 1, air, crossing > 0 && crossing < 1);
+    for (let i = 0; i < 5; i++) if (crossing > (i + 1) / 6) paw(ctx,389+i*27,341+(i%2)*4,.7);
+    ctx.save();
+    ctx.translate(cubX,338);
+    const leap = still?0:Math.sin(crossing*Math.PI) * 10;
+    ctx.scale(1.12,1.12);
+    ctx.translate(-cubX,-338-leap);
+    cub(ctx,cubX,1,air,crossing>0&&crossing<1);
+    ctx.restore();
     return;
   }
+  if(camera===2){
+    portcullis(ctx,0,air);
+    waitingAdult(ctx,arrivalTime,0);
+    // A second member hangs back in the orchard. Its silhouette supplies a sense of scale.
+    ctx.save();ctx.globalAlpha=.65;wolf(ctx,188,266,.57,1,air,0);ctx.restore();
+    if(camera!==subject)return;
+  }
   if (camera === subject) {
-    const path = Math.sin(air * .57) * 100;
+    const path = trailCubX(time) - 490;
     const facing=Math.cos(air*.57)>0?1:-1;
     for(let i=0;i<6;i++)paw(ctx,490+path-facing*(38+i*16),340+(i%2)*5,facing*.7);
     cub(ctx, 490 + path, facing, air, !still);
@@ -170,28 +219,26 @@ export function moonFeed(canvas: HTMLCanvasElement, camera: number, subject: num
   }
 }
 
-export function packAftermath(canvas: HTMLCanvasElement, rescued: boolean, damage: number) {
+export function packAftermath(canvas: HTMLCanvasElement, damage: number) {
   const ctx=canvas.getContext('2d'); if(!ctx)return;
   ctx.clearRect(0,0,900,420);
   const wash=ctx.createLinearGradient(0,0,0,420);
   wash.addColorStop(0,'#08172c9c');wash.addColorStop(.6,'#22394890');wash.addColorStop(1,'#16272cca');
   ctx.fillStyle=wash;ctx.fillRect(0,0,900,420);
+  ctx.save();
+  if (damage > 0) { ctx.translate(225,164); ctx.rotate(.055); ctx.translate(-225,-164); }
+  portcullis(ctx,0,0);
+  ctx.restore();
   lightPool(ctx,510,320,320,47,'#c6cdb24d');
   for(let i=0;i<13;i++){
-    const x=310+i*22,y=365-i*(rescued?7:2)+Math.sin(i*.55)*7;
+    const x=310+i*22,y=354-i*2+Math.sin(i*.55)*7;
     const spread=1-i*.045;
     ctx.save();ctx.translate(x,y);ctx.scale(spread,spread);
-    if(rescued){
-      for(const lateral of [-21,21]){ctx.save();ctx.translate(0,lateral);ctx.scale(2.1,1.6);paw(ctx,0,0,.9);ctx.restore();}
-      paw(ctx,0,i%2*6,1);
-    }else if(i<7){paw(ctx,0,i%2*5,1);}
+    if(i<7){paw(ctx,0,i%2*5,1);}
     else {
       ctx.strokeStyle='#c0bb9b77';ctx.lineWidth=1.3;
       for(let claw=0;claw<3;claw++){ctx.beginPath();ctx.moveTo(-13,claw*3);ctx.quadraticCurveTo(-5,-5+claw*3,7,-7+claw*3);ctx.stroke();}
     }
     ctx.restore();
-  }
-  if(damage>0){
-    ctx.save();ctx.translate(290,323);ctx.rotate(-.13);ctx.fillStyle='#343c3d';ctx.fillRect(0,0,235,8);ctx.fillStyle='#aaa998';ctx.fillRect(0,0,235,1);ctx.restore();
   }
 }

@@ -7,6 +7,21 @@
 .moon-timing i { position: absolute; top: 0; bottom: 0; }
 .moon-gap { background: repeating-linear-gradient(120deg,#5c7666 0 8px,#93aa90 8px 13px); }
 .moon-head { width: 4px; background: #fff7d6; box-shadow: 0 0 4px black; }
+.moon-screen[data-phase="trail"] > canvas { cursor: crosshair; }
+.moon-contacts { position:absolute; top:54px; right:14px; display:flex; gap:4px; pointer-events:none; }
+.moon-print { position:relative; background:#273749; width:57px; aspect-ratio:92/55; border:2px solid #c1c2a6; border-bottom-width:5px; box-shadow:0 2px 5px #070e15ab; }
+.moon-print small { position:absolute; bottom:0; right:0; background:#0b1724bb; color:#f6e5bb; padding:0 2px; font-size:10px; }
+.moon-screen .moon-print canvas { display:block; width:100%; height:100%; }
+.moon-screen[data-phase="winch"] .moon-contacts { display:none; }
+.moon-winch-lamp { display:none; }
+.moon-screen[data-phase="winch"] .moon-winch-lamp { display:block; position:absolute; left:51.7%; top:38%; width:9px; height:10px; background:#d4864e; border:1px solid #4a3626; box-shadow:0 0 7px 3px #ee895370; border-radius:4px; pointer-events:none; }
+.moon-screen[data-passage="clear"] .moon-winch-lamp { background:#bad7ae; box-shadow:0 0 8px 3px #a6cab080; }
+.moon-screen[data-passage="closing"] .moon-winch-lamp { background:#ffd47e; box-shadow:0 0 8px 3px #ffc97390; }
+.moon-screen[data-passage="closing"] .moon-head { background:#ffcb73; }
+.moon-screen[data-outcome="reunion"] { background-size:cover; background-position:center; }
+.moon-breath { position:absolute; left:43%; top:46%; width:7%; height:4.5%; pointer-events:none; border-radius:50%; background:radial-gradient(ellipse,#e0e6d866,transparent 67%); animation:moon-breathe 4.1s ease-out infinite; }
+@keyframes moon-breathe { 0%,35%,100% { opacity:0; transform:translate(0,0) scale(.35); } 49% { opacity:.75; } 82% { opacity:0; transform:translate(35%,-80%) scale(1.55); } }
+@media (prefers-reduced-motion: reduce) { .moon-breath { animation:none; opacity:.35; } }
 .epic-actions button[aria-pressed="true"] { outline: 2px solid #c9ba8a; outline-offset: -2px; }
 
 @media (max-width: 880px), (pointer: coarse) {
@@ -17,6 +32,9 @@
 
   .moon-feed-id { top: 4px; left: 4px; }
   .moon-evidence { top: 4px; right: 4px; }
+  .moon-contacts { top:25px; right:4px; }
+  .moon-print { width:34px; border-width:1px; border-bottom-width:3px; }
+  .moon-print small { font-size:8px; }
 
 }
 @media (pointer: coarse) and (orientation: portrait) {

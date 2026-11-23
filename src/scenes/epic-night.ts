@@ -1,4 +1,4 @@
-import { porchFlame } from '../render/porch-flame';
+import { porchFlame, type PorchBurst } from '../render/porch-flame';
 import { calmMotion } from '../render/lighting';
 import { kitchenBolts } from './kitchen-bolts';
 import kitchenPlate from '../assets/epic-kitchen.webp';
@@ -6,6 +6,7 @@ import neighbourPlate from '../assets/epic-neighbour.webp';
 import vhsSleeve from '../assets/epic-vhs.webp';
 import { BARRICADE, COMBAT } from '../core/data/devices';
 import { escortFeed } from './garden-escort';
+import { warmGardenArt } from '../render/garden-scenery';
 import { playVhs } from './vhs-arcade';
 import { moonWatch } from './moon-pack';
 import { developGaragePrint } from './garage-print';
@@ -41,7 +42,7 @@ export class EpicNight {
   private launched: HTMLButtonElement | null = null;
   private previousFocus: HTMLElement | null = null;
   constructor(private app: App, private sim: NightSim, private desk: HTMLElement,
-    private paintYard: (canvas: HTMLCanvasElement, sector: SectorId) => { id: number; x: number; y: number }[] | undefined,
+    private paintYard: (canvas: HTMLCanvasElement, sector: SectorId, burst?: PorchBurst) => { id: number; x: number; y: number }[] | undefined,
     private tuneCamera: (sector: SectorId) => void, private pause: () => void) {
     this.lane = this.flag('lane') % 4;
     if (this.flag('moped') && !this.flag('spent')) {
@@ -227,9 +228,10 @@ export class EpicNight {
       this.outside = true;
       this.clock = () => {
         if ((fuel === 0 || this.elapsed >= 18 || this.sim.waveIndex > startWave) && this.elapsed >= flameUntil) { this.keys(); return; }
-        this.paintYard(yard, facing);
+        const age = facing === firedSector ? this.elapsed - flameUntil + .45 : -1;
+        this.paintYard(yard, facing, age >= 0 && age < 1.05 ? { age, aim: firedAim, contacts } : undefined);
         const ctx = yard.getContext('2d');
-        if (ctx) porchFlame(ctx, aim, firedAim, facing === firedSector ? this.elapsed - flameUntil + .45 : -1, contacts);
+        if (ctx) porchFlame(ctx, aim, firedAim, age, contacts);
         this.note.textContent = hints + ' · ' + S().sector[facing] + ' · ' + fuel + '/8 · ' + hitCount + L(' touchés', ' hit');
         burners.forEach((b, i) => {
           const s = SECTOR_IDS[i]!;
@@ -329,6 +331,7 @@ export class EpicNight {
   }
 
   private windows() {
+    warmGardenArt();
     const title = L('Quelqu’un fait tourner', 'Pass it around');
     this.field.style.backgroundImage = 'url("' + neighbourPlate + '")';
     const lamp = Boolean(this.flag('lamp'));
@@ -344,7 +347,7 @@ export class EpicNight {
           say('vo_epic_neighbor', { interrupt: true });
         }
         this.page(title, home
-          ? L('La cuisine d’en face s’allume. Derrière la vitre, le voisin répète ton signal et tire le rideau.', 'The kitchen across the street lights up. Your neighbour repeats your signal and draws the curtain.')
+          ? L('La cuisine d’en face s’allume. Derrière la vitre, le voisin lève sa lampe pour te répondre.', 'The kitchen across the street lights up. Your neighbour raises his lamp to answer you.')
           : L('La deuxième patrouille l’a vu. Il rebrousse chemin jusqu’à l’abri. Sa fenêtre reste noire.', 'Spotted a second time, he doubles back to shelter. His kitchen stays dark.'));
       });
     };

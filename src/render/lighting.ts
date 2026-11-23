@@ -286,7 +286,7 @@ function grainPattern(ctx: CanvasRenderingContext2D): CanvasPattern | null {
 }
 
 /** Sensor grain, scanlines, a little roll and a vignette over the graded night feed. */
-export function applyCctv(ctx: CanvasRenderingContext2D, view: View, time: number, strength = 1): void {
+export function applyCctv(ctx: CanvasRenderingContext2D, view: Pick<View, 'x' | 'y' | 'w' | 'h'>, time: number, strength = 1): void {
   ctx.save();
   ctx.beginPath();
   ctx.rect(view.x, view.y, view.w, view.h);
@@ -337,7 +337,7 @@ export function applyCctv(ctx: CanvasRenderingContext2D, view: View, time: numbe
 }
 
 /** One roll as the monitor locks onto the new feed. The picture underneath is already live. */
-export function drawRetune(ctx: CanvasRenderingContext2D, view: View, age: number): void {
+export function drawRetune(ctx: CanvasRenderingContext2D, view: Pick<View, 'x' | 'y' | 'w' | 'h'>, age: number): void {
   const duration = 0.2;
   if (age < 0 || age >= duration || calmMotion()) return;
   const thickness = 58;
