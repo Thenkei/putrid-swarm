@@ -25,6 +25,7 @@ import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
 import { drawDepartingCar, drawHeadlightPools, type DepartingCar } from './car-departure';
 import { drawApproachWindow, drawApproachingHero, type ApproachingHero } from './hero-approach';
+import { drawYardCat, type YardCatPose } from './yard-cat';
 import { drawRattle, rattlePoint, type RattleVisual } from './rattle';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
@@ -100,6 +101,7 @@ export interface WorldFrame {
   readonly houseBreaks?: readonly HouseBreak[];
   readonly carPresent: boolean;
   readonly approachingHero?: ApproachingHero;
+  readonly yardCat?: YardCatPose;
   readonly departingCar?: DepartingCar;
   /** Seconds since the car shut off after returning from an outing. */
   readonly exhaustAge?: number;
@@ -568,6 +570,10 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     }
   }
 
+  if (frame.yardCat) {
+    const cat = frame.yardCat;
+    drawables.push({ depth: depthOf(view.rot, cat.x, cat.y) + .42, draw: () => drawYardCat(ctx, view, cat) });
+  }
   if (frame.approachingHero) {
     const hero = frame.approachingHero;
     const { x, y } = hero.position;

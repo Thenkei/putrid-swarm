@@ -2201,5 +2201,10 @@
     "file": "sprites/epic_vhs_road_props.webp",
     "w": 768,
     "h": 512
+  },
+  "yard_cat": {
+    "file": "sprites/yard_cat.webp",
+    "w": 768,
+    "h": 256
   }
 }

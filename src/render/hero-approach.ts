@@ -5,10 +5,11 @@ import { DOOR_OUTWARD, THRESHOLDS } from '../house-layout';
 import { clamp01, smoothstep } from './noise';
 import { unproject, type Point, type View } from './projection';
 import { HOUSE_PAINT_SCALE, houseOffset } from './registration';
+import { groundTerrainAt } from './terrainfield';
 
 type Start = 'portail' | 'window' | 'grange';
 type Foot = readonly [number, number];
-type Cue = { readonly at: number; readonly sound: 'moped_door' | 'step_shed' | 'hand' };
+type Cue = { readonly at: number; readonly sound: 'moped_door' | 'step_shed' | 'hand' | 'step_grass' | 'step_gravel'; readonly position?: Point };
 const STARTS: readonly Start[] = ['portail', 'window', 'grange'];
 const HERO_HEIGHT = 78;
 const WALK_STEP = 0.135;
@@ -101,8 +102,18 @@ export function heroApproachShot(outings: number, oneArmed: boolean, houseHealth
   } else {
     cues.push({ at: UNLATCH_AT, sound: 'moped_door' }, { at: FIRST_STEP + .24, sound: 'step_shed' }, { at: intro - .09, sound: 'step_shed' });
   }
-  for (let at = intro + WALK_STEP; at < duration - TURN_AT_CAR; at += 2 * WALK_STEP) cues.push({ at, sound: 'step_shed' });
-  return { start, right, left, oneArmed, intro, duration, walk, distance, cues };
+  const shot = { start, right, left, oneArmed, intro, duration, walk, distance, cues };
+  // The walk sheet is driven by distance. Keep each boot strike on its cel, including the slowdown at the car.
+  for (let stride = WALK_STEP * WALK_SPEED; stride < distance; stride += 2 * WALK_STEP * WALK_SPEED) {
+    const remaining = distance - stride;
+    const at = remaining < WALK_SPEED * SLOW_AT_CAR / 2
+      ? duration - TURN_AT_CAR - Math.sqrt(2 * SLOW_AT_CAR * remaining / WALK_SPEED)
+      : intro + stride / WALK_SPEED;
+    const { position } = sampleApproach(shot, at);
+    const surface = groundTerrainAt(position.x, position.y);
+    cues.push({ at, position, sound: surface === 'gravel' ? 'step_gravel' : surface === 'path' ? 'step_shed' : 'step_grass' });
+  }
+  return shot;
 }
 
 export function sampleApproach(shot: ApproachShot, time: number): ApproachingHero {

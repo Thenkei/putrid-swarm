@@ -666,6 +666,10 @@ export const ART = [
   },
   // Shared walk cycles and the four poses used on the upper-window route.
   {
+    id: 'yard_cat', kind: 'atlas', w: 768, source: { concept: 'art/raw/yard_cat.png' },
+    prompt: 'Eight isometric hand-inked poses of the same russet farm tabby with pale socks, in a transparent four by two atlas. Curl asleep, listen, stretch, crouch, leap, stride, gather, sit looking back. Registered at the paws.',
+  },
+  {
     id: 'hero_departure', kind: 'atlas', w: 1328, source: { concept: 'art/raw/hero_departure.png' },
     refs: ['art/raw/car_boarding.png', REF_TRUNK],
     prompt: HERO_APPROACH_BRIEF + ' ' +

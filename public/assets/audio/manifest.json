@@ -605,6 +605,24 @@
     "seconds": 0.601,
     "gain": 0.6
   },
+  "yard_cat": {
+    "file": "yard_cat.mp3",
+    "kind": "sfx",
+    "seconds": 0.784,
+    "gain": 0.76
+  },
+  "step_gravel": {
+    "file": "step_gravel.mp3",
+    "kind": "sfx",
+    "seconds": 0.313,
+    "gain": 0.64
+  },
+  "cat_bonnet": {
+    "file": "cat_bonnet.mp3",
+    "kind": "sfx",
+    "seconds": 0.366,
+    "gain": 0.65
+  },
   "step_grass_2": {
     "file": "step_grass_2.mp3",
     "kind": "sfx",

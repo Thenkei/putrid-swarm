@@ -12,6 +12,7 @@ import { carDepartureShot, carManeuver, departingCar } from '../render/car-depar
 import { approachView, heroApproachShot, sampleApproach, type ApproachShot } from '../render/hero-approach';
 import { applyDayGrade, calmMotion } from '../render/lighting';
 import { smoothstep } from '../render/noise';
+import { CAT_BONNET_AT, CAT_LANDS_AT, CAT_SETTLES_AT, catWakeTime, sampleYardCat } from '../render/yard-cat';
 import { applyDaylight, dayDeviceVisual, drawWorld, houseLights, prepareWorld, type Particle, type View } from '../render/world';
 import { costLine, drawPlate, oneArmed, platePoint, tripLine } from './common';
 
@@ -104,6 +105,7 @@ export class TravelScene implements Scene {
   private done = false;
   private shot: ReturnType<typeof carDepartureShot> = null;
   private approach: ApproachShot | null = null;
+  private catWake: number | null = null;
   private stills = false;
   private boardingStart = 0;
   private roadStart = 0;
@@ -131,6 +133,7 @@ export class TravelScene implements Scene {
       if (this.shot) {
         this.stills = calmMotion();
         this.approach = heroApproachShot(this.stills ? 0 : outings, armless, departure.yard.houseHp / HOUSE_MAX_HP);
+        if (this.approach && sprite('yard_cat')) this.catWake = catWakeTime(this.approach);
         if (this.stills && !this.approach) this.shot = null;
       }
       if (this.shot) {
@@ -170,6 +173,7 @@ export class TravelScene implements Scene {
     if (this.done) return;
     this.done = true;
     if (this.options.departure) {
+      audio.fadeOut('yard_cat', .08);
       audio.fadeOut('moped_door', .12);
       audio.fadeOut('car_latch', 0.18);
     }
@@ -194,7 +198,12 @@ export class TravelScene implements Scene {
       const doorIntact = approach.start !== 'window' && (this.options.departure?.yard.barricades[approach.start].hp ?? 0) > 0;
       for (const cue of approach.cues) {
         const audible = cue.sound === 'moped_door' ? doorIntact : !this.stills;
-        if (audible && crossed(cue.at)) audio.play(cue.sound, .6);
+        if (audible && crossed(cue.at)) audio.play(cue.sound, .6, cue.sound === 'step_gravel' ? 1 + .06 * Math.sin(cue.at * 11) : 1);
+      }
+      if (!this.stills && this.catWake !== null) {
+        if (crossed(this.catWake + .07)) audio.play('yard_cat', .85);
+        if (crossed(this.catWake + CAT_BONNET_AT)) audio.play('cat_bonnet', .65);
+        if (crossed(this.catWake + CAT_LANDS_AT)) audio.play('step_gravel', .30, 1.32);
       }
       if (this.options.departure && crossed(boardingStart)) tripLine('car', this.options.departure);
     }
@@ -232,18 +241,35 @@ export class TravelScene implements Scene {
       const { yard } = departure;
       const houseHpRatio = yard.houseHp / HOUSE_MAX_HP;
       const dusk = 1 - departure.hoursLeft / DAY_HOURS;
+      const catTime = this.stills ? (onFoot ? -1 : CAT_SETTLES_AT) : this.time - (this.catWake ?? 0);
+      const cat = this.catWake === null ? undefined : sampleYardCat(catTime);
+      const particles = gravelDust(boardingTime - shot.rollAt, shot.forwardAt - shot.rollAt);
+      if (!this.stills && approach) {
+        for (const cue of approach.cues) {
+          const age = this.time - cue.at;
+          if (cue.position && cue.sound === 'step_gravel' && age >= 0 && age < .24) {
+            particles.push({ kind: 'dust', ...cue.position, age, life: .24, radius: .25 });
+          }
+        }
+        const age = catTime - CAT_LANDS_AT;
+        if (cat && age >= 0 && age < .23) {
+          const landing = sampleYardCat(CAT_LANDS_AT);
+          particles.push({ kind: 'dust', x: landing.x, y: landing.y, age, life: .23, radius: .22 });
+        }
+      }
       drawWorld(ctx, view, {
         time: this.app.time,
         night: false,
         houseHpRatio,
         carPresent: true,
+        ...(cat && { yardCat: cat }),
         ...(hero ? { approachingHero: hero } : { departingCar: departingCar(shot, boardingTime, dusk) }),
         ...(hero && hero.shot.start !== 'window' && hero.opening > 0 && { houseDoor: { sector: hero.shot.start, open: hero.opening } }),
         devices: yard.devices.map((d) => dayDeviceVisual(d)),
         barricades: yard.barricades,
         decals: yard.decals,
         enemies: [],
-        particles: gravelDust(boardingTime - shot.rollAt, shot.forwardAt - shot.rollAt),
+        particles,
       });
       applyDaylight(ctx, view, dusk, houseLights(view.rot, yard.barricades, houseHpRatio), this.app.time);
       paintFade(ctx, smoothstep(this.roadStart - DEPARTURE_FADE_OUT, this.roadStart, this.time));

@@ -1,0 +1,11 @@
+{
+  "id": "step_gravel",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "STM4RbCVQE4DAEzu6PxR",
+  "generatedAt": "2026-11-23T23:08:46.4684125Z",
+  "prompt": "Exactly one boot planting on fine dry driveway gravel, a firm quiet thud with a handful of small pebbles ticking under the sole immediately afterwards. Short sharp attack, entire contact within 0.24 seconds. Close outdoor Foley, clean isolated recording with no echo, no other steps, no gait sequence, no music or other sound.",
+  "bytes": 34305,
+  "sha256": "f143ffac152720cb88b0fb062f24e2453632a1cd21f3e3bdead90fb413732eb0"
+}

@@ -67,6 +67,9 @@ export type Sfx =
   | 'probe_feel'
   | 'signal_lost'
   | 'step_grass'
+  | 'step_gravel'
+  | 'yard_cat'
+  | 'cat_bonnet'
   | 'chew'
   | 'clap'
   | 'rabbit_bolt'
@@ -1108,6 +1111,18 @@ class AudioEngine {
         break;
       case 'step_shed':
         this.noise('bandpass', 900 + Math.random() * 400, 500, 0.12, 0.14, 0, 0.9);
+        break;
+      case 'step_gravel':
+        this.noise('lowpass', 790, 270, .075, .065);
+        this.noise('highpass', 2600, 1100, .11, .045, .024);
+        break;
+      case 'yard_cat':
+        this.tone('triangle', 420, 610, .12, .024);
+        this.tone('triangle', 605, 448, .14, .022, .10);
+        break;
+      case 'cat_bonnet':
+        this.noise('lowpass', 850, 260, .08, .035);
+        this.tone('sine', 153, 110, .12, .025, .035);
         break;
       case 'chain':
         for (let i = 0; i < 6; i++) this.tone('triangle', 1800 + Math.random() * 900, 1500, 0.05, 0.05, i * 0.09);
