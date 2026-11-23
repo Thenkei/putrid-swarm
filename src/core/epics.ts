@@ -1,6 +1,7 @@
 import { RESOURCE_IDS, type GameState, type Inventory } from './types';
 
-export const MOPED_RUN_SECONDS = 1.2;
+export const MOPED_RUN_SECONDS = 1.65;
+export const MOPED_BLAST_RADIUS = 4.25;
 
 export function markEpic(state: GameState, key: string, value = 1): GameState {
   return { ...state, flags: { ...state.flags, ['epic.' + key]: value } };

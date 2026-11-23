@@ -1,10 +1,10 @@
-import { ENTRIES, LANES } from '../core/map';
 import { sprite } from '../engine/assets';
 import type { NightSim } from '../core/night';
 import { calmMotion } from './lighting';
 import { project, type View } from './projection';
 
-import { MOPED_RUN_SECONDS as RUN_TIME } from '../core/epics';
+import { MOPED_RUN_SECONDS as RUN_TIME, MOPED_BLAST_RADIUS } from '../core/epics';
+import blastSheet from './epic-moped-blast.webp';
 const STEEL = '#b7ada0';
 const paintedCels: HTMLCanvasElement[] = [];
 
@@ -37,25 +37,25 @@ function paintWheelCel(ctx: CanvasRenderingContext2D, image: HTMLImageElement, r
   ctx.scale(.94, 1);
   ctx.rotate(rotation);
   ctx.lineJoin = 'round';
-  ctx.lineWidth = .8;
+  ctx.lineWidth = .9;
   for (let i = 0; i < 7; i++) {
     ctx.rotate(Math.PI * 2 / 7);
-    ctx.fillStyle = '#979a96';
-    ctx.strokeStyle = '#433b32';
+    ctx.fillStyle = '#c4c7c0';
+    ctx.strokeStyle = '#302e29';
     ctx.beginPath();
     ctx.moveTo(4.4, -1.2);
     ctx.lineTo(8.3, -2.4);
-    ctx.lineTo(13.2, -3.7);
-    ctx.lineTo(10.2, .15);
+    ctx.lineTo(14.5, -4.3);
+    ctx.lineTo(10.1, 1.2);
     ctx.lineTo(5, 1.45);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    ctx.strokeStyle = '#f4e1b4';
-    ctx.lineWidth = .65;
+    ctx.strokeStyle = '#fff3c7';
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(8.3, -2.4);
-    ctx.lineTo(12.6, -3.55);
+    ctx.lineTo(14.0, -4.0);
     ctx.stroke();
   }
   ctx.fillStyle = '#685c49';
@@ -102,21 +102,24 @@ function wheel(ctx: CanvasRenderingContext2D, x: number, turn: number, blades: b
   ctx.restore();
 }
 
-export function drawMoped(ctx: CanvasRenderingContext2D, view: View, sim: NightSim) {
+export function drawMoped(ctx: CanvasRenderingContext2D, view: View, sim: NightSim, time = sim.time) {
   const ride = sim.mopedRide;
   if (!ride) return;
-  const entry = ENTRIES[ride.sector];
-  const last = LANES[ride.sector][0]!;
-  const origin = project(view, entry.x + .5, entry.y + .5);
-  const end = project(view, last.x + .5, last.y + .5);
+  if (ride.blastAt !== null) {
+    const impact = project(view, ride.impact.x, ride.impact.y);
+    drawBlast(ctx, view, impact.x, impact.y, Math.max(0, time - ride.blastAt));
+    return;
+  }
   const age = Math.max(0, sim.time - ride.start);
   const progress = Math.min(1, age / RUN_TIME);
+  const start = ride.path[0] ?? ride.impact, next = ride.impact;
+  const origin = project(view, start.x, start.y);
+  const end = project(view, next.x, next.y);
   const x = origin.x + (end.x - origin.x) * progress;
   const y = origin.y + (end.y - origin.y) * progress;
   const radius = 85 * view.zoom;
   if (x + radius < view.x || x - radius > view.x + view.w || y + radius < view.y || y - radius > view.y + view.h) return;
-  const still = calmMotion(), travel = progress < 1;
-  const crashAge = age - RUN_TIME;
+  const still = calmMotion();
   const facing = end.x >= origin.x ? 1 : -1;
   const pitch = Math.atan2(end.y - origin.y, Math.abs(end.x - origin.x));
 
@@ -129,7 +132,7 @@ export function drawMoped(ctx: CanvasRenderingContext2D, view: View, sim: NightS
   ctx.rotate(pitch * .65);
 
   // Exhaust and kick-up stay low enough to leave the infected visible on every feed.
-  if (!still && travel) {
+  if (!still) {
     for (let i = 0; i < 4; i++) {
       const phase = (age * 2 + i / 4) % 1;
       ctx.fillStyle = 'rgba(144,132,111,' + ((1 - phase) * .29) + ')';
@@ -144,8 +147,7 @@ export function drawMoped(ctx: CanvasRenderingContext2D, view: View, sim: NightS
   ctx.fill();
 
   const lift = !still && age < .38 ? -.21 * Math.sin(Math.PI * age / .38) : 0;
-  const rebound = !still && !travel && crashAge < .6 ? Math.sin(crashAge * 24) * (.6 - crashAge) * .25 : 0;
-  ctx.rotate(lift + rebound + (travel ? 0 : .10));
+  ctx.rotate(lift);
   // A headlamp illuminates the path long enough for the player to follow a single launch.
   const painted = sprite('epic_moped_art');
   const lampX = painted ? 21 : 11, lampY = painted ? -24 : -13;
@@ -164,7 +166,15 @@ export function drawMoped(ctx: CanvasRenderingContext2D, view: View, sim: NightS
     drawFallbackFrame(ctx, still ? 0 : progress * 30);
   }
 
-  drawImpact(ctx, travel, crashAge, still, age);
+  if (!still && painted) {
+    ctx.translate(20.8, -4.5);
+    ctx.strokeStyle = '#fce8b1b8';
+    ctx.lineWidth = 1.2;
+    const spin = age * 11;
+    for (const a of [spin, spin + Math.PI]) {
+      ctx.beginPath(); ctx.arc(0,0,14.2,a,a+.58); ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 
@@ -199,28 +209,58 @@ function drawFallbackFrame(ctx: CanvasRenderingContext2D, rotation: number) {
   ctx.fillRect(-16,-9,3,2);
 }
 
-function drawImpact(ctx: CanvasRenderingContext2D, travel: boolean, crashAge: number, still: boolean, age: number) {
-  if (!travel && crashAge < .38 && !still) {
-    ctx.strokeStyle = '#f3bf70';
-    ctx.lineWidth = 1.4;
-    for (let i = 0; i < 5; i++) {
-      const a = -1.55 + i * .52;
-      const radius = 3 + crashAge * (34 + i * 6);
-      ctx.beginPath();
-      ctx.moveTo(15 + Math.cos(a) * radius, -4 + Math.sin(a) * radius);
-      ctx.lineTo(15 + Math.cos(a) * (radius + 4), -4 + Math.sin(a) * (radius + 4));
-      ctx.stroke();
+// Each vignette is registered at ground contact, including the separate, flat scorch decal.
+const blastArt = typeof Image === 'undefined' ? null : new Image();
+if (blastArt) blastArt.src = blastSheet;
+
+function blastCel(ctx: CanvasRenderingContext2D, cel: number, width: number,
+  alpha: number, x = 0, footY = 0) {
+  if (!blastArt?.complete || !blastArt.naturalWidth || alpha <= 0) return;
+  ctx.globalAlpha = Math.min(1, alpha);
+  ctx.drawImage(blastArt, (cel % 2) * 384, Math.floor(cel / 2) * 384, 384, 384,
+    x - width / 2, footY - width, width, width);
+  ctx.globalAlpha = 1;
+}
+
+function drawBlast(ctx: CanvasRenderingContext2D, view: View, x: number, y: number, age: number) {
+  // An isometric circle of r world cells spans 2 * hypot(32,32) * r in screen-space X.
+  const width = MOPED_BLAST_RADIUS * Math.hypot(32, 32) * 2;
+  const reach = width * view.zoom;
+  if (x + reach < view.x || x - reach > view.x + view.w || y + reach < view.y || y - reach > view.y + view.h) return;
+  const still = calmMotion();
+  ctx.save();
+  ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
+  ctx.translate(x, y); ctx.scale(view.zoom, view.zoom);
+
+  // This footprint remains after the smoke has cleared and no longer has an intact vehicle.
+  if (!blastArt?.naturalWidth) {
+    ctx.fillStyle = '#20171380';
+    ctx.beginPath(); ctx.ellipse(0, 0, width * .30, width * .085, -.06, 0, Math.PI * 2); ctx.fill();
+  }
+  blastCel(ctx, 3, width * .74, .94, 0, width * .115);
+  if (age < 2.75) {
+    const light = still ? .36 : Math.max(0, 1 - age / 1.1);
+    if (light > 0) {
+      ctx.save();
+      ctx.scale(1, .47);
+      const pool = ctx.createRadialGradient(0, 0, 0, 0, 0, width * .53);
+      pool.addColorStop(0, 'rgba(255,211,112,' + (.68 * light) + ')');
+      pool.addColorStop(.52, 'rgba(249,137,61,' + (.42 * light) + ')');
+      pool.addColorStop(1, 'rgba(238,100,27,0)');
+      ctx.fillStyle = pool; ctx.fillRect(-width * .53, -width * .53, width * 1.06, width * 1.06);
+      ctx.restore();
+    }
+    if (still) {
+      // Fixed silhouettes and a steady local glow replace expansion, flying cinders and drift.
+      blastCel(ctx, age < 1 ? 1 : 2, width * .64, age < 1 ? .9 : .62, 0, width * .055);
+    } else {
+      const swell = Math.min(1, age / .33);
+      blastCel(ctx, 0, width * (.42 + .32 * swell), Math.max(0, 1 - age / .30), 0, width * .06);
+      const fire = Math.min(1, age / .16) * Math.max(0, Math.min(1, (1.05 - age) / .50));
+      blastCel(ctx, 1, width * (.49 + .39 * swell), fire, 0, width * .09);
+      const smoke = Math.min(1, Math.max(0, (age - .47) / .51)) * Math.min(1, (2.75 - age) / 1.48);
+      blastCel(ctx, 2, width * (.55 + Math.min(age, 2) * .105), smoke * .81, age * 5, width * .04 - age * 5);
     }
   }
-  if (crashAge >= 0 && age < 8) {
-    // The stuck horn is visible even with the sound off. A static pair of arcs serves reduced motion.
-    const phase = still ? .5 : (crashAge * 1.25) % 1;
-    ctx.strokeStyle = 'rgba(248,210,133,' + (.62 * (1 - phase)) + ')';
-    ctx.lineWidth = 1.3;
-    for (const radius of [12, 18]) {
-      ctx.beginPath();
-      ctx.arc(10, -12, radius + phase * 8, -.95, -.18);
-      ctx.stroke();
-    }
-  }
+  ctx.restore();
 }

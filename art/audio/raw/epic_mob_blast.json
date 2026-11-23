@@ -1,0 +1,11 @@
+{
+  "id": "epic_mob_blast",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "zBj1COm1GQB9wsUXHTvf",
+  "generatedAt": "2026-11-23T22:18:47.949Z",
+  "prompt": "Single stylized cartoon arcade explosion from a 1980s French horror-comedy game. Immediate bold short low drum whump and crunchy torn-paper crack, followed by a handful of descending metallic junk clatters rattling to rest. One cohesive slightly absurd cabinet impact, punchy and dry, around 0.85 seconds. No motor, horn, siren, voices, music, or lingering ambience.",
+  "bytes": 34305,
+  "sha256": "29e5ddb5a6187a8b745277b5d5d2fa072f62845b254e201c8c2c103fd0953578"
+}

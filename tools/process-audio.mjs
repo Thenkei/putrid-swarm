@@ -91,6 +91,7 @@ function processEntry(entry) {
   if (!profile) throw new Error(`${entry.id}: no processing profile for kind "${entry.kind}"`);
   const tail = entry.kind === 'sfx' ? tailFor(entry, raw, duration(raw)) : 0;
   let filters = profile.chain(entry, tail);
+  if (entry.edit) filters = `${entry.edit},${filters}`;
   if (profile.peak !== null) {
     // Measure the peak after the chain, then bring it to the target in the real pass.
     const measured = /max_volume: (-?[\d.]+) dB/.exec(ffmpeg(raw, `${filters},volumedetect`));

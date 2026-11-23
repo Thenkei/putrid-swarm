@@ -56,7 +56,8 @@ export function epicObject(app: App, refresh: () => void): HTMLElement | null {
     line('Au dos du tirage : « Clé sous le rideau. Prendre le break. »', 'On the back: “Key under the shutter. Take the wagon.”')));
   if (flag('moped') && !flag('spent')) {
     const lane = flag('lane') % 4;
-    objects.append(item(line('Mob à lames de Gérard', 'Gérard’s bladed moped'), S().sector[SECTOR_IDS[lane]!] + ' →',
+    objects.append(item(line('Mob à lames de Gérard', 'Gérard’s bladed moped'),
+      line('Départ vers ', 'Pointed toward ') + S().sector[SECTOR_IDS[lane]!] + line('. Les lames ouvrent le passage. La mob et sa charge explosent au fond du jardin. Un seul départ.', '. The blades cut a path. The charge blows the moped apart at the far end of the yard. One ride.'),
       line('Orienter vers ', 'Aim at ') + S().sector[SECTOR_IDS[(lane + 1) % 4]!], () => mark('lane', (lane + 1) % 4)));
   }
   if (day === 3 && flag('stove')) objects.append(item(line('Rectangle de lino propre', 'Clean patch of lino'), line('Deux raviolis. Froids.', 'Two ravioli. Cold.')));

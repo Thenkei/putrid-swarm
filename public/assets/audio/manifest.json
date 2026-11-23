@@ -8,8 +8,14 @@
   "epic_mob": {
     "file": "epic_mob.mp3",
     "kind": "sfx",
-    "seconds": 2.038,
-    "gain": 0.9
+    "seconds": 1.672,
+    "gain": 0.78
+  },
+  "epic_mob_blast": {
+    "file": "epic_mob_blast.mp3",
+    "kind": "sfx",
+    "seconds": 0.993,
+    "gain": 0.85
   },
   "epic_tape": {
     "file": "epic_tape.mp3",

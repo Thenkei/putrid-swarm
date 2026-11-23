@@ -13,6 +13,7 @@ import { LAST_NIGHT, sirenPackFor, type SirenSector } from '../core/data/waves';
 import { sirenForNight } from '../core/siren';
 import { detectContact, hasDetector, SCAN_RANGE, SCAN_SECONDS } from '../core/dead-channel';
 import { concludeNight } from '../core/game';
+import { MOPED_BLAST_RADIUS } from '../core/epics';
 import { HOUSE, sectorOf } from '../core/map';
 import { NightSim, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
 import { deskFor, outageFor } from '../core/orchard';
@@ -918,6 +919,11 @@ export class NightScene implements Scene {
           if (event.device === 'barrier') this.particles.push({ kind: 'dust', x: cx, y: cy, age: 0, life: 0.5, radius: 1 });
           break;
         }
+        case 'moped_blast':
+          audio.fadeOut('epic_mob', 0.04);
+          audio.play('epic_mob_blast');
+          this.epic.finishMoped(event.kills);
+          break;
         case 'log_release':
           this.logReactions.release(event.contactAt, event.sweeps, now);
           break;
@@ -1172,6 +1178,14 @@ export class NightScene implements Scene {
       { gx: (HOUSE.x0 + HOUSE.x1 + 1) / 2, gy: (HOUSE.y0 + HOUSE.y1 + 1) / 2, radius: 4.4, color: 'rgba(255,214,150,0.5)', lift: 40 },
       ...houseLights(rot, this.sim.barricades, this.sim.houseHp / HOUSE_MAX_HP, lanternIntensity),
     ];
+    const ride = this.sim.mopedRide;
+    if (ride && ride.blastAt !== null) {
+      const age = this.sim.time + (this.ending?.t ?? 0) - ride.blastAt;
+      if (age < 1.15) lights.push({
+        gx: ride.impact.x, gy: ride.impact.y, lift: 20, radius: MOPED_BLAST_RADIUS * 1.3,
+        color: 'rgba(255,208,128,0.95)', intensity: (calmMotion() ? .5 : 1) * (1 - smoothstep(.18, 1.15, age)),
+      });
+    }
     // A lamp over each door: the doorsteps are where the night is decided.
     for (const sector of SECTOR_IDS) lights.push({ gx: THRESHOLDS[sector].gx, gy: THRESHOLDS[sector].gy, radius: 2.6, color: 'rgba(255,196,120,0.72)', lift: 10, flicker: 0.35 });
     for (const device of this.sim.devices) {
@@ -1208,7 +1222,7 @@ export class NightScene implements Scene {
     const view = this.viewFor(sector, rect, (MAIN_ZOOM * MINI.w) / MAIN.w);
     const frame = this.frame(sector, false);
     drawWorld(mctx, view, frame);
-    drawMoped(mctx, view, this.sim);
+    drawMoped(mctx, view, this.sim, frame.time);
     applyNight(mctx, view, this.lights(view.rot), frame.time);
     applyCctv(mctx, view, frame.time + SECTOR_IDS.indexOf(sector) * 1.7, 1);
   }
@@ -1227,7 +1241,7 @@ export class NightScene implements Scene {
       const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
       const frame = this.frame(this.cam, true);
       drawWorld(ctx, view, frame);
-      drawMoped(ctx, view, this.sim);
+      drawMoped(ctx, view, this.sim, frame.time);
       applyNight(ctx, view, this.lights(view.rot), frame.time);
       applyCctv(ctx, view, frame.time, 0.85);
       drawRetune(ctx, view, this.time - this.retuneAt);

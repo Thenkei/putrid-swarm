@@ -8,7 +8,7 @@ import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlock
 import type { CameraOutage } from './orchard';
 import type { Ally } from './radio';
 import { computeField, nextStep, type Field } from './pathing';
-import { MOPED_RUN_SECONDS } from './epics';
+import { MOPED_BLAST_RADIUS, MOPED_RUN_SECONDS } from './epics';
 import { createRng, type Rng } from './rng';
 import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, NeighborId, NightHighlight, NightReport, Result, SectorId, TrapTally, YardState } from './types';
 import { SECTOR_IDS, err, ok } from './types';
@@ -124,6 +124,7 @@ export type SimEvent = (
   | { readonly type: 'wave'; readonly index: number; readonly total: number }
   | { readonly type: 'spawn'; readonly enemy: EnemyTypeId; readonly sector: SectorId }
   | { readonly type: 'rattle'; readonly sector: SectorId }
+  | { readonly type: 'moped_blast'; readonly sector: SectorId; readonly kills: number }
   | { readonly type: 'boss_spawn'; readonly boss: NeighborId; readonly sector: SectorId }
   | { readonly type: 'boss_dead'; readonly boss: NeighborId; readonly x: number; readonly y: number }
   | { readonly type: 'trigger'; readonly deviceId: number; readonly device: DeviceTypeId; readonly x: number; readonly y: number; readonly hits: number; readonly kills: number; readonly auto: boolean }
@@ -251,6 +252,7 @@ export class NightSim {
   private events: SimEvent[] = [];
   private nextEnemyId = 1;
   private clearFor = 0;
+  private closingOutcome: 'survived' | 'overrun' | null = null;
   /** Simulation time at which dawn breaks. Moves earlier when quiet gaps are skipped. */
   dawnAt = 0;
   private readonly nightLength: number;
@@ -497,7 +499,7 @@ export class NightSim {
       this.events.push({ type: 'trigger_denied', deviceId, reason });
       return err(reason);
     };
-    if (this.outcome !== 'ongoing') return deny('over');
+    if (this.outcome !== 'ongoing' || this.closingOutcome) return deny('over');
     if (!device) return deny('unknown');
     const def = DEVICES[device.type];
     if (def.mode === 'passive') return deny('passive');
@@ -562,7 +564,7 @@ export class NightSim {
   /** The desk's cue for a manual trap: what is under it, and whether that is worth firing now. */
   opportunity(deviceId: number): Opportunity {
     const device = this.device(deviceId);
-    if (!device || device.state !== 'armed' || !isManual(device.type) || this.outcome !== 'ongoing') return { targets: 0, now: false };
+    if (!device || device.state !== 'armed' || !isManual(device.type) || this.outcome !== 'ongoing' || this.closingOutcome) return { targets: 0, now: false };
     const def = DEVICES[device.type];
     if (this.energy < def.energy) return { targets: 0, now: false };
     const { count, pressing } = this.underTrap(device);
@@ -633,6 +635,12 @@ export class NightSim {
   step(dt: number): void {
     if (this.outcome !== 'ongoing') return;
     this.time += dt;
+    if (this.closingOutcome) {
+      // Finish the accepted ride without giving the horde extra time after first light.
+      this.sweepMoped(dt);
+      this.resolveOutcome(dt);
+      return;
+    }
     this.spawnDue();
     if (this.outage && this.outageAt !== null && this.time >= this.outageAt) {
       this.outageAt = null;
@@ -902,11 +910,6 @@ export class NightSim {
     }
 
     if (e.lureDevice !== null && this.followLure(e, dt)) return;
-    const ride = this.mopedRide;
-    if (ride && !e.def.boss && !e.shielded && this.time - ride.start > MOPED_RUN_SECONDS && this.time - ride.start < 8 && sectorOf(Math.floor(e.x), Math.floor(e.y)) === ride.sector) {
-      const step = nextStep(ride.field, Math.floor(e.x), Math.floor(e.y), this.fences);
-      if (step) { this.followStep(e, step, dt); return; }
-    }
     this.advance(e, dt);
   }
 
@@ -1370,33 +1373,51 @@ export class NightSim {
     }
   }
 
-  mopedRide: { sector: SectorId; start: number; field: Field; hit: Set<number> } | null = null;
+  mopedRide: {
+    sector: SectorId;
+    start: number;
+    path: readonly [Cell, Cell];
+    impact: Cell;
+    hit: Set<number>;
+    blastAt: number | null;
+    blastKills: number;
+  } | null = null;
 
   launchMoped(sector: SectorId): boolean {
     if (this.mopedRide || this.outcome !== 'ongoing') return false;
-    this.mopedRide = { sector, start: this.time, field: computeField(LANES[sector][0]!, { blocked: this.fences }), hit: new Set() };
+    const entry = ENTRIES[sector];
+    const farEnd = LANES[sector][2]!;
+    const origin = { x: entry.x + 0.5, y: entry.y + 0.5 };
+    const impact = { x: farEnd.x + 0.5, y: farEnd.y + 0.5 };
+    this.mopedRide = { sector, start: this.time, path: [origin, impact], impact, hit: new Set(), blastAt: null, blastKills: 0 };
     return true;
   }
 
   private sweepMoped(dt: number): void {
     const ride = this.mopedRide;
-    if (!ride) return;
+    if (!ride || ride.blastAt !== null) return;
     const age = this.time - ride.start;
-    if (age - dt >= MOPED_RUN_SECONDS) return;
-    const entry = ENTRIES[ride.sector];
-    const end = LANES[ride.sector][0]!;
+    const [entry, end] = ride.path;
     const dx = end.x - entry.x, dy = end.y - entry.y;
     const length = Math.hypot(dx, dy);
     const from = Math.max(0, (age - dt) / MOPED_RUN_SECONDS) * length;
     const to = Math.min(1, age / MOPED_RUN_SECONDS) * length;
     for (const e of this.enemies) {
       if (!e.alive || ride.hit.has(e.id)) continue;
-      const x = e.x - entry.x - .5, y = e.y - entry.y - .5;
+      const x = e.x - entry.x, y = e.y - entry.y;
       const along = (x * dx + y * dy) / length;
       if (along < from - .45 || along > to + .45 || Math.abs(x * dy - y * dx) / length > 1.75) continue;
       ride.hit.add(e.id);
       this.damage(e, 95);
     }
+    if (age < MOPED_RUN_SECONDS) return;
+    ride.blastAt = ride.start + MOPED_RUN_SECONDS;
+    for (const e of this.enemies) {
+      if (!e.alive || Math.hypot(e.x - end.x, e.y - end.y) > MOPED_BLAST_RADIUS) continue;
+      this.damage(e, 190);
+      if (!e.alive) ride.blastKills++;
+    }
+    this.events.push({ type: 'moped_blast', sector: ride.sector, kills: ride.blastKills });
   }
 
   /** The epic actions use the same damage, kills and impact feedback as the desk traps. */
@@ -1513,18 +1534,13 @@ export class NightSim {
     // Sweep the dead out so long nights do not accumulate them.
     for (let i = this.enemies.length - 1; i >= 0; i--) if (!(this.enemies[i] as Enemy).alive) this.enemies.splice(i, 1);
 
-    if (this.houseHp <= 0) {
-      this.outcome = 'overrun';
-      this.events.push({ type: 'outcome', survived: false });
-      return;
-    }
     if (this.pending.length === 0 && this.enemies.length === 0) this.clearFor += dt;
     else this.clearFor = 0;
-    // Either the lot is clear, or the house simply held until first light.
-    if (this.clearFor >= GRACE_AFTER_CLEAR || this.time >= this.dawnAt) {
-      this.outcome = 'survived';
-      this.events.push({ type: 'outcome', survived: true });
-    }
+    if (this.houseHp <= 0) this.closingOutcome = 'overrun';
+    else if (this.clearFor >= GRACE_AFTER_CLEAR || this.time >= this.dawnAt) this.closingOutcome = 'survived';
+    if (!this.closingOutcome || this.mopedRide?.blastAt === null) return;
+    this.outcome = this.closingOutcome;
+    this.events.push({ type: 'outcome', survived: this.outcome === 'survived' });
   }
 
   // ───────────────────────────── Results ─────────────────────────────

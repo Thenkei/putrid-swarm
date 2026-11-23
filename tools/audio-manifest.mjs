@@ -35,9 +35,24 @@ const loop = (id, seconds, text, extra = {}) => ({ id, kind: 'loop', seconds, te
 const music = (id, seconds, text, extra = {}) => ({ id, kind: 'music', seconds, text, gain: 1, ...extra });
 const voice = (id, role, text, extra = {}) => ({ id, kind: 'voice', role, text, stability: 0.45, similarity: 0.8, gain: 1, ...extra });
 
+// The generated take is a single short throttle pull. Overlap the exhaust pulses,
+// winding each one a little higher until the moped reaches the end of its lane.
+const mopedRun = [
+  'aresample=44100,asplit=6[a][b][c][d][e][f]',
+  '[a]atrim=end=0.39,asetpts=PTS-STARTPTS[a0]',
+  ...['b', 'c', 'd', 'e', 'f'].map((part, i) =>
+    `[${part}]atrim=start=0.06:end=0.42,asetpts=PTS-STARTPTS,asetrate=${Math.round(44100 * (1.03 + .09 * i))},aresample=44100[${part}0]`),
+  '[a0][b0]acrossfade=d=0.03[ab]',
+  '[ab][c0]acrossfade=d=0.03[abc]',
+  '[abc][d0]acrossfade=d=0.03[abcd]',
+  '[abcd][e0]acrossfade=d=0.03[abcde]',
+  '[abcde][f0]acrossfade=d=0.03',
+].join(';');
+
 export const AUDIO = [
   sfx('epic_flare', 0.65, 'A single 0.65 second burst of stylized fire for a retro French horror videogame, close dry gas ignition fwoomp and a crisp rushing flame tail, isolated sound effect, no ambience or speech.', { peak: -5, gain: 0.78, maxSeconds: 0.68 }),
-  sfx('epic_mob', 2, 'One short cinematic game effect: an old French two-stroke moped sputters to life, races past, rattles into a fence and its little horn sticks briefly. About two seconds. Isolated, no music or speech.', { peak: -5, gain: 0.9 }),
+  sfx('epic_mob', 1.65, 'Isolated arcade game vehicle cue, 1.6 seconds of rapid acceleration on a scrappy old French two-stroke moped. Immediate dry put-put-put kick, then a rising raspy, nasal engine buzz as the tiny machine races down a lane. Front-loaded start, quick rev increase already within its first second, high rev by 1.4 seconds. Motor only. No horn, crash, impact, blast, background, music, or voice.', { edit: mopedRun, peak: -8, gain: .78, maxSeconds: 1.64, tail: .045 }),
+  sfx('epic_mob_blast', 1, 'Single stylized cartoon arcade explosion from a 1980s French horror-comedy game. Immediate bold short low drum whump and crunchy torn-paper crack, followed by a handful of descending metallic junk clatters rattling to rest. One cohesive slightly absurd cabinet impact, punchy and dry, around 0.85 seconds. No motor, horn, siren, voices, music, or lingering ambience.', { peak: -7, gain: .85, maxSeconds: .96, tail: .09 }),
   sfx('epic_tape', 3, 'One single dry, explosive arcade machine-gun shot sampled for a gritty 1980s action tape. One front-loaded sharp broadband crack fused with a compact low drum-like thump and a tight metallic clack just behind it. One trigger pull. The sound is spent within 0.12 seconds followed by silence. Close mono arcade cabinet sample, percussive, mildly gritty. No laser chirp, pitched sweep, music, echo, voice or extra shots.', { peak: -4, gain: 0.65, maxSeconds: 0.125, tail: 0.018 }),
   sfx('epic_pack', 2, 'A young wolf cub gives one questioning high whine from nearby, followed by a low soft answering howl in a French orchard at night. Two seconds of clean isolated animal foley, no music.', { peak: -5, gain: 0.72 }),
   voice('vo_epic_stove', 'hero', '[dryly] Bon. Ce soir, on mange froid.', { peak: -4 }),

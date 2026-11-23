@@ -79,12 +79,12 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 
 Each night from the second to the seventh has one special scene. Daytime clues change what you can do when it arrives. The pause button and `Esc` work throughout.
 
-[Watch gameplay from all six nights with in-game audio (35 seconds)](docs/previews/epic-nights.mp4) · [View the six scenes](docs/previews/epic-nights.webp).
+[Watch gameplay from all six nights with in-game audio (35 seconds)](docs/previews/epic-nights.mp4) · [View the six scenes](docs/previews/epic-nights.webp) · [Watch the moped clear a crowd at the gate (7 seconds)](docs/previews/epic-moped.mp4).
 
 | Night | At the desk |
 | --- | --- |
 | 2 | Brace the kitchen door under pressure. A sketch found in town unlocks a trip outside with the stove, followed by a timed return. |
-| 3 | Develop a garage photograph, or release Gérard’s moped down the lane you chose at home. Recovering it means clearing a path in the garage and bringing it back in the wagon. |
+| 3 | Develop a garage photograph, clear the aisle and bring Gérard’s moped home in the wagon. Aim it at a lane, then release it from the night desk when a crowd gathers by the hedge. The wheels cut through the lane and the moped explodes at the far end. You get one ride per run. |
 | 4 | Follow the tape from the market hall past the cinema, under the tracks and on to the garage. Sweep three lanes with the belt-fed machine gun and dodge the armoured carts. The sleeve from the post office doubles the cycling postman’s bonus. Ejecting the tape returns you to the watch. |
 | 5 | Follow a cub across three camera feeds, then work the gate while the infected pass. |
 | 6 | Guide a neighbour through three gardens. Signal when to walk and when to duck. Preparing the window lamp shortens his reaction time. |

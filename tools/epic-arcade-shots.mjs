@@ -103,12 +103,22 @@ async function garage(profile) {
   await click(btn('Prendre le poste'));
   const launch=page.locator('.epic-launch');
   await click(launch);
-  await page.waitForTimeout(480);
-  await shot('moped-launch');
-  await page.waitForFunction(()=>document.querySelector('.epic-launch')?.textContent.includes('Klaxon'));
   assert.equal(await launch.isDisabled(),true);
+  assert.equal(await launch.getAttribute('data-stage'),'run');
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('putrid-swarm.save.v1')).flags['epic.spent']),1);
+  await page.waitForTimeout(400);
+  await shot('moped-launch');
+  await page.waitForFunction(()=>document.querySelector('.epic-launch')?.dataset.stage==='spent');
+  assert.match(await launch.textContent(), /Mob détruite/);
+  await shot('moped-blast');
+  assert.equal(await launch.isDisabled(),true);
+  await page.reload(); await resume();
+  await click(btn('Attendre la nuit'));
+  await click(btn('Prendre le poste'));
+  await page.locator('.cam-frame').waitFor();
+  assert.equal(await page.locator('.epic-launch').count(),0);
   await finish();
-  console.log(profile+' garage: cancel, retrieval, reload, 4/8 scrap returned, night launch and horn verified');
+  console.log(profile+' garage: retrieval, cargo cost, one launch, wreck and spent save after reload verified');
 }
 
 async function arcade(profile, motion, armless = false) {
