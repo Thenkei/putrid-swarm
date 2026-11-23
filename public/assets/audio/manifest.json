@@ -1,4 +1,10 @@
 {
+  "moped_door": {
+    "file": "moped_door.mp3",
+    "kind": "sfx",
+    "seconds": 0.758,
+    "gain": 0.76
+  },
   "epic_flare": {
     "file": "epic_flare.mp3",
     "kind": "sfx",

@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { epicFlag, markEpic, MOPED_BLAST_RADIUS, MOPED_RUN_SECONDS, unloadMoped } from '../src/core/epics';
+import { epicFlag, markEpic, MOPED_BLAST_RADIUS, MOPED_EXIT_SECONDS, MOPED_RUN_SECONDS, unloadMoped } from '../src/core/epics';
+import { THRESHOLDS } from '../src/house-layout';
+import { mopedDoorOpen } from '../src/render/moped';
 import { ENTRIES, LANES } from '../src/core/map';
 import { SECTOR_IDS } from '../src/core/types';
 import { arriveHome, concludeNight, newGame, startNextDay, startNight } from '../src/core/game';
 import { NightSim } from '../src/core/night';
 import { serialize, deserialize } from '../src/core/save';
 import { porchContact } from '../src/render/porch-flame';
+
+const impactSeconds = MOPED_EXIT_SECONDS + MOPED_RUN_SECONDS;
 
 describe('daily epics', () => {
   it('ends the porch attack at the painted tip and follows its angled centre', () => {
@@ -41,7 +45,7 @@ describe('daily epics', () => {
     Object.assign(outside!, { x: 16, y: 19, hp: 1 });
     expect(sim.launchMoped('portail')).toBe(true);
     expect(inLane!.alive).toBe(true);
-    for (let i = 0; i < 72; i++) sim.step(1/60);
+    for (let i = 0; i < 120; i++) sim.step(1/60);
     expect(inLane!.alive).toBe(false);
     expect(outside!.alive).toBe(true);
     expect(sim.launchMoped('portail')).toBe(false);
@@ -68,13 +72,13 @@ describe('daily epics', () => {
     const start = sim.time;
     expect(sim.launchMoped(sector)).toBe(true);
     expect(sim.mopedRide!.impact).toEqual(centre);
-    for (let i = 0; i < Math.floor(MOPED_RUN_SECONDS * 60) - 1; i++) sim.step(1/60);
+    for (let i = 0; i < Math.floor(impactSeconds * 60) - 1; i++) sim.step(1/60);
     expect(bladeVictim.alive).toBe(false);
     expect(sim.mopedRide!.blastAt).toBeNull();
     expect(crowd.every(e => e.alive)).toBe(true);
     sim.drainEvents();
     sim.step(1/30);
-    expect(sim.mopedRide!.blastAt).toBeCloseTo(start + MOPED_RUN_SECONDS);
+    expect(sim.mopedRide!.blastAt).toBeCloseTo(start + impactSeconds);
     expect(crowd.every(e => !e.alive)).toBe(true);
     expect(outside.hp).toBe(60);
     expect(sim.drainEvents().filter(e => e.type === 'moped_blast')).toEqual([{ type: 'moped_blast', sector, kills: 3 }]);
@@ -97,7 +101,7 @@ describe('daily epics', () => {
     const positions = sim.enemies.map(e => [e.x, e.y]);
     for (let i = 0; i < 60; i++) sim.step(1/60);
     expect(sim.enemies.map(e => [e.x, e.y])).toEqual(positions);
-    for (let i = 0; i < 30; i++) sim.step(1/60);
+    for (let i = 0; i < 80; i++) sim.step(1/60);
     expect(sim.mopedRide!.blastAt).not.toBeNull();
     expect(sim.outcome).toBe('survived');
     expect(sim.launchMoped('portail')).toBe(false);
@@ -107,7 +111,7 @@ describe('daily epics', () => {
     const sim = new NightSim(3, state.yard, state.seed);
     sim.launchMoped('portail');
     sim.houseHp = 0;
-    for (let i = 0; i < 105; i++) sim.step(1/60);
+    for (let i = 0; i < Math.ceil(impactSeconds * 60) + 2; i++) sim.step(1/60);
     expect(sim.outcome).toBe('overrun');
     const events = sim.drainEvents().filter(e => e.type === 'moped_blast' || e.type === 'outcome');
     expect(events.map(e => e.type)).toEqual(['moped_blast', 'outcome']);
@@ -126,5 +130,34 @@ describe('daily epics', () => {
     expect(nextNight.value.day).toBe(4);
     expect(epicFlag(nextNight.value, 'spent')).toBe(1);
     expect(epicFlag(newGame(3), 'spent')).toBe(0);
+  });
+  it.each(SECTOR_IDS)('waits for the wheel to clear the %s sill before enabling the blades', sector => {
+    const state = newGame(12);
+    const sim = new NightSim(3, state.yard, state.seed);
+    while (!sim.enemies.length) sim.step(1/60);
+    const hp = sim.barricades[sector].hp;
+    sim.launchMoped(sector);
+    const ride = sim.mopedRide!;
+    const [entry, end] = ride.path;
+    const sill = THRESHOLDS[sector];
+    const dx = entry.x - sill.gx, dy = entry.y - sill.gy;
+    expect(Math.hypot(dx, dy)).toBeCloseTo(1.35);
+    expect(dx * (end.y - sill.gy) - dy * (end.x - sill.gx)).toBeCloseTo(0);
+    const enemy = sim.enemies[0]!;
+    Object.assign(enemy, { ...entry, hp: 1, stunnedFor: 20 });
+    expect(mopedDoorOpen(0)).toBe(0);
+    expect(mopedDoorOpen(.40)).toBe(1);
+    sim.step(MOPED_EXIT_SECONDS - .01);
+    expect(mopedDoorOpen(sim.time - ride.start)).toBe(1);
+    expect(ride.hit.size).toBe(0);
+    expect(enemy.alive).toBe(true);
+    expect(sim.drainEvents().filter(e => e.type === 'moped_departure')).toHaveLength(0);
+    sim.step(.02);
+    expect(ride.hit.has(enemy.id)).toBe(true);
+    expect(enemy.alive).toBe(false);
+    sim.step(.65);
+    expect(mopedDoorOpen(sim.time - ride.start)).toBe(0);
+    expect(sim.drainEvents().filter(e => e.type === 'moped_departure')).toHaveLength(1);
+    expect(sim.barricades[sector].hp).toBe(hp);
   });
 });

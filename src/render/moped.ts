@@ -1,9 +1,14 @@
 import { sprite } from '../engine/assets';
 import type { NightSim } from '../core/night';
+import { HOUSE_CENTER } from '../core/map';
+import type { SectorId } from '../core/types';
+import { DOOR_OPENINGS, THRESHOLDS, VISIBLE_DOORS } from '../house-layout';
 import { calmMotion } from './lighting';
-import { project, type View } from './projection';
+import { depthOf, project, type View } from './projection';
+import { HOUSE_PAINT_SCALE } from './registration';
+import { smoothstep } from './noise';
 
-import { MOPED_RUN_SECONDS as RUN_TIME, MOPED_BLAST_RADIUS } from '../core/epics';
+import { MOPED_RUN_SECONDS, MOPED_EXIT_SECONDS, MOPED_BLAST_RADIUS } from '../core/epics';
 import blastSheet from './epic-moped-blast.webp';
 const STEEL = '#b7ada0';
 const paintedCels: HTMLCanvasElement[] = [];
@@ -102,35 +107,81 @@ function wheel(ctx: CanvasRenderingContext2D, x: number, turn: number, blades: b
   ctx.restore();
 }
 
-export function drawMoped(ctx: CanvasRenderingContext2D, view: View, sim: NightSim, time = sim.time) {
-  const ride = sim.mopedRide;
-  if (!ride) return;
-  if (ride.blastAt !== null) {
-    const impact = project(view, ride.impact.x, ride.impact.y);
-    drawBlast(ctx, view, impact.x, impact.y, Math.max(0, time - ride.blastAt));
-    return;
-  }
-  const age = Math.max(0, sim.time - ride.start);
-  const progress = Math.min(1, age / RUN_TIME);
-  const start = ride.path[0] ?? ride.impact, next = ride.impact;
-  const origin = project(view, start.x, start.y);
-  const end = project(view, next.x, next.y);
-  const x = origin.x + (end.x - origin.x) * progress;
-  const y = origin.y + (end.y - origin.y) * progress;
+type Ride = NonNullable<NightSim['mopedRide']>;
+
+export function mopedDoorOpen(age: number): number {
+  return smoothstep(0, .40, age) * (1 - smoothstep(1.05, 1.40, age));
+}
+
+export function drawMopedBlast(ctx: CanvasRenderingContext2D, view: View, ride: Ride | null, time: number) {
+  if (!ride || ride.blastAt === null) return;
+  const impact = project(view, ride.impact.x, ride.impact.y);
+  drawBlast(ctx, view, impact.x, impact.y, Math.max(0, time - ride.blastAt));
+}
+
+/** Before the rear wheel clears the jamb, only the doorway and the part of the bike
+ * already on the yard side of the threshold are visible. */
+function clipAtSill(ctx: CanvasRenderingContext2D, view: View, sector: SectorId, facing: number) {
+  const sill = THRESHOLDS[sector];
+  const foot = project(view, sill.gx, sill.gy);
+  const width = sill.width * view.zoom;
+  const height = DOOR_OPENINGS[sector].h * HOUSE_PAINT_SCALE * view.zoom;
+  const insideEdge = facing > 0 ? -.5 : .5;
+  const leftHinge = sector === 'arriere' || sector === 'verger';
+  const inset = sector === 'grange' ? .07 : (leftHinge === (insideEdge < 0) ? .14 : .025);
+  const edgeX = foot.x + width * insideEdge * (1 - 2 * inset);
+  const edgeY = foot.y + (edgeX - foot.x) * sill.slope;
+  const limit = facing > 0 ? view.x + view.w : view.x;
+  ctx.beginPath();
+  ctx.moveTo(edgeX, edgeY);
+  ctx.lineTo(edgeX, edgeY - height);
+  ctx.lineTo(foot.x, foot.y - height);
+  ctx.lineTo(foot.x, view.y);
+  ctx.lineTo(limit, view.y);
+  ctx.lineTo(limit, view.y + view.h);
+  ctx.lineTo(foot.x, view.y + view.h);
+  ctx.lineTo(foot.x, foot.y);
+  ctx.closePath();
+  ctx.clip();
+}
+
+export function mopedRideDrawable(ctx: CanvasRenderingContext2D, view: View, ride: Ride, time: number) {
+  const age = time - ride.start;
+  if (age < .22 || ride.blastAt !== null) return;
+  const front = VISIBLE_DOORS[view.rot].includes(ride.sector);
+  if (!front && age < MOPED_EXIT_SECONDS) return;
+  const sill = THRESHOLDS[ride.sector];
+  const [start, next] = ride.path;
+  const progress = Math.min(1, Math.max(0, (age - MOPED_EXIT_SECONDS) / MOPED_RUN_SECONDS));
+  // Move along the same line through the painted sill and onto the simulated blade path.
+  const t = Math.min(1, (age - .22) / (MOPED_EXIT_SECONDS - .22));
+  const emergence = 2.25 * t * t * (1.8 - .8 * t) - 1.25;
+  const gx = sill.gx + (start.x - sill.gx) * emergence + (next.x - start.x) * progress;
+  const gy = sill.gy + (start.y - sill.gy) * emergence + (next.y - start.y) * progress;
+  const { x, y } = project(view, gx, gy);
   const radius = 85 * view.zoom;
   if (x + radius < view.x || x - radius > view.x + view.w || y + radius < view.y || y - radius > view.y + view.h) return;
-  const still = calmMotion();
+  const origin = project(view, start.x, start.y);
+  const end = project(view, next.x, next.y);
   const facing = end.x >= origin.x ? 1 : -1;
   const pitch = Math.atan2(end.y - origin.y, Math.abs(end.x - origin.x));
+  const depth = depthOf(view.rot, gx, gy);
+  return {
+    // The visible sill sits just in front of the barricade and just behind actors pressed against it.
+    depth: front ? Math.max(depth, depthOf(view.rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.315) : depth,
+    draw: () => {
+      ctx.save();
+      ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
+      if (front && age < 1.05) clipAtSill(ctx, view, ride.sector, facing);
+      ctx.translate(x, y); ctx.scale(view.zoom * facing, view.zoom); ctx.rotate(pitch * .65);
+      drawRiderlessMoped(ctx, age, progress, emergence);
+      ctx.restore();
+    },
+  };
+}
 
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(view.x, view.y, view.w, view.h);
-  ctx.clip();
-  ctx.translate(x, y);
-  ctx.scale(view.zoom * facing, view.zoom);
-  ctx.rotate(pitch * .65);
-
+function drawRiderlessMoped(ctx: CanvasRenderingContext2D, age: number, progress: number, emergence: number) {
+  const still = calmMotion();
   // Exhaust and kick-up stay low enough to leave the infected visible on every feed.
   if (!still) {
     for (let i = 0; i < 4; i++) {
@@ -146,7 +197,8 @@ export function drawMoped(ctx: CanvasRenderingContext2D, view: View, sim: NightS
   ctx.ellipse(0, 3, 18, 3.8, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  const lift = !still && age < .38 ? -.21 * Math.sin(Math.PI * age / .38) : 0;
+  const roll = age - .46;
+  const lift = !still && roll > 0 && roll < .38 ? -.16 * Math.sin(Math.PI * roll / .38) : 0;
   ctx.rotate(lift);
   // A headlamp illuminates the path long enough for the player to follow a single launch.
   const painted = sprite('epic_moped_art');
@@ -162,8 +214,9 @@ export function drawMoped(ctx: CanvasRenderingContext2D, view: View, sim: NightS
   ctx.closePath();
   ctx.fill();
 
-  if (!drawPaintedMoped(ctx, still ? 0 : progress * 17)) {
-    drawFallbackFrame(ctx, still ? 0 : progress * 30);
+  const turn = still ? 0 : (emergence + 1.25) * 2 + progress * 17;
+  if (!drawPaintedMoped(ctx, turn)) {
+    drawFallbackFrame(ctx, turn);
   }
 
   if (!still && painted) {
@@ -175,7 +228,6 @@ export function drawMoped(ctx: CanvasRenderingContext2D, view: View, sim: NightS
       ctx.beginPath(); ctx.arc(0,0,14.2,a,a+.58); ctx.stroke();
     }
   }
-  ctx.restore();
 }
 
 function drawFallbackFrame(ctx: CanvasRenderingContext2D, rotation: number) {

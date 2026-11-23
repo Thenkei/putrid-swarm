@@ -1,0 +1,11 @@
+{
+  "id": "moped_door",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "xoLA6Z830xNN61pJkwAH",
+  "generatedAt": "2026-11-23T22:45:07.473Z",
+  "prompt": "One quiet close-miked wooden shed door opening, isolated French rural game Foley. Start immediately with a distinct small iron thumb latch lifting out of its keeper: click-clack. A short worn hinge creaks upward as the timber door swings open. The sound settles cleanly within seven tenths of a second. Intimate, tangible and dry, no slam, closing sound, impact, footsteps, motor, music, or background.",
+  "bytes": 66070,
+  "sha256": "d7a6babfac542d95becd822f73713c43f6276f8881387c71e4b027547c8cdce3"
+}

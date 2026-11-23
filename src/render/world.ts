@@ -3,7 +3,7 @@
 
 import { BARRICADE, DEVICES } from '../core/data/devices';
 import { ENTRIES, GRID_H, GRID_W, HOUSE_CENTER, PROPS, propAt, sectorOf, type PropKind } from '../core/map';
-import type { DeviceRuntimeState, Enemy, LogTarget } from '../core/night';
+import type { DeviceRuntimeState, Enemy, LogTarget, NightSim } from '../core/night';
 import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { sprite } from '../engine/assets';
@@ -11,7 +11,8 @@ import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, t
 import { drawDecals } from './aftermath';
 import { drawEnemy, drawFallen, FALL_SECONDS, type Fallen } from './infected';
 import { drawGround, prepareGround, setGroundDresser } from './ground';
-import { DOOR_OPENINGS, VISIBLE_DOORS, doorStance, houseDamageStage, paintHouse } from './house';
+import { DOOR_OPENINGS, VISIBLE_DOORS, doorStance, hingedLeaves, houseDamageStage, paintHouse, type MopedDoor } from './house';
+import { mopedRideDrawable } from './moped';
 import { drawHouseDebris, type HouseBreak } from './house-debris';
 import { calmMotion, drawCloudShadows, drawMist, type Light } from './lighting';
 import { hash2, smoothstep } from './noise';
@@ -94,6 +95,8 @@ export interface WorldFrame {
   readonly time: number;
   readonly night: boolean;
   readonly houseHpRatio: number;
+  readonly mopedDoor?: MopedDoor;
+  readonly mopedRide?: NonNullable<NightSim['mopedRide']>;
   readonly houseBreaks?: readonly HouseBreak[];
   readonly carPresent: boolean;
   readonly approachingHero?: ApproachingHero;
@@ -498,7 +501,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           const origin = houseOffset(view.rot, 0, 0);
           const left = root.x + origin.dx * z;
           const top = root.y - origin.lift * z;
-          paintHouse(ctx, view.rot, side.key, art, left, top, w, frame.houseHpRatio, frame.barricades);
+          paintHouse(ctx, view.rot, side.key, art, left, top, w, frame.houseHpRatio, frame.barricades, frame.mopedDoor);
           if (frame.approachingHero && view.rot === 0) drawApproachOpening(ctx, frame.approachingHero, root, z);
           if (frame.houseBreaks?.length) drawHouseDebris(ctx, frame.houseBreaks, view.rot, side.key, art, left, top, w);
           const chimney = houseOffset(view.rot, side.chimney.x, side.chimney.y);
@@ -683,6 +686,10 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   if (frame.departingCar) drawHeadlightPools(ctx, view, frame.departingCar);
   drawGroundOverlays(ctx, view, frame);
 
+  if (frame.mopedRide) {
+    const bike = mopedRideDrawable(ctx, view, frame.mopedRide, frame.time);
+    if (bike) drawables.push(bike);
+  }
   drawables.sort((a, b) => a.depth - b.depth);
   for (const drawable of drawables) drawable.draw();
   if (frame.hoverCell && frame.hoverBarrier) drawBarrierFootprint(ctx, view, frame.hoverCell);
@@ -964,19 +971,26 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
       draw: () => {
         const previous = (pose: ReturnType<typeof doorPose>) => ({ key: `dev_barricade_${pose}`, h, lift: h * 0.095, foot: [0.5, 0.905] as const, flip: onLeftFace });
         ctx.save();
-        ctx.transform(scaleX, slope, 0, 1, p.x, p.y);
-        const art = previous(state);
-        // Planks fixed to masonry cast a close shadow against the jamb. Its angle follows the wall.
-        const shade = shadowOutline(art.key);
-        if (shade) {
-          const sh = h * z, sw = sh * shade.width / shade.height;
-          ctx.save(); ctx.translate(2 * z, z); ctx.scale(art.flip ? -1 : 1, 1); ctx.globalAlpha *= 0.43;
-          ctx.drawImage(shade, -sw / 2, art.lift * z - sh, sw, sh); ctx.restore();
-        }
-        if (reinforcing) ctx.globalAlpha *= 0.78;
-        const drawn = drawDefense(ctx, 0, 0, z, { kind: 'barricade', art, rot: view.rot, previous, hpRatio: ratio, maxHp: max, id: sector, time: frame.time, motion: frame.defenseMotion });
+        ctx.translate(p.x, p.y);
+        const open = frame.mopedDoor?.sector === sector && barricade.hp > 0 ? frame.mopedDoor.open : 0;
+        const jambWidth = door.w * k * z;
+        hingedLeaves(ctx, sector, open, -jambWidth / 2, jambWidth, door.rise / door.w, () => {
+          ctx.save();
+          ctx.transform(scaleX, slope, 0, 1, 0, 0);
+          const art = previous(state);
+          // Planks fixed to masonry cast a close shadow against the jamb. Its angle follows the wall.
+          const shade = shadowOutline(art.key);
+          if (shade) {
+            const sh = h * z, sw = sh * shade.width / shade.height;
+            ctx.save(); ctx.translate(2 * z, z); ctx.scale(art.flip ? -1 : 1, 1); ctx.globalAlpha *= 0.43;
+            ctx.drawImage(shade, -sw / 2, art.lift * z - sh, sw, sh); ctx.restore();
+          }
+          if (reinforcing) ctx.globalAlpha *= 0.78;
+          const drawn = drawDefense(ctx, 0, 0, z, { kind: 'barricade', art, rot: view.rot, previous, hpRatio: ratio, maxHp: max, id: sector, time: frame.time, motion: frame.defenseMotion });
+          ctx.restore();
+          if (!drawn) placeholder(ctx, 0, 0, 30 * z, 50 * z, '#7a5a35', 'door');
+        });
         ctx.restore();
-        if (!drawn) placeholder(ctx, p.x, p.y, 30 * z, 50 * z, '#7a5a35', 'door');
         if (frame.doorHighlight === sector) {
           ctx.strokeStyle = '#f2a531';
           ctx.lineWidth = 2;

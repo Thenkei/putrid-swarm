@@ -106,8 +106,12 @@ async function garage(profile) {
   assert.equal(await launch.isDisabled(),true);
   assert.equal(await launch.getAttribute('data-stage'),'run');
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('putrid-swarm.save.v1')).flags['epic.spent']),1);
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(360);
+  await shot('moped-open-door');
+  await page.waitForTimeout(220);
   await shot('moped-launch');
+  await page.waitForTimeout(830);
+  await shot('moped-door-shut');
   await page.waitForFunction(()=>document.querySelector('.epic-launch')?.dataset.stage==='spent');
   assert.match(await launch.textContent(), /Mob détruite/);
   await shot('moped-blast');

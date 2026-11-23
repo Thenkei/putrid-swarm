@@ -2,7 +2,7 @@
 // The simulation runs on its own clock; this scene only chooses which part of it to look at.
 
 import { porchLights } from '../render/porch-flame';
-import { drawMoped } from '../render/moped';
+import { drawMopedBlast, mopedDoorOpen } from '../render/moped';
 import { project } from '../render/projection';
 import { EpicNight } from './epic-night';
 import { CassetteRecorder } from '../render/cassette';
@@ -919,6 +919,9 @@ export class NightScene implements Scene {
           if (event.device === 'barrier') this.particles.push({ kind: 'dust', x: cx, y: cy, age: 0, life: 0.5, radius: 1 });
           break;
         }
+        case 'moped_departure':
+          audio.play('epic_mob');
+          break;
         case 'moped_blast':
           audio.fadeOut('epic_mob', 0.04);
           audio.play('epic_mob_blast');
@@ -1144,8 +1147,12 @@ export class NightScene implements Scene {
     const showBarrier = inspected?.type === 'barrier' && inspected.state === 'armed' && !this.isDark(sector) && !this.paused && !this.ending;
     const previewCell = showBarrier ? inspected : hovered;
     const time = this.sim.time + (this.ending?.t ?? 0);
+    const ride = this.sim.mopedRide;
+    const open = ride && ride.blastAt === null ? mopedDoorOpen(time - ride.start) : 0;
     return {
       time,
+      ...(ride && ride.blastAt === null && { mopedRide: ride }),
+      ...(ride && open > 0 && { mopedDoor: { sector: ride.sector, open } }),
       night: true,
       carPresent: true,
       houseHpRatio: this.sim.houseHp / HOUSE_MAX_HP,
@@ -1222,7 +1229,7 @@ export class NightScene implements Scene {
     const view = this.viewFor(sector, rect, (MAIN_ZOOM * MINI.w) / MAIN.w);
     const frame = this.frame(sector, false);
     drawWorld(mctx, view, frame);
-    drawMoped(mctx, view, this.sim, frame.time);
+    drawMopedBlast(mctx, view, this.sim.mopedRide, frame.time);
     applyNight(mctx, view, this.lights(view.rot), frame.time);
     applyCctv(mctx, view, frame.time + SECTOR_IDS.indexOf(sector) * 1.7, 1);
   }
@@ -1241,7 +1248,7 @@ export class NightScene implements Scene {
       const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
       const frame = this.frame(this.cam, true);
       drawWorld(ctx, view, frame);
-      drawMoped(ctx, view, this.sim, frame.time);
+      drawMopedBlast(ctx, view, this.sim.mopedRide, frame.time);
       applyNight(ctx, view, this.lights(view.rot), frame.time);
       applyCctv(ctx, view, frame.time, 0.85);
       drawRetune(ctx, view, this.time - this.retuneAt);

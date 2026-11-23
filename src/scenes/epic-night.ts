@@ -52,7 +52,7 @@ export class EpicNight {
         this.tuneCamera(SECTOR_IDS[this.lane]!);
         this.mark('spent');
         this.app.save();
-        audio.play('epic_mob');
+        if (this.sim.barricades[SECTOR_IDS[this.lane]!].hp > 0) audio.play('moped_door');
         launch.disabled = true;
         launch.dataset.stage = 'run';
         launch.textContent = L('Mob lancée…', 'Moped away…');
