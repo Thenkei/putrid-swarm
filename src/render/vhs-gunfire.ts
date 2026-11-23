@@ -11,6 +11,23 @@ export interface VhsShot {
 export const CASE_LIFETIME = .94;
 const KICKS = [0, .82, .37, .96, .21, .61, .45] as const;
 
+/** Bounce the flash off the wet foreground tarmac. Keep the painted surface visible through it. */
+export function drawVhsRoadLight(ctx: CanvasRenderingContext2D, x: number, floor: number, age: number) {
+  if (age < 0 || age >= .075) return;
+  ctx.save();
+  ctx.translate(x, floor);
+  ctx.scale(1, .28);
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = (1 - age / .075) * .46;
+  const glow = ctx.createRadialGradient(0, 0, 1, 0, 0, 58);
+  glow.addColorStop(0, '#e6a157');
+  glow.addColorStop(.40, '#a75832');
+  glow.addColorStop(1, '#80371b00');
+  ctx.fillStyle = glow;
+  ctx.fillRect(-58, -58, 116, 116);
+  ctx.restore();
+}
+
 export function drawVhsCasesAndSmoke(ctx: CanvasRenderingContext2D, shots: VhsShot[], time: number, floor: number) {
   ctx.save();
   for (const shot of shots) {

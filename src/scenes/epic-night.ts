@@ -1,4 +1,4 @@
-import { porchFlame, type PorchBurst } from '../render/porch-flame';
+import { porchContact, porchFlame, type PorchBurst } from '../render/porch-flame';
 import { calmMotion } from '../render/lighting';
 import { kitchenBolts } from './kitchen-bolts';
 import kitchenPlate from '../assets/epic-kitchen.webp';
@@ -154,25 +154,37 @@ export class EpicNight {
   private lastWatch() {
     const lamp = Boolean(this.flag('neighbor'));
     const cub = Boolean(this.flag('cub'));
-    const clue = lamp ? L('Trois éclats en face. Le voisin tient la fréquence de la porte arrière.', 'Three flashes across the road. Your neighbour holds the back-door frequency.')
+    const clue = lamp && cub ? L('Trois éclats du voisin calent la fréquence. Au portail, le hurlement du petit te donne la phase.', 'Three flashes from your neighbour set the frequency. At the gate, the cub’s howl gives you the phase.')
+      : lamp ? L('Trois éclats en face. Le voisin tient la fréquence de la porte arrière.', 'Three flashes across the road. Your neighbour holds the back-door frequency.')
       : cub ? L('Le petit hurle au portail. Son écho te donne la phase.', 'The cub howls by the gate. Its echo gives you the phase.')
       : L('La tondeuse tousse derrière la cloison. Une trace revient sur le tube.', 'The mower coughs behind the wall. A trace comes back on the tube.');
     const target: SectorId = lamp ? 'arriere' : cub ? 'portail' : SECTOR_IDS.reduce((a, b) => this.sim.threat(a).count >= this.sim.threat(b).count ? a : b);
     const connect = button(L('Enclencher le relais', 'Engage relay'), () => {
-      if (!locked()) { audio.play('deny'); this.note.textContent = L('Le relais décroche. Superpose les deux courbes.', 'Relay dropped. Line up the two traces.'); return; }
+      if (!receiver.locked()) {
+        audio.play('deny');
+        this.note.textContent = L('Le relais décroche. Corrige le réglage indiqué sur le poste, puis réessaie.', 'The relay drops out. Follow the receiver’s tuning cue and try again.');
+        receiver.focusDial();
+        return;
+      }
       const before = this.sim.energy;
       this.sim.energy = Math.min(COMBAT.nightEnergy, this.sim.energy + 12);
       if (this.sim.cameraLost === target) this.sim.cameraLost = null;
-      this.close();
-      this.tuneCamera(target);
-      audio.play('ready');
       const recovered = Math.round(this.sim.energy - before);
-      this.app.toast(S().sector[target] + ' · ' + L('Relais connecté', 'Relay connected') +
-        (recovered ? ' · +' + recovered + ' ' + L('énergie', 'energy') : ''), 'good');
+      audio.play('radio_ptt', .65);
+      if (lamp) say('vo_epic_neighbor_relay', { interrupt:true });
+      receiver.confirm(S().sector[target] + ' · ' + L('Relais connecté', 'Relay connected') +
+        (recovered ? ' · +' + recovered + ' ' + L('énergie', 'energy') : ''));
+      this.note.textContent = lamp && cub ? L('Derrière la maison, le voisin fait lentement trois nouveaux éclats. Le petit lui répond depuis le portail.', 'Behind the house your neighbour flashes the lamp three more times, slowly. The cub answers from the gate.')
+        : lamp ? L('La caméra reprend. En face, le voisin pose sa lampe sur l’appui de fenêtre et tire une chaise.', 'The feed comes back. Across the road your neighbour sets his lamp on the sill and pulls up a chair.')
+        : cub ? L('Sur le moniteur, la meute attend le petit. Il passe sous le lampadaire et les silhouettes repartent ensemble.', 'On the monitor the pack waits for its cub. It crosses the pool of lamplight and the silhouettes leave together.')
+        : L('Le secteur réapparaît sur le moniteur. Tu distingues enfin ce qui gratte derrière la porte.', 'The sector returns to the monitor. At last you can see what’s scratching at the door.');
+      const resume = button(L('Reprendre la veille', 'Back to the desk'), () => { this.close(); this.tuneCamera(target); });
+      this.actions.replaceChildren(resume);
+      resume.focus();
     });
     this.page(L('La dernière veille', 'Last watch'), clue + ' ' + L('Aligne le trait orange sur le pointillé pour reconnecter le secteur et récupérer jusqu’à 12 points d’énergie.', 'Match the solid line to the dotted trace to reconnect the feed and recover up to 12 energy.'),
       connect, button(L('Reprendre la veille', 'Back to the desk'), this.close));
-    const locked = lastWatchDesk(this.field, this.app.state!.seed, lamp, cub);
+    const receiver = lastWatchDesk(this.field, this.app.state!.seed, lamp, cub);
   }
 
   private kitchen() {
@@ -188,11 +200,10 @@ export class EpicNight {
       let aim = 448, hitCount = 0, firedAim = 448;
       let contacts: { x: number; y: number }[] = [];
       let firedSector: SectorId | null = null;
-      const wedgeX = (x: number, y: number) => 448 + (x - 448) * (420 - y) / 290;
       const fire = () => {
         if (fuel <= 0 || this.elapsed < flameUntil) return;
         const seen = this.paintYard(yard, facing) ?? [];
-        const caught = seen.filter(p => p.x >= 0 && p.x <= yard.width && p.y >= 0 && p.y <= yard.height && Math.abs(p.x - wedgeX(aim, p.y)) < 36 + (420 - p.y) * .24);
+        const caught = seen.filter(p => porchContact(aim, p));
         contacts = caught;
         hitCount = this.sim.epicStrike(facing, 'flame', new Set(caught.map(p => p.id)));
         audio.play('epic_flare');
@@ -294,7 +305,7 @@ export class EpicNight {
   private arcadeIntro() {
     this.field.style.backgroundImage = 'url("' + vhsSleeve + '")';
     this.field.style.backgroundPosition = 'center 22%';
-    const rules = L('Change de voie avec ← → et maintiens Espace pour tirer. À la souris, maintiens le clic et glisse. Les chariots blindés se contournent.', 'Change lanes with ← → and hold Space to fire. With a mouse, hold and drag. Dodge the armoured carts.');
+    const rules = L('Au feutre sur la cassette : « Rembobiner au portail rouge. » ← → pour changer de voie, Espace pour tirer. Au doigt ou à la souris, appuie et glisse. Contourne les chariots blindés.', 'Scrawled on the tape: “Rewind at the red gate.” Change lanes with ← → and hold Space to fire. With touch or mouse, hold and drag. Dodge the armoured carts.');
     const sleeve = this.flag('vhs') ? L(' La jaquette double le bonus du facteur.', ' The sleeve doubles the postman bonus.') : '';
     this.page(L('NUIT IV · Édition vidéo', 'NIGHT IV · Video edition'), rules + sleeve,
       button(L('Lecture ▶', 'Play ▶'), () => this.arcade()), button(L('Éjecter', 'Eject'), this.close));
@@ -302,14 +313,23 @@ export class EpicNight {
 
   private arcade() {
     this.page(L('NUIT IV · Tir en rafale', 'NIGHT IV · Burst fire'), '');
-    this.clock = playVhs(this.field, this.actions, this.note, !!this.flag('vhs'), oneArmed(this.app.state), score => {
+    this.clock = playVhs(this.field, this.actions, this.note, !!this.flag('vhs'), oneArmed(this.app.state), (score, complete) => {
       let best = score;
       try {
         best = Math.max(score, Number(localStorage.getItem('putrid-swarm.vhs-best')) || 0);
         localStorage.setItem('putrid-swarm.vhs-best', String(best));
       } catch { /* Storage is optional for a tape played in private browsing. */ }
+      const lastFrame = complete ? this.field.querySelector('canvas') : null;
+      const cut = complete ? L('Le portail rouge se fige. Fin de bande.', 'The red gate freezes on screen. The tape runs out.')
+        : L('La cassette ressort encore tiède.', 'The cassette slides out, still warm.');
+      audio.play('door', .48);
       this.page(L('REMBOBINEZ S’IL VOUS PLAÎT', 'BE KIND, REWIND'),
-        score + ' pts · Record ' + best + L('. Deux coups à la porte. Cette fois, c’est la vraie nuit.', '. Two knocks. This time the night is real.'));
+        score + ' pts · Record ' + best + ' · ' + cut + L(' On cogne à ta porte. Cette fois, c’est la vraie nuit.', ' Someone pounds on your door. This time the night is real.'));
+      if (lastFrame) {
+        lastFrame.removeAttribute('tabindex');
+        lastFrame.setAttribute('aria-label', L('Dernière image de la cassette, devant le portail du garage.', 'Final frame of the tape, outside the garage gate.'));
+        this.field.append(lastFrame);
+      }
       this.actions.querySelector('button')?.focus();
     });
   }

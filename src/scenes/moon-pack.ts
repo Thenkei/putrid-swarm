@@ -63,6 +63,7 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
     feedbackUntil = time + 1.7;
   }
   function switchCamera(index: number) {
+    if (camera !== index) audio.play('click', .30);
     camera = index;
     const plate = plates[index];
     if (plate) screen.style.backgroundImage = 'url("' + plate + '")';
@@ -79,13 +80,14 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
       audio.play('camera', .6);
       const photo = el('canvas');
       photo.width = 92; photo.height = 55;
-      const cubX = trailCubX(time);
-      photo.getContext('2d')?.drawImage(canvas,cubX-65,266,135,81,0,0,92,55);
+      const cubX = trailCubX(time,camera);
+      const cropY = camera === 2 ? 220 : 266;
+      photo.getContext('2d')?.drawImage(canvas,cubX-65,cropY,135,81,0,0,92,55);
       const print = el('div', { class: 'moon-print' }, [photo, el('small', {text:'0'+(camera+1)})]);
       if(plates[camera]) {
         print.style.backgroundImage='url("' + plates[camera] + '")';
         print.style.backgroundSize='667% auto';
-        print.style.backgroundPosition=((cubX-65)/(900-135)*100)+'% 79%';
+        print.style.backgroundPosition=((cubX-65)/(900-135)*100)+'% '+(cropY/(420-81)*100)+'%';
       }
       contacts.append(print);
       stage++;
@@ -111,13 +113,19 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
   function pull() {
     if (opened === null) {
       opened = time;
-      audio.play('door', .65);
+      audio.play('ram', .50);
+      leave.disabled = true;
       handle.textContent = L('Abaisser la grille', 'Lower the gate');
     } else if (gatePassage(opened, time) === 'through') {
+      audio.fadeOut('ram', .08);
+      audio.play('barrier', .60);
       end(true, 0, L('La grille claque juste derrière sa queue. Les adultes le rejoignent et emportent les infectés du portail dans leur course.', 'The gate drops just behind its tail. The adults catch up, scattering the infected at the gate.'));
       return;
     } else {
       opened = null;
+      leave.disabled = false;
+      audio.fadeOut('ram', .08);
+      audio.play('barrier', .45);
       handle.textContent = L('Soulever la grille', 'Lift the gate');
       message(L('Trop tôt. Le petit recule, encore à l’abri.', 'Too soon. The cub backs up, still sheltered.'));
     }
@@ -140,6 +148,7 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
       if (opened !== null) {
         const passage = gatePassage(opened, time);
         if (passage === 'impact') {
+          audio.fadeOut('ram', .08);
           audio.play('door');
           end(crossed, 5, crossed
             ? L('Le petit passe. Un infecté percute la grille avant sa fermeture (−5). Les adultes traversent la horde à sa suite.', 'The cub gets through. An infected slams the gate before it closes (−5). The adults charge after their cub.')
@@ -172,7 +181,8 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
     const scale=fit(rect.width/canvas.width,rect.height/canvas.height);
     const x=(event.clientX-rect.left-(rect.width-canvas.width*scale)/2)/scale;
     const y=(event.clientY-rect.top-(rect.height-canvas.height*scale)/2)/scale;
-    if(Math.abs(x-trailCubX(time))<=69 && y>=261 && y<=356)record();
+    const feet = camera === 2 ? 281 : 338;
+    if(Math.abs(x-trailCubX(time,camera))<=69 && y>=feet-77 && y<=feet+18)record();
     else {
       message(L('Hors cadre. Vise la queue claire.', 'Out of frame. Aim for the pale tail.'));
       update(0);

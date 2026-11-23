@@ -1,6 +1,7 @@
 import { el } from '../engine/dom';
 import { audio } from '../engine/audio';
 import { getLang } from '../engine/i18n';
+import './last-watch.css';
 
 /** Align the two CRT traces. Each dial controls one independently visible property. */
 export function lastWatchDesk(field: HTMLElement, seed: number, lamp: boolean, cub: boolean) {
@@ -10,24 +11,35 @@ export function lastWatchDesk(field: HTMLElement, seed: number, lamp: boolean, c
   const scope = el('canvas');
   scope.width = 720; scope.height = 200;
   scope.setAttribute('aria-hidden', 'true');
-  const makeDial = (label: string, min: number, max: number, initial: number) => {
+  const makeDial = (label: string, min: number, max: number, initial: number, target: number) => {
     const input = el('input');
     input.type = 'range'; input.min = String(min); input.max = String(max); input.value = String(initial);
     input.setAttribute('aria-label', label);
     const value = el('output', { text: input.value });
     input.addEventListener('input', () => {
       value.value = input.value;
+      input.setAttribute('aria-valuetext', input.value + (+input.value === target ? (fr ? ' · calée' : ' · matched') : ''));
       audio.play(locked() ? 'radio_squelch' : 'radio_knob', locked() ? 0.5 : 0.28);
       redraw();
     });
-    return { input, root: el('label', {}, [label, input, value]) };
+    return { input, root: el('label', {}, [el('span', {text:label}), input, value]) };
   };
-  const freq = makeDial(fr ? 'Fréquence' : 'Frequency', 1, 9, lamp ? cycles : 1);
-  const shift = makeDial(fr ? 'Phase' : 'Phase', 0, 9, cub ? phase : 0);
+  const freq = makeDial(fr ? 'Fréquence' : 'Frequency', 1, 9, lamp ? cycles : 1, cycles);
+  const shift = makeDial(fr ? 'Phase' : 'Phase', 0, 9, cub ? phase : 0, phase);
   const status = el('div', { class: 'last-watch-state' });
   status.setAttribute('aria-live', 'polite');
   const locked = () => +freq.input.value === cycles && +shift.input.value === phase;
   const redraw = () => {
+    const higher = +freq.input.value < cycles;
+    const later = +shift.input.value < phase;
+    freq.root.dataset.matched = String(+freq.input.value === cycles);
+    shift.root.dataset.matched = String(+shift.input.value === phase);
+    receiver.style.setProperty('--strength', String(Math.max(.08, 1 - (Math.abs(+freq.input.value - cycles) + Math.abs(+shift.input.value - phase)) / 12)));
+    status.dataset.locked = String(locked());
+    const cue = locked() ? (fr ? 'Signal stable. Le relais peut être enclenché.' : 'Signal steady. The relay is ready.')
+      : +freq.input.value !== cycles ? (fr ? (higher ? 'Augmente la fréquence.' : 'Réduis la fréquence.') : (higher ? 'Raise the frequency.' : 'Lower the frequency.'))
+      : (fr ? (later ? 'Fréquence calée. Augmente la phase.' : 'Fréquence calée. Réduis la phase.') : (later ? 'Frequency matched. Raise the phase.' : 'Frequency matched. Lower the phase.'));
+    if (status.textContent !== cue) status.textContent = cue;
     const ctx = scope.getContext('2d');
     if (!ctx) return;
     const glass = ctx.createRadialGradient(358, 94, 12, 360, 100, 395);
@@ -49,18 +61,19 @@ export function lastWatchDesk(field: HTMLElement, seed: number, lamp: boolean, c
     };
     trace(+freq.input.value, +shift.input.value, '#e6aa61', []);
     trace(cycles, phase, '#9ad4c2', [6, 6]);
-    const higher = +freq.input.value < cycles;
-    const later = +shift.input.value < phase;
-    status.dataset.locked = String(locked());
-    status.textContent = locked() ? (fr ? 'Signal stable. Le relais peut être enclenché.' : 'Signal steady. The relay is ready.')
-      : +freq.input.value !== cycles ? (fr ? (higher ? 'Trop peu de crêtes.' : 'Trop de crêtes.') : (higher ? 'Too few peaks.' : 'Too many peaks.'))
-      : (fr ? (later ? 'Fréquence calée. Augmente la phase.' : 'Fréquence calée. Réduis la phase.') : (later ? 'Frequency matched. Raise the phase.' : 'Frequency matched. Lower the phase.'));
   };
   const legend = el('div', { class: 'last-watch-legend' }, [
     el('span', { text: fr ? 'Signal reçu' : 'Incoming signal' }), el('span', { text: fr ? 'Relais' : 'Relay' }),
   ]);
-  field.append(el('div', { class: 'last-watch-scope' }, [legend, el('div', { class: 'last-watch-screen' }, [scope]), freq.root, shift.root, status]));
+  const meter = el('i', {class:'relay-carrier-meter'});
+  meter.setAttribute('aria-hidden', 'true');
+  const receiver = el('div', { class: 'last-watch-scope relay-rack' }, [el('div', { class: 'last-watch-screen' }, [scope, legend, status]), freq.root, shift.root, meter]);
+  field.append(receiver);
   redraw();
-  if (!locked()) (+freq.input.value === cycles ? shift.input : freq.input).focus();
-  return locked;
+  const focusDial = () => (+freq.input.value === cycles ? shift.input : freq.input).focus();
+  if (!locked()) focusDial();
+  return { locked, focusDial, confirm(text: string) {
+    freq.input.disabled = shift.input.disabled = true;
+    status.textContent = text;
+  } };
 }

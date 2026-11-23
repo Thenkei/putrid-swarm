@@ -3,8 +3,15 @@ import { epicFlag, markEpic, unloadMoped } from '../src/core/epics';
 import { arriveHome, newGame } from '../src/core/game';
 import { NightSim } from '../src/core/night';
 import { serialize, deserialize } from '../src/core/save';
+import { porchContact } from '../src/render/porch-flame';
 
 describe('daily epics', () => {
+  it('ends the porch attack at the painted tip and follows its angled centre', () => {
+    expect(porchContact(638, { x: 638, y: 130 })).toBe(true);
+    expect(porchContact(638, { x: 638, y: 110 })).toBe(false);
+    expect(porchContact(638, { x: 543, y: 275 })).toBe(true);
+    expect(porchContact(638, { x: 638, y: 275 })).toBe(false);
+  });
   it('defaults missing and invalid saved lane numbers to the gate', () => {
     const state = newGame(12);
     expect(epicFlag(state, 'lane')).toBe(0);

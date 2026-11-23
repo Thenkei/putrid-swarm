@@ -1093,6 +1093,7 @@ export const en: Strings = {
     vo_epic_stove: 'Right. Cold dinner tonight.',
     vo_epic_pack: 'Wait. There’s a cub under the gate.',
     vo_epic_neighbor: 'There. His kitchen light’s back on.',
+    vo_epic_neighbor_relay: 'I hear you. I can see your back door from my window. I’ll keep watch.',
     vo_later: 'Right. The house still stands. The old car still starts. That is something.',
     vo_coffee_1: 'This is fine.',
     vo_coffee_2: 'But first, coffee.',

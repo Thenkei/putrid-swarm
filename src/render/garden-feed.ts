@@ -152,6 +152,14 @@ export function drawGarden(canvas: HTMLCanvasElement, game: GardenEscort, camera
   const marker = headY ?? TRACK - 72;
   line(ctx, [cx - 4, marker, cx, marker + 3, cx + 4, marker], '#21251f', 4);
   line(ctx, [cx - 4, marker, cx, marker + 3, cx + 4, marker], '#f0d898', 2);
+  if (game.alert > .035) {
+    // Keep the buildup close to the coat so an operator watching the feet can still react.
+    const left = cx - 15, y = marker - 7;
+    ctx.fillStyle = '#161a18';
+    ctx.fillRect(left - 1, y - 1, 32, 5);
+    ctx.fillStyle = '#f0af69';
+    ctx.fillRect(left, y, 30 * Math.min(1, game.alert / .93), 3);
+  }
   ctx.restore();
 
   applyCctv(ctx, PICTURE, time, .64);

@@ -1,0 +1,72 @@
+/* Positions follow the tube, slider slots, and carrier meter painted on the receiver. */
+#ui .epic-field:has(.relay-rack) { background:#171b18 !important; }
+#ui .epic-field .last-watch-scope.relay-rack {
+  position:absolute; inset:0; display:block; border:0; padding:0;
+  border-radius:0; box-shadow:none; background:#15201c url('../render/epic-relay-rack.webp') center / 100% 100% no-repeat;
+}
+#ui .relay-rack .last-watch-screen {
+  position:absolute; left:17.55%; top:18.7%; width:43.85%; height:51.65%; overflow:hidden;
+  border:0; border-radius:8% / 12%; background:#0b1a13; box-shadow:inset 0 0 18px #000;
+}
+#ui .relay-rack .last-watch-screen canvas { display:block; position:absolute; inset:10% 2%; width:96%; height:80%; object-fit:fill; }
+#ui .relay-rack .last-watch-legend, #ui .relay-rack .last-watch-state {
+  position:absolute; left:5%; right:4%; z-index:1; line-height:1.1; color:#c3dfc6;
+  font-family:"Consolas",monospace; text-shadow:0 1px 2px #001b10;
+}
+#ui .relay-rack .last-watch-legend { top:6%; display:flex; gap:5%; font-size:clamp(12px,1.1vw,16px); }
+#ui .relay-rack .last-watch-legend span::before { width:13px; margin:0 5px 2px 0; }
+#ui .relay-rack .last-watch-state { bottom:5.5%; font-size:clamp(12px,1.2vw,16px); min-height:1.1em; gap:6px; }
+#ui .relay-rack .last-watch-state::before { flex:none; width:6px; height:6px; }
+#ui .relay-rack label {
+  position:absolute; left:66.8%; width:17.1%; height:12%; display:block;
+  font-family:"Consolas",monospace; font-weight:bold; color:#22251d;
+}
+#ui .relay-rack label:first-of-type { top:29.8%; }
+#ui .relay-rack label:last-of-type { top:51.5%; }
+#ui .relay-rack label span, #ui .relay-rack output {
+  position:absolute; bottom:94%; font-size:clamp(12px,1.32vw,18px); line-height:1.06;
+  padding:2px 4px; background:#c1b390; box-shadow:1px 1px 2px #181c17;
+}
+#ui .relay-rack label span { left:0; transform:rotate(-2deg); }
+#ui .relay-rack output { right:0; white-space:nowrap; color:#efca8f; background:#242b22; }
+#ui .relay-rack label[data-matched=true] output { color:#c3ebbf; }
+#ui .relay-rack label[data-matched=true] output::after { content:" ✓"; }
+#ui .relay-rack input {
+  margin:0; width:100%; height:100%; min-height:0; appearance:none; background:transparent; cursor:ew-resize;
+}
+#ui .relay-rack input:focus-visible { outline:2px solid #ffe2a3; outline-offset:0; border-radius:5px; }
+#ui .relay-rack input::-webkit-slider-runnable-track { height:6px; background:transparent; }
+#ui .relay-rack input::-moz-range-track { height:6px; background:transparent; }
+#ui .relay-rack input::-webkit-slider-thumb {
+  appearance:none; width:22px; height:30px; margin-top:-12px; border:2px solid #232720;
+  border-radius:4px; background:repeating-linear-gradient(0deg,#433f31 0 3px,#7a7460 3px 5px,#302e25 6px 7px);
+  box-shadow:inset 0 1px #d1c5a7,inset 0 -2px #302e23,2px 3px 3px #161811;
+}
+#ui .relay-rack input::-moz-range-thumb {
+  width:20px; height:28px; border:2px solid #232720; border-radius:4px;
+  background:repeating-linear-gradient(0deg,#433f31 0 3px,#7a7460 3px 5px,#302e25 6px 7px);
+}
+.relay-carrier-meter { position:absolute; left:25.5%; top:78%; width:28.2%; height:2.7%; }
+.relay-carrier-meter::before { content:""; display:block; width:100%; height:100%; transform-origin:left;
+  clip-path:inset(0 calc((1 - var(--strength)) * 100%) 0 0);
+  background:repeating-linear-gradient(90deg,transparent 0 2px,#9cc4a0 2px 6px); opacity:.84; }
+@media (pointer:coarse) and (orientation:landscape) {
+  #ui .relay-rack input { position:absolute; height:44px; top:50%; transform:translateY(-50%); }
+}
+@media (max-width:880px) and (orientation:portrait) {
+  /* A portrait close-up pans from the glass to the two sliders directly beneath it. */
+  #ui .epic-field:has(.relay-rack) { aspect-ratio:1.12; }
+  #ui .epic-field .last-watch-scope.relay-rack {
+    background-size:204% 66%, 100% 100%; background-position:31% 0;
+  }
+  #ui .relay-rack::before { content:""; position:absolute; inset:66% 0 0;
+    background:url('../render/epic-relay-rack.webp') 81.9% 40.2% / 494% 226%; }
+  #ui .relay-rack .last-watch-screen { left:4%; width:89%; top:12.35%; height:34.1%; }
+  #ui .relay-rack .last-watch-legend, #ui .relay-rack .last-watch-state { font-size:12px; }
+  #ui .relay-rack label { left:9%; width:81%; height:0; }
+  #ui .relay-rack label:first-of-type { top:76.2%; }
+  #ui .relay-rack label:last-of-type { top:92.9%; }
+  #ui .relay-rack label span, #ui .relay-rack output { bottom:12px; }
+  #ui .relay-rack input { height:44px; position:absolute; top:-22px; }
+  #ui .relay-carrier-meter { left:20%; width:52%; top:51.4%; height:1.8%; }
+}

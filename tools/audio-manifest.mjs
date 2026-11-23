@@ -14,6 +14,7 @@ export const MODELS = {
 export const VOICES = {
   anchor: { id: 'm5U7XCsc8v988k2RJAqN', name: 'Manon' },
   hero: { id: 'DbbNuBL7lf62XwY7arQb', name: 'Hugo' },
+  neighbor: { id: 'A7zEkeWGohmgSvEAQHDG', name: 'Ash - Warm French Narrator' },
   mayor: { id: 'QMNPncWXVcTVhJ9rDEQO', name: 'Stephyra' },
   mail: { id: 'uFA9UGUhpwqGjVhz3lA2', name: 'Christine' },
   chief: { id: '5l4ttmr4SKNgi0HnOelT', name: 'Paul K' },
@@ -42,6 +43,7 @@ export const AUDIO = [
   voice('vo_epic_stove', 'hero', '[dryly] Bon. Ce soir, on mange froid.', { peak: -4 }),
   voice('vo_epic_pack', 'hero', '[whispering] Attends. Y a un petit sous la grille.', { peak: -4 }),
   voice('vo_epic_neighbor', 'hero', '[quietly] Ça y est. Il a rallumé sa cuisine.', { peak: -4 }),
+  voice('vo_epic_neighbor_relay', 'neighbor', '[relieved, quietly] Je te reçois. De ma fenêtre, je vois ta porte arrière. Je veille.', { fx: 'radio', peak: -4 }),
   // ───────────── Traps ─────────────
   sfx('spikes', 0.9, 'Sharpened wooden stakes springing up out of the ground: a metal spring twang, then a hard wooden clack. Close, dry, no reverb.'),
   sfx('log', 1.8, 'A heavy tree trunk hung on ropes swings down: rope creak, a deep whoosh, then one massive dull thud. Close, dry.'),

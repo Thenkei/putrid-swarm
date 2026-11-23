@@ -105,7 +105,8 @@ function paw(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number)
 }
 
 /** The evidence reticle and the cub use the same ground anchor even in reduced motion. */
-export function trailCubX(time: number) {
+export function trailCubX(time: number, camera = 0) {
+  if (camera === 2) return 330 + Math.sin((calmMotion() ? 0 : time) * .57) * 13;
   return 490 + Math.sin((calmMotion() ? 0 : time) * .57) * 100;
 }
 
@@ -182,29 +183,40 @@ export function moonFeed(canvas: HTMLCanvasElement, camera: number, subject: num
       for (let i = 0; i < 3; i++) infected(ctx, 145 + movement * 116 + i * 72, air + i);
       ctx.restore();
     }
-    portcullis(ctx,lift,air);
     waitingAdult(ctx,arrivalTime,crossing);
-    // The cub is caught at the foot of the gate, on the camera side of the bars.
-    // A separate soft pool follows the pale ear and tail through the crossing.
+    // The cub starts beyond the ironwork, passes through the opening towards the camera,
+    // then turns across the lane towards the adult on the near side.
     const hesitant = crossing === 0 && !still ? 3 * Math.sin(time * 1.7) : 0;
-    const cubX = 378 + smoothstep(0,1,crossing) * 171 + hesitant;
-    lightPool(ctx, cubX, 320, 64, 27, '#a5becc3d');
-    for (let i = 0; i < 5; i++) if (crossing > (i + 1) / 6) paw(ctx,389+i*27,341+(i%2)*4,.7);
+    const advance = smoothstep(0,1,crossing);
+    const cubX = 330 + 219 * advance * advance + hesitant;
+    const feet = 281 + 57 * advance;
+    if (feet >= 307) portcullis(ctx,lift,air);
+    lightPool(ctx, cubX, feet - 14, 58, 21, '#a5becc3d');
+    for (let i = 1; i <= 5; i++) {
+      const step = i / 6;
+      if (advance > step) paw(ctx,330 + 219 * step * step,281 + 57 * step + (i%2)*2,.7);
+    }
     ctx.save();
-    ctx.translate(cubX,338);
+    ctx.translate(cubX,feet);
     const leap = still?0:Math.sin(crossing*Math.PI) * 10;
-    ctx.scale(1.12,1.12);
+    const scale = .85 + .27 * advance;
+    ctx.scale(scale,scale);
     ctx.translate(-cubX,-338-leap);
     cub(ctx,cubX,1,air,crossing>0&&crossing<1);
     ctx.restore();
+    if (feet < 307) portcullis(ctx,lift,air);
     return;
   }
   if(camera===2){
+    if(camera===subject) {
+      ctx.save();ctx.translate(trailCubX(time,2),281);ctx.scale(.85,.85);ctx.translate(0,-338);
+      cub(ctx,0,1,air,false);ctx.restore();
+    }
     portcullis(ctx,0,air);
     waitingAdult(ctx,arrivalTime,0);
     // A second member hangs back in the orchard. Its silhouette supplies a sense of scale.
     ctx.save();ctx.globalAlpha=.65;wolf(ctx,188,266,.57,1,air,0);ctx.restore();
-    if(camera!==subject)return;
+    return;
   }
   if (camera === subject) {
     const path = trailCubX(time) - 490;

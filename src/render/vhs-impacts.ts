@@ -2,10 +2,10 @@
 export type VhsImpactKind = 'runner' | 'brute' | 'mail' | 'cart' | 'miss';
 type Material = 'blood' | 'fabric' | 'paper' | 'metal' | 'gravel';
 const colors: Record<Material, readonly [string, string, string]> = {
-  blood: ['#401b34', '#a73861', '#ef6983'],
+  blood: ['#331b20', '#843a37', '#cf7760'],
   fabric: ['#272538', '#626554', '#b1b28a'],
   paper: ['#574739', '#c4a56e', '#ffdf9b'],
-  metal: ['#303149', '#7195a4', '#ffe4a5'],
+  metal: ['#343640', '#83959a', '#ffdfa0'],
   gravel: ['#3c3441', '#85756e', '#c0a394'],
 };
 
@@ -18,6 +18,10 @@ export class VhsImpacts {
   private readonly bits = Array.from({ length: 160 }, fragment);
   private cursor = 0;
   private seed = 11973;
+
+  clear() {
+    for (const p of this.bits) p.active = false;
+  }
 
   private noise() {
     this.seed = (Math.imul(this.seed, 1664525) + 1013904223) >>> 0;
@@ -76,10 +80,17 @@ export class VhsImpacts {
       ctx.globalAlpha = Math.min(1, (p.life - p.age) / (p.still ? .12 : .28));
       ctx.fillStyle = ink[0];
       if (p.settled) {
-        const width = p.material === 'blood' ? s * 3 : s * 2;
-        ctx.fillRect(x - 1, y, width + 1, 2);
+        // The road foreshortens a stain or a scrap, but its contour survives the fall.
+        const stain = p.material === 'blood';
+        const width = s * (stain ? 1.42 : .86);
+        ctx.globalAlpha *= stain ? .76 : .90;
+        ctx.beginPath();
+        ctx.ellipse(x, y, width, Math.max(.6, s * .34), .16 * Math.sin(p.twist), 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = ink[1];
-        ctx.fillRect(x, y - 1, width, 2);
+        ctx.beginPath();
+        ctx.ellipse(x + .6, y - .5, width * .68, Math.max(.5, s * .22), -.12, 0, Math.PI * 2);
+        ctx.fill();
       } else if (p.material === 'metal') {
         // A stepped streak with a hot leading chip reads against both dark road and armor.
         const dx = p.vx > 0 ? 1 : -1, dy = p.vy > 0 ? 1 : -1;

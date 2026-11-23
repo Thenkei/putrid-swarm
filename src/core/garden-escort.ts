@@ -6,6 +6,7 @@ export const GARDENS = [
 ] as const;
 
 export type GardenEvent = 'moving' | 'caught' | 'next' | 'home' | 'fled';
+const WALK_SPEED = 2.9;
 export class GardenEscort {
   garden = 0;
   position = 0;
@@ -21,13 +22,23 @@ export class GardenEscort {
   constructor(readonly lamp: boolean, private readonly seed: number) {}
   get layout() { return GARDENS[this.garden]!; }
   get hidden() { return this.position >= this.layout.shelter[0] && this.position <= this.layout.shelter[1]; }
-  patrolAt(index: number) {
+  patrolAt(index: number, ahead = 0) {
     const p = this.layout.patrols[index]!;
-    const phase = this.time / p.period + p.phase + (this.seed >>> 0) % 13 / 26;
+    const phase = (this.time + ahead) / p.period + p.phase + (this.seed >>> 0) % 13 / 26;
     return (p.from + p.to) / 2 + (p.to - p.from) / 2 * Math.sin(2 * Math.PI * phase);
   }
   get watched() {
     return !this.hidden && this.layout.patrols.some((p, i) => Math.abs(this.position - this.patrolAt(i)) <= p.width / 2);
+  }
+  get closingIn() {
+    // The curtain has a visible response delay. Give the operator time to read an incoming gaze.
+    const ahead = .55;
+    const reaction = Math.max(0, Math.min(ahead, this.delay));
+    const movingTime = (this.walking ? reaction : 0) + (this.advance ? ahead - reaction : 0);
+    const projected = this.position + WALK_SPEED * movingTime;
+    const [start, end] = this.layout.shelter;
+    return !(projected >= start && projected <= end) &&
+      this.layout.patrols.some((p, i) => Math.abs(projected - this.patrolAt(i, ahead)) <= p.width / 2);
   }
 
   signal() {
@@ -41,7 +52,7 @@ export class GardenEscort {
     this.time += dt;
     this.delay -= dt;
     if (this.delay <= 0) this.walking = this.advance;
-    if (this.walking) this.position += 2.9 * dt;
+    if (this.walking) this.position += WALK_SPEED * dt;
     if (this.hidden) this.checkpoint = (this.layout.shelter[0] + this.layout.shelter[1]) / 2;
     this.alert = Math.max(0, this.alert + ((this.walking && this.watched) ? 1 : -0.68) * dt);
     if (this.alert >= 0.93) {

@@ -6,6 +6,14 @@ const ORIGIN_Y = 420;
 const BURST = .45;
 const fraction = (n: number) => n - Math.floor(n);
 const flameX = (aim: number, y: number) => ORIGIN_X + (aim - ORIGIN_X) * (ORIGIN_Y - y) / 290;
+const plumeWidth = (depth: number, turbulence = 0) => 3 + (87 + turbulence * 24) * depth * Math.sin(Math.PI * depth) ** .48;
+
+/** Measure contact against the visible outer plume, allowing for the target's body. */
+export function porchContact(aim: number, point: { x: number; y: number }): boolean {
+  const depth = (ORIGIN_Y - point.y) / 290;
+  return depth >= 0 && depth <= 1 && point.x >= 0 && point.x <= 896 &&
+    Math.abs(point.x - flameX(aim, point.y)) <= plumeWidth(depth) + 12;
+}
 const flameReach = (age: number, still: boolean) => still ? 1 : Math.min(1, .15 + age * 5 / BURST);
 export interface PorchBurst {
   readonly age: number;
@@ -60,7 +68,7 @@ export function porchFlame(ctx: CanvasRenderingContext2D, aim: number, firedAim:
     ctx.strokeStyle = '#ffdb9cc7';
     ctx.lineWidth = 1.4;
     ctx.setLineDash([4, 9]);
-    ctx.beginPath(); ctx.moveTo(ORIGIN_X, ORIGIN_Y); ctx.lineTo(xAt(aim, 65), 65); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ORIGIN_X, ORIGIN_Y); ctx.lineTo(xAt(aim, 130), 130); ctx.stroke();
     ctx.setLineDash([]);
     const cx = xAt(aim, 130);
     ctx.strokeStyle = '#ffeac2';
@@ -80,7 +88,7 @@ export function porchFlame(ctx: CanvasRenderingContext2D, aim: number, firedAim:
           const p = side < 0 ? i / 36 : 1 - i / 36;
           const y = ORIGIN_Y - (p * reach * (radius * 53 + 237));
           const turbulence = Math.sin(p * 23 - wave * 15) * Math.sin(p * 11 + wave * 12);
-          const width = 3 + (87 + turbulence * 24) * p * Math.sin(Math.PI * p) ** .48;
+          const width = plumeWidth(p, turbulence);
           const x = xAt(firedAim, y) + side * width * radius + 9 * p * Math.sin(p * 17 - wave * 11);
           if (side < 0 && i === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
         }
@@ -139,7 +147,7 @@ export function porchFlame(ctx: CanvasRenderingContext2D, aim: number, firedAim:
   ctx.restore();
   ctx.save();
   ctx.translate(448, 420);
-  ctx.rotate(Math.atan2(aim - 448, 290));
+  ctx.rotate(Math.atan2((firing ? firedAim : aim) - 448, 290));
   const tip = ctx.createLinearGradient(-13, 0, 13, 0);
   tip.addColorStop(0, '#2e2923'); tip.addColorStop(.35, '#927d64'); tip.addColorStop(.56, '#50493e'); tip.addColorStop(1, '#181714');
   ctx.fillStyle = tip; ctx.fillRect(-10, -29, 20, 39);

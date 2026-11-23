@@ -41,6 +41,12 @@
     "seconds": 2.247,
     "gain": 1
   },
+  "vo_epic_neighbor_relay": {
+    "file": "vo_epic_neighbor_relay.mp3",
+    "kind": "voice",
+    "seconds": 4.127,
+    "gain": 1
+  },
   "spikes": {
     "file": "spikes.mp3",
     "kind": "sfx",

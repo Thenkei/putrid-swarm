@@ -33,12 +33,15 @@ export function escortFeed(field: HTMLElement, note: HTMLElement, signal: HTMLBu
       signal.textContent = command;
       signal.setAttribute('aria-pressed', String(game.advance));
     }
-    const situation = game.watched ? L('Regard sur le sentier', 'Patrol watching the path') : game.hidden ? L('À couvert', 'In cover') : L('Passage libre', 'Path clear');
+    const situation = game.watched ? L('Regard sur le sentier', 'Patrol watching the path')
+      : game.hidden ? L('À couvert', 'In cover')
+      : game.closingIn ? L('Le regard approche', 'Gaze closing in') : L('Passage libre', 'Path clear');
     const alert = Math.round(game.alert / .93 * 10) * 10;
     // Announce changes in exposure, not every point accumulated by the suspicion meter.
-    const report = feedbackFor > 0 ? feedback : names[game.garden] + ' · ' + situation;
+    const report = names[game.garden] + ' · ' + situation + (feedbackFor > 0 ? ' · ' + feedback : '');
     if (report !== voice.textContent) voice.textContent = report;
-    const status = names[game.garden] + ' · ' + (game.garden + 1) + '/3 · ' + situation + ' · ' + L('Soupçon ', 'Suspicion ') + alert + '%' + (feedbackFor > 0 ? ' · ' + feedback : '');
+    const pending = game.advance !== game.walking ? L(' · Il réagit…', ' · Signal travelling…') : '';
+    const status = names[game.garden] + ' · ' + (game.garden + 1) + '/3 · ' + situation + pending + ' · ' + L('Soupçon ', 'Suspicion ') + alert + '%' + (feedbackFor > 0 ? ' · ' + feedback : '');
     if (status !== last) { note.textContent = status; last = status; }
     drawGarden(canvas, game, names[game.garden]!);
   };

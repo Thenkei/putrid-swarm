@@ -20,7 +20,7 @@ try {
   });
   await page.waitForFunction(() => window.__app.scene.sim?.night === 2);
   const evidence = await page.evaluate(async () => {
-    const { porchFlame } = await import('/src/render/porch-flame.ts');
+    const { porchContact, porchFlame } = await import('/src/render/porch-flame.ts');
     const { sectorOf } = await import('/src/core/map.ts');
     const scene = window.__app.scene;
     scene.paused = true;
@@ -41,7 +41,7 @@ try {
     const target = candidates.sort((a, b) => Math.abs(a.y - 235) - Math.abs(b.y - 235))[0];
     const aim = 448 + (target.x - 448) * 290 / (420 - target.y);
     const axis = y => 448 + (aim - 448) * (420 - y) / 290;
-    const contacts = candidates.filter(p => Math.abs(p.x - axis(p.y)) < 36 + (420 - p.y) * .24);
+    const contacts = candidates.filter(p => porchContact(aim, p));
     const images = {};
     function render(age, emit, drawFlame, hits = contacts, direction = aim, save) {
       scene.epic.paintYard(canvas, sector, emit ? { age, aim: direction, contacts: hits } : undefined);

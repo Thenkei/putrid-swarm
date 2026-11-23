@@ -1,6 +1,21 @@
 import { expect, it } from 'vitest';
 import { GardenEscort } from '../src/core/garden-escort';
 
+it('predicts the approaching gaze using the remaining curtain delay', () => {
+  for (const alreadyWalking of [false, true]) {
+    const game = new GardenEscort(false, 0);
+    game.position = 9.79;
+    game.time = 1.92;
+    game.walking = game.advance = alreadyWalking;
+    game.signal();
+    const warning = game.closingIn;
+    expect(game.watched).toBe(false);
+    expect(warning).toBe(true);
+    for (let i = 0; i < 55; i++) game.step(.01);
+    expect(warning).toBe(game.watched);
+  }
+});
+
 it('keeps the walker safe while crouched, and delays a curtain signal', () => {
   const garden = new GardenEscort(false, 42);
   garden.position = garden.patrolAt(0);

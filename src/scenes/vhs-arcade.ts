@@ -3,8 +3,10 @@ import { el } from '../engine/dom';
 import { sprite } from '../engine/assets';
 import { drawMobStride } from '../render/infected';
 import { calmMotion } from '../render/lighting';
-import { CASE_LIFETIME, drawVhsCasesAndSmoke, drawVhsMuzzle, type VhsShot } from '../render/vhs-gunfire';
+import { CASE_LIFETIME, drawVhsCasesAndSmoke, drawVhsMuzzle, drawVhsRoadLight, type VhsShot } from '../render/vhs-gunfire';
 import { VhsImpacts } from '../render/vhs-impacts';
+import { drawVhsStreet, streetName, vhsStreet } from '../render/vhs-street';
+import { drawVhsRoadProp } from '../render/vhs-road-props';
 import { line as L } from '../engine/i18n';
 import { heroArt } from './common';
 import './vhs-arcade.css';
@@ -14,8 +16,8 @@ type Impact = { x: number; y: number; at: number; points: number; armor: boolean
 const PATTERN = [0, -1, 1, 0, 1, -1, 0, -1, 1, -1, 0, 1] as const;
 const DURATION = 28;
 const W = 960, H = 412;
-const foot = (depth: number) => 103 + 274 * depth * depth;
-const across = (lane: number, depth: number) => W / 2 + lane * (39 + 204 * depth * depth);
+const perspective = (depth: number) => .11 + .89 * depth * (.40 + .60 * depth);
+const targetHeight = (depth: number) => 138 * perspective(depth);
 
 // Each entry is painted looking inward from that lane. Each cel registers its muzzle and port.
 const FACINGS = [
@@ -35,7 +37,7 @@ const ROUND_INTERVAL = .115;
 const SHOT_PITCH = [1, .97, 1.035, 1.015, .985] as const;
 const ROAD_STRIKES = [.41, .31, .48, .36, .44] as const;
 
-export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElement, sleeve: boolean, armless: boolean, finish: (score: number) => void) {
+export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElement, sleeve: boolean, armless: boolean, finish: (score: number, complete: boolean) => void) {
   const canvas = el('canvas');
   canvas.className = 'vhs-track';
   canvas.width = W;
@@ -50,10 +52,6 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
   const impacts: Impact[] = [];
   const debris = new VhsImpacts();
   const shots: VhsShot[] = [];
-  const dusk = ctx.createLinearGradient(0, 0, 0, H);
-  dusk.addColorStop(0, '#271b4188');
-  dusk.addColorStop(1, '#171826cc');
-  const sets = ['plate_town', 'plate_village', 'plate_return', 'plate_loc_garage'].map(key => heroArt(key, armless));
   const facings = FACINGS.map(facing => ({ ...facing, art: sprite(facing.key) }));
   const fallback = sprite(heroArt('hero_departure', armless));
   const lanes = [L('gauche', 'left'), L('milieu', 'centre'), L('droite', 'right')];
@@ -63,6 +61,9 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
   let keyFire = false, pointerFire = false, auto = false, done = false;
   let tapped = false;
   let stride = 0;
+  let frame = vhsStreet(0, 0, calmMotion());
+  const foot = (depth: number) => frame.street.skyline + (H - 24 - frame.street.skyline) * perspective(depth);
+  const across = (track: number, depth: number) => frame.center + (W / 2 + track * 243 - frame.center) * perspective(depth);
   const flank = (direction: number) => { lane = Math.max(-1, Math.min(1, lane + direction)); };
   const btn = (text: string, click: () => void) => el('button', { class: 'btn', text, onClick: click });
   const left = btn(L('← Gauche', '← Left'), () => flank(-1));
@@ -77,7 +78,15 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
     if (done) return;
     done = true;
     listeners.abort();
-    finish(score);
+    if (elapsed >= DURATION) {
+      ctx.fillStyle = '#16131d';
+      ctx.fillRect(13, 13, 168, 32);
+      ctx.font = 'bold 15px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#f7d990';
+      ctx.fillText('■ ' + L('FIN DE BANDE', 'END OF TAPE'), 25, 35);
+    }
+    finish(score, elapsed >= DURATION);
   };
   actions.replaceChildren(left, right, autoFire, btn(L('Éjecter', 'Eject'), end));
   const dialog = field.parentElement!;
@@ -130,6 +139,15 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
     const distance = Math.min(Math.abs(lane - position), dt * 5);
     position += Math.sign(lane - position) * distance;
     stride += distance;
+    const lastCamera = frame.camera;
+    frame = vhsStreet(elapsed, position, calmMotion());
+    if (frame.camera !== lastCamera) {
+      audio.play('camera', .28);
+      // A hard edit cuts away from marks on the previous street.
+      debris.clear();
+      impacts.length = 0;
+      shots.length = 0;
+    }
     debris.update(dt);
     while (shots.length && elapsed - shots[0]!.at >= CASE_LIFETIME) shots.shift();
     hitTime = Math.max(0, hitTime - dt);
@@ -143,7 +161,7 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
         score = Math.max(0, score - 75);
         combo = 0;
         hitTime = .45;
-        audio.play('ram', .35);
+        audio.play(t.kind === 'cart' ? 'car_door' : 'body_fall', .35);
       }
       targets.splice(i, 1);
     }
@@ -174,7 +192,7 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
       const depth = hit?.depth ?? ROAD_STRIKES[round % ROAD_STRIKES.length]!;
       const x = across(hit?.lane ?? position, depth) + (hit ? 0 : (round % 3 - 1) * 9);
       const groundY = foot(depth);
-      const y = hit ? groundY - 16 - 48 * depth : groundY;
+      const y = hit ? groundY - targetHeight(depth) * .50 : groundY;
       debris.trigger(hit?.kind ?? 'miss', x, y, groundY, depth, still, award > 0);
       if (award || (hit?.kind === 'cart' && !impacts.some(i => i.armor && Math.abs(i.x - x) < 38 && elapsed - i.at < .28))) {
         impacts.push({ x, y, at: elapsed, points: award, armor: !award });
@@ -217,106 +235,48 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
   function draw() {
     const still = calmMotion();
     ctx.clearRect(0, 0, W, H);
-    const camera = Math.min(3, Math.floor(elapsed / 7));
-    const back = sprite(sets[camera]!);
-    if (back) ctx.drawImage(back.img, 0, 0, W, H);
-    ctx.fillStyle = dusk;
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#26222dc9';
-    ctx.beginPath();
-    ctx.moveTo(417, 103);
-    ctx.lineTo(543, 103);
-    ctx.lineTo(945, H);
-    ctx.lineTo(15, H);
-    ctx.fill();
-    for (const edge of [-1.5, -.5, .5, 1.5]) {
-      for (let i = 0; i < 10; i++) {
-        const near = ((i + (still ? 0 : elapsed * 2.4)) % 10) / 10;
-        const far = Math.max(0, near - .048);
-        ctx.beginPath();
-        ctx.moveTo(across(edge, far), foot(far));
-        ctx.lineTo(across(edge, near), foot(near));
-        ctx.lineWidth = 1 + near * 3;
-        ctx.strokeStyle = Math.abs(edge) > 1 ? '#dbab9b' : '#c8b278';
-        ctx.stroke();
-      }
-    }
+    const camera = frame.camera;
+    drawVhsStreet(ctx, frame, elapsed, still);
+    const { row, pose, moving, left, top, height, lean, muzzleX, muzzleY, facing } = heroPose(still);
+    if (!still) drawVhsRoadLight(ctx, muzzleX, H - 28, elapsed - lastShot);
     for (const t of [...targets].sort((a, b) => a.depth - b.depth)) {
-      const x = across(t.lane, t.depth), y = foot(t.depth), size = 24 + 112 * t.depth;
+      const x = across(t.lane, t.depth), y = foot(t.depth), size = targetHeight(t.depth);
       ctx.fillStyle = '#15121b75';
       ctx.beginPath();
       ctx.ellipse(x, y + 1, size * .26, size * .065, 0, 0, Math.PI * 2);
       ctx.fill();
-      if (t.kind === 'cart') {
-        ctx.fillStyle = '#291a19';
-        ctx.fillRect(x - size * .38, y - size * .52, size * .76, size * .46);
-        ctx.lineWidth = Math.max(1, size * .023);
-        ctx.strokeStyle = '#a39177';
-        ctx.beginPath();
-        ctx.moveTo(x - size * .51, y - size * .65);
-        ctx.lineTo(x - size * .41, y - size * .65);
-        ctx.lineTo(x - size * .32, y - size * .11);
-        ctx.lineTo(x + size * .31, y - size * .11);
-        ctx.stroke();
-        ctx.fillStyle = '#57433e';
-        for (let bar = -2; bar <= 2; bar++) ctx.fillRect(x + bar * size * .13, y - size * .39, size * .035, size * .24);
-        ctx.fillStyle = '#e5ad46';
-        ctx.fillRect(x - size * .38, y - size * .52, size * .76, size * .10);
-        ctx.fillStyle = '#e6be81';
-        ctx.font = 'bold ' + Math.round(size * .36) + 'px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('×', x, y - size * .1);
-        ctx.fillStyle = '#16121b';
-        ctx.fillRect(x - size * .31, y - size * .07, size * .12, size * .12);
-        ctx.fillRect(x + size * .2, y - size * .07, size * .12, size * .12);
-      } else {
-        const name = t.kind === 'mail' ? 'boss_mail_front' : 'en_' + t.kind + '_front';
+      const phase = still ? 0 : (t.depth * (t.kind === 'brute' ? 4 : 7)) % 1;
+      const paintedProp = (t.kind === 'mail' || t.kind === 'cart') && drawVhsRoadProp(ctx, t.kind, x, y, size, phase);
+      if (t.kind === 'cart' && !paintedProp) {
+        ctx.fillStyle = '#302b29';
+        ctx.fillRect(x - size * .40, y - size * .53, size * .80, size * .46);
+        ctx.fillStyle = '#d9a650';
+        ctx.fillRect(x - size * .40, y - size * .53, size * .80, size * .10);
+      } else if (!paintedProp && t.kind !== 'cart') {
         ctx.save();
         ctx.translate(x, y);
         if (!still && t.kind === 'brute' && elapsed - t.struck < .12) {
           ctx.transform(1, 0, (1 - (elapsed - t.struck) / .12) * .14, 1, 0, 0);
         }
-        const phase = still ? 0 : (t.depth * (t.kind === 'brute' ? 4 : 7)) % 1;
-        if (t.kind === 'mail') {
-          ctx.fillStyle = '#262331';
-          ctx.strokeStyle = '#edc478';
-          ctx.lineWidth = Math.max(1, size * .025);
-          for (const dx of [-.20, .19]) {
-            ctx.beginPath();
-            ctx.arc(dx * size, -size * .11, size * .105, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(dx * size, -size * .11);
-            ctx.lineTo((dx + Math.cos(phase * Math.PI * 2) * .1) * size, (-.11 + Math.sin(phase * Math.PI * 2) * .1) * size);
-            ctx.stroke();
-          }
-          ctx.beginPath();
-          ctx.moveTo(-size * .2, -size * .11);
-          ctx.lineTo(-size * .04, -size * .30);
-          ctx.lineTo(size * .19, -size * .11);
-          ctx.stroke();
-          ctx.translate(0, -size * .18);
-        }
-        if (!drawMobStride(ctx, t.kind, phase, size * (t.kind === 'mail' ? .72 : .93))) {
-          const single = sprite(name);
+        if (!drawMobStride(ctx, t.kind, phase, size * .93)) {
+          const single = sprite(t.kind === 'mail' ? 'boss_mail_front' : 'en_' + t.kind + '_front');
           if (single) ctx.drawImage(single.img, -size * .5, -size, size, size);
           else { ctx.fillStyle = '#b19472'; ctx.fillRect(-size * .18, -size * .8, size * .36, size * .8); }
         }
         ctx.restore();
-        if (t.kind === 'mail') {
-          ctx.fillStyle = '#ffdd74';
-          ctx.font = 'bold 17px monospace';
-          ctx.textAlign = 'center';
-          ctx.fillText('★', x, y - size);
-        }
+      }
+      if (t.kind === 'mail') {
+        ctx.fillStyle = '#ffdd74';
+        ctx.font = 'bold 17px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('★', x, y - size);
       }
     }
     const locked = aimedTarget();
     if (locked) {
       const aimX = across(locked.lane, locked.depth);
-      const aimY = foot(locked.depth) - 16 - 48 * locked.depth;
-      const r = 9 + 16 * locked.depth;
+      const aimY = foot(locked.depth) - targetHeight(locked.depth) * .50;
+      const r = 4 + .19 * targetHeight(locked.depth);
       ctx.strokeStyle = locked.kind === 'cart' ? '#eea968' : '#c1d6a5';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
@@ -336,7 +296,6 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
       }
     }
     debris.draw(ctx);
-    const { row, pose, moving, left, top, height, lean, muzzleX, muzzleY, facing } = heroPose(still);
     ctx.fillStyle = '#16142088';
     ctx.beginPath();
     ctx.ellipse(left + HERO_WIDTH * .49, H - 6, moving ? 27 : 36, 5, 0, 0, Math.PI * 2);
@@ -380,9 +339,10 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
     ctx.textAlign = 'left';
     ctx.font = 'bold 15px monospace';
     ctx.fillStyle = '#16131dda';
-    ctx.fillRect(13, 13, 137, 32);
+    const shotName = '▶ 0' + (camera + 1) + ' · ' + streetName(frame);
+    ctx.fillRect(13, 13, ctx.measureText(shotName).width + 24, 32);
     ctx.fillStyle = '#f7d990';
-    ctx.fillText('▶ CAM 0' + (camera + 1), 25, 35);
+    ctx.fillText(shotName, 25, 35);
     ctx.textAlign = 'right';
     ctx.fillStyle = '#16131dda';
     ctx.fillRect(W - 194, 13, 180, 32);
