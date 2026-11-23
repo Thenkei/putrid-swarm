@@ -93,6 +93,7 @@ Each night from the second to the seventh has one special scene. Daytime clues c
 ## The loop as built
 
 1. **Day — 12 hours.** Driving, searching and building all draw on the same daylight. The car must be home before dark, so an outing is refused if the drive back no longer fits.
+   [Watch the walk from the house to the driver's seat.](docs/previews/hero-car-departure.mp4)
    **What is found is not yet brought home.** A search loads the boot; the refuge's stock only grows when the break pulls into the yard. Between the two, someone may want the same thing:
    - **A disputed lot.** Where no neighbour minds the place any more, a survivor may already be standing at the best spot left. That spot cannot be searched behind their back; it is settled with them: share it, trade for it from the boot, wager it on three washers, insist, come to blows over it, or leave it. The rest of the place can be searched first, which is how the boot gets something to trade. Driving off leaves them the lot.
    - **A roadblock on the way home.** With a loaded boot, from the second day, a group may bar the road and ask for a share of the load: pay it (the player picks the pieces), settle it with the one thing they came for, call in a favour from a face in the group, go round at the price of daylight, or stand one's ground.

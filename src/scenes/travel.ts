@@ -46,6 +46,10 @@ function drawRadioNeedle(ctx: CanvasRenderingContext2D, seconds: number): void {
 
 // Start on the door, then widen toward the gravel road beside the barn.
 const BOARDING_VIEW: View = { ...STAGE, rot: 0, zoom: 2.5, cx: 16.6, cy: 13.1 };
+const STILL_VIEW: View = { ...STAGE, rot: 0, zoom: 1.65, cx: 13.5, cy: 13.2 };
+const STILL_BOARD = .98;
+const STILL_SEATED = 1.61;
+const STILL_ROAD = 2.10;
 const EXIT_VIEW: View = { ...BOARDING_VIEW, zoom: 1.7, cx: 17.2, cy: 12.9 };
 const GRAVEL_PUFFS = [0.45, 0.7, 0.96, 1.26, 1.62, 2] as const;
 const GRAVEL_DUST_LIFE = 0.5;
@@ -100,6 +104,9 @@ export class TravelScene implements Scene {
   private done = false;
   private shot: ReturnType<typeof carDepartureShot> = null;
   private approach: ApproachShot | null = null;
+  private stills = false;
+  private boardingStart = 0;
+  private roadStart = 0;
   private summary!: HTMLElement;
   private engineStarted = false;
   private plate: string;
@@ -120,10 +127,17 @@ export class TravelScene implements Scene {
       const plate = variants[outings % variants.length];
       if (plate && sprite(plate)) this.plate = plate;
       const armless = oneArmed(departure);
-      this.shot = calmMotion() ? null : carDepartureShot(armless);
+      this.shot = carDepartureShot(armless);
       if (this.shot) {
-        this.approach = heroApproachShot(outings, armless, departure.yard.houseHp / HOUSE_MAX_HP);
-        if (this.approach) prepareWorld(approachView(this.approach, 0, BOARDING_VIEW), BOARDING_VIEW, EXIT_VIEW);
+        this.stills = calmMotion();
+        this.approach = heroApproachShot(this.stills ? 0 : outings, armless, departure.yard.houseHp / HOUSE_MAX_HP);
+        if (this.stills && !this.approach) this.shot = null;
+      }
+      if (this.shot) {
+        this.boardingStart = this.stills ? STILL_BOARD : this.approach?.duration ?? 0;
+        this.roadStart = this.stills ? STILL_ROAD : this.boardingStart + this.shot.duration;
+        if (this.stills) prepareWorld(STILL_VIEW);
+        else if (this.approach) prepareWorld(approachView(this.approach, 0, BOARDING_VIEW), BOARDING_VIEW, EXIT_VIEW);
         else prepareWorld(BOARDING_VIEW, EXIT_VIEW);
       } else {
         audio.play('car_latch');
@@ -155,7 +169,10 @@ export class TravelScene implements Scene {
   private finish(): void {
     if (this.done) return;
     this.done = true;
-    if (this.options.departure) audio.fadeOut('car_latch', 0.18);
+    if (this.options.departure) {
+      audio.fadeOut('moped_door', .12);
+      audio.fadeOut('car_latch', 0.18);
+    }
     if (this.plate === RADIO_PLATE) audio.fadeOut('radio_squelch', 0.15);
     // A skip during boarding takes us straight to the destination before the starter has played.
     if (!this.options.departure || this.engineStarted) {
@@ -171,17 +188,20 @@ export class TravelScene implements Scene {
     this.time += dt;
     const shot = this.shot;
     const approach = this.approach;
-    const boardingStart = approach?.duration ?? 0;
-    const roadStart = boardingStart + (shot?.duration ?? 0);
+    const { boardingStart, roadStart } = this;
     const crossed = (at: number): boolean => previous < at && this.time >= at;
     if (approach) {
-      for (const cue of approach.cues) if (crossed(cue.at)) audio.play(cue.sound, 0.6);
+      const doorIntact = approach.start !== 'window' && (this.options.departure?.yard.barricades[approach.start].hp ?? 0) > 0;
+      for (const cue of approach.cues) {
+        const audible = cue.sound === 'moped_door' ? doorIntact : !this.stills;
+        if (audible && crossed(cue.at)) audio.play(cue.sound, .6);
+      }
       if (this.options.departure && crossed(boardingStart)) tripLine('car', this.options.departure);
     }
     if (shot) {
-      if (crossed(boardingStart + shot.latchAt)) audio.play('car_latch');
-      if (crossed(boardingStart + shot.ignitionAt)) this.startEngine();
-      if (crossed(boardingStart + shot.forwardAt)) audio.setAmbience('car', 1);
+      if (crossed(this.stills ? STILL_SEATED : boardingStart + shot.latchAt)) audio.play('car_latch');
+      if (crossed(this.stills ? STILL_SEATED + .12 : boardingStart + shot.ignitionAt)) this.startEngine();
+      if (crossed(this.stills ? STILL_ROAD : boardingStart + shot.forwardAt)) audio.setAmbience('car', 1);
       if (crossed(roadStart)) this.summary.hidden = false;
       if (this.time >= roadStart && previous < roadStart + ROAD_FADE_IN) {
         this.summary.style.opacity = String(smoothstep(0, ROAD_FADE_IN, this.time - roadStart));
@@ -191,18 +211,23 @@ export class TravelScene implements Scene {
       if (crossed(roadStart + RADIO_STOPS[0])) audio.play('radio_squelch', 0.24, 1.22);
       if (crossed(roadStart + RADIO_STOPS[1])) audio.play('radio_squelch', 0.16, 1.3);
     }
-    if (this.time >= roadStart + (shot ? OUTBOUND_ROAD_SECONDS : HOLD_SECONDS)) this.finish();
+    const duration = this.stills || !shot ? HOLD_SECONDS : roadStart + OUTBOUND_ROAD_SECONDS;
+    if (this.time >= duration) this.finish();
   }
 
   render(ctx: CanvasRenderingContext2D): void {
     const { departure } = this.options;
     const shot = this.shot;
     const approach = this.approach;
-    const boardingTime = this.time - (approach?.duration ?? 0);
-    if (departure && shot && boardingTime < shot.duration) {
-      const onFoot = approach && boardingTime < 0 ? approach : null;
-      const view = onFoot
-        ? approachView(onFoot, this.time, BOARDING_VIEW)
+    if (departure && shot && this.time < this.roadStart) {
+      const boardingTime = this.stills
+        ? (this.time < STILL_SEATED ? shot.poseEnds[1]! : shot.latchAt)
+        : this.time - this.boardingStart;
+      const onFoot = approach && this.time < this.boardingStart ? approach : null;
+      const heroTime = this.stills && onFoot ? (this.time < .2 ? 0 : onFoot.intro * .85) : this.time;
+      const hero = onFoot && sampleApproach(onFoot, heroTime);
+      const view = this.stills ? STILL_VIEW : onFoot
+        ? approachView(onFoot, heroTime, BOARDING_VIEW)
         : departureView(smoothstep(shot.rollAt - 0.12, shot.forwardAt + 0.45, boardingTime));
       const { yard } = departure;
       const houseHpRatio = yard.houseHp / HOUSE_MAX_HP;
@@ -212,7 +237,8 @@ export class TravelScene implements Scene {
         night: false,
         houseHpRatio,
         carPresent: true,
-        ...(onFoot ? { approachingHero: sampleApproach(onFoot, this.time) } : { departingCar: departingCar(shot, boardingTime, dusk) }),
+        ...(hero ? { approachingHero: hero } : { departingCar: departingCar(shot, boardingTime, dusk) }),
+        ...(hero && hero.shot.start !== 'window' && hero.opening > 0 && { houseDoor: { sector: hero.shot.start, open: hero.opening } }),
         devices: yard.devices.map((d) => dayDeviceVisual(d)),
         barricades: yard.barricades,
         decals: yard.decals,
@@ -220,10 +246,10 @@ export class TravelScene implements Scene {
         particles: gravelDust(boardingTime - shot.rollAt, shot.forwardAt - shot.rollAt),
       });
       applyDaylight(ctx, view, dusk, houseLights(view.rot, yard.barricades, houseHpRatio), this.app.time);
-      paintFade(ctx, smoothstep(shot.duration - DEPARTURE_FADE_OUT, shot.duration, boardingTime));
+      paintFade(ctx, smoothstep(this.roadStart - DEPARTURE_FADE_OUT, this.roadStart, this.time));
       return;
     }
-    const roadTime = boardingTime - (shot?.duration ?? 0);
+    const roadTime = this.time - this.roadStart;
     const state = this.app.state;
     const reduced = calmMotion();
     const zoom = this.plate === RADIO_PLATE ? 1 : 1.04 + (reduced ? 0 : roadTime * 0.012);

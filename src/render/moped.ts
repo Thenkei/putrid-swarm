@@ -1,12 +1,9 @@
 import { sprite } from '../engine/assets';
 import type { NightSim } from '../core/night';
-import { HOUSE_CENTER } from '../core/map';
-import type { SectorId } from '../core/types';
-import { DOOR_OPENINGS, THRESHOLDS, VISIBLE_DOORS } from '../house-layout';
+import { THRESHOLDS, VISIBLE_DOORS } from '../house-layout';
+import { clipAtSill, doorSwing, outsideSillDepth } from './house';
 import { calmMotion } from './lighting';
 import { depthOf, project, type View } from './projection';
-import { HOUSE_PAINT_SCALE } from './registration';
-import { smoothstep } from './noise';
 
 import { MOPED_RUN_SECONDS, MOPED_EXIT_SECONDS, MOPED_BLAST_RADIUS } from '../core/epics';
 import blastSheet from './epic-moped-blast.webp';
@@ -110,7 +107,7 @@ function wheel(ctx: CanvasRenderingContext2D, x: number, turn: number, blades: b
 type Ride = NonNullable<NightSim['mopedRide']>;
 
 export function mopedDoorOpen(age: number): number {
-  return smoothstep(0, .40, age) * (1 - smoothstep(1.05, 1.40, age));
+  return doorSwing(age, 1.05, 1.40);
 }
 
 export function drawMopedBlast(ctx: CanvasRenderingContext2D, view: View, ride: Ride | null, time: number) {
@@ -119,31 +116,6 @@ export function drawMopedBlast(ctx: CanvasRenderingContext2D, view: View, ride: 
   drawBlast(ctx, view, impact.x, impact.y, Math.max(0, time - ride.blastAt));
 }
 
-/** Before the rear wheel clears the jamb, only the doorway and the part of the bike
- * already on the yard side of the threshold are visible. */
-function clipAtSill(ctx: CanvasRenderingContext2D, view: View, sector: SectorId, facing: number) {
-  const sill = THRESHOLDS[sector];
-  const foot = project(view, sill.gx, sill.gy);
-  const width = sill.width * view.zoom;
-  const height = DOOR_OPENINGS[sector].h * HOUSE_PAINT_SCALE * view.zoom;
-  const insideEdge = facing > 0 ? -.5 : .5;
-  const leftHinge = sector === 'arriere' || sector === 'verger';
-  const inset = sector === 'grange' ? .07 : (leftHinge === (insideEdge < 0) ? .14 : .025);
-  const edgeX = foot.x + width * insideEdge * (1 - 2 * inset);
-  const edgeY = foot.y + (edgeX - foot.x) * sill.slope;
-  const limit = facing > 0 ? view.x + view.w : view.x;
-  ctx.beginPath();
-  ctx.moveTo(edgeX, edgeY);
-  ctx.lineTo(edgeX, edgeY - height);
-  ctx.lineTo(foot.x, foot.y - height);
-  ctx.lineTo(foot.x, view.y);
-  ctx.lineTo(limit, view.y);
-  ctx.lineTo(limit, view.y + view.h);
-  ctx.lineTo(foot.x, view.y + view.h);
-  ctx.lineTo(foot.x, foot.y);
-  ctx.closePath();
-  ctx.clip();
-}
 
 export function mopedRideDrawable(ctx: CanvasRenderingContext2D, view: View, ride: Ride, time: number) {
   const age = time - ride.start;
@@ -167,8 +139,7 @@ export function mopedRideDrawable(ctx: CanvasRenderingContext2D, view: View, rid
   const pitch = Math.atan2(end.y - origin.y, Math.abs(end.x - origin.x));
   const depth = depthOf(view.rot, gx, gy);
   return {
-    // The visible sill sits just in front of the barricade and just behind actors pressed against it.
-    depth: front ? Math.max(depth, depthOf(view.rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.315) : depth,
+    depth: front ? outsideSillDepth(view.rot, depth) : depth,
     draw: () => {
       ctx.save();
       ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();

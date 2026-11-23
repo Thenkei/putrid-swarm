@@ -1,8 +1,9 @@
 import type { SectorId } from '../core/types';
-import { ENTRIES } from '../core/map';
+import { ENTRIES, HOUSE_CENTER } from '../core/map';
 import { DOOR_REACH, type EnemyImpact } from '../core/night';
 import { sprite, type Sprite } from '../engine/assets';
-import { project, unproject, type Rot } from './projection';
+import { depthOf, project, unproject, type Rot, type View } from './projection';
+import { HOUSE_PAINT_SCALE } from './registration';
 import { DOOR_OPENINGS, DOOR_OUTWARD, THRESHOLDS, VISIBLE_DOORS } from '../house-layout';
 import { smoothstep } from './noise';
 
@@ -111,9 +112,43 @@ function wornFacade(rot: Rot, intact: Sprite, damage: Sprite): HTMLCanvasElement
   return canvas;
 }
 
-export interface MopedDoor {
+export interface HouseDoor {
   readonly sector: SectorId;
   readonly open: number;
+}
+
+export function doorSwing(age: number, closeAt: number, shutAt: number): number {
+  return smoothstep(0, .4, age) * (1 - smoothstep(closeAt, shutAt, age));
+}
+
+/** The outside of the sill lies just in front of its boards and behind figures attacking them. */
+export function outsideSillDepth(rot: Rot, depth: number): number {
+  return Math.max(depth, depthOf(rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.315);
+}
+
+/** While crossing the sill, the jamb hides the part of the sprite still inside the house. */
+export function clipAtSill(ctx: CanvasRenderingContext2D, view: View, sector: SectorId, facing: number) {
+  const sill = THRESHOLDS[sector];
+  const foot = project(view, sill.gx, sill.gy);
+  const width = sill.width * view.zoom;
+  const height = DOOR_OPENINGS[sector].h * HOUSE_PAINT_SCALE * view.zoom;
+  const insideEdge = facing > 0 ? -.5 : .5;
+  const leftHinge = sector === 'arriere' || sector === 'verger';
+  const inset = sector === 'grange' ? .07 : (leftHinge === (insideEdge < 0) ? .14 : .025);
+  const edgeX = foot.x + width * insideEdge * (1 - 2 * inset);
+  const edgeY = foot.y + (edgeX - foot.x) * sill.slope;
+  const limit = facing > 0 ? view.x + view.w : view.x;
+  ctx.beginPath();
+  ctx.moveTo(edgeX, edgeY);
+  ctx.lineTo(edgeX, edgeY - height);
+  ctx.lineTo(foot.x, foot.y - height);
+  ctx.lineTo(foot.x, view.y);
+  ctx.lineTo(limit, view.y);
+  ctx.lineTo(limit, view.y + view.h);
+  ctx.lineTo(foot.x, view.y + view.h);
+  ctx.lineTo(foot.x, foot.y);
+  ctx.closePath();
+  ctx.clip();
 }
 
 /** Both a leaf and its attached boards rotate about the same masonry jamb in screen space. */
@@ -227,7 +262,7 @@ function breachedDoor(ctx: CanvasRenderingContext2D, sector: SectorId): void {
   ctx.restore();
 }
 
-export function paintHouse(ctx: CanvasRenderingContext2D, rot: Rot, key: string, intact: Sprite, left: number, top: number, width: number, health: number, barricades: Readonly<Record<SectorId, { hp: number }>>, door?: MopedDoor): void {
+export function paintHouse(ctx: CanvasRenderingContext2D, rot: Rot, key: string, intact: Sprite, left: number, top: number, width: number, health: number, barricades: Readonly<Record<SectorId, { hp: number }>>, door?: HouseDoor): void {
   const image = facadeForStage(rot, key, intact, houseDamageStage(health));
   ctx.save();
   ctx.translate(left, top);

@@ -11,7 +11,7 @@ import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, t
 import { drawDecals } from './aftermath';
 import { drawEnemy, drawFallen, FALL_SECONDS, type Fallen } from './infected';
 import { drawGround, prepareGround, setGroundDresser } from './ground';
-import { DOOR_OPENINGS, VISIBLE_DOORS, doorStance, hingedLeaves, houseDamageStage, paintHouse, type MopedDoor } from './house';
+import { DOOR_OPENINGS, VISIBLE_DOORS, doorStance, hingedLeaves, houseDamageStage, outsideSillDepth, paintHouse, type HouseDoor } from './house';
 import { mopedRideDrawable } from './moped';
 import { drawHouseDebris, type HouseBreak } from './house-debris';
 import { calmMotion, drawCloudShadows, drawMist, type Light } from './lighting';
@@ -24,7 +24,7 @@ import { windAt } from './wind';
 import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
 import { drawDepartingCar, drawHeadlightPools, type DepartingCar } from './car-departure';
-import { approachDepth, drawApproachOpening, drawApproachingHero, type ApproachingHero } from './hero-approach';
+import { drawApproachWindow, drawApproachingHero, type ApproachingHero } from './hero-approach';
 import { drawRattle, rattlePoint, type RattleVisual } from './rattle';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
@@ -95,7 +95,7 @@ export interface WorldFrame {
   readonly time: number;
   readonly night: boolean;
   readonly houseHpRatio: number;
-  readonly mopedDoor?: MopedDoor;
+  readonly houseDoor?: HouseDoor;
   readonly mopedRide?: NonNullable<NightSim['mopedRide']>;
   readonly houseBreaks?: readonly HouseBreak[];
   readonly carPresent: boolean;
@@ -501,8 +501,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           const origin = houseOffset(view.rot, 0, 0);
           const left = root.x + origin.dx * z;
           const top = root.y - origin.lift * z;
-          paintHouse(ctx, view.rot, side.key, art, left, top, w, frame.houseHpRatio, frame.barricades, frame.mopedDoor);
-          if (frame.approachingHero && view.rot === 0) drawApproachOpening(ctx, frame.approachingHero, root, z);
+          paintHouse(ctx, view.rot, side.key, art, left, top, w, frame.houseHpRatio, frame.barricades, frame.houseDoor);
+          if (frame.approachingHero && view.rot === 0) drawApproachWindow(ctx, frame.approachingHero, root, z);
           if (frame.houseBreaks?.length) drawHouseDebris(ctx, frame.houseBreaks, view.rot, side.key, art, left, top, w);
           const chimney = houseOffset(view.rot, side.chimney.x, side.chimney.y);
           drawChimneySmoke(ctx, root.x + chimney.dx * z, root.y - chimney.lift * z, view, frame.time);
@@ -573,10 +573,11 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const { x, y } = hero.position;
     const foot = project(view, x, y);
     drawables.push({
-      depth: approachDepth(hero, depthOf(view.rot, x, y)),
-      draw: () => drawApproachingHero(ctx, hero, foot, z),
+      depth: outsideSillDepth(view.rot, depthOf(view.rot, x, y)),
+      draw: () => drawApproachingHero(ctx, hero, foot, view),
     });
-    contacts.push({ gx: x, gy: y, rx: 0.39, ry: 0.36, alpha: 0.34 * (1 - smoothstep(0, 22, hero.lift)) });
+    const outside = hero.emergence === undefined ? 1 : smoothstep(.52, 1, hero.emergence);
+    if (outside > 0) contacts.push({ gx: x, gy: y, rx: 0.39, ry: 0.36, alpha: .34 * outside * (1 - smoothstep(0, 22, hero.lift)) });
   }
 
   // Devices.
@@ -972,7 +973,7 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
         const previous = (pose: ReturnType<typeof doorPose>) => ({ key: `dev_barricade_${pose}`, h, lift: h * 0.095, foot: [0.5, 0.905] as const, flip: onLeftFace });
         ctx.save();
         ctx.translate(p.x, p.y);
-        const open = frame.mopedDoor?.sector === sector && barricade.hp > 0 ? frame.mopedDoor.open : 0;
+        const open = frame.houseDoor?.sector === sector && barricade.hp > 0 ? frame.houseDoor.open : 0;
         const jambWidth = door.w * k * z;
         hingedLeaves(ctx, sector, open, -jambWidth / 2, jambWidth, door.rise / door.w, () => {
           ctx.save();

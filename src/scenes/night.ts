@@ -1152,7 +1152,7 @@ export class NightScene implements Scene {
     return {
       time,
       ...(ride && ride.blastAt === null && { mopedRide: ride }),
-      ...(ride && open > 0 && { mopedDoor: { sector: ride.sector, open } }),
+      ...(ride && open > 0 && { houseDoor: { sector: ride.sector, open } }),
       night: true,
       carPresent: true,
       houseHpRatio: this.sim.houseHp / HOUSE_MAX_HP,
