@@ -666,6 +666,14 @@ export const ART = [
   },
   // Shared walk cycles and the four poses used on the upper-window route.
   {
+    id: 'village_wildlife', kind: 'atlas', w: 768, source: { concept: 'art/raw/village_wildlife.png' },
+    prompt: 'Isometric painted rural wildlife. Five rows: European robin, red squirrel, common frog, field mouse, rock pigeon. Four poses per row, individually registered at the feet.',
+  },
+  {
+    id: 'village_keepsakes', kind: 'atlas', w: 384, source: { concept: 'art/raw/village_keepsakes.png' },
+    prompt: 'Four painted props in a two by two atlas: red windfall apple, shallow enamel oil pan, dangling workshop keys, faded French airmail envelope.',
+  },
+  {
     id: 'yard_cat', kind: 'atlas', w: 768, source: { concept: 'art/raw/yard_cat.png' },
     prompt: 'Eight isometric hand-inked poses of the same russet farm tabby with pale socks, in a transparent four by two atlas. Curl asleep, listen, stretch, crouch, leap, stride, gather, sit looking back. Registered at the paws.',
   },

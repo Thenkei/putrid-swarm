@@ -262,6 +262,8 @@ export class TravelScene implements Scene {
         night: false,
         houseHpRatio,
         carPresent: true,
+        secondsSinceCarRoll: this.stills ? -1 : boardingTime - shot.rollAt,
+        homesteadLife: { day: departure.day, hornAge: this.stills || boardingTime < shot.ignitionAt ? -1 : boardingTime - shot.ignitionAt },
         ...(cat && { yardCat: cat }),
         ...(hero ? { approachingHero: hero } : { departingCar: departingCar(shot, boardingTime, dusk) }),
         ...(hero && hero.shot.start !== 'window' && hero.opening > 0 && { houseDoor: { sector: hero.shot.start, open: hero.opening } }),

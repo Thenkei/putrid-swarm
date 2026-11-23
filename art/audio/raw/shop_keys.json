@@ -1,0 +1,10 @@
+{
+  "id": "shop_keys",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "zHMsi6hBMuEGlTvJgA3v",
+  "prompt": "One short, delicate jingle of three old loose brass keys brushing together on a hook. A small bright chink, a softer answering tick, then silence. Close and dry workshop Foley, under half a second. No lock, handles, doors, ambience or music.",
+  "bytes": 34305,
+  "sha256": "ba7a327f16d124d2182e19dbc1dc0fe2727a7db5cd4840c584db4282f20de0bb"
+}

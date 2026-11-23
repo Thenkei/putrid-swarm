@@ -70,6 +70,7 @@ export type Sfx =
   | 'step_gravel'
   | 'yard_cat'
   | 'cat_bonnet'
+  | 'village_bell' | 'shop_keys' | 'well_plop'
   | 'chew'
   | 'clap'
   | 'rabbit_bolt'
@@ -1123,6 +1124,18 @@ class AudioEngine {
       case 'cat_bonnet':
         this.noise('lowpass', 850, 260, .08, .035);
         this.tone('sine', 153, 110, .12, .025, .035);
+        break;
+      case 'well_plop':
+        this.tone('sine', 440, 178, .11, .05);
+        this.noise('bandpass', 2200, 750, .14, .022, .025);
+        break;
+      case 'shop_keys':
+        this.tone('triangle', 2580, 2350, .08, .022);
+        this.tone('sine', 1620, 1580, .12, .015, .08);
+        break;
+      case 'village_bell':
+        this.tone('sine', 348, 345, 1.4, .04);
+        this.tone('sine', 829, 822, .87, .022);
         break;
       case 'chain':
         for (let i = 0; i < 6; i++) this.tone('triangle', 1800 + Math.random() * 900, 1500, 0.05, 0.05, i * 0.09);

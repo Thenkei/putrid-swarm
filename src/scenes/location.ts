@@ -2,6 +2,7 @@
 // rides in the boot until the refuge. Someone else may already be standing at the best lot.
 
 import { epicObject } from './epic-day';
+import { ShopLife } from './shop-life';
 import { CONCEAL_HOURS, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER } from '../core/data/locations';
 import { clockLabel, concealableSpots, concealSpot, leaveLocation, neighborStatus, prepareSearch, searchAttemptKey, searchStop, takeSpringReceipt, type NeighborMeeting, type SearchOutcome, type SearchStop } from '../core/game';
 import { hasViceLeftovers } from '../core/garage-vice';
@@ -39,6 +40,7 @@ export class LocationScene implements Scene {
   private panel!: EncounterPanel;
   private puzzle: ScavengePanel | null = null;
   private concealing = false;
+  private readonly roomLife: ShopLife;
   private searchDust: { readonly x: number; readonly y: number; age: number } | null = null;
   /** Whether this visit's searching is over, and why. */
   private get stop(): SearchStop | null {
@@ -53,7 +55,7 @@ export class LocationScene implements Scene {
     private readonly app: App,
     private readonly id: LocationId,
     private meeting: NeighborMeeting | null,
-  ) {}
+  ) { this.roomLife = new ShopLife(id); }
 
   private get state(): GameState {
     if (!this.app.state) throw new Error('LocationScene needs a running game');
@@ -358,6 +360,7 @@ export class LocationScene implements Scene {
     const close = (): void => {
       this.puzzle?.root.remove();
       this.puzzle = null;
+      this.roomLife.disturbed();
       this.hud.inert = false;
       this.hud.querySelector<HTMLButtonElement>(`[data-spot="${index}"]`)?.focus();
     };
@@ -534,6 +537,7 @@ export class LocationScene implements Scene {
   }
 
   update(dt: number): void {
+    if (!this.puzzle && !this.meeting && !this.panel.open) this.roomLife.update(dt, this.app.pointer, calmMotion());
     this.puzzle?.update(dt);
     this.panel.update(dt);
     if (this.searchDust) {
@@ -544,6 +548,7 @@ export class LocationScene implements Scene {
 
   render(ctx: CanvasRenderingContext2D): void {
     drawPlate(ctx, LOCATIONS[this.id].plate, { oneArmed: oneArmed(this.app.state) });
+    this.roomLife.draw(ctx, calmMotion());
     const dusk = 1 - this.state.hoursLeft / DAY_HOURS;
     ctx.fillStyle = `rgba(40, 30, 90, ${Math.max(0, dusk - 0.55) * 0.5})`;
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);

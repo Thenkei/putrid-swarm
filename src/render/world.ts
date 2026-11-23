@@ -23,9 +23,10 @@ import { drawStand, prepareForest, projectStand } from './forest';
 import { windAt } from './wind';
 import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
-import { drawDepartingCar, drawHeadlightPools, type DepartingCar } from './car-departure';
+import { drawDepartingCar, drawHeadlightPools, wagonLeaves, type DepartingCar } from './car-departure';
 import { drawApproachWindow, drawApproachingHero, type ApproachingHero } from './hero-approach';
 import { drawYardCat, type YardCatPose } from './yard-cat';
+import { drawGlowworms, drawPropLife, type HomesteadLife } from './homestead-life';
 import { drawRattle, rattlePoint, type RattleVisual } from './rattle';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
@@ -102,7 +103,9 @@ export interface WorldFrame {
   readonly carPresent: boolean;
   readonly approachingHero?: ApproachingHero;
   readonly yardCat?: YardCatPose;
+  readonly homesteadLife?: HomesteadLife;
   readonly departingCar?: DepartingCar;
+  readonly secondsSinceCarRoll?: number;
   /** Seconds since the car shut off after returning from an outing. */
   readonly exhaustAge?: number;
   readonly sceneryAction?: SceneryAction | null;
@@ -550,6 +553,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
         }
         const drawn = drawSprite(ctx, key, p.x, p.y, art.h * z, false, opacity, lean, foot);
         if (!drawn) placeholder(ctx, p.x, p.y, 40 * z, 40 * z, '#5a6a4a', prop.kind);
+        if (drawn && frame.homesteadLife) drawPropLife(ctx, prop, drawn, art.h, view, frame.homesteadLife, frame.time, calmMotion());
         if (drawn && prop.kind === 'car' && frame.exhaustAge !== undefined) {
           drawExhaust(ctx, drawn, view.rot, z, frame.exhaustAge);
         }
@@ -670,11 +674,15 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     if (particle.kind === 'ring') continue;
     drawables.push({ depth: depthOf(view.rot, particle.x, particle.y) + 0.6, draw: () => drawParticle(ctx, view, particle) });
   }
-  if (passage) {
-    for (const leaf of passage.leaves(frame.time)) {
+  const leaves = frame.secondsSinceCarRoll === undefined ? passage?.leaves(frame.time) : wagonLeaves(frame.secondsSinceCarRoll);
+  if (leaves) {
+    for (const leaf of leaves) {
       const p = project(view, leaf.x, leaf.y);
       const y = p.y - leaf.height * z;
       if (!onScreen({ x: p.x, y }, 10)) continue;
+      if (frame.secondsSinceCarRoll !== undefined && leaf.height > 0) {
+        contacts.push({ gx: leaf.x, gy: leaf.y, rx: .095, ry: .055, alpha: .28 * (1 - leaf.height / 32) });
+      }
       drawables.push({
         depth: depthOf(view.rot, leaf.x, leaf.y),
         draw: () => paintLeaf(ctx, p.x, y, leaf.size * z, view.rot === 0 ? leaf.angle : -leaf.angle, leaf.turning, leaf.alpha, leaf.colour),
@@ -692,6 +700,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   drawDecals(ctx, view, frame.decals);
   if (frame.departingCar) drawHeadlightPools(ctx, view, frame.departingCar);
   drawGroundOverlays(ctx, view, frame);
+  if (frame.night) drawGlowworms(ctx, view, frame.enemies, frame.time, calmMotion());
 
   if (frame.mopedRide) {
     const bike = mopedRideDrawable(ctx, view, frame.mopedRide, frame.time);
@@ -1324,9 +1333,35 @@ export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: num
   return devices.find((d) => d.x === Math.floor(g.gx) && d.y === Math.floor(g.gy)) ?? null;
 }
 
-/** The piece of scenery of one of `kinds` whose footprint is under the pointer, if any. */
+const propMasks = new WeakMap<HTMLImageElement, ImageData>();
+
+/** The painted silhouettes receive clicks as well as their original ground footprints. */
 export function pickProp(view: View, kinds: readonly PropKind[], sx: number, sy: number): PropKind | null {
   if (!inView(view, sx, sy)) return null;
+  let picked: PropKind | null = null, front = -Infinity;
+  for (const prop of PROPS) {
+    if (!kinds.includes(prop.kind)) continue;
+    const art = sprite(propSpriteKey(prop.kind, view.rot));
+    if (!art) continue;
+    const h = PROP_ART[prop.kind].h * view.zoom, w = h * art.w / art.h;
+    const rect = spriteRect(propRoot(view, prop), w, h, PROP_FEET[prop.kind][view.rot]);
+    const u = (sx - rect.x) / w, v = (sy - rect.y) / h;
+    if (u < 0 || v < 0 || u >= 1 || v >= 1) continue;
+    let mask = propMasks.get(art.img);
+    if (!mask) {
+      const surface = document.createElement('canvas');
+      surface.width = 64; surface.height = Math.max(1, Math.round(64 * art.h / art.w));
+      const context = surface.getContext('2d');
+      if (!context) continue;
+      context.drawImage(art.img, 0, 0, surface.width, surface.height);
+      mask = context.getImageData(0, 0, surface.width, surface.height);
+      propMasks.set(art.img, mask);
+    }
+    const index = Math.floor(v * mask.height) * mask.width + Math.floor(u * mask.width);
+    const depth = depthOf(view.rot, prop.x + prop.w / 2, prop.y + prop.h / 2);
+    if (mask.data[4 * index + 3]! > 64 && depth > front) { picked = prop.kind; front = depth; }
+  }
+  if (picked) return picked;
   const g = unproject(view, sx, sy);
   return propAt(g.gx, g.gy, kinds);
 }

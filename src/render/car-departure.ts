@@ -64,6 +64,37 @@ export function carManeuver(elapsed: number): { position: Point; yaw: number } {
   return { position: { x, y }, yaw: Math.atan2(-1, slope) };
 }
 
+// Two patches on the near shoulder. Place each leaf at the rear wheel's actual
+// crossing, so it stays put while the camera follows the walk from the house.
+const LANE_LEAVES = Array.from({ length: 11 }, (_, i) => {
+  const patch = i < 6 ? 0 : 1;
+  const at = FORWARD_START + .42 + patch * .48 + (i % 6) * .035;
+  const { position, yaw } = carManeuver(at);
+  const side = .70 + .08 * (i % 3);
+  const x = position.x + Math.sin(yaw) * .92 - Math.cos(yaw) * side;
+  const y = position.y - Math.cos(yaw) * .92 - Math.sin(yaw) * side;
+  return { at, x, y };
+});
+
+/** The wake lifts dry leaves from the gravel. They spin, skim and come to rest. */
+export function* wagonLeaves(secondsSinceRoll: number) {
+  for (const [i, leaf] of LANE_LEAVES.entries()) {
+    const t = clamp01((secondsSinceRoll - leaf.at) / (.80 + .10 * (i % 4)));
+    const arc = 4 * t * (1 - t);
+    const drift = t * (2 - t);
+    yield {
+      x: leaf.x - (.25 + .16 * (i % 4)) * drift,
+      y: leaf.y + (.66 + .20 * (i % 5)) * drift + .14 * arc * Math.sin(i + 6 * t),
+      height: (8 + i % 4 * 4.2) * arc,
+      size: 2.8 + i % 3 * .55,
+      angle: i * 2.1 + t * (i % 2 ? 8 : -6),
+      turning: .48 + .5 * arc * Math.abs(Math.sin(11 * t + i)),
+      alpha: .82,
+      colour: i,
+    };
+  }
+}
+
 interface CarArt {
   readonly art: Sprite;
   readonly columnCut: number;

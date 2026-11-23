@@ -605,6 +605,24 @@
     "seconds": 0.601,
     "gain": 0.6
   },
+  "well_plop": {
+    "file": "well_plop.mp3",
+    "kind": "sfx",
+    "seconds": 0.758,
+    "gain": 0.7
+  },
+  "shop_keys": {
+    "file": "shop_keys.mp3",
+    "kind": "sfx",
+    "seconds": 0.731,
+    "gain": 0.64
+  },
+  "village_bell": {
+    "file": "village_bell.mp3",
+    "kind": "sfx",
+    "seconds": 1.045,
+    "gain": 0.64
+  },
   "yard_cat": {
     "file": "yard_cat.mp3",
     "kind": "sfx",

@@ -2206,5 +2206,15 @@
     "file": "sprites/yard_cat.webp",
     "w": 768,
     "h": 256
+  },
+  "village_wildlife": {
+    "file": "sprites/village_wildlife.webp",
+    "w": 768,
+    "h": 640
+  },
+  "village_keepsakes": {
+    "file": "sprites/village_keepsakes.webp",
+    "w": 384,
+    "h": 384
   }
 }
