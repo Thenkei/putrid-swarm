@@ -6,6 +6,7 @@
 import { Decks } from './deck';
 
 export type Sfx =
+  | 'epic_flare' | 'epic_mob' | 'epic_tape' | 'epic_pack'
   | 'click'
   | 'deny'
   | 'build'
@@ -797,6 +798,10 @@ class AudioEngine {
 
   private synth(name: Sfx, rate = 1): void {
     switch (name) {
+      case 'epic_flare': this.noise('lowpass', 2000, 420, .42, .2); break;
+      case 'epic_mob': this.synth('engine', 1.3); break;
+      case 'epic_tape': this.tone('square', 680, 110, .075, .04); break;
+      case 'epic_pack': this.tone('sine', 430, 575, .55, .045); break;
       case 'click':
         this.tone('square', 660, 440, 0.05, 0.08);
         break;

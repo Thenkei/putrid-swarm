@@ -1,0 +1,13 @@
+{
+  "id": "vo_epic_pack",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "Ol9x9m3pHhf2FQ02JI5Z",
+  "generatedAt": "2026-11-23T20:30:30.541Z",
+  "prompt": "[whispering] Attends. Y a un petit sous la grille.",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "bytes": 58964,
+  "sha256": "64aafa0abe72b5941a19ecaecca09decce32edffb643e0352f0294055c9d666b"
+}

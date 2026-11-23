@@ -1,4 +1,46 @@
 {
+  "epic_flare": {
+    "file": "epic_flare.mp3",
+    "kind": "sfx",
+    "seconds": 0.731,
+    "gain": 0.78
+  },
+  "epic_mob": {
+    "file": "epic_mob.mp3",
+    "kind": "sfx",
+    "seconds": 2.038,
+    "gain": 0.9
+  },
+  "epic_tape": {
+    "file": "epic_tape.mp3",
+    "kind": "sfx",
+    "seconds": 0.209,
+    "gain": 0.5
+  },
+  "epic_pack": {
+    "file": "epic_pack.mp3",
+    "kind": "sfx",
+    "seconds": 2.038,
+    "gain": 0.72
+  },
+  "vo_epic_stove": {
+    "file": "vo_epic_stove.mp3",
+    "kind": "voice",
+    "seconds": 2.482,
+    "gain": 1
+  },
+  "vo_epic_pack": {
+    "file": "vo_epic_pack.mp3",
+    "kind": "voice",
+    "seconds": 2.168,
+    "gain": 1
+  },
+  "vo_epic_neighbor": {
+    "file": "vo_epic_neighbor.mp3",
+    "kind": "voice",
+    "seconds": 2.247,
+    "gain": 1
+  },
   "spikes": {
     "file": "spikes.mp3",
     "kind": "sfx",

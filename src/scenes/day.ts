@@ -1,6 +1,7 @@
 // Daytime at the refuge: the lot seen from above, the build menu, the doors, and the two ways
 // out of the day — the car, or waiting for night.
 
+import { epicObject } from './epic-day';
 import { BARRICADE, DEVICES, HOUSE_MAX_HP, HOUSE_REPAIR, facingsOf, isTrap, turned } from '../core/data/devices';
 import { BOSS } from '../core/data/enemies';
 import { DAY_HOURS } from '../core/data/locations';
@@ -414,6 +415,8 @@ export class DayScene implements Scene {
         ])
       : null;
     if (this.deliverySlip) frame.append(this.deliverySlip);
+    const curiosity = epicObject(this.app, () => this.refresh());
+    if (curiosity) frame.append(curiosity);
     // One column: the doors' panel grows a line taller with every door that needs a nail, and the card under it follows.
     const side = el('div', { class: 'day-side' }, [doors, tonight]);
     this.root.replaceChildren(frame, topbar, panel, viewTools, side, actions, this.info);

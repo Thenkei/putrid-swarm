@@ -1,0 +1,9 @@
+/* Keep the art in its recorded aspect ratio and physical controls large enough for touch. */
+@media (pointer: coarse) {
+  .epic-night:has(.vhs-track) .epic-actions { gap:5px; }
+  .epic-night:has(.vhs-track) .btn { flex:1 1 auto; min-height:44px; padding:6px 10px; font-size:15px; }
+}
+@media (pointer:coarse) and (orientation:portrait) {
+  #ui .epic-night:has(.vhs-track) { align-content:center; grid-template-rows:auto auto auto auto; }
+  .epic-night:has(.vhs-track) .epic-field { aspect-ratio:960/412; }
+}

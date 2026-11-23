@@ -1,0 +1,7 @@
+.epic-pause { position: absolute; top: 26px; right: 30px; min-width: 48px; }
+.epic-night h2 { padding-right: 40px; }
+.garage-print-tray { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 14px; background: radial-gradient(ellipse at 32% 10%, #763529, #322623 48%, #181a17); }
+.garage-print-paper { padding: 10px 10px 20px; background: #d8c9aa; box-shadow: 2px 7px 16px #000a; transform: rotate(-2deg); }
+.garage-print-photo { position: relative; width: 550px; height: 230px; overflow: hidden; background-color: #5e6261; background-size: cover; background-position: center 55%; opacity: 0; }
+.garage-print-photo img { position: absolute; right: 22%; bottom: 4%; width: 31%; }
+.garage-print-status { padding: 4px 15px; color: #f1dcc1; background: #271c18; font-size: 20px; }

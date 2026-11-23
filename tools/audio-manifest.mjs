@@ -35,6 +35,13 @@ const music = (id, seconds, text, extra = {}) => ({ id, kind: 'music', seconds, 
 const voice = (id, role, text, extra = {}) => ({ id, kind: 'voice', role, text, stability: 0.45, similarity: 0.8, gain: 1, ...extra });
 
 export const AUDIO = [
+  sfx('epic_flare', 0.65, 'A single 0.65 second burst of stylized fire for a retro French horror videogame, close dry gas ignition fwoomp and a crisp rushing flame tail, isolated sound effect, no ambience or speech.', { peak: -5, gain: 0.78, maxSeconds: 0.68 }),
+  sfx('epic_mob', 2, 'One short cinematic game effect: an old French two-stroke moped sputters to life, races past, rattles into a fence and its little horn sticks briefly. About two seconds. Isolated, no music or speech.', { peak: -5, gain: 0.9 }),
+  sfx('epic_tape', 0.5, 'A tight crunchy 1980s coin-op blaster burst: three tiny electronic pulses within 0.25 seconds, pitched descending, punchy first transient, no ambience, no music, designed for repeating in an arcade game.', { peak: -5, gain: 0.5, maxSeconds: 0.17 }),
+  sfx('epic_pack', 2, 'A young wolf cub gives one questioning high whine from nearby, followed by a low soft answering howl in a French orchard at night. Two seconds of clean isolated animal foley, no music.', { peak: -5, gain: 0.72 }),
+  voice('vo_epic_stove', 'hero', '[dryly] Bon. Ce soir, on mange froid.', { peak: -4 }),
+  voice('vo_epic_pack', 'hero', '[whispering] Attends. Y a un petit sous la grille.', { peak: -4 }),
+  voice('vo_epic_neighbor', 'hero', '[quietly] Ça y est. Il a rallumé sa cuisine.', { peak: -4 }),
   // ───────────── Traps ─────────────
   sfx('spikes', 0.9, 'Sharpened wooden stakes springing up out of the ground: a metal spring twang, then a hard wooden clack. Close, dry, no reverb.'),
   sfx('log', 1.8, 'A heavy tree trunk hung on ropes swings down: rope creak, a deep whoosh, then one massive dull thud. Close, dry.'),

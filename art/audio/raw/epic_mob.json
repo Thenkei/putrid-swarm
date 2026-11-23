@@ -1,0 +1,11 @@
+{
+  "id": "epic_mob",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "BNgYQfcCalH1Kt0N6chO",
+  "generatedAt": "2026-11-23T20:30:15.851Z",
+  "prompt": "One short cinematic game effect: an old French two-stroke moped sputters to life, races past, rattles into a fence and its little horn sticks briefly. About two seconds. Isolated, no music or speech.",
+  "bytes": 50187,
+  "sha256": "30c3bdbf81c5fae3d0a064e5d67cebdbcdc846aadc66ab7df8660a090d619896"
+}

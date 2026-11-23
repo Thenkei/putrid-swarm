@@ -1,6 +1,7 @@
 // A searchable interior. Each hotspot costs daylight and is emptied for good; what is found
 // rides in the boot until the refuge. Someone else may already be standing at the best lot.
 
+import { epicObject } from './epic-day';
 import { CONCEAL_HOURS, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER } from '../core/data/locations';
 import { clockLabel, concealableSpots, concealSpot, leaveLocation, neighborStatus, prepareSearch, searchAttemptKey, searchStop, takeSpringReceipt, type NeighborMeeting, type SearchOutcome, type SearchStop } from '../core/game';
 import { hasViceLeftovers } from '../core/garage-vice';
@@ -213,6 +214,8 @@ export class LocationScene implements Scene {
     const thought = lastSearchBeforeDusk ? el('p', { class: 'panel last-search-thought', text: s.crossbowRoad.lastSearch }) : null;
 
     this.hud.replaceChildren(topbar, stash, this.noiseGauge(), ...spots.filter(spot => spot !== null), title, leave);
+    const curiosity = !this.concealing && !this.stop && epicObject(this.app, () => this.refresh());
+    if (curiosity) this.hud.append(curiosity);
     if (thought) this.hud.append(thought);
   }
 

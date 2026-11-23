@@ -1,0 +1,11 @@
+{
+  "id": "epic_tape",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "DKApsrTRLFVuHXOfGGHE",
+  "generatedAt": "2026-11-23T20:30:11.220Z",
+  "prompt": "A tight crunchy 1980s coin-op blaster burst: three tiny electronic pulses within 0.25 seconds, pitched descending, punchy first transient, no ambience, no music, designed for repeating in an arcade game.",
+  "bytes": 50187,
+  "sha256": "88429525ec0d5ffd1119b8b40367070a77e5db1c8324a8dc6809d908fb1f368f"
+}

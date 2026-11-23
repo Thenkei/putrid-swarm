@@ -1,6 +1,9 @@
 // The night: a desk, four cameras, and traps fired by hand.
 // The simulation runs on its own clock; this scene only chooses which part of it to look at.
 
+import { drawMoped } from '../render/moped';
+import { project } from '../render/projection';
+import { EpicNight } from './epic-night';
 import { CassetteRecorder } from '../render/cassette';
 import { TAPE } from '../core/cassette';
 import { cameraPriority, type CameraPriority } from '../core/camera-priority';
@@ -109,6 +112,7 @@ interface TrapButton {
 
 export class NightScene implements Scene {
   private readonly sim: NightSim;
+  private epic!: EpicNight;
   private readonly recorder = new CassetteRecorder();
   private readonly siren: SirenSector | null;
   private readonly brushPassage = new BrushPassage();
@@ -301,8 +305,16 @@ export class NightScene implements Scene {
     const pauseOverlay = el('div');
     this.pauseMenu = new PauseMenu(pauseOverlay, pauseButton);
     this.coachEl = el('div', { class: 'coach' });
-    this.root = el('div', {}, [topbar, this.camFrame, ...minis, this.trapBar, this.banners, this.coachEl, this.overlay, pauseOverlay]);
-    this.app.ui.append(this.root);
+    this.root = el('div', {}, [topbar, this.camFrame, ...minis, this.trapBar, this.banners, this.coachEl, this.overlay]);
+    this.app.ui.append(this.root, pauseOverlay);
+    this.epic = new EpicNight(this.app, this.sim, this.root, (canvas, sector) => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const view = this.viewFor(sector, { x: 0, y: 0, w: canvas.width, h: canvas.height }, 1.1);
+      drawWorld(ctx, view, this.frame(sector, false));
+      applyNight(ctx, view, this.lights(view.rot), this.sim.time);
+      return this.sim.enemies.filter(e => e.alive).map(e => ({ id: e.id, ...project(view, e.x, e.y) }));
+    }, sector => this.switchCam(sector), () => this.togglePause());
     if (this.sim.handView()) this.hand = new HandGauge();
     this.layoutMinis();
     for (const sector of SECTOR_IDS) this.renderMini(sector);
@@ -754,9 +766,11 @@ export class NightScene implements Scene {
 
   onKeyDown(code: string, event: KeyboardEvent): void {
     if (code === 'Escape' || code === 'KeyP') {
+      event.preventDefault();
       this.togglePause();
       return;
     }
+    if (this.epic.active) return;
     if (code === 'F3') {
       this.debug = !this.debug;
       event.preventDefault();
@@ -1057,6 +1071,7 @@ export class NightScene implements Scene {
       this.syncHud();
       return;
     }
+    if (this.epic.update(dt)) return;
     this.murmur();
 
     const previousTime = this.sim.time;
@@ -1188,6 +1203,7 @@ export class NightScene implements Scene {
     const view = this.viewFor(sector, rect, (MAIN_ZOOM * MINI.w) / MAIN.w);
     const frame = this.frame(sector, false);
     drawWorld(mctx, view, frame);
+    drawMoped(mctx, view, this.sim);
     applyNight(mctx, view, this.lights(view.rot), frame.time);
     applyCctv(mctx, view, frame.time + SECTOR_IDS.indexOf(sector) * 1.7, 1);
   }
@@ -1195,6 +1211,9 @@ export class NightScene implements Scene {
   render(ctx: CanvasRenderingContext2D): void {
     ctx.fillStyle = '#0d0b09';
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+    // An opaque insert owns the screen while the simulation is held. The live porch
+    // still records the yard for the morning replay.
+    if (this.epic.holdsDesk) return;
 
     // Main feed.
     if (this.isDark(this.cam)) {
@@ -1203,6 +1222,7 @@ export class NightScene implements Scene {
       const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
       const frame = this.frame(this.cam, true);
       drawWorld(ctx, view, frame);
+      drawMoped(ctx, view, this.sim);
       applyNight(ctx, view, this.lights(view.rot), frame.time);
       applyCctv(ctx, view, frame.time, 0.85);
       drawRetune(ctx, view, this.time - this.retuneAt);

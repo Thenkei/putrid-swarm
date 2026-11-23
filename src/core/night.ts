@@ -8,6 +8,7 @@ import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlock
 import type { CameraOutage } from './orchard';
 import type { Ally } from './radio';
 import { computeField, nextStep, type Field } from './pathing';
+import { MOPED_RUN_SECONDS } from './epics';
 import { createRng, type Rng } from './rng';
 import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, NeighborId, NightHighlight, NightReport, Result, SectorId, TrapTally, YardState } from './types';
 import { SECTOR_IDS, err, ok } from './types';
@@ -642,6 +643,7 @@ export class NightSim {
     if (this.fieldsDirty) this.rebuildFields();
     this.updateDevices(dt);
     this.updateAuras();
+    this.sweepMoped(dt);
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
       const previous = enemy.action;
@@ -900,6 +902,11 @@ export class NightSim {
     }
 
     if (e.lureDevice !== null && this.followLure(e, dt)) return;
+    const ride = this.mopedRide;
+    if (ride && !e.def.boss && !e.shielded && this.time - ride.start > MOPED_RUN_SECONDS && this.time - ride.start < 8 && sectorOf(Math.floor(e.x), Math.floor(e.y)) === ride.sector) {
+      const step = nextStep(ride.field, Math.floor(e.x), Math.floor(e.y), this.fences);
+      if (step) { this.followStep(e, step, dt); return; }
+    }
     this.advance(e, dt);
   }
 
@@ -1361,6 +1368,46 @@ export class NightSim {
       e.cooldown = Math.max(e.cooldown, 1.2);
       this.events.push({ type: 'interrupt', x: e.x, y: e.y });
     }
+  }
+
+  mopedRide: { sector: SectorId; start: number; field: Field; hit: Set<number> } | null = null;
+
+  launchMoped(sector: SectorId): boolean {
+    if (this.mopedRide || this.outcome !== 'ongoing') return false;
+    this.mopedRide = { sector, start: this.time, field: computeField(LANES[sector][0]!, { blocked: this.fences }), hit: new Set() };
+    return true;
+  }
+
+  private sweepMoped(dt: number): void {
+    const ride = this.mopedRide;
+    if (!ride) return;
+    const age = this.time - ride.start;
+    if (age - dt >= MOPED_RUN_SECONDS) return;
+    const entry = ENTRIES[ride.sector];
+    const end = LANES[ride.sector][0]!;
+    const dx = end.x - entry.x, dy = end.y - entry.y;
+    const length = Math.hypot(dx, dy);
+    const from = Math.max(0, (age - dt) / MOPED_RUN_SECONDS) * length;
+    const to = Math.min(1, age / MOPED_RUN_SECONDS) * length;
+    for (const e of this.enemies) {
+      if (!e.alive || ride.hit.has(e.id)) continue;
+      const x = e.x - entry.x - .5, y = e.y - entry.y - .5;
+      const along = (x * dx + y * dy) / length;
+      if (along < from - .45 || along > to + .45 || Math.abs(x * dy - y * dx) / length > 1.75) continue;
+      ride.hit.add(e.id);
+      this.damage(e, 95);
+    }
+  }
+
+  /** The epic actions use the same damage, kills and impact feedback as the desk traps. */
+  epicStrike(sector: SectorId, kind: 'flame' | 'pack', targets?: ReadonlySet<number>): number {
+    let hits = 0;
+    for (const e of this.enemies) {
+      if (!e.alive || (targets && !targets.has(e.id)) || sectorOf(Math.floor(e.x), Math.floor(e.y)) !== sector) continue;
+      this.damage(e, kind === 'flame' ? 36 : 95);
+      hits++;
+    }
+    return hits;
   }
 
   private damage(e: Enemy, amount: number, contact?: EnemyImpact): void {

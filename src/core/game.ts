@@ -16,6 +16,7 @@ import { acquaintance } from './encounters';
 import { createRng, type Rng } from './rng';
 import { spotRevealed } from './planque';
 import { FAILED_ATTEMPT_NOISE, makeNoise, searchesLostToNoise } from './street-noise';
+import { unloadMoped } from './epics';
 import type { Cost, DeviceInstance, GameState, Inventory, LocationId, LocationProgress, NeighborId, NightReport, OutingMark, ResourceId, Result } from './types';
 import { LOCATION_IDS, RESOURCE_IDS, err, ok } from './types';
 import { DEVICES } from './data/devices';
@@ -439,12 +440,12 @@ export function arriveHome(state: GameState): Result<Arrival, DayError> {
   if (state.phase !== 'day') return err({ code: 'wrong_phase' });
   if (state.where !== 'road' || !state.outing) return err({ code: 'not_on_road' });
   if (state.encounter || state.outing.crossbowStop) return err({ code: 'encounter_pending' });
-  const { trunk, parted, marks } = state.outing;
+  const { trunk, parted, state: unloaded } = unloadMoped(state, state.outing.trunk, state.outing.parted);
   return ok({
-    state: { ...state, where: 'home', inventory: gain(state.inventory, trunk), outing: null },
+    state: { ...unloaded, where: 'home', inventory: gain(state.inventory, trunk), outing: null },
     brought: trunk,
     parted,
-    marks,
+    marks: state.outing.marks,
   });
 }
 

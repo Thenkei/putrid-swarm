@@ -50,7 +50,7 @@ const DECLICK = 0.03;
 
 /** Per kind: filter chain before levelling, target peak (dBFS) or loudness, and encoding. */
 const PROFILE = {
-  sfx: { chain: (entry, tail) => `${TRIM_HEAD},afade=t=in:d=0.004,${fadeTail(tail)}`, peak: -2, channels: 1, bitrate: '96k' },
+  sfx: { chain: (entry, tail) => [TRIM_HEAD, entry.maxSeconds && `atrim=duration=${entry.maxSeconds}`, 'afade=t=in:d=0.004', fadeTail(entry.maxSeconds ? Math.min(tail, entry.maxSeconds / 4) : tail)].filter(Boolean).join(','), peak: -2, channels: 1, bitrate: '96k' },
   // Beds must keep their exact length: the generator made them loop.
   loop: { chain: () => 'anull', peak: -6, channels: 2, bitrate: '128k' },
   music: { chain: () => 'loudnorm=I=-17:TP=-1.5:LRA=11', peak: null, channels: 2, bitrate: '128k' },
@@ -95,7 +95,7 @@ function processEntry(entry) {
     // Measure the peak after the chain, then bring it to the target in the real pass.
     const measured = /max_volume: (-?[\d.]+) dB/.exec(ffmpeg(raw, `${filters},volumedetect`));
     if (!measured) throw new Error(`${entry.id}: could not measure level`);
-    filters += `,volume=${(profile.peak - Number(measured[1])).toFixed(2)}dB`;
+    filters += `,volume=${((entry.peak ?? profile.peak) - Number(measured[1])).toFixed(2)}dB`;
   }
   // Whole MP3 frames only: some filters (aecho) otherwise hand the encoder a short last frame it rejects.
   filters += ',asetnsamples=n=1152:p=1';

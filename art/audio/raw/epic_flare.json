@@ -1,0 +1,11 @@
+{
+  "id": "epic_flare",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "uVFb4RMUjg6NTYIICpob",
+  "generatedAt": "2026-11-23T20:30:06.997Z",
+  "prompt": "A single 0.65 second burst of stylized fire for a retro French horror videogame, close dry gas ignition fwoomp and a crisp rushing flame tail, isolated sound effect, no ambience or speech.",
+  "bytes": 50187,
+  "sha256": "88d161ecfa902f01315da26c71bffc35fa35095360f3bd2467bbb9532793cdb4"
+}

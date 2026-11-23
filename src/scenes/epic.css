@@ -1,0 +1,107 @@
+.epic-object { position:absolute; left:16%; top:69%; z-index:2; max-width:310px; color:#efe1bb; pointer-events:auto; font-size:15px; }
+.refuge-curiosities { position:absolute; left:3%; top:12%; z-index:2; display:grid; gap:4px; max-width:310px; }
+.refuge-curiosities .epic-object { position:static; width:fit-content; }
+/* These inserts own the whole display. Keep the underlying desk in its native camera
+   coordinates when it returns, while controls on a small screen use viewport pixels. */
+@media (max-width: 880px), (pointer: coarse) {
+  #stage:has(.epic-night) { position:fixed; inset:0; width:100%; height:100%; transform:none !important; }
+  #stage #ui .epic-night { overflow:auto; align-content:center; grid-template-rows:auto minmax(145px,1fr) auto auto; gap:8px;
+    padding:max(9px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(9px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left)); }
+  #ui .epic-night h2 { padding-right:52px; font-size:clamp(21px,4vw,30px); line-height:1.05; }
+  #ui .epic-night p { min-height:0; font-size:16px; line-height:1.24; }
+  #ui .epic-actions { gap:5px; }
+  #ui .epic-night .btn { min-height:44px; padding:5px 9px; font-size:15px; }
+  #ui .epic-pause { right:max(12px,env(safe-area-inset-right)); top:4px; min-width:44px; }
+  #stage:has(.epic-night) #subtitle { bottom:auto; top:44px; width:max-content; max-width:88%; font-size:15px; }
+  #ui .moon-feed-id, #ui .moon-evidence, #ui .moon-caption { font-size:13px; padding:3px 6px; }
+  #ui .moon-caption { bottom:3px; left:4px; max-width:96%; }
+  #ui .moon-timing { bottom:38px; height:10px; }
+  #ui .garage-print-tray { gap:4px; }
+  #ui .garage-print-paper { padding:4px 4px 7px; }
+  #ui .garage-print-photo { width:min(65vw,45vh); height:auto; aspect-ratio:2.4; }
+  #ui .garage-print-status { font-size:14px; }
+}
+@media (orientation:portrait) and (max-width:880px) {
+  #stage #ui .epic-night { grid-template-rows:auto auto auto auto; }
+  #ui .epic-field { min-height:145px; aspect-ratio:2; }
+  #ui .epic-field:has(.last-watch-scope) { aspect-ratio:1.15; }
+  #ui .epic-field:has(.last-watch-scope) .last-watch-scope { inset:2%; padding:8px; }
+  #ui .last-watch-screen canvas { height:95px; }
+}
+.epic-object summary { cursor:pointer; background:#241f18eb; padding:6px 10px; border-left:3px solid #bc9959; }
+.epic-object[open] { background:#211c16f7; padding:0 8px 8px; }
+.epic-object p { margin:8px 0; }
+#ui .epic-night { position:absolute; inset:0; z-index:15; pointer-events:auto; display:grid; grid-template-rows:auto minmax(0,1fr) auto auto; gap:12px; padding:32px 76px; background:#13130ffb; color:#e2d7bf; }
+.epic-night h2 { font-size:34px; margin:0; letter-spacing:.03em; }
+.epic-night p { font-size:19px; margin:0; min-height:46px; }
+.epic-field { position:relative; overflow:hidden; background-size:cover; background-position:center; border:1px solid #736547; box-shadow:inset 0 0 54px #0009; }
+.epic-actions { display:flex; flex-wrap:wrap; gap:9px; }
+.epic-launch { position:absolute; left:660px; top:505px; z-index:2; }
+.epic-key,.epic-slot { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); }
+.epic-key { font-size:76px; color:#ffd586; text-shadow:1px 2px 6px black; }
+.epic-slot { height:110px; width:12%; border:3px solid #f4d687; background:#2e251a99; }
+.morning-mail { position:absolute; top:44px; left:40px; display:grid; gap:5px; justify-items:start; }
+#ui .morning-mail .postal-paper { position:static; }
+.epic-field canvas { width:100%; height:100%; object-fit:cover; }
+.last-watch-scope { position:absolute; inset:6% 12%; display:grid; align-content:center; gap:12px; padding:18px 26px; border:4px ridge #696554; background:#302f28f5; color:#f5dfba; }
+.last-watch-scope canvas { width:100%; height:160px; object-fit:fill; }
+.last-watch-scope label { display:grid; grid-template-columns:100px 1fr 32px; align-items:center; gap:12px; }
+.last-watch-scope input { width:100%; accent-color:#ecc27a; }
+
+.epic-key-door { position:absolute; inset:0; overflow:hidden; background:
+  radial-gradient(ellipse at 48% 38%,#c79b5a33,transparent 63%),
+  repeating-linear-gradient(91deg,transparent 0 15px,#1d17123d 17px,transparent 20px 46px),
+  repeating-linear-gradient(90deg,#29231f 0 3px,#45362a 4px,#614b37 6px,#3e3228 99px,#241e19 101px);
+  box-shadow:inset 0 0 90px 22px #090b09ad; }
+.epic-key-door::before { content:""; position:absolute; inset:12% 7%; border:6px ridge #514235; box-shadow:inset 0 0 7px #171815,0 1px 4px #15130e; }
+.epic-key-door .epic-slot { top:61%; width:26.52%; height:25px; border:8px solid #9a825f; border-bottom-color:#6a5945; border-radius:7px; background:#100f0e; box-shadow:inset 0 7px 6px #000,0 2px 3px #000,0 0 0 2px #3a3023; }
+.epic-key-door .epic-slot::before,.epic-key-door .epic-slot::after { content:""; position:absolute; width:8px; height:8px; top:6px; border-radius:50%; background:linear-gradient(142deg,#ad9a70 40%,#302d22 42% 56%,#8a7853 59%); }
+.epic-key-door .epic-slot::before { left:-7px; } .epic-key-door .epic-slot::after { right:-7px; }
+.epic-key-door .epic-slot[data-aligned=true] { border-top-color:#e4bd75; }
+.epic-key-door .epic-key { top:53%; width:45px; height:96px; transform:translate(-50%,-50%) rotate(var(--tilt,0deg)); transform-origin:50% 14%; filter:drop-shadow(2px 3px 2px #141109); }
+.epic-key i,.epic-key b { position:absolute; display:block; top:5px; left:4px; width:31px; height:38px; border:5px solid #bba984; border-radius:50%; box-shadow:inset 1px 1px 0 #362f25,1px 0 0 #e5d1ab; }
+.epic-key b { width:20px; height:22px; left:16px; top:31px; border-color:#dcc17a; border-width:6px; transform:rotate(8deg); }
+.epic-key b::before { content:""; position:absolute; top:16px; left:2px; width:8px; height:38px; background:linear-gradient(90deg,#8b7140,#f2d78f 45%,#ac8a4c); }
+.epic-key b::after { content:""; position:absolute; left:8px; top:39px; width:12px; height:13px; background:#b99556; clip-path:polygon(0 0,65% 0,65% 33%,100% 33%,100% 100%,0 100%); }
+.last-watch-scope { border:6px ridge #635f53; border-radius:12px; background:linear-gradient(175deg,#514f44,#292c27 54%,#403f36); box-shadow:inset 0 1px 2px #a7a18a,0 8px 24px #0c0e0bcc; }
+.last-watch-screen { position:relative; border:9px solid #252a25; border-radius:14px; overflow:hidden; background:#17251f; box-shadow:0 1px 2px #918a72,inset 0 2px 8px #070c08; }
+.last-watch-screen canvas { display:block; }
+.last-watch-screen::before,.last-watch-screen::after { content:""; position:absolute; inset:0; pointer-events:none; }
+.last-watch-screen::before { background:repeating-linear-gradient(0deg,transparent 0 2px,#09120e44 3px); box-shadow:inset 0 0 27px #08120fbb; border-radius:8px; }
+.last-watch-screen::after { height:16%; top:-20%; background:linear-gradient(0deg,transparent,#9dbdab10,transparent); animation:scope-roll 6.2s linear infinite; }
+@keyframes scope-roll { to {top:105%;} }
+.last-watch-state { display:flex; align-items:center; gap:10px; }
+.last-watch-state::before { content:""; width:9px; height:9px; border-radius:50%; background:#c89048; box-shadow:0 0 5px #b88145; }
+.last-watch-state[data-locked=true]::before { background:#b5e0bd; box-shadow:0 0 9px #92c8a1; }
+@media (prefers-reduced-motion: reduce) { .last-watch-screen::after { animation:none; } .epic-key-door .epic-key { transform:translate(-50%,-50%); } }
+
+.kitchen-door-detail { position:absolute; inset:0; display:grid; grid-template-rows:1fr 1fr; gap:30px; align-content:center; padding:6% 16%; background:
+  linear-gradient(90deg,#120e09b0,#231a10a6 54%,#17130deb 70%),url('../assets/epic-kitchen.webp') right 68% / 210% auto; }
+.kitchen-bolt { position:relative; width:100%; max-width:465px; height:70px; margin:auto; border-radius:7px; border:4px ridge #80755d; background:linear-gradient(160deg,#585245,#272a24 60%,#524a39); box-shadow:1px 4px 7px #100d09; }
+.kitchen-bolt::before,.kitchen-bolt::after { position:absolute; content:""; width:9px; height:9px; border-radius:50%; top:8px; left:8px; background:linear-gradient(128deg,#a89976 40%,#37372e 44% 57%,#81765b 60%); }
+.kitchen-bolt::after { top:auto; left:auto; right:8px; bottom:8px; }
+.bolt-rail { position:absolute; left:9%; right:20%; top:26%; height:44%; background:#171a16; border:2px groove #77735b; }
+.bolt-shaft { position:absolute; top:33%; left:10%; width:54%; height:30%; border-radius:6px; background:linear-gradient(#5b5d4f,#999780 18%,#c1bba0 31%,#817c66 49%,#41483c 86%); transform:translateX(calc(var(--slide,0%) * .42)); box-shadow:0 3px 2px #131510aa; }
+.bolt-shaft::after { content:""; position:absolute; top:-14px; left:28%; width:18px; height:31px; border-radius:40%; background:linear-gradient(90deg,#5c5b48,#b3a886,#6c674f); box-shadow:0 2px 3px #191913; }
+.bolt-catch { position:absolute; left:73%; width:17%; top:16%; height:65%; border-radius:4px; border:3px ridge #756e57; background:linear-gradient(100deg,#474a3d,#716f59,#45483d); }
+.kitchen-bolt[data-active=true] { outline:2px solid #d4c393; }
+.kitchen-door-detail[data-pressure=true] .kitchen-bolt[data-active=true] { outline-style:dashed; outline-color:#c59867; }
+.epic-night progress { width:148px; height:12px; vertical-align:middle; margin-left:18px; accent-color:#e2c481; }
+.epic-actions button[aria-pressed=true] { box-shadow:inset 0 -3px #e1bb78; }
+.epic-field canvas.garden-feed { object-fit:contain; display:block; background:#101815; }
+.epic-night :is(button,input,canvas):focus-visible { outline:3px solid #ffe0a2; outline-offset:-3px; }
+.last-watch-legend { display:flex; align-items:center; gap:24px; font-size:15px; }
+.last-watch-legend span::before { content:""; display:inline-block; width:25px; border-top:3px dashed #9ad4c2; margin:0 7px 3px 0; }
+.last-watch-legend span+span::before { border-top:3px solid #e6aa61; }
+.last-watch-scope input { min-height:34px; }
+.epic-live { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+@media (pointer:coarse) {
+  .epic-actions .btn { min-height:68px; }
+  .last-watch-scope input { min-height:56px; }
+}
+@media (max-width:880px), (pointer:coarse) {
+  .kitchen-door-detail { padding:6px 10%; gap:8px; }
+  .kitchen-bolt { height:clamp(36px,8vh,58px); }
+  .last-watch-scope label { grid-template-columns:minmax(62px,24%) 1fr 23px; gap:7px; }
+  .last-watch-legend { gap:12px; }
+}

@@ -1099,6 +1099,9 @@ export const fr = {
     last: 'DERNIER ACCORD',
   },
   voice: {
+    vo_epic_stove: 'Bon. Ce soir, on mange froid.',
+    vo_epic_pack: 'Attends. Y a un petit sous la grille.',
+    vo_epic_neighbor: 'Ça y est. Il a rallumé sa cuisine.',
     vo_later: 'Bon. La maison tient. Le break démarre encore. C’est déjà ça.',
     vo_coffee_1: 'Tout va bien.',
     vo_coffee_2: 'Mais d’abord, un café.',

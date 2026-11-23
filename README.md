@@ -75,6 +75,19 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Day | click the break, or the well | the horn; a washer for a wish. Neither costs or changes anything |
 | Credits | `Esc`, or "Passer" | leave; they end on their own after 74 seconds, back at the title |
 
+## The night watch
+
+Each night from the second to the seventh has one special scene. Daytime clues change what you can do when it arrives. The pause button and `Esc` work throughout.
+
+| Night | At the desk |
+| --- | --- |
+| 2 | Brace the kitchen door under pressure. A sketch found in town unlocks a trip outside with the stove, followed by a timed return. |
+| 3 | Develop a garage photograph, or release Gérard’s moped down the lane you chose at home. Recovering it means clearing a path in the garage and bringing it back in the wagon. |
+| 4 | Play a VHS rail shooter. The sleeve in the post office changes the score bonus. Ejecting the tape returns you to the actual watch. |
+| 5 | Follow a cub across three camera feeds, then work the gate while the infected pass. |
+| 6 | Guide a neighbour through three gardens. Signal when to walk and when to duck. Preparing the window lamp shortens his reaction time. |
+| 7 | Match frequency and phase on the relay scope. Earlier rescues can supply either setting. Reconnecting tunes the desk to a sector and restores up to twelve energy. |
+
 ## The loop as built
 
 1. **Day — 12 hours.** Driving, searching and building all draw on the same daylight. The car must be home before dark, so an outing is refused if the drive back no longer fits.

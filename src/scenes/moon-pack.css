@@ -1,0 +1,27 @@
+.moon-screen { position: absolute; inset: 0; overflow: hidden; background-size: cover; background-position: center; background-color: #202828; }
+.moon-feed-id, .moon-evidence, .moon-caption { position: absolute; background: #111b1bea; color: #dce9da; padding: 6px 12px; }
+.moon-feed-id { left: 14px; top: 12px; }
+.moon-evidence { right: 14px; top: 12px; }
+.moon-caption { bottom: 12px; left: 14px; max-width: 85%; }
+.moon-timing { position: absolute; left: 16%; right: 16%; bottom: 61px; height: 20px; border: 2px solid #d0d2c7; background: #312e31; }
+.moon-timing i { position: absolute; top: 0; bottom: 0; }
+.moon-gap { background: repeating-linear-gradient(120deg,#5c7666 0 8px,#93aa90 8px 13px); }
+.moon-head { width: 4px; background: #fff7d6; box-shadow: 0 0 4px black; }
+.epic-actions button[aria-pressed="true"] { outline: 2px solid #c9ba8a; outline-offset: -2px; }
+
+@media (max-width: 880px), (pointer: coarse) {
+  .epic-field:has(.moon-screen, .garden-feed) { background: #152026 !important; }
+  .epic-field .moon-screen { inset: 0 auto; left: 50%; transform: translateX(-50%); height: 100%; width: auto; max-width: 100%; aspect-ratio: 900 / 420; }
+  .epic-field .moon-screen canvas, .epic-field .garden-feed { object-fit: contain; }
+
+
+  .moon-feed-id { top: 4px; left: 4px; }
+  .moon-evidence { top: 4px; right: 4px; }
+
+}
+@media (pointer: coarse) and (orientation: portrait) {
+  .epic-field .moon-screen { height: auto; width: 100%; top: 50%; bottom: auto; transform: translate(-50%, -50%); }
+  /* On a narrow feed the lower third belongs to the cub, including its tail. */
+  #ui .moon-screen .moon-timing { top: 30px; bottom: auto; left: 6%; right: 6%; }
+  .epic-night:has(.moon-screen, .garden-feed) .epic-actions button { flex-grow: 1; }
+}

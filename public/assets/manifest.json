@@ -2167,5 +2167,15 @@
     "file": "sprites/hero_departure_left.webp",
     "w": 1328,
     "h": 757
+  },
+  "epic_pack_art": {
+    "file": "sprites/epic_pack_art.webp",
+    "w": 1152,
+    "h": 768
+  },
+  "epic_moped_art": {
+    "file": "sprites/epic_moped_art.webp",
+    "w": 480,
+    "h": 320
   }
 }

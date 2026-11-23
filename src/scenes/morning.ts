@@ -1,5 +1,6 @@
 // The morning after: what the night cost, told by the yard itself.
 
+import { epicFlag } from '../core/epics';
 import { BARRICADE, DEVICES, HOUSE_MAX_HP } from '../core/data/devices';
 import { chapterWaiting } from '../core/chapters';
 import { bossOfNight, startNextDay } from '../core/game';
@@ -10,7 +11,7 @@ import { SECTOR_IDS } from '../core/types';
 import { STAGE_H, type App, type Scene } from '../engine/app';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt } from '../engine/i18n';
+import { S, fmt, line } from '../engine/i18n';
 import { calmMotion } from '../render/lighting';
 import { smoothstep } from '../render/noise';
 import { cameraView, drawWorld, type View, type WorldFrame } from '../render/world';
@@ -81,13 +82,21 @@ export class MorningScene implements Scene {
       el('div', { class: 'actions' }, [el('button', { class: 'btn btn-primary', text: chapter ? s.chapter[chapter].go : fmt(s.morning.next, { n: state.day + 1 }), onClick: () => this.next() })]),
     ]);
     this.app.ui.append(card);
+    const letters = el('div', { class: 'morning-mail' });
+    if (night === 5 || (night === 6 && epicFlag(state, 'neighbor'))) {
+      letters.append(el('details', { class: 'morning-letter postal-paper' }, [
+        el('summary', { text: night === 5 ? line('Traces dans la boue', 'Tracks in the mud') : line('La fenêtre d’en face', 'Across the street') }),
+        el('p', { text: night === 6 ? line('Un cendrier sur le rebord. « Bien reçu, ducon. »', 'An ashtray on the sill. “Got it, asshole.”') : epicFlag(state, 'cub') ? line('Deux grandes pistes et une petite ressortent ensemble par le portail.', 'Two large sets of prints and a small one lead out through the gate together.') : line('Deux pistes longent la clôture. Sous le portail, de toutes petites griffes ont creusé la terre.', 'Two trails follow the fence. Tiny claws have dug into the dirt under the gate.') }),
+      ]));
+    }
     if (report?.letterDelivered === true) {
-      this.app.ui.append(el('details', { class: 'morning-letter postal-paper' }, [
+      letters.append(el('details', { class: 'morning-letter postal-paper' }, [
         el('summary', { text: s.registeredLetter.open }),
         el('p', { text: s.registeredLetter.postmark }),
         el('blockquote', { text: s.registeredLetter.complaint }),
       ]));
     }
+    if (letters.childElementCount) this.app.ui.append(letters);
     // Reinforced doors badly hit make figures long enough to fold the labels beside them: set tighter, it all fits.
     if (card.scrollHeight > card.clientHeight) card.classList.add('tight');
     // On the scene, not in the report: a chapter morning already fills the card to its last line.
