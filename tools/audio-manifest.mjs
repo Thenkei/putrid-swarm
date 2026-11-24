@@ -78,7 +78,20 @@ const vhsEjection = [
   '[release][whirr][clunk]concat=n=3:v=0:a=1',
 ].join(';');
 
+// Keep the insect and wind passages. The calls in the original night bed
+// would otherwise play irrespective of whether the yard was clear.
+const quietNightBed = [
+  'asplit=3[a][b][c]',
+  '[a]atrim=start=2.4:end=5.2,asetpts=PTS-STARTPTS,afade=t=out:st=2.765:d=0.035[first]',
+  '[b]atrim=start=7.2:end=11.2,asetpts=PTS-STARTPTS,afade=t=in:d=0.035,afade=t=out:st=3.965:d=0.035[second]',
+  '[c]atrim=start=14:end=21.9,asetpts=PTS-STARTPTS,afade=t=in:d=0.035[tail]',
+  '[first][second][tail]concat=n=3:v=0:a=1',
+].join(';');
+
 export const AUDIO = [
+  sfx("owl_call", 1.5, "One real tawny owl in a French farmyard at night, a single rounded low woody hoo-oo, with a softly wavering second syllable. From a nearby tree, intimate but outdoors. Begins immediately, finishes in a second and a half, isolated clean recording. No other birds, wildlife, crickets, music or voice.", { gain: 0.79, peak: -5, maxSeconds: 1.5, tail: .085 }),
+  sfx("hedge_leaves", 1.1, "One small animal brushes past a patch of dry hazel leaves in a still French hedge. A soft papery shiver travelling through a few leaves, short swish then settle within one second. Quiet isolated close field foley. No footsteps, twigs breaking, bird calls, wind bed, voice or music.", { gain: 0.66, peak: -6, maxSeconds: 1.1, tail: .085, edit: 'highpass=f=190' }),
+  sfx("hedge_twig", 0.65, "A single little dry twig snaps delicately under a small unseen animal in the grass. Fine woody tick, then the soft end of the twig taps a leaf. Small-scale, intimate, quiet, compact, finished in half a second. No falling tree, heavy footstep, gunshot, music, voice or ambience.", { gain: 0.69, peak: -6, maxSeconds: 0.52, tail: .06, edit: 'aformat=channel_layouts=mono,highpass=f=140,lowpass=f=5600,volume=8dB,acompressor=threshold=0.085:ratio=3:attack=1:release=38' }),
   sfx('bolt_slide', 0.55, "One short gritty scrape of an old iron barrel bolt pushed a few centimetres along a wooden farmhouse door. Starts moving immediately, intimate low rasp of steel against its guides, fades out cleanly. No closing impact, knocking, room tone, voices or music.", { gain: 0.55, peak: -6, maxSeconds: 0.55, tail: .045 }),
   sfx('bolt_seat', 0.55, "Single thick iron barrel bolt seating in its keeper on an old oak door. Immediate compact, weighty metal-on-metal ka-chunk with a tiny wooden resonance. Less than half a second. Isolated dry foley, no jingling keys or door slam.", { gain: 0.8, peak: -4, maxSeconds: 0.55, tail: .045 }),
   sfx('photo_dip', 0.65, "Close quiet darkroom foley. One small sheet of stiff photographic paper touches a shallow enamel tray of water and slides under the surface. Delicate paper-edge skiff and low soft slosh in one gesture, stops in half a second. No running water, pouring, large splash, music or voice.", { edit: 'atrim=start=0.48:end=1.2,asetpts=PTS-STARTPTS,atempo=1.12', gain: 0.7, peak: -6, maxSeconds: 0.65, tail: .045 }),
@@ -303,7 +316,7 @@ export const AUDIO = [
   // ───────────── Beds (seamless loops) ─────────────
   loop('amb_room', 18, 'Room tone of a small quiet study at night: the electric hum of an old CRT monitor, a faint computer fan. Steady, no music, no voices.', { gain: 0.5 }),
   loop('amb_day', 22, 'Daytime ambience of a deserted French countryside village: birdsong, a light breeze in leaves, one distant dog. Too quiet. No music, no voices.', { gain: 0.5 }),
-  loop('amb_night', 22, 'Night ambience at the edge of a forest: crickets, slow wind in the trees, an occasional distant owl. Uneasy. No music, no voices.', { gain: 0.55 }),
+  loop('amb_night', 22, 'Night ambience at the edge of a forest: crickets, slow wind in the trees, an occasional distant owl. Uneasy. No music, no voices.', { gain: 0.55, edit: quietNightBed }),
   loop('amb_car', 14, 'Interior of an old diesel station wagon driving on a rough country road: steady engine drone, dashboard rattles, tyres on gravel. No music.', { gain: 0.6 }),
 
   // ───────────── Music (instrumental) ─────────────

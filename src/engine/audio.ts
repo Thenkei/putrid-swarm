@@ -47,7 +47,7 @@ export type Sfx =
   | 'broken'
   | 'car_door'
   | 'car_latch'
-  | 'groan'
+  | 'groan' | 'owl_call' | 'hedge_leaves' | 'hedge_twig'
   | 'engine_stop'
   | 'loot_wood'
   | 'loot_scrap'
@@ -1096,6 +1096,18 @@ class AudioEngine {
       case 'car_door':
         this.tone('sine', 120, 50, 0.14, 0.4);
         this.noise('lowpass', 600, 200, 0.1, 0.3);
+        break;
+      case 'owl_call':
+        this.tone('sine', 485, 437, .34, .055);
+        this.tone('sine', 447, 401, .54, .045, .38);
+        break;
+      case 'hedge_leaves':
+        this.noise('bandpass', 1300, 2000, .24, .035);
+        this.noise('bandpass', 1800, 920, .27, .025, .20);
+        break;
+      case 'hedge_twig':
+        this.noise('bandpass', 2350, 750, .035, .075);
+        this.noise('lowpass', 1450, 560, .048, .022, .095);
         break;
       case 'groan':
         this.tone('sawtooth', 95 + Math.random() * 30, 70, 0.9, 0.06);

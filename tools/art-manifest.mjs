@@ -666,6 +666,10 @@ export const ART = [
   },
   // Shared walk cycles and the four poses used on the upper-window route.
   {
+    id: 'night_owl', kind: 'atlas', w: 128, source: { concept: 'art/raw/night_owl.png' },
+    prompt: "A single tawny owl perched upright with feet together, isolated on transparent background. A hand-painted cutout sprite for an isometric rural French survival game. Three-quarter body with round tuftless head turned toward camera, dark eyes in warm tawny facial discs, scalloped wing, pale crescent of moonlight from upper left. Thick gouache shapes, muted bark-brown feathers and a readable cream face at 32 pixels. Entire owl including curled talons and tail. No branch, ground, shadow, scenery, lettering or border.",
+  },
+  {
     id: 'dawn_wildlife', kind: 'atlas', w: 896, source: { concept: 'art/raw/dawn_wildlife.png' },
     prompt: 'Four registered poses each of a russet European hare, fork-tailed barn swallow, red admiral butterfly and clump of opening oxeye daisies. Ink and gouache, transparent four by four sheet.',
   },

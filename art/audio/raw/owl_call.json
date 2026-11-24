@@ -1,0 +1,11 @@
+{
+  "id": "owl_call",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "bziKstYs2gIXfbnVpGen",
+  "generatedAt": "2026-11-24T13:12:47.298Z",
+  "prompt": "One real tawny owl in a French farmyard at night, a single rounded low woody hoo-oo, with a softly wavering second syllable. From a nearby tree, intimate but outdoors. Begins immediately, finishes in a second and a half, isolated clean recording. No other birds, wildlife, crickets, music or voice.",
+  "bytes": 50187,
+  "sha256": "ac1a5b03f8643bc1e6382127d8b189da0a91d45f44dbc8dc01d1225407d48e73"
+}

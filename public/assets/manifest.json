@@ -2236,5 +2236,10 @@
     "file": "sprites/hero_window_descent.webp",
     "w": 960,
     "h": 640
+  },
+  "night_owl": {
+    "file": "sprites/night_owl.webp",
+    "w": 128,
+    "h": 192
   }
 }

@@ -110,6 +110,7 @@ export interface WorldFrame {
   readonly carPresent: boolean;
   readonly approachingHero?: ApproachingHero;
   readonly yardCat?: YardCatPose;
+  readonly nightOwl?: { age: number; opacity: number };
   readonly homesteadLife?: HomesteadLife;
   readonly sunriseAge?: number;
   readonly departingCar?: DepartingCar;
@@ -639,6 +640,24 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
         }
         const drawn = drawSprite(ctx, key, p.x, p.y, art.h * z, false, opacity, lean, foot);
         if (!drawn) placeholder(ctx, p.x, p.y, 40 * z, 40 * z, '#5a6a4a', prop.kind);
+        if (drawn && prop.kind === 'mailbox' && frame.nightOwl) {
+          const owl = sprite('night_owl');
+          if (owl) {
+            // Register the talons on the same painted lip the daytime robin uses.
+            const perchX = drawn.x + drawn.w * (view.rot ? .52 : .48);
+            const perchY = drawn.y + art.h * z * .132;
+            const { age, opacity } = frame.nightOwl;
+            const still = calmMotion();
+            const breath = still ? 1 : 1 + .014 * Math.sin(age * 4);
+            ctx.save();
+            ctx.translate(perchX, perchY);
+            ctx.scale(view.rot ? -z : z, z * breath);
+            ctx.rotate(still ? 0 : .035 * Math.sin(age * 2.7));
+            ctx.globalAlpha *= opacity;
+            ctx.drawImage(owl.img, -12.5, -34.2, 26.5, 40);
+            ctx.restore();
+          }
+        }
         if (drawn && frame.homesteadLife) drawPropLife(ctx, prop, drawn, art.h, view, frame.homesteadLife, frame.time, calmMotion());
         if (drawn && prop.kind === 'car' && frame.exhaustAge !== undefined) {
           drawExhaust(ctx, drawn, view.rot, z, frame.exhaustAge);

@@ -1,0 +1,11 @@
+{
+  "id": "hedge_twig",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "YbcPZ9qDcgIQ1KIu2yQP",
+  "generatedAt": "2026-11-24T13:12:29.437Z",
+  "prompt": "A single little dry twig snaps delicately under a small unseen animal in the grass. Fine woody tick, then the soft end of the twig taps a leaf. Small-scale, intimate, quiet, compact, finished in half a second. No falling tree, heavy footstep, gunshot, music, voice or ambience.",
+  "bytes": 66070,
+  "sha256": "4eed8dd0b56d98d07f2b5e98eb3176b1cb5c308bac470a55ff3415e214e2c4b9"
+}

@@ -27,6 +27,7 @@ import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
+import { NightWildlife } from './night-wildlife';
 import { BrushPassage } from '../render/brush';
 import { rattleForNight } from '../core/rattle';
 import { DefenseMotion, deviceArt, floodlightEmitter } from '../render/defenses';
@@ -192,6 +193,7 @@ export class NightScene implements Scene {
   private coachEl!: HTMLElement;
   private coachNoteUntil = 0;
   private bossAlive: NeighborId | null = null;
+  private readonly wildlife = new NightWildlife();
   private nextGroan = 5;
   private nextBark = 9;
   private mayorBark = 0;
@@ -225,6 +227,7 @@ export class NightScene implements Scene {
     audio.setAmbience('night');
     audio.setMusic('night');
     for (const clip of [...LINES.houseDefense, ...LINES.houseVictory, 'vo_house_effort', 'house_shotgun']) void audio.prepareSample(clip);
+    for (const cue of ['owl_call', 'hedge_leaves', 'hedge_twig']) void audio.prepareSample(cue);
     // Both sides of the house are on the monitors at once: painted now, while the screen is dark.
     prepareWorld(...SECTOR_IDS.map(sector => this.viewFor(sector, MAIN, MAIN_ZOOM)));
     const s = S();
@@ -347,6 +350,7 @@ export class NightScene implements Scene {
   }
 
   exit(): void {
+    this.quietWildlife();
     this.trace?.cancel();
     this.recorder.dispose();
     hush();
@@ -782,6 +786,7 @@ export class NightScene implements Scene {
   private togglePause(auto = false): void {
     if (this.ending) return;
     this.paused = !this.paused;
+    if (this.paused) this.fadeWildlife();
     if (this.paused) this.pauseMenu.open(() => this.togglePause(), () => goTitle(this.app), auto, S().night.abandon);
     else this.pauseMenu.close();
   }
@@ -1138,7 +1143,7 @@ export class NightScene implements Scene {
       this.syncHud();
       return;
     }
-    if (this.epic.update(dt)) return;
+    if (this.epic.update(dt)) { this.quietWildlife(); return; }
     this.murmur();
 
     const previousTime = this.sim.time;
@@ -1166,7 +1171,30 @@ export class NightScene implements Scene {
       say('vo_house_effort');
     }
     this.maybeCoach();
+    this.updateWildlife(dt);
     this.syncHud();
+  }
+
+  private quietWildlife(): void {
+    if (this.wildlife.hush()) this.fadeWildlife();
+  }
+
+  private fadeWildlife(): void {
+    for (const cue of ['owl_call', 'hedge_leaves', 'hedge_twig'] as const) audio.fadeOut(cue, .09);
+  }
+
+  private updateWildlife(dt: number): void {
+    if (this.epic.active || this.coach || this.ending || this.sim.awayFromDesk || this.speed !== 1) {
+      this.quietWildlife();
+      return;
+    }
+    const wasPerched = !!this.wildlife.owl;
+    // NightSim has removed the dead and the intruders before this frame reaches us.
+    const outside = this.sim.enemies.length;
+    const cue = this.wildlife.step(dt, outside, this.sim.secondsToNextSpawn(), audio.speaking);
+    if (wasPerched && !this.wildlife.owl) audio.fadeOut('owl_call', .065);
+    if (cue === 'owl_call') audio.play(cue, audio.speaking ? .29 : .56);
+    else if (cue) audio.play(cue, cue === 'hedge_twig' ? .65 : .52, .96 + Math.random() * .08);
   }
 
   /** The lot is never silent while something is walking on it. */
@@ -1220,6 +1248,7 @@ export class NightScene implements Scene {
       mopedWreck: ride?.blastAt === null ? undefined : wreckSector(this.state),
       ...(ride && open > 0 && { houseDoor: { sector: ride.sector, open } }),
       night: true,
+      ...(this.wildlife.owl && { nightOwl: this.wildlife.owl }),
       ...(this.sunriseAge !== undefined && { sunriseAge: this.sunriseAge }),
       carPresent: true,
       houseHpRatio: this.sim.houseHp / HOUSE_MAX_HP,
