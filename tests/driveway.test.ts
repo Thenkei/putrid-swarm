@@ -23,6 +23,19 @@ describe('the wagon crossing the prepared yard', () => {
   const withStakes = place(withHorn, 'spikes', 19, 11);
   const home = place(withStakes, 'log', 18, 10); // just off the road
 
+  it.each(['floodlight', 'net'] as const)('breaks a %s under the wheels and leaves one on the shoulder intact', type => {
+    const prepared = place(place(stocked, type, 15, 11), type, 18, 10);
+    const [inPath, onShoulder] = prepared.yard.devices.slice(-2);
+    const crushed = { ...inPath, hp: 0, broken: true };
+    const hits = drivewayImpacts(prepared.yard);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toMatchObject({ before: inPath, after: crushed });
+    const away = unwrap(travelTo(prepared, 'garage')).state;
+    expect(away.yard.devices.slice(-2)).toEqual([crushed, onShoulder]);
+    expect(deserialize(serialize(away))?.yard).toEqual(away.yard);
+    expect(drivewayImpacts(away.yard)).toEqual([]);
+  });
+
   it('breaks only the log it hits and moves the horn intact, including on a skipped trip or reload', () => {
     const hits = drivewayImpacts(home.yard);
     expect(hits.map(hit => hit.before.type)).toEqual(['log', 'horn']);

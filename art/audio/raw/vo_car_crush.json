@@ -1,0 +1,15 @@
+{
+  "id": "vo_car_crush",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "generationId": "5aCSuVGXbhktxGPklGkV",
+  "request": {
+    "text": "[muttering] Je suis idiot d’avoir placé ça là, moi…",
+    "model_id": "eleven_v4",
+    "voice_id": "DbbNuBL7lf62XwY7arQb"
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-24T22:32:33.159Z",
+  "bytes": 60636,
+  "sha256": "f898b94d8d745ead4458ca0fedcd8da0af2126e93926a0aa40e1ab724c6e3522"
+}

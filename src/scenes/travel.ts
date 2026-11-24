@@ -10,6 +10,7 @@ import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt } from '../engine/i18n';
+import { say } from '../engine/voice';
 import { carDepartureShot, carManeuver, departingCar } from '../render/car-departure';
 import { approachView, heroApproachShot, sampleApproach, type ApproachShot } from '../render/hero-approach';
 import { applyDayGrade, calmMotion } from '../render/lighting';
@@ -118,6 +119,8 @@ export class TravelScene implements Scene {
   private engineStarted = false;
   private plate: string;
   private readonly impacts: Map<number, DrivewayImpact>;
+  private readonly firstBreak: DrivewayImpact | undefined;
+  private reactionEnds = 0;
 
   constructor(
     private readonly app: App,
@@ -126,11 +129,13 @@ export class TravelScene implements Scene {
     this.plate = options.plate;
     const hits = options.departure ? drivewayImpacts(options.departure.yard) : [];
     this.impacts = new Map(hits.map(hit => [hit.before.id, hit]));
+    this.firstBreak = hits.find(hit => hit.after.broken);
   }
 
   enter(): void {
     const { title, sub, loot, lost, mopedDisplaced, note, departure } = this.options;
     if (departure) {
+      if (this.firstBreak) void audio.prepareSample('vo_car_crush');
       // Every confirmed outing already increments a persisted visit count.
       const outings = Object.values(departure.locations).reduce((total, location) => total + location.visits, 0);
       const variants = [...OUTBOUND_PLATES, this.options.plate];
@@ -154,7 +159,8 @@ export class TravelScene implements Scene {
         audio.play('car_latch');
         this.startEngine();
       }
-      if (!this.approach) tripLine('car', departure);
+      if (this.firstBreak && !this.shot) this.reactToBreak();
+      if (!this.firstBreak && !this.approach) tripLine('car', departure);
     }
     if (!this.shot) audio.setAmbience('car', ROAD_AUDIO_FADE_IN);
     const some = (cost: Cost | undefined): cost is Cost => cost !== undefined && Object.values(cost).some((n) => (n ?? 0) > 0);
@@ -165,11 +171,11 @@ export class TravelScene implements Scene {
       bike.src = bikeArt;
       bike.alt = '';
     }
-    const logs = [...this.impacts.values()].filter(hit => hit.before.type === 'log').length;
+    const broken = [...this.impacts.values()].filter(hit => hit.after.broken).length;
     const summary = el('div', { class: 'center-col hit', onClick: () => this.finish() }, [
       el('h1', { text: title }),
       sub ? el('p', { text: sub }) : null,
-      this.impacts.size ? el('p', { text: fmt(s.day.drivewayReport, { logs, horns: this.impacts.size - logs }) }) : null,
+      this.impacts.size ? el('p', { text: fmt(s.day.drivewayReport, { broken, horns: this.impacts.size - broken }) }) : null,
       mopedDisplaced ? el('p', { class: 'moped-delivery' }, [
         bike,
         s.encounter.arrival.mopedOnBoard,
@@ -188,6 +194,10 @@ export class TravelScene implements Scene {
   private startEngine(): void {
     audio.play('engine_depart');
     this.engineStarted = true;
+  }
+
+  private reactToBreak(): void {
+    this.reactionEnds = this.time + say('vo_car_crush', { interrupt: true });
   }
 
   private finish(): void {
@@ -230,7 +240,7 @@ export class TravelScene implements Scene {
         if (crossed(this.catWake + CAT_BONNET_AT)) audio.play('cat_bonnet', .65);
         if (crossed(this.catWake + CAT_LANDS_AT)) audio.play('step_gravel', .30, 1.32);
       }
-      if (this.options.departure && crossed(boardingStart)) tripLine('car', this.options.departure);
+      if (!this.firstBreak && this.options.departure && crossed(boardingStart)) tripLine('car', this.options.departure);
     }
     if (shot) {
       if (crossed(this.stills ? STILL_SEATED : boardingStart + shot.latchAt)) audio.play('car_latch');
@@ -239,11 +249,16 @@ export class TravelScene implements Scene {
       if (!this.stills) {
         for (const hit of this.impacts.values()) {
           if (crossed(boardingStart + shot.rollAt + hit.at)) {
-            audio.play(hit.before.type === 'log' ? 'broken' : 'horn', hit.before.type === 'log' ? .8 : .42);
+            if (hit.after.broken) audio.play('broken', .8);
+            else audio.play('horn', .42);
+            if (hit === this.firstBreak) this.reactToBreak();
           }
         }
       }
-      if (crossed(roadStart)) this.summary.hidden = false;
+      if (crossed(roadStart)) {
+        this.summary.hidden = false;
+        if (this.stills && this.firstBreak) this.reactToBreak();
+      }
       if (this.time >= roadStart && previous < roadStart + ROAD_FADE_IN) {
         this.summary.style.opacity = String(smoothstep(0, ROAD_FADE_IN, this.time - roadStart));
       }
@@ -253,7 +268,7 @@ export class TravelScene implements Scene {
       if (crossed(roadStart + RADIO_STOPS[1])) audio.play('radio_squelch', 0.16, 1.3);
     }
     const duration = this.options.mopedDisplaced ? 6 : this.stills || !shot ? HOLD_SECONDS : roadStart + OUTBOUND_ROAD_SECONDS;
-    if (this.time >= duration) this.finish();
+    if (this.time >= Math.max(duration, this.reactionEnds)) this.finish();
   }
 
   render(ctx: CanvasRenderingContext2D): void {
@@ -295,7 +310,7 @@ export class TravelScene implements Scene {
         const age = boardingTime - shot.rollAt - hit.at;
         if (age < 0) return dayDeviceVisual(device);
         if (age < .4) particles.push({
-          kind: device.type === 'log' ? 'burst' : 'dust',
+          kind: hit.after.broken ? 'burst' : 'dust',
           x: device.x + .5, y: device.y + .5, age, life: .4, radius: .62,
         });
         const visual = dayDeviceVisual(hit.after);
