@@ -1,0 +1,13 @@
+{
+  "id": "vo_house_victory_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "tJF8EUrcbyCEe128bV49",
+  "generatedAt": "2026-11-24T12:21:45.850Z",
+  "prompt": "[sighs in relief] [satisfied] Ils ont eu leur compte.",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "bytes": 57711,
+  "sha256": "10605edf420ecf292f7d57a7b269a9c2ff068c6bbc3a45ab04217344a69edc64"
+}

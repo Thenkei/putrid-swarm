@@ -1,0 +1,13 @@
+{
+  "id": "vo_house_victory_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "Up7nZ8XnfhnECWCuAMnq",
+  "generatedAt": "2026-11-24T12:21:40.965Z",
+  "prompt": "[exhales] [triumphant] Ça, c’est fait !",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "bytes": 58964,
+  "sha256": "e7de03681e920be32f489e95ce409fdb456b2ce54646bbc572be40b2345eb8c9"
+}

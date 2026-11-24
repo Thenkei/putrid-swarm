@@ -59,7 +59,7 @@ const PROFILE = {
 
 function ffmpeg(input, filters, output, inputOptions = []) {
   const out = output ? ['-ar', '44100', ...output] : ['-f', 'null', '-'];
-  const result = spawnSync('ffmpeg', ['-hide_banner', '-nostdin', '-y', ...inputOptions, '-i', input, '-af', filters, ...out], { encoding: 'utf8' });
+  const result = spawnSync('ffmpeg', ['-hide_banner', '-nostdin', '-y', ...inputOptions, '-i', input, '-af', filters, ...out], { cwd: ROOT, encoding: 'utf8' });
   if (result.status !== 0) throw new Error(result.stderr.split('\n').slice(-4).join(' '));
   return result.stderr;
 }
