@@ -7,6 +7,26 @@ function tick(car: YardParking, seconds: number, throttle: number, steering = 0,
 }
 
 describe('steering into the refuge', () => {
+  it.each([.64, 1])('calls for braking at throttle %s in time to stop in the marks', throttle => {
+    for (const hz of [15, 60, 120]) {
+      for (const response of [0, .16, .30]) {
+        for (const steeringWhileBraking of [0, 1]) {
+          const car = new YardParking();
+          for (let frame = 0; frame < 9 * hz && !car.brakeForBay; frame++) {
+            car.update(1 / hz, throttle, car.atTurn ? 1 : 0);
+          }
+          expect(car.brakeForBay).toBe(true);
+          expect(car.inBay).toBe(false);
+          expect(car.speed).toBeGreaterThan(throttle * 2.7);
+          tick(car, response, throttle, 1, false, hz);
+          tick(car, 1.4, 0, steeringWhileBraking, true, hz);
+          expect(car.phase).toBe('parked');
+          expect(car.inBay).toBe(true);
+        }
+      }
+    }
+  });
+
   it.each([15, 30, 60, 120])('brakes in the bay at %i Hz and keeps the actual tyre position', hz => {
     const car = new YardParking();
     for (let frame = 0; frame < hz * 10 && !car.inBay; frame++) {

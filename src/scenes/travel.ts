@@ -336,7 +336,7 @@ export class TravelScene implements Scene {
       const follow = 1 - Math.exp(-4.5 * dt);
       this.parkingView.cx += (centre.gx - this.parkingView.cx) * follow;
       this.parkingView.cy += (centre.gy - this.parkingView.cy) * follow;
-      const cue = drive.inBay ? L('Ici. Freine pour te garer.', 'Right here. Brake to park.')
+      const cue = drive.brakeForBay ? L('Ici. Freine pour te garer.', 'Right here. Brake to park.')
         : drive.bayBehind ? L('La place est derrière toi. Reprends-la en marche arrière.', 'The bay is behind you. Reverse for another run.')
         : Math.hypot(drive.x-PARKED.x,drive.y-PARKED.y) < 1.5
           ? L('Oriente le capot vers la clôture, puis freine.', 'Point the bonnet toward the fence, then brake.')
