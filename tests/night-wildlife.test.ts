@@ -6,13 +6,28 @@ describe('the night watch wildlife', () => {
     const yard = new NightWildlife(() => .5);
     const sounds = Array.from({ length: 179 }, (_, i) => yard.step(1 / 60, 0, 3 - i / 60, false));
     expect(sounds.filter(sound => sound === 'owl_call')).toHaveLength(1);
-    expect(yard.owl?.opacity).toBeLessThan(.2);
+    expect(yard.owl?.opacity).toBe(1);
+    const launchAge = yard.owl?.flightAge;
+    expect(launchAge).toBeGreaterThan(0);
     yard.step(1 / 60, 1, null, false);
-    expect(yard.owl).toBeNull();
+    expect(yard.owl?.flightAge).toBeGreaterThan(launchAge!);
     expect(yard.step(.6, 0, 2, false)).not.toBe('owl_call');
+    yard.step(2, 0, 2, false);
     expect(yard.owl).toBeNull();
     for (let i = 0; i < 24; i++) expect(yard.step(1, 1, null, false)).not.toBe('owl_call');
     expect(yard.step(.6, 0, 2, false)).toBe('owl_call');
+  });
+
+  it('launches on an unexpected arrival and finishes its flight during a quieted watch', () => {
+    const yard = new NightWildlife(() => .5);
+    yard.step(.5, 0, null, false);
+    expect(yard.owl?.flightAge).toBeNull();
+    yard.step(.05, 1, null, false);
+    expect(yard.owl?.flightAge).toBe(.05);
+    yard.hush(.2);
+    expect(yard.owl?.flightAge).toBe(.25);
+    yard.hush(3);
+    expect(yard.owl).toBeNull();
   });
 
   it('keeps the hedge quiet during speech and crowds, and spaces the little sounds apart', () => {
