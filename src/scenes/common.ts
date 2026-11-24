@@ -1,5 +1,6 @@
 // Pieces shared by several scenes: plates, resource chips, key labels.
 
+import { epicFlag, mopedCargo } from '../core/epics';
 import { hasLeftArm } from '../core/orchard';
 import type { Cost, GameState, Inventory, ResourceId } from '../core/types';
 import { RESOURCE_IDS } from '../core/types';
@@ -122,6 +123,16 @@ export function inventoryBar(inventory: Inventory): HTMLElement {
     { class: 'cost' },
     RESOURCE_IDS.map((id) => resourceChip(id, inventory[id])),
   );
+}
+
+export function returnCargoBar(state: GameState): HTMLElement[] {
+  if (!state.outing) return [];
+  const withMoped = epicFlag(state, 'loaded');
+  const s = S();
+  return [
+    el('span', { class: 'muted', text: withMoped ? s.encounter.arrival.withMoped : s.loc.trunk }),
+    inventoryBar(withMoped ? mopedCargo(state.outing.trunk).kept : state.outing.trunk),
+  ];
 }
 
 export function describeCost(cost: Cost): string {

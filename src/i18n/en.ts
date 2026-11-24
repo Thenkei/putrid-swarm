@@ -661,6 +661,10 @@ export const en: Strings = {
       accepts: 'They take',
     },
     arrival: {
+      withMoped: 'Home with the moped',
+      mopedOnBoard: 'Gérard’s moped on board',
+      mopedLeft: 'Left to fit the moped',
+      mopedDelivered: 'Moped delivered. Choose its launch door at the refuge.',
       brought: 'Unloaded at the refuge',
       lost: 'Left on the way',
       empty: 'Empty boot.',

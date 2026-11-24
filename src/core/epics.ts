@@ -14,14 +14,22 @@ export function epicFlag(state: GameState, key: string): number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : 0;
 }
 
+/** Preview the load that fits beside the moped without changing any goods on the road. */
+export function mopedCargo(trunk: Inventory) {
+  const kept = { ...trunk };
+  const displaced = { ...trunk };
+  for (const id of RESOURCE_IDS) {
+    kept[id] = Math.floor(trunk[id] / 2);
+    displaced[id] = trunk[id] - kept[id];
+  }
+  return { kept, displaced };
+}
+
 /** A moped occupies half the boot for the entire return trip, including late finds. */
 export function unloadMoped(state: GameState, trunk: Inventory, parted: Inventory) {
   if (!epicFlag(state, 'loaded')) return { state, trunk, parted };
-  const kept = { ...trunk };
+  const { kept, displaced } = mopedCargo(trunk);
   const left = { ...parted };
-  for (const id of RESOURCE_IDS) {
-    kept[id] = Math.floor(trunk[id] / 2);
-    left[id] += trunk[id] - kept[id];
-  }
+  for (const id of RESOURCE_IDS) left[id] += displaced[id];
   return { state: markEpic(markEpic(state, 'loaded', 0), 'moped'), trunk: kept, parted: left };
 }

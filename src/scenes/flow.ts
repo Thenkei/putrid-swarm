@@ -1,15 +1,16 @@
 // Scene navigation in one place. Scenes call these instead of constructing each other,
 // which keeps the phase order (day → night → morning → …) readable and avoids import knots.
 
-import { unloadMoped } from '../core/epics';
+import { epicFlag, mopedCargo } from '../core/epics';
 import type { ChapterId } from '../core/chapters';
+import { LOCATIONS } from '../core/data/locations';
 import { LAST_NIGHT } from '../core/data/waves';
 import { affordableDevices } from '../core/yard';
 import { units } from '../core/encounters';
 import { arriveHome, type NeighborMeeting } from '../core/game';
 import type { GameState, LocationId } from '../core/types';
 import type { App, Scene } from '../engine/app';
-import { S, fmt } from '../engine/i18n';
+import { S, fmt, hours } from '../engine/i18n';
 import { tripLine } from './common';
 import { DayScene, type DayOptions } from './day';
 import { EndScene, type EndOptions } from './end';
@@ -60,7 +61,7 @@ function unload(app: App): void {
     app.state = arrival.value.state;
     app.save();
   }
-  goDay(app, { arrivedByCar: arrival?.ok === true });
+  goDay(app, { arrivedByCar: arrival?.ok === true, deliveredMoped: !!(arrival?.ok && state && epicFlag(state, 'loaded')) });
   if (state) tripLine('home', state);
 }
 
@@ -80,14 +81,16 @@ export function goHomeStretch(app: App, sub = ''): void {
     return;
   }
   const s = S();
-  const load = unloadMoped(state, outing.trunk, outing.parted);
-  const buildable = affordableDevices(state.inventory, load.trunk, state.hoursLeft).map((type) => s.device[type].name);
+  const moped = epicFlag(state, 'loaded') ? mopedCargo(outing.trunk) : undefined;
+  const cargo = moped?.kept ?? outing.trunk;
+  const buildable = affordableDevices(state.inventory, cargo, state.hoursLeft).map((type) => s.device[type].name);
   goTravel(app, {
-    plate: units(outing.trunk) > 0 ? 'plate_trunk' : 'plate_return',
+    plate: !moped && units(cargo) > 0 ? 'plate_trunk' : 'plate_return',
     title: s.location.home,
-    sub,
-    loot: load.trunk,
-    lost: load.parted,
+    sub: sub || (moped ? fmt(s.loc.leaveCost, { h: hours(LOCATIONS[outing.to].travelHours) }) : ''),
+    loot: cargo,
+    lost: outing.parted,
+    ...(moped && { mopedDisplaced: moped.displaced }),
     note: buildable.length > 0 ? fmt(s.encounter.arrival.canBuild, { list: buildable.join(', ') }) : s.encounter.arrival.cannotBuild,
     next: () => unload(app),
   });
@@ -99,10 +102,10 @@ export function resumeGame(app: App, state: GameState): void {
   switch (state.phase) {
     case 'day':
       if (state.where === 'home') goDay(app);
-      // A save made on the road: whoever barred it is still there; otherwise the drive is simply over.
+      // Resume unfinished road encounters and show the load before delivering the moped.
       else if (state.where === 'road') {
         if (state.encounter) goAmbush(app);
-        else if (state.outing?.crossbowStop) goHomeStretch(app);
+        else if (state.outing?.crossbowStop || epicFlag(state, 'loaded')) goHomeStretch(app);
         else unload(app);
       }
       else goLocation(app, state.where, null);

@@ -123,6 +123,7 @@ export function yardErrorText(error: YardError): string {
 export interface DayOptions {
   readonly reveal?: boolean;
   readonly arrivedByCar?: boolean;
+  readonly deliveredMoped?: boolean;
 }
 
 export class DayScene implements Scene {
@@ -199,6 +200,7 @@ export class DayScene implements Scene {
     this.root = el('div');
     this.app.ui.append(this.root);
     this.refresh();
+    if (this.options.deliveredMoped) this.app.toast(S().encounter.arrival.mopedDelivered, 'good');
   }
 
   exit(): void {

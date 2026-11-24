@@ -21,7 +21,7 @@ import { S, fmt, hours } from '../engine/i18n';
 import { hush, say } from '../engine/voice';
 import { calmMotion } from '../render/lighting';
 import { smoothstep } from '../render/noise';
-import { carDeparture, heroArt, costLine, drawPlate, inventoryBar, lootSfx, oneArmed, platePoint } from './common';
+import { carDeparture, heroArt, costLine, drawPlate, inventoryBar, lootSfx, oneArmed, platePoint, returnCargoBar } from './common';
 import { EncounterPanel, memoryLine, nameOf, roadPlate } from './encounter';
 import { goAmbush, goEnd, goHomeStretch, goTravel } from './flow';
 import { ScavengePanel } from './scavenge';
@@ -116,8 +116,7 @@ export class LocationScene implements Scene {
       el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { h: hours(state.hoursLeft) }) }),
       el('span', { class: 'grow' }),
       hasCrossbow(state) ? el('span', { class: 'equipment-chip', text: s.scavenge.crossbow.name }) : null,
-      el('span', { class: 'muted', text: s.loc.trunk }),
-      state.outing ? inventoryBar(state.outing.trunk) : null,
+      ...returnCargoBar(state),
     ]);
     // What is already safe at home, to judge what this trip still has to bring back.
     const stash = el('div', { class: 'stash' }, [el('span', { class: 'muted', text: s.encounter.stash }), inventoryBar(state.inventory)]);

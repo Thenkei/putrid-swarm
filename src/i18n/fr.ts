@@ -668,6 +668,10 @@ export const fr = {
       accepts: 'Ils prennent',
     },
     arrival: {
+      withMoped: 'Retour avec la mob',
+      mopedOnBoard: 'Mob de Gérard à bord',
+      mopedLeft: 'Laissé pour la mob',
+      mopedDelivered: 'Mob livrée au refuge. Choisis sa porte de départ.',
       brought: 'Déchargé au refuge',
       lost: 'Laissé en route',
       empty: 'Coffre vide.',

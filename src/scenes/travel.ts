@@ -4,7 +4,7 @@ import { HOUSE_MAX_HP } from '../core/data/devices';
 import { DAY_HOURS } from '../core/data/locations';
 import type { Cost, GameState } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
-import { sprite } from '../engine/assets';
+import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S } from '../engine/i18n';
@@ -93,6 +93,7 @@ export interface TravelOptions {
   readonly departure?: GameState;
   /** What is in the boot, when driving home. */
   readonly loot?: Cost;
+  readonly mopedDisplaced?: Cost;
   /** What the outing handed over or had taken on the way. */
   readonly lost?: Cost;
   /** A last line under the load: what it still allows before dark. */
@@ -121,7 +122,7 @@ export class TravelScene implements Scene {
   }
 
   enter(): void {
-    const { title, sub, loot, lost, note, departure } = this.options;
+    const { title, sub, loot, lost, mopedDisplaced, note, departure } = this.options;
     if (departure) {
       // Every confirmed outing already increments a persisted visit count.
       const outings = Object.values(departure.locations).reduce((total, location) => total + location.visits, 0);
@@ -151,10 +152,21 @@ export class TravelScene implements Scene {
     if (!this.shot) audio.setAmbience('car', ROAD_AUDIO_FADE_IN);
     const some = (cost: Cost | undefined): cost is Cost => cost !== undefined && Object.values(cost).some((n) => (n ?? 0) > 0);
     const s = S();
+    const bikeArt = mopedDisplaced && assetUrl('epic_moped_art');
+    const bike = bikeArt ? el('img') : null;
+    if (bike && bikeArt) {
+      bike.src = bikeArt;
+      bike.alt = '';
+    }
     const summary = el('div', { class: 'center-col hit', onClick: () => this.finish() }, [
       el('h1', { text: title }),
       sub ? el('p', { text: sub }) : null,
-      some(loot) ? el('p', {}, [`${s.loc.trunk} : `, costLine(loot, undefined, '+')]) : loot ? el('p', { text: s.encounter.arrival.empty }) : null,
+      mopedDisplaced ? el('p', { class: 'moped-delivery' }, [
+        bike,
+        s.encounter.arrival.mopedOnBoard,
+      ]) : null,
+      some(loot) ? el('p', {}, [`${s.loc.trunk} : `, costLine(loot, undefined, '+')]) : loot && !mopedDisplaced ? el('p', { text: s.encounter.arrival.empty }) : null,
+      some(mopedDisplaced) ? el('p', { class: 'lost' }, [s.encounter.arrival.mopedLeft + ' · ', costLine(mopedDisplaced, undefined, '−')]) : null,
       some(lost) ? el('p', { class: 'lost' }, [`${s.encounter.arrival.lost} : `, costLine(lost, undefined, '−')]) : null,
       note ? el('p', { class: 'muted', text: note }) : null,
     ]);
@@ -220,7 +232,7 @@ export class TravelScene implements Scene {
       if (crossed(roadStart + RADIO_STOPS[0])) audio.play('radio_squelch', 0.24, 1.22);
       if (crossed(roadStart + RADIO_STOPS[1])) audio.play('radio_squelch', 0.16, 1.3);
     }
-    const duration = this.stills || !shot ? HOLD_SECONDS : roadStart + OUTBOUND_ROAD_SECONDS;
+    const duration = this.options.mopedDisplaced ? 6 : this.stills || !shot ? HOLD_SECONDS : roadStart + OUTBOUND_ROAD_SECONDS;
     if (this.time >= duration) this.finish();
   }
 
