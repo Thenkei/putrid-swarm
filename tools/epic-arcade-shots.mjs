@@ -86,7 +86,25 @@ async function garage(profile) {
     await page.waitForFunction(([id,before]) => document.querySelector('[data-piece="'+id+'"]')?.getAttribute('style') !== before,[id,before]);
     await page.waitForTimeout(190);
   };
-  await move('trolley','ArrowLeft');
+  // Changing selection must leave the other piece mid-slide, even on a scaled stage.
+  const viewport = page.viewportSize();
+  if (!phone) await page.setViewportSize({width:854,height:480});
+  await click(piece('trolley'));
+  await click(btn('← Gauche'));
+  const trolleyX = await piece('trolley').evaluate(token => {
+    const slide = token.getAnimations()[0];
+    slide.pause();
+    slide.currentTime = 35;
+    return token.getBoundingClientRect().left;
+  });
+  await click(piece('bench'));
+  const selectionJump = await piece('trolley').evaluate((token,from) => {
+    const jump = token.getBoundingClientRect().left - from;
+    token.getAnimations()[0]?.play();
+    return jump;
+  },trolleyX);
+  assert.ok(Math.abs(selectionJump) < 1, 'changing pieces jumped '+selectionJump+' pixels');
+  if (!phone) await page.setViewportSize(viewport);
   await move('toolbox','ArrowDown'); await move('toolbox','ArrowDown');
   await move('bench','ArrowDown');
   if (phone) {

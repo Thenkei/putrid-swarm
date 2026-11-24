@@ -46,19 +46,21 @@ export function clearGarageAisle(host: HTMLElement, loaded: () => void) {
       return;
     }
     audio.play(selected === 0 ? 'chain' : 'crate', 0.36);
-    const before = board.querySelector<HTMLButtonElement>('[data-index="' + selected + '"]');
+    const moving = tokens[selected]!;
     // A second arrow can arrive while the previous slide is still on screen.
-    const from = before?.getBoundingClientRect();
+    const from = moving.getBoundingClientRect();
+    for (const slide of moving.getAnimations()) slide.cancel();
     offsets = next;
     loading = offsets[0] === 3;
     draw();
-    const moving = board.querySelector<HTMLButtonElement>('[aria-pressed="true"]');
-    moving?.focus();
+    moving.focus();
     let travel: Animation | undefined;
-    if (moving && from && !calmMotion()) {
+    if (!calmMotion()) {
       const to = moving.getBoundingClientRect();
+      const dx = 100 * (from.left - to.left) / to.width;
+      const dy = 100 * (from.top - to.top) / to.height;
       travel = moving.animate([
-        { transform: 'translate(' + (from.left - to.left) + 'px,' + (from.top - to.top) + 'px)' },
+        { transform: 'translate(' + dx + '%,' + dy + '%)' },
         { transform: 'translate(0,0)' },
       ], { duration: 175, easing: 'cubic-bezier(.18,.6,.28,1)' });
     }
@@ -70,25 +72,33 @@ export function clearGarageAisle(host: HTMLElement, loaded: () => void) {
       else finish();
     }
   };
+  const tokens = aislePieces.map((_, i) => {
+    const token = el('button', { class: 'aisle-piece', onClick: () => {
+      selected = i; draw(); token.focus();
+    } }, [el('span', { class: 'aisle-piece-label', text: names[i]! })]);
+    token.dataset.index = String(i);
+    token.dataset.piece = ['moped', 'toolbox', 'trolley', 'bench'][i]!;
+    if (i === 0 && hasArt) token.prepend(art);
+    return token;
+  });
+  board.append(...tokens, el('span', { class: 'aisle-exit', text: '→' }));
   const draw = () => {
-    board.replaceChildren(...aislePieces.map((piece, i) => {
+    aislePieces.forEach((piece, i) => {
       const { x, y } = pieceCells(offsets, i)[0]!;
-      const token = el('button', { class: 'aisle-piece', onClick: () => {
-        selected = i; draw(); board.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus();
-      }, style: { gridColumn: (x + 1) + ' / span ' + (piece.vertical ? 1 : 2), gridRow: (y + 1) + ' / span ' + (piece.vertical ? 2 : 1) } },
-        [el('span', { class: 'aisle-piece-label', text: names[i]! })]);
+      const token = tokens[i]!;
+      token.style.gridColumn = (x + 1) + ' / span ' + (piece.vertical ? 1 : 2);
+      token.style.gridRow = (y + 1) + ' / span ' + (piece.vertical ? 2 : 1);
       token.setAttribute('aria-pressed', String(i === selected));
-      token.dataset.index = String(i);
-      token.dataset.piece = ['moped', 'toolbox', 'trolley', 'bench'][i]!;
-      if (i === 0 && hasArt) token.prepend(art);
-      return token;
-    }), el('span', { class: 'aisle-exit', text: '→' }));
+    });
     const vertical = aislePieces[selected]!.vertical;
     const labels = vertical ? (fr ? ['↑ Monter', '↓ Descendre'] : ['↑ Up', '↓ Down']) : (fr ? ['← Gauche', 'Droite →'] : ['← Left', 'Right →']);
     message.textContent = loading ? (fr ? 'La mob monte dans le break.' : 'The moped rolls into the wagon.') : names[selected] + (vertical ? ' ↕' : ' ↔');
     controls.replaceChildren(...([-1, 1] as const).map((d,i) => el('button', {
       class: 'btn', text: labels[i]!, disabled: !slidePiece(offsets, selected, d), onClick: () => shift(d),
-    })), el('button', { class: 'btn', text: fr ? 'Recommencer' : 'Reset', onClick: () => { offsets = initialAisle(); selected = 0; draw(); } }),
+    })), el('button', { class: 'btn', text: fr ? 'Recommencer' : 'Reset', onClick: () => {
+      for (const slide of board.getAnimations({ subtree: true })) slide.cancel();
+      offsets = initialAisle(); selected = 0; draw();
+    } }),
       el('button', { class: 'btn', text: fr ? 'La laisser ici' : 'Leave it here', onClick: close }));
   };
   board.addEventListener('pointerdown', event => {
