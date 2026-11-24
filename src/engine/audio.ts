@@ -7,6 +7,7 @@ import { Decks } from './deck';
 
 export type Sfx =
   | 'epic_flare' | 'moped_door' | 'moped_blade_contact' | 'epic_mob' | 'epic_mob_blast' | 'epic_tape' | 'epic_pack'
+  | 'bolt_slide' | 'bolt_seat' | 'photo_dip' | 'photo_lift' | 'vhs_play' | 'vhs_eject'
   | 'click'
   | 'deny'
   | 'build'
@@ -1066,6 +1067,30 @@ class AudioEngine {
       case 'broken':
         this.noise('bandpass', 1600, 500, 0.3, 0.4, 0, 1.5);
         this.tone('square', 160, 60, 0.2, 0.2, 0.05);
+        break;
+      case 'bolt_slide':
+        this.noise('bandpass', 1250, 480, .24, .07);
+        break;
+      case 'bolt_seat':
+        this.noise('bandpass', 1900, 610, .055, .16);
+        this.tone('triangle', 210, 113, .10, .10);
+        break;
+      case 'photo_dip':
+        this.noise('lowpass', 850, 340, .19, .065);
+        break;
+      case 'photo_lift':
+        this.noise('highpass', 530, 1100, .11, .035);
+        this.tone('sine', 710, 420, .045, .045, .20);
+        this.tone('sine', 800, 540, .035, .035, .37);
+        break;
+      case 'vhs_play':
+        this.noise('bandpass', 1300, 430, .05, .09);
+        this.tone('triangle', 95, 170, .3, .048, .045);
+        break;
+      case 'vhs_eject':
+        this.tone('triangle', 170, 88, .22, .055);
+        this.noise('bandpass', 1400, 410, .07, .12, .22);
+        this.noise('lowpass', 1000, 310, .08, .10, .30);
         break;
       case 'car_latch':
       case 'car_door':

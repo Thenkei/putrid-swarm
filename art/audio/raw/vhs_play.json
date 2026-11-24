@@ -1,0 +1,11 @@
+{
+  "id": "vhs_play",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "vF8JKoDBi4yu3ACAAAT5",
+  "generatedAt": "2026-11-24T12:53:22.763Z",
+  "prompt": "Close mechanical one-shot of a 1980s domestic VHS deck engaging PLAY. A solid plastic key clack, followed by a low short motor whirr spinning up as the tape threads. Tactile worn mechanism, finished in under one second. No beep, television static, music or speech.",
+  "bytes": 66070,
+  "sha256": "b870f3af5ba53f79e63a464b482ad989406f464567b3db956959474c73437c1c"
+}
