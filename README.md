@@ -75,9 +75,25 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Day | click the break, or the well | the horn; a washer for a wish. Neither costs or changes anything |
 | Credits | `Esc`, or "Passer" | leave; they end on their own after 74 seconds, back at the title |
 
+## The night watch
+
+Each night from the second to the seventh has one special scene. Daytime clues change what you can do when it arrives. The pause button and `Esc` work throughout.
+
+[Watch gameplay from all six nights with in-game audio (35 seconds)](docs/previews/epic-nights.mp4) · [View the six scenes](docs/previews/epic-nights.webp) · [Watch the moped leave the house and clear the gate](docs/previews/epic-moped.mp4).
+
+| Night | At the desk |
+| --- | --- |
+| 2 | Brace the kitchen door under pressure. A sketch found in town unlocks a trip outside with the stove, followed by a timed return. |
+| 3 | Develop a garage photograph, clear the aisle and bring Gérard’s moped home in the wagon. Aim it at a lane, then release it from the night desk when a crowd gathers by the hedge. The house door swings open, the moped rolls through, and the door shuts behind it. The blades cut through the lane and the moped explodes at the far end. You get one ride per run. |
+| 4 | Follow the tape from the market hall past the cinema, under the tracks and on to the garage. Sweep three lanes with the belt-fed machine gun and dodge the armoured carts. The sleeve from the post office doubles the cycling postman’s bonus. Ejecting the tape returns you to the watch. |
+| 5 | Follow a cub across three camera feeds, then work the gate while the infected pass. |
+| 6 | Guide a neighbour through three gardens. Signal when to walk and when to duck. Preparing the window lamp shortens his reaction time. |
+| 7 | Match frequency and phase on the relay scope. Earlier rescues can supply either setting. Reconnecting tunes the desk to a sector and restores up to twelve energy. |
+
 ## The loop as built
 
 1. **Day — 12 hours.** Driving, searching and building all draw on the same daylight. The car must be home before dark, so an outing is refused if the drive back no longer fits.
+   [Watch the walk from the house to the driver's seat.](docs/previews/hero-car-departure.mp4)
    **What is found is not yet brought home.** A search loads the boot; the refuge's stock only grows when the break pulls into the yard. Between the two, someone may want the same thing:
    - **A disputed lot.** Where no neighbour minds the place any more, a survivor may already be standing at the best spot left. That spot cannot be searched behind their back; it is settled with them: share it, trade for it from the boot, wager it on three washers, insist, come to blows over it, or leave it. The rest of the place can be searched first, which is how the boot gets something to trade. Driving off leaves them the lot.
    - **A roadblock on the way home.** With a loaded boot, from the second day, a group may bar the road and ask for a share of the load: pay it (the player picks the pieces), settle it with the one thing they came for, call in a favour from a face in the group, go round at the price of daylight, or stand one's ground.

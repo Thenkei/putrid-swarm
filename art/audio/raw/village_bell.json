@@ -1,0 +1,10 @@
+{
+  "id": "village_bell",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "Ids4bz17gMLI1t62kVYn",
+  "prompt": "A single distant, mellow bronze French village town-hall clock bell toll, struck just once. Clear soft attack and a gently decaying open-air resonance over two seconds. Unaccompanied, no other tolls, birds, music or background noise.",
+  "bytes": 34305,
+  "sha256": "b23c323f47a78f475249ec81c277a73af42e4e0b1267be0d621bad91c88e2d37"
+}

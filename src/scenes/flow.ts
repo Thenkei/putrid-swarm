@@ -1,6 +1,7 @@
 // Scene navigation in one place. Scenes call these instead of constructing each other,
 // which keeps the phase order (day → night → morning → …) readable and avoids import knots.
 
+import { unloadMoped } from '../core/epics';
 import type { ChapterId } from '../core/chapters';
 import { LAST_NIGHT } from '../core/data/waves';
 import { affordableDevices } from '../core/yard';
@@ -79,13 +80,14 @@ export function goHomeStretch(app: App, sub = ''): void {
     return;
   }
   const s = S();
-  const buildable = affordableDevices(state.inventory, outing.trunk, state.hoursLeft).map((type) => s.device[type].name);
+  const load = unloadMoped(state, outing.trunk, outing.parted);
+  const buildable = affordableDevices(state.inventory, load.trunk, state.hoursLeft).map((type) => s.device[type].name);
   goTravel(app, {
     plate: units(outing.trunk) > 0 ? 'plate_trunk' : 'plate_return',
     title: s.location.home,
     sub,
-    loot: outing.trunk,
-    lost: outing.parted,
+    loot: load.trunk,
+    lost: load.parted,
     note: buildable.length > 0 ? fmt(s.encounter.arrival.canBuild, { list: buildable.join(', ') }) : s.encounter.arrival.cannotBuild,
     next: () => unload(app),
   });

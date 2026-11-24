@@ -6,6 +6,7 @@
 import { Decks } from './deck';
 
 export type Sfx =
+  | 'epic_flare' | 'moped_door' | 'epic_mob' | 'epic_mob_blast' | 'epic_tape' | 'epic_pack'
   | 'click'
   | 'deny'
   | 'build'
@@ -66,6 +67,10 @@ export type Sfx =
   | 'probe_feel'
   | 'signal_lost'
   | 'step_grass'
+  | 'step_gravel'
+  | 'yard_cat'
+  | 'cat_bonnet'
+  | 'village_bell' | 'shop_keys' | 'well_plop' | 'dawn_swallows'
   | 'chew'
   | 'clap'
   | 'rabbit_bolt'
@@ -797,6 +802,33 @@ class AudioEngine {
 
   private synth(name: Sfx, rate = 1): void {
     switch (name) {
+      case 'epic_flare': this.noise('lowpass', 2000, 420, .42, .2); break;
+      case 'moped_door':
+        this.noise('bandpass', 2100, 1300, .045, .07);
+        this.noise('bandpass', 840, 630, .052, .052, .048);
+        this.noise('bandpass', 510, 910, .35, .045, .105, 9);
+        this.tone('triangle', 290, 395, .24, .023, .135);
+        break;
+      case 'epic_mob':
+        for (let i = 0; i < 13; i++) {
+          const rev = 53 + i * 8;
+          const onset = i * .16 - i * i * .003;
+          this.tone('sawtooth', rev, rev * 1.24, .19, .054, onset);
+          this.noise('bandpass', 340 + i * 42, 520 + i * 62, .085, .058, onset);
+        }
+        break;
+      case 'epic_mob_blast':
+        this.tone('sine', 114, 43, .34, .20);
+        this.noise('lowpass', 2900, 230, .45, .25);
+        this.noise('bandpass', 2900, 1700, .065, .08, .13, 2);
+        this.noise('bandpass', 1800, 950, .085, .055, .28, 3);
+        break;
+      case 'epic_tape':
+        this.noise('highpass', 1500, 1500, .026, .13);
+        this.tone('sine', 105, 105, .062, .095);
+        this.noise('bandpass', 2300, 2300, .023, .07, .026, 1.6);
+        break;
+      case 'epic_pack': this.tone('sine', 430, 575, .55, .045); break;
       case 'click':
         this.tone('square', 660, 440, 0.05, 0.08);
         break;
@@ -1080,6 +1112,35 @@ class AudioEngine {
         break;
       case 'step_shed':
         this.noise('bandpass', 900 + Math.random() * 400, 500, 0.12, 0.14, 0, 0.9);
+        break;
+      case 'step_gravel':
+        this.noise('lowpass', 790, 270, .075, .065);
+        this.noise('highpass', 2600, 1100, .11, .045, .024);
+        break;
+      case 'yard_cat':
+        this.tone('triangle', 420, 610, .12, .024);
+        this.tone('triangle', 605, 448, .14, .022, .10);
+        break;
+      case 'cat_bonnet':
+        this.noise('lowpass', 850, 260, .08, .035);
+        this.tone('sine', 153, 110, .12, .025, .035);
+        break;
+      case 'well_plop':
+        this.tone('sine', 440, 178, .11, .05);
+        this.noise('bandpass', 2200, 750, .14, .022, .025);
+        break;
+      case 'shop_keys':
+        this.tone('triangle', 2580, 2350, .08, .022);
+        this.tone('sine', 1620, 1580, .12, .015, .08);
+        break;
+      case 'dawn_swallows':
+        this.tone('sine', 2450, 3300, .105, .028);
+        this.tone('sine', 3000, 2600, .09, .024, .16);
+        this.tone('sine', 2340, 2890, .13, .015, .88);
+        break;
+      case 'village_bell':
+        this.tone('sine', 348, 345, 1.4, .04);
+        this.tone('sine', 829, 822, .87, .022);
         break;
       case 'chain':
         for (let i = 0; i < 6; i++) this.tone('triangle', 1800 + Math.random() * 900, 1500, 0.05, 0.05, i * 0.09);

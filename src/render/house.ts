@@ -2,9 +2,12 @@ import type { SectorId } from '../core/types';
 import { ENTRIES, HOUSE_CENTER } from '../core/map';
 import { DOOR_REACH, type EnemyImpact } from '../core/night';
 import { sprite, type Sprite } from '../engine/assets';
-import { project, unproject, type Rot, type View } from './projection';
-import { houseOffset, HOUSE_PAINT_SCALE } from './registration';
+import { depthOf, project, unproject, type Rot, type View } from './projection';
+import { HOUSE_PAINT_SCALE } from './registration';
+import { DOOR_OPENINGS, DOOR_OUTWARD, THRESHOLDS, VISIBLE_DOORS } from '../house-layout';
 import { smoothstep } from './noise';
+
+export { DOOR_OPENINGS, DOOR_OUTWARD, THRESHOLDS, VISIBLE_DOORS } from '../house-layout';
 
 const worn = new Map<Rot, HTMLCanvasElement>();
 const exposedInteriors = new Map<Rot, HTMLCanvasElement>();
@@ -109,13 +112,113 @@ function wornFacade(rot: Rot, intact: Sprite, damage: Sprite): HTMLCanvasElement
   return canvas;
 }
 
-/** Corners inside the painted door jambs, in pixels on the 760-wide facade. */
-export const DOOR_OPENINGS: Readonly<Record<SectorId, { x: number; y: number; w: number; h: number; rise: number }>> = {
-  portail: { x: 200, y: 501, w: 89, h: 156, rise: 19 },
-  grange: { x: 526, y: 519, w: 201, h: 201, rise: -61 },
-  arriere: { x: 198, y: 503, w: 72, h: 145, rise: 17 },
-  verger: { x: 531, y: 482, w: 68, h: 181, rise: -24 },
-};
+export interface HouseDoor {
+  readonly sector: SectorId;
+  readonly open: number;
+}
+
+export function doorSwing(age: number, closeAt: number, shutAt: number): number {
+  return smoothstep(0, .4, age) * (1 - smoothstep(closeAt, shutAt, age));
+}
+
+/** The outside of the sill lies just in front of its boards and behind figures attacking them. */
+export function outsideSillDepth(rot: Rot, depth: number): number {
+  return Math.max(depth, depthOf(rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.315);
+}
+
+/** While crossing the sill, the jamb hides the part of the sprite still inside the house. */
+export function clipAtSill(ctx: CanvasRenderingContext2D, view: View, sector: SectorId, facing: number) {
+  const sill = THRESHOLDS[sector];
+  const foot = project(view, sill.gx, sill.gy);
+  const width = sill.width * view.zoom;
+  const height = DOOR_OPENINGS[sector].h * HOUSE_PAINT_SCALE * view.zoom;
+  const insideEdge = facing > 0 ? -.5 : .5;
+  const leftHinge = sector === 'arriere' || sector === 'verger';
+  const inset = sector === 'grange' ? .07 : (leftHinge === (insideEdge < 0) ? .14 : .025);
+  const edgeX = foot.x + width * insideEdge * (1 - 2 * inset);
+  const edgeY = foot.y + (edgeX - foot.x) * sill.slope;
+  const limit = facing > 0 ? view.x + view.w : view.x;
+  ctx.beginPath();
+  ctx.moveTo(edgeX, edgeY);
+  ctx.lineTo(edgeX, edgeY - height);
+  ctx.lineTo(foot.x, foot.y - height);
+  ctx.lineTo(foot.x, view.y);
+  ctx.lineTo(limit, view.y);
+  ctx.lineTo(limit, view.y + view.h);
+  ctx.lineTo(foot.x, view.y + view.h);
+  ctx.lineTo(foot.x, foot.y);
+  ctx.closePath();
+  ctx.clip();
+}
+
+/** Both a leaf and its attached boards rotate about the same masonry jamb in screen space. */
+export function hingedLeaves(ctx: CanvasRenderingContext2D, sector: SectorId, open: number,
+  left: number, width: number, slope: number, paint: () => void) {
+  if (open <= 0) { paint(); return; }
+  const angle = Math.min(1, open) * 1.44;
+  const span = Math.cos(angle);
+  const double = sector === 'grange';
+  const fromLeft = sector === 'arriere' || sector === 'verger';
+  const leaf = (leftHinge: boolean) => {
+    const hinge = left + (leftHinge ? 0 : width);
+    const shear = slope * (span - 1) - (leftHinge ? 1 : -1) * Math.sin(angle) * .28;
+    ctx.save();
+    ctx.transform(span, shear, 0, 1, hinge * (1 - span), -hinge * shear);
+    if (double) {
+      const centre = left + width / 2;
+      ctx.beginPath(); ctx.rect(leftHinge ? centre - 4096 : centre, -4096, 4096, 8192); ctx.clip();
+    }
+    paint();
+    ctx.restore();
+  };
+  if (double) { leaf(true); leaf(false); } else leaf(fromLeft);
+}
+
+/** The hall, floor reflection and original leaf all use the measured corners of this facade. */
+function launchOpening(ctx: CanvasRenderingContext2D, sector: SectorId, open: number,
+  facade: CanvasImageSource, intact: boolean) {
+  const d = DOOR_OPENINGS[sector];
+  const { x, y, w, h, rise } = d;
+  ctx.save();
+  ctx.transform(1, rise / w, 0, 1, x, y);
+  const jamb = new Path2D();
+  if (sector === 'portail') {
+    jamb.moveTo(0, 22); jamb.quadraticCurveTo(w * .45, -15, w, 20);
+    jamb.lineTo(w, h); jamb.lineTo(0, h); jamb.closePath();
+  } else jamb.rect(0, 0, w, h);
+  ctx.save(); ctx.clip(jamb);
+  if (intact) {
+    const interior = sprite(sector === 'grange' ? 'yard_masonry_barn' : 'yard_masonry_hall');
+    ctx.fillStyle = '#261b15'; ctx.fillRect(0, 0, w, h);
+    if (interior) {
+      const crop = Math.min(interior.w, interior.h * w / h);
+      ctx.drawImage(interior.img, (interior.w - crop) * .5, 0, crop, interior.h, 0, 0, w, h);
+    }
+  }
+  const warmth = ctx.createLinearGradient(0, h * .25, 0, h);
+  warmth.addColorStop(0, '#21161015'); warmth.addColorStop(.77, '#da99532b'); warmth.addColorStop(1, '#f9c37c9e');
+  ctx.globalAlpha = open; ctx.fillStyle = warmth; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#d6ae77'; ctx.fillRect(0, h - 3, w, 3);
+  ctx.restore();
+  // Spill travels away from the threshold and is occluded by the barricade and vehicle above it.
+  ctx.globalAlpha = Math.min(1, open);
+  const spill = ctx.createLinearGradient(0, h, 0, h + 47);
+  spill.addColorStop(0, '#ffdc8b85'); spill.addColorStop(1, '#e4ae5b00');
+  ctx.fillStyle = spill;
+  const drift = rise > 0 ? -32 : 32;
+  ctx.beginPath(); ctx.moveTo(2, h); ctx.lineTo(w - 2, h); ctx.lineTo(w + drift + 13, h + 47); ctx.lineTo(drift - 12, h + 47); ctx.fill();
+  ctx.restore();
+
+  if (intact) hingedLeaves(ctx, sector, open, x, w, rise / w, () => {
+    ctx.save();
+    ctx.transform(1, rise / w, 0, 1, x, y); ctx.clip(jamb);
+    // Restore the source painting's coordinates while keeping the jamb-shaped clip.
+    ctx.transform(1, -rise / w, 0, 1, -x, x * rise / w - y);
+    const top = y + Math.min(rise, 0) - 10, height = h + Math.abs(rise) + 12;
+    ctx.drawImage(facade, x, top, w, height, x, top, w, height);
+    ctx.restore();
+  });
+}
 
 function breachedDoor(ctx: CanvasRenderingContext2D, sector: SectorId): void {
   const { x, y, w, h, rise } = DOOR_OPENINGS[sector];
@@ -159,7 +262,7 @@ function breachedDoor(ctx: CanvasRenderingContext2D, sector: SectorId): void {
   ctx.restore();
 }
 
-export function paintHouse(ctx: CanvasRenderingContext2D, rot: Rot, key: string, intact: Sprite, left: number, top: number, width: number, health: number, barricades: Readonly<Record<SectorId, { hp: number }>>): void {
+export function paintHouse(ctx: CanvasRenderingContext2D, rot: Rot, key: string, intact: Sprite, left: number, top: number, width: number, health: number, barricades: Readonly<Record<SectorId, { hp: number }>>, door?: HouseDoor): void {
   const image = facadeForStage(rot, key, intact, houseDamageStage(health));
   ctx.save();
   ctx.translate(left, top);
@@ -167,25 +270,12 @@ export function paintHouse(ctx: CanvasRenderingContext2D, rot: Rot, key: string,
   ctx.drawImage(image, 0, 0, intact.w, intact.h);
   const visible = VISIBLE_DOORS[rot];
   for (const sector of visible) if (barricades[sector].hp <= 0) breachedDoor(ctx, sector);
+  if (door && door.open > 0 && visible.includes(door.sector)) {
+    launchOpening(ctx, door.sector, door.open, image, barricades[door.sector].hp > 0);
+  }
   ctx.restore();
 }
 
-export const VISIBLE_DOORS: Readonly<Record<Rot, readonly SectorId[]>> = {
-  0: ['portail', 'grange'], 1: ['arriere', 'verger'],
-};
-
-/** The two images show disjoint exterior walls. Read the actual threshold on its painted face
- * once, then give every camera the same world-space contact, including one looking over the roof. */
-function doorway(sector: SectorId) {
-  const rot: Rot = VISIBLE_DOORS[0].includes(sector) ? 0 : 1;
-  const view: View = { rot, cx: HOUSE_CENTER.x, cy: HOUSE_CENTER.y, zoom: 1, x: 0, y: 0, w: 0, h: 0 };
-  const d = DOOR_OPENINGS[sector];
-  const sill = houseOffset(rot, d.x + d.w / 2, d.y + d.h + d.rise / 2);
-  const point = unproject(view, sill.dx, -sill.lift);
-  return { view, sx: sill.dx, sy: -sill.lift, gx: point.gx, gy: point.gy, width: d.w * HOUSE_PAINT_SCALE, slope: d.rise / d.w };
-}
-export const THRESHOLDS = { portail: doorway('portail'), grange: doorway('grange'), arriere: doorway('arriere'), verger: doorway('verger') };
-export const DOOR_OUTWARD = { portail: [0, 1], grange: [1, 0], arriere: [0, -1], verger: [-1, 0] } as const;
 
 /** The simulation resolves a bite within a radius around the entry cell. Carry the last step
  * to the painted boards, leaving pathfinding, collision and trap targeting in simulation space. */

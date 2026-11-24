@@ -1,0 +1,11 @@
+{
+  "id": "epic_mob",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "TNiKhkaWP6uDOQVuJkD1",
+  "generatedAt": "2026-11-23T22:18:44.499Z",
+  "prompt": "Isolated arcade game vehicle cue, 1.6 seconds of rapid acceleration on a scrappy old French two-stroke moped. Immediate dry put-put-put kick, then a rising raspy, nasal engine buzz as the tiny machine races down a lane. Front-loaded start, quick rev increase already within its first second, high rev by 1.4 seconds. Motor only. No horn, crash, impact, blast, background, music, or voice.",
+  "bytes": 34305,
+  "sha256": "dad2c918974038621dd67a40de2c36f2cda0f3196726ddc66f5dd16ef5eed9d9"
+}

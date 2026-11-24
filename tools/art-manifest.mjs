@@ -666,6 +666,22 @@ export const ART = [
   },
   // Shared walk cycles and the four poses used on the upper-window route.
   {
+    id: 'dawn_wildlife', kind: 'atlas', w: 896, source: { concept: 'art/raw/dawn_wildlife.png' },
+    prompt: 'Four registered poses each of a russet European hare, fork-tailed barn swallow, red admiral butterfly and clump of opening oxeye daisies. Ink and gouache, transparent four by four sheet.',
+  },
+  {
+    id: 'village_wildlife', kind: 'atlas', w: 768, source: { concept: 'art/raw/village_wildlife.png' },
+    prompt: 'Isometric painted rural wildlife. Five rows: European robin, red squirrel, common frog, field mouse, rock pigeon. Four poses per row, individually registered at the feet.',
+  },
+  {
+    id: 'village_keepsakes', kind: 'atlas', w: 384, source: { concept: 'art/raw/village_keepsakes.png' },
+    prompt: 'Four painted props in a two by two atlas: red windfall apple, shallow enamel oil pan, dangling workshop keys, faded French airmail envelope.',
+  },
+  {
+    id: 'yard_cat', kind: 'atlas', w: 768, source: { concept: 'art/raw/yard_cat.png' },
+    prompt: 'Eight isometric hand-inked poses of the same russet farm tabby with pale socks, in a transparent four by two atlas. Curl asleep, listen, stretch, crouch, leap, stride, gather, sit looking back. Registered at the paws.',
+  },
+  {
     id: 'hero_departure', kind: 'atlas', w: 1328, source: { concept: 'art/raw/hero_departure.png' },
     refs: ['art/raw/car_boarding.png', REF_TRUNK],
     prompt: HERO_APPROACH_BRIEF + ' ' +
@@ -1153,6 +1169,14 @@ export const ART = [
       'LEFT: an old rusty bow saw for pruning trees — a curved tubular steel frame with a thin toothed blade stretched across it, rust-brown all over, flaking red paint on the grip — standing upright on the tip of its frame and leaning slightly to the right, as if propped against a tree trunk. ' +
       'RIGHT: a coil of old frayed hemp rope hanging as if from a nail: several loops gathered and bound in the middle, one loose end dangling. ' +
       `${KEY} ${STYLE}`,
+  },
+  {
+    id: 'orchard_cable_repair', kind: 'atlas', w: 1728, source: { concept: 'art/raw/orchard_cable_repair.png' },
+    prompt: 'Thirty registered close-up poses of the gnawed orange camera cable on the wet orchard floor. The tips meet and dark tape winds over the joint, in the light of the original painted plate.',
+  },
+  {
+    id: 'orchard_tape_hand', kind: 'sprite', h: 640,
+    prompt: 'First-person right hand pinching a short tongue of charcoal tape from a roll, with the same ochre jacket and brown cuff as the other orchard hands.',
   },
   {
     id: 'orchard_clap',

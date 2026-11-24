@@ -1,0 +1,13 @@
+{
+  "id": "vo_epic_neighbor",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "FjIrCmpEDeiNhRgmeGVV",
+  "generatedAt": "2026-11-23T20:30:26.453Z",
+  "prompt": "[quietly] Ça y est. Il a rallumé sa cuisine.",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "bytes": 56457,
+  "sha256": "0e86316297addf4650e1c8400a6229b40630604ff8ccbc6b715d8ee7f87ad6c1"
+}

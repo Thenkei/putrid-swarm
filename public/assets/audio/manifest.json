@@ -1,4 +1,64 @@
 {
+  "moped_door": {
+    "file": "moped_door.mp3",
+    "kind": "sfx",
+    "seconds": 0.758,
+    "gain": 0.76
+  },
+  "epic_flare": {
+    "file": "epic_flare.mp3",
+    "kind": "sfx",
+    "seconds": 0.731,
+    "gain": 0.78
+  },
+  "epic_mob": {
+    "file": "epic_mob.mp3",
+    "kind": "sfx",
+    "seconds": 1.672,
+    "gain": 0.78
+  },
+  "epic_mob_blast": {
+    "file": "epic_mob_blast.mp3",
+    "kind": "sfx",
+    "seconds": 0.993,
+    "gain": 0.85
+  },
+  "epic_tape": {
+    "file": "epic_tape.mp3",
+    "kind": "sfx",
+    "seconds": 0.157,
+    "gain": 0.65
+  },
+  "epic_pack": {
+    "file": "epic_pack.mp3",
+    "kind": "sfx",
+    "seconds": 2.038,
+    "gain": 0.72
+  },
+  "vo_epic_stove": {
+    "file": "vo_epic_stove.mp3",
+    "kind": "voice",
+    "seconds": 2.482,
+    "gain": 1
+  },
+  "vo_epic_pack": {
+    "file": "vo_epic_pack.mp3",
+    "kind": "voice",
+    "seconds": 2.168,
+    "gain": 1
+  },
+  "vo_epic_neighbor": {
+    "file": "vo_epic_neighbor.mp3",
+    "kind": "voice",
+    "seconds": 2.247,
+    "gain": 1
+  },
+  "vo_epic_neighbor_relay": {
+    "file": "vo_epic_neighbor_relay.mp3",
+    "kind": "voice",
+    "seconds": 4.127,
+    "gain": 1
+  },
   "spikes": {
     "file": "spikes.mp3",
     "kind": "sfx",
@@ -545,6 +605,42 @@
     "seconds": 0.601,
     "gain": 0.6
   },
+  "well_plop": {
+    "file": "well_plop.mp3",
+    "kind": "sfx",
+    "seconds": 0.758,
+    "gain": 0.7
+  },
+  "shop_keys": {
+    "file": "shop_keys.mp3",
+    "kind": "sfx",
+    "seconds": 0.731,
+    "gain": 0.64
+  },
+  "village_bell": {
+    "file": "village_bell.mp3",
+    "kind": "sfx",
+    "seconds": 1.045,
+    "gain": 0.64
+  },
+  "yard_cat": {
+    "file": "yard_cat.mp3",
+    "kind": "sfx",
+    "seconds": 0.784,
+    "gain": 0.76
+  },
+  "step_gravel": {
+    "file": "step_gravel.mp3",
+    "kind": "sfx",
+    "seconds": 0.313,
+    "gain": 0.64
+  },
+  "cat_bonnet": {
+    "file": "cat_bonnet.mp3",
+    "kind": "sfx",
+    "seconds": 0.366,
+    "gain": 0.65
+  },
   "step_grass_2": {
     "file": "step_grass_2.mp3",
     "kind": "sfx",
@@ -1048,6 +1144,12 @@
     "kind": "sfx",
     "seconds": 4.493,
     "gain": 0.9
+  },
+  "dawn_swallows": {
+    "file": "dawn_swallows.mp3",
+    "kind": "sfx",
+    "seconds": 2.952,
+    "gain": 0.74
   },
   "lost": {
     "file": "lost.mp3",

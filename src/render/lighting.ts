@@ -54,7 +54,7 @@ function lightPoint(view: View, light: Light): { x: number; y: number } {
 const lightMaps = new Map<string, HTMLCanvasElement>();
 
 /** Multiplies a light map over a view that has just been drawn: blue night, warm pools of light, then the lamps themselves. */
-export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: readonly Light[], time = 0): void {
+export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: readonly Light[], time = 0, sunrise = 0): void {
   const scale = 0.5;
   const w = Math.ceil(view.w * scale);
   const h = Math.ceil(view.h * scale);
@@ -76,6 +76,18 @@ export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: re
   sky.addColorStop(1, '#738aaa');
   lctx.fillStyle = sky;
   lctx.fillRect(0, 0, w, h);
+  if (sunrise > 0) {
+    // The gate and orchard cameras face opposite ways. The eastern light stays on the same land.
+    const east = view.rot === 0 ? w : 0;
+    const firstLight = lctx.createLinearGradient(east, 0, w - east, h);
+    firstLight.addColorStop(0, '#ffe6ba');
+    firstLight.addColorStop(.50, '#f9d9b6');
+    firstLight.addColorStop(1, '#c4b9bb');
+    lctx.globalAlpha = sunrise;
+    lctx.fillStyle = firstLight;
+    lctx.fillRect(0, 0, w, h);
+    lctx.globalAlpha = 1;
+  }
   lctx.globalCompositeOperation = 'lighter';
   const still = calmMotion();
   for (const light of lights) {
@@ -86,7 +98,7 @@ export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: re
     const rx = light.radius * Math.SQRT2 * (TW / 2) * view.zoom * scale * (1 - dip * 0.12);
     if (x < -rx || y < -rx || x > w + rx || y > h + rx) continue;
     lctx.save();
-    lctx.globalAlpha = (light.intensity ?? 1) * (1 - dip * 0.45);
+    lctx.globalAlpha = (light.intensity ?? 1) * (1 - dip * 0.45) * (1 - sunrise * .92);
     lctx.translate(x, y);
     lctx.scale(1, light.round ? 0.9 : 0.62);
     const gradient = lctx.createRadialGradient(0, 0, 0, 0, 0, rx);
@@ -104,14 +116,14 @@ export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: re
   ctx.clip();
   ctx.globalCompositeOperation = 'multiply';
   ctx.drawImage(lightCanvas, view.x, view.y, view.w, view.h);
-  drawGlows(ctx, view, lights, time);
+  drawGlows(ctx, view, lights, time, undefined, 1 - sunrise * .92);
   ctx.restore();
 }
 
 /** The lamps themselves: a small bright halo on each visible source, added over the picture. */
 const DEFAULT_TWILIGHT = [0.55, 0.95] as const;
 
-function drawGlows(ctx: CanvasRenderingContext2D, view: View, lights: readonly Light[], time: number, dusk?: number): void {
+function drawGlows(ctx: CanvasRenderingContext2D, view: View, lights: readonly Light[], time: number, dusk?: number, lampVisibility = 1): void {
   const still = calmMotion();
   ctx.globalCompositeOperation = 'lighter';
   for (const light of lights) {
@@ -123,7 +135,7 @@ function drawGlows(ctx: CanvasRenderingContext2D, view: View, lights: readonly L
     const r = (9 + 26 * light.glow) * view.zoom;
     if (p.x < view.x - r || p.y < view.y - r || p.x > view.x + view.w + r || p.y > view.y + view.h + r) continue;
     const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
-    const peak = (0.2 + 0.36 * light.glow) * strength * (light.intensity ?? 1) * (1 - dip * 0.5);
+    const peak = (0.2 + 0.36 * light.glow) * strength * (light.intensity ?? 1) * (1 - dip * 0.5) * lampVisibility;
     halo.addColorStop(0, `rgba(255, 214, 150, ${peak})`);
     halo.addColorStop(0.4, `rgba(255, 170, 90, ${peak * 0.38})`);
     halo.addColorStop(1, 'rgba(255, 150, 60, 0)');
@@ -286,7 +298,7 @@ function grainPattern(ctx: CanvasRenderingContext2D): CanvasPattern | null {
 }
 
 /** Sensor grain, scanlines, a little roll and a vignette over the graded night feed. */
-export function applyCctv(ctx: CanvasRenderingContext2D, view: View, time: number, strength = 1): void {
+export function applyCctv(ctx: CanvasRenderingContext2D, view: Pick<View, 'x' | 'y' | 'w' | 'h'>, time: number, strength = 1): void {
   ctx.save();
   ctx.beginPath();
   ctx.rect(view.x, view.y, view.w, view.h);
@@ -337,7 +349,7 @@ export function applyCctv(ctx: CanvasRenderingContext2D, view: View, time: numbe
 }
 
 /** One roll as the monitor locks onto the new feed. The picture underneath is already live. */
-export function drawRetune(ctx: CanvasRenderingContext2D, view: View, age: number): void {
+export function drawRetune(ctx: CanvasRenderingContext2D, view: Pick<View, 'x' | 'y' | 'w' | 'h'>, age: number): void {
   const duration = 0.2;
   if (age < 0 || age >= duration || calmMotion()) return;
   const thickness = 58;

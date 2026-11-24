@@ -1,0 +1,11 @@
+{
+  "id": "yard_cat",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "T8OWY38Shn4uBR893WME",
+  "generatedAt": "2026-11-23T23:08:46.0768996Z",
+  "prompt": "Single sleepy greeting trill from a real adult ginger farm cat, one soft short closed-mouth 'mrrrp' rising gently and falling off, within half a second, paws still. Close dry outdoor field recording, isolated with silence before and after, natural and warm. No human voice, music, birds, second meow or background.",
+  "bytes": 34305,
+  "sha256": "c211fe6f21b4cd1a529f04209af47971a5edc25aedabf71f6b7be239743d060c"
+}

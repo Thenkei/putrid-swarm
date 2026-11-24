@@ -1,0 +1,13 @@
+{
+  "id": "vo_epic_stove",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "u6kCsgBspUqxO1yjeivv",
+  "generatedAt": "2026-11-23T20:30:23.124Z",
+  "prompt": "[dryly] Bon. Ce soir, on mange froid.",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "bytes": 64398,
+  "sha256": "39cfc59e05dcd0afc9070ff0a64e913bf66f496fa14817249f6afeb032ba8c5f"
+}

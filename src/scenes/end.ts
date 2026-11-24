@@ -3,6 +3,7 @@
 // of that scene held still, with what the song was worth written over it.
 
 import { chapterOfFate } from '../core/chapters';
+import { epicFlag, markEpic } from '../core/epics';
 import { finaleOf, type FinaleKind, type JamResult, type RecordOutcome } from '../core/finale';
 import { LAST_NIGHT } from '../core/data/waves';
 import { newGame, retryChapter } from '../core/game';
@@ -54,7 +55,8 @@ export class EndScene implements Scene {
     if (state && state.phase === 'lost' && state.fate === null) {
       try {
         const raw = sessionStorage.getItem('putrid-swarm.evening');
-        this.retry = raw ? (JSON.parse(raw) as GameState) : null;
+        const evening = raw ? (JSON.parse(raw) as GameState) : null;
+        this.retry = evening && epicFlag(state, 'spent') ? markEpic(evening, 'spent') : evening;
       } catch {
         this.retry = null;
       }

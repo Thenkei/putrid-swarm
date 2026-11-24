@@ -1,0 +1,13 @@
+{
+  "id": "vo_epic_neighbor_relay",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "TeKSLtvkW2ZjKRH93VAk",
+  "generatedAt": "2026-11-23T22:02:43.474Z",
+  "prompt": "[relieved, quietly] Je te reçois. De ma fenêtre, je vois ta porte arrière. Je veille.",
+  "voice": "Ash - Warm French Narrator",
+  "voiceId": "A7zEkeWGohmgSvEAQHDG",
+  "bytes": 89893,
+  "sha256": "952cc2e862b7b6959ea47b0a49c357634425a3d733be0662adaf21626837427a"
+}

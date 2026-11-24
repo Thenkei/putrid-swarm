@@ -1,0 +1,78 @@
+// Run against a production preview. No development hooks or simulated button events.
+// node --import tsx tools/epic-night-smoke.mjs http://localhost:4173/ [screenshot-directory]
+import assert from 'node:assert/strict';
+import { mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { newGame } from '../src/core/game.ts';
+import { launch } from './browser.mjs';
+
+const url = process.argv[2] ?? 'http://localhost:4173/';
+const out = process.argv[3];
+if (out) await mkdir(out, { recursive: true });
+const browser = await launch();
+const errors = [];
+async function openSave(state, mobile = false) {
+  const page = await browser.newPage({
+    locale: 'en-GB', viewport: mobile ? { width: 390, height: 844 } : { width: 1280, height: 720 },
+    hasTouch: mobile, isMobile: mobile, reducedMotion: mobile ? 'reduce' : 'no-preference',
+  });
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('response', response => { if (response.status() >= 400) errors.push(response.status() + ' ' + response.url()); });
+  await page.addInitScript(save => {
+    localStorage.setItem('putrid-swarm.save.v1', JSON.stringify(save));
+    localStorage.setItem('putrid-swarm.warned', '1');
+  }, state);
+  await page.goto(url);
+  if (mobile) await page.locator('.gate button').tap();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  return page;
+}
+
+try {
+  const page = await openSave({ ...newGame(54), day: 3, phase: 'night' }, true);
+  const tap = name => page.getByRole('button', { name, exact: true }).tap();
+  await tap('Wait for night'); // Restored nights restart at the refuge at dusk.
+  await tap('Take the desk');
+  await tap('Develop the print');
+  await tap('Dip the paper');
+  await page.getByText('Details are sharp', { exact: true }).waitFor();
+  await page.keyboard.press('Escape');
+  const resume = page.getByRole('button', { name: 'Resume', exact: true });
+  assert.ok(await resume.evaluate(el => el === document.activeElement));
+  await page.waitForTimeout(3200); // longer than the entire sharp exposure window
+  await resume.tap();
+  assert.ok(await page.getByRole('button', { name: 'Lift the print' }).evaluate(el => el === document.activeElement));
+  if (out) await page.screenshot({ path: join(out, 'garage-print-portrait.png') });
+  await tap('Lift the print');
+  await page.getByText(/You keep the photo/).waitFor();
+  await tap('Back to the desk');
+  assert.equal(await page.locator('.epic-night').count(), 0);
+  // Decode the actual shipped samples from the same relative base as GitHub Pages.
+  const decoded = await page.evaluate(async () => {
+    const manifest = await (await fetch('./assets/audio/manifest.json')).json();
+    const audio = new AudioContext();
+    try {
+      const ids = Object.keys(manifest).filter(id => /^(vo_)?epic_/.test(id));
+      return await Promise.all(ids.map(async id => {
+        const response = await fetch('./assets/audio/' + manifest[id].file);
+        const sample = await audio.decodeAudioData(await response.arrayBuffer());
+        return [id, sample.duration, sample.getChannelData(0).some(x => Math.abs(x) > .01)];
+      }));
+    } finally { await audio.close(); }
+  });
+  assert.ok(decoded.length >= 7 && decoded.every(([,duration, signal]) => duration > .1 && signal), JSON.stringify(decoded));
+  await page.close();
+
+  const refuge = await openSave({ ...newGame(54), day: 6, flags: { 'epic.photo': 1, 'epic.moped': 1 } });
+  await refuge.locator('summary').filter({ hasText: 'Ashtray and lamp' }).click();
+  await refuge.getByRole('button', { name: 'Set the lamp in the window' }).click();
+  await refuge.locator('summary').filter({ hasText: 'bladed moped' }).click();
+  await refuge.getByRole('button', { name: /Aim at/ }).click();
+  const flags = await refuge.evaluate(() => JSON.parse(localStorage.getItem('putrid-swarm.save.v1')).flags);
+  assert.equal(flags['epic.lamp'], 1);
+  assert.equal(flags['epic.lane'], 1);
+  assert.deepEqual(errors, []);
+  console.log('Passed: portrait print, pause/resume, focus, desk return, two concurrent refuge discoveries, ' + decoded.length + ' decoded sound files.');
+} finally {
+  await browser.close();
+}

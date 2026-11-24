@@ -1,0 +1,11 @@
+{
+  "id": "cat_bonnet",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "8BJp3J6cbg7ZN40MO9We",
+  "generatedAt": "2026-11-23T23:12:46.0382827Z",
+  "prompt": "A cat's two soft forepaws landing almost together on a stationary old car's metal bonnet. One quiet padded pa-dum with a very short, low hollow sheet-metal resonance underneath. Close-up game Foley, finished completely in a quarter second. No voices, claws, meow, ringing, keys, engine or ambience.",
+  "bytes": 34305,
+  "sha256": "9fc8fc277deeac21ad8b51d0656ab6a7435ec44d3613fe870a47365f1c42dc63"
+}

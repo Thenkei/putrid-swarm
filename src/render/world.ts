@@ -3,7 +3,7 @@
 
 import { BARRICADE, DEVICES } from '../core/data/devices';
 import { ENTRIES, GRID_H, GRID_W, HOUSE_CENTER, PROPS, propAt, sectorOf, type PropKind } from '../core/map';
-import type { DeviceRuntimeState, Enemy, LogTarget } from '../core/night';
+import type { DeviceRuntimeState, Enemy, LogTarget, NightSim } from '../core/night';
 import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { sprite } from '../engine/assets';
@@ -11,7 +11,8 @@ import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, t
 import { drawDecals } from './aftermath';
 import { drawEnemy, drawFallen, FALL_SECONDS, type Fallen } from './infected';
 import { drawGround, prepareGround, setGroundDresser } from './ground';
-import { DOOR_OPENINGS, VISIBLE_DOORS, doorStance, houseDamageStage, paintHouse } from './house';
+import { DOOR_OPENINGS, VISIBLE_DOORS, doorStance, hingedLeaves, houseDamageStage, outsideSillDepth, paintHouse, type HouseDoor } from './house';
+import { mopedRideDrawable } from './moped';
 import { drawHouseDebris, type HouseBreak } from './house-debris';
 import { calmMotion, drawCloudShadows, drawMist, type Light } from './lighting';
 import { hash2, smoothstep } from './noise';
@@ -22,8 +23,11 @@ import { drawStand, prepareForest, projectStand } from './forest';
 import { windAt } from './wind';
 import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
-import { drawDepartingCar, drawHeadlightPools, type DepartingCar } from './car-departure';
-import { approachDepth, drawApproachOpening, drawApproachingHero, type ApproachingHero } from './hero-approach';
+import { drawDepartingCar, drawHeadlightPools, wagonLeaves, type DepartingCar } from './car-departure';
+import { drawApproachWindow, drawApproachingHero, type ApproachingHero } from './hero-approach';
+import { drawYardCat, type YardCatPose } from './yard-cat';
+import { drawGlowworms, drawPropLife, type HomesteadLife } from './homestead-life';
+import { dawnCel, firstSwallows, flowerPose, gateHare, sunlight } from './sunrise';
 import { drawRattle, rattlePoint, type RattleVisual } from './rattle';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
@@ -94,10 +98,16 @@ export interface WorldFrame {
   readonly time: number;
   readonly night: boolean;
   readonly houseHpRatio: number;
+  readonly houseDoor?: HouseDoor;
+  readonly mopedRide?: NonNullable<NightSim['mopedRide']>;
   readonly houseBreaks?: readonly HouseBreak[];
   readonly carPresent: boolean;
   readonly approachingHero?: ApproachingHero;
+  readonly yardCat?: YardCatPose;
+  readonly homesteadLife?: HomesteadLife;
+  readonly sunriseAge?: number;
   readonly departingCar?: DepartingCar;
+  readonly secondsSinceCarRoll?: number;
   /** Seconds since the car shut off after returning from an outing. */
   readonly exhaustAge?: number;
   readonly sceneryAction?: SceneryAction | null;
@@ -498,8 +508,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           const origin = houseOffset(view.rot, 0, 0);
           const left = root.x + origin.dx * z;
           const top = root.y - origin.lift * z;
-          paintHouse(ctx, view.rot, side.key, art, left, top, w, frame.houseHpRatio, frame.barricades);
-          if (frame.approachingHero && view.rot === 0) drawApproachOpening(ctx, frame.approachingHero, root, z);
+          paintHouse(ctx, view.rot, side.key, art, left, top, w, frame.houseHpRatio, frame.barricades, frame.houseDoor);
+          if (frame.approachingHero && view.rot === 0) drawApproachWindow(ctx, frame.approachingHero, root, z);
           if (frame.houseBreaks?.length) drawHouseDebris(ctx, frame.houseBreaks, view.rot, side.key, art, left, top, w);
           const chimney = houseOffset(view.rot, side.chimney.x, side.chimney.y);
           drawChimneySmoke(ctx, root.x + chimney.dx * z, root.y - chimney.lift * z, view, frame.time);
@@ -545,6 +555,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
         }
         const drawn = drawSprite(ctx, key, p.x, p.y, art.h * z, false, opacity, lean, foot);
         if (!drawn) placeholder(ctx, p.x, p.y, 40 * z, 40 * z, '#5a6a4a', prop.kind);
+        if (drawn && frame.homesteadLife) drawPropLife(ctx, prop, drawn, art.h, view, frame.homesteadLife, frame.time, calmMotion());
         if (drawn && prop.kind === 'car' && frame.exhaustAge !== undefined) {
           drawExhaust(ctx, drawn, view.rot, z, frame.exhaustAge);
         }
@@ -565,15 +576,53 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     }
   }
 
+  if (frame.yardCat) {
+    const cat = frame.yardCat;
+    drawables.push({ depth: depthOf(view.rot, cat.x, cat.y) + .42, draw: () => drawYardCat(ctx, view, cat) });
+  }
+  // The same daisies stand at the mailbox through the night, the inspection and the playable day.
+  for (const [gx, gy, width] of [[12.85, 19.78, 27], [12.62, 19.94, 20]] as const) {
+    const p = project(view, gx, gy);
+    if (!onScreen(p, width)) continue;
+    const pose = !frame.night ? 3 : frame.sunriseAge === undefined ? 0 : flowerPose(frame.sunriseAge, calmMotion());
+    drawables.push({ depth: depthOf(view.rot, gx, gy) + .54, draw: () => dawnCel(ctx, 'daisies', pose, p.x, p.y, width * z) });
+  }
+  if (frame.sunriseAge !== undefined) {
+    const hare = gateHare(frame.sunriseAge, calmMotion());
+    if (hare && hare.cover > 0) {
+      const gx = 7.6 + (hare.x - 124) * .031, gy = 18.1 + (hare.y - 332) * .021;
+      const clear = !frame.enemies.some(e => e.alive && Math.hypot(e.x - gx, e.y - gy) < 3.2);
+      const p = project(view, gx, gy);
+      if (clear && onScreen(p, 50)) {
+        contacts.push({ gx, gy, rx: .23, ry: .105, alpha: .3 * hare.cover });
+        drawables.push({ depth: depthOf(view.rot, gx, gy), draw: () => {
+          ctx.save(); ctx.globalAlpha *= hare.cover;
+          dawnCel(ctx, 'hare', hare.pose, p.x, p.y - hare.lift * .6 * z, 48 * z, view.rot === 1); ctx.restore();
+        } });
+      }
+    }
+    for (const bird of firstSwallows(frame.sunriseAge, calmMotion())) {
+      const p = project(view, bird.x, bird.y);
+      const up = { x: p.x, y: p.y - bird.height * z };
+      if (!onScreen(up, 32)) continue;
+      contacts.push({ gx: bird.x - .35, gy: bird.y + .35, rx: .24, ry: .10, alpha: .20 * bird.alpha });
+      drawables.push({ depth: depthOf(view.rot, bird.x, bird.y), draw: () => {
+        ctx.save(); ctx.globalAlpha *= bird.alpha;
+        dawnCel(ctx, 'swallow', bird.pose, up.x, up.y, 42 * z, view.rot === 1);
+        ctx.restore();
+      } });
+    }
+  }
   if (frame.approachingHero) {
     const hero = frame.approachingHero;
     const { x, y } = hero.position;
     const foot = project(view, x, y);
     drawables.push({
-      depth: approachDepth(hero, depthOf(view.rot, x, y)),
-      draw: () => drawApproachingHero(ctx, hero, foot, z),
+      depth: outsideSillDepth(view.rot, depthOf(view.rot, x, y)),
+      draw: () => drawApproachingHero(ctx, hero, foot, view),
     });
-    contacts.push({ gx: x, gy: y, rx: 0.39, ry: 0.36, alpha: 0.34 * (1 - smoothstep(0, 22, hero.lift)) });
+    const outside = hero.emergence === undefined ? 1 : smoothstep(.52, 1, hero.emergence);
+    if (outside > 0) contacts.push({ gx: x, gy: y, rx: 0.39, ry: 0.36, alpha: .34 * outside * (1 - smoothstep(0, 22, hero.lift)) });
   }
 
   // Devices.
@@ -660,11 +709,15 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     if (particle.kind === 'ring') continue;
     drawables.push({ depth: depthOf(view.rot, particle.x, particle.y) + 0.6, draw: () => drawParticle(ctx, view, particle) });
   }
-  if (passage) {
-    for (const leaf of passage.leaves(frame.time)) {
+  const leaves = frame.secondsSinceCarRoll === undefined ? passage?.leaves(frame.time) : wagonLeaves(frame.secondsSinceCarRoll);
+  if (leaves) {
+    for (const leaf of leaves) {
       const p = project(view, leaf.x, leaf.y);
       const y = p.y - leaf.height * z;
       if (!onScreen({ x: p.x, y }, 10)) continue;
+      if (frame.secondsSinceCarRoll !== undefined && leaf.height > 0) {
+        contacts.push({ gx: leaf.x, gy: leaf.y, rx: .095, ry: .055, alpha: .28 * (1 - leaf.height / 32) });
+      }
       drawables.push({
         depth: depthOf(view.rot, leaf.x, leaf.y),
         draw: () => paintLeaf(ctx, p.x, y, leaf.size * z, view.rot === 0 ? leaf.angle : -leaf.angle, leaf.turning, leaf.alpha, leaf.colour),
@@ -682,13 +735,21 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   drawDecals(ctx, view, frame.decals);
   if (frame.departingCar) drawHeadlightPools(ctx, view, frame.departingCar);
   drawGroundOverlays(ctx, view, frame);
+  if (frame.night) drawGlowworms(ctx, view, frame.enemies, frame.time, calmMotion(), 1 - sunlight(frame.sunriseAge));
 
+  if (frame.mopedRide) {
+    const bike = mopedRideDrawable(ctx, view, frame.mopedRide, frame.time);
+    if (bike) drawables.push(bike);
+  }
   drawables.sort((a, b) => a.depth - b.depth);
   for (const drawable of drawables) drawable.draw();
   if (frame.hoverCell && frame.hoverBarrier) drawBarrierFootprint(ctx, view, frame.hoverCell);
 
   // What is in the air over all of it.
-  if (frame.night) drawMist(ctx, view, frame.time);
+  if (frame.night) {
+    ctx.save(); ctx.globalAlpha *= 1 - .74 * sunlight(frame.sunriseAge);
+    drawMist(ctx, view, frame.time); ctx.restore();
+  }
   else {
     drawCloudShadows(ctx, view, frame.time);
     drawLeaves(ctx, view, frame.time);
@@ -964,19 +1025,26 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
       draw: () => {
         const previous = (pose: ReturnType<typeof doorPose>) => ({ key: `dev_barricade_${pose}`, h, lift: h * 0.095, foot: [0.5, 0.905] as const, flip: onLeftFace });
         ctx.save();
-        ctx.transform(scaleX, slope, 0, 1, p.x, p.y);
-        const art = previous(state);
-        // Planks fixed to masonry cast a close shadow against the jamb. Its angle follows the wall.
-        const shade = shadowOutline(art.key);
-        if (shade) {
-          const sh = h * z, sw = sh * shade.width / shade.height;
-          ctx.save(); ctx.translate(2 * z, z); ctx.scale(art.flip ? -1 : 1, 1); ctx.globalAlpha *= 0.43;
-          ctx.drawImage(shade, -sw / 2, art.lift * z - sh, sw, sh); ctx.restore();
-        }
-        if (reinforcing) ctx.globalAlpha *= 0.78;
-        const drawn = drawDefense(ctx, 0, 0, z, { kind: 'barricade', art, rot: view.rot, previous, hpRatio: ratio, maxHp: max, id: sector, time: frame.time, motion: frame.defenseMotion });
+        ctx.translate(p.x, p.y);
+        const open = frame.houseDoor?.sector === sector && barricade.hp > 0 ? frame.houseDoor.open : 0;
+        const jambWidth = door.w * k * z;
+        hingedLeaves(ctx, sector, open, -jambWidth / 2, jambWidth, door.rise / door.w, () => {
+          ctx.save();
+          ctx.transform(scaleX, slope, 0, 1, 0, 0);
+          const art = previous(state);
+          // Planks fixed to masonry cast a close shadow against the jamb. Its angle follows the wall.
+          const shade = shadowOutline(art.key);
+          if (shade) {
+            const sh = h * z, sw = sh * shade.width / shade.height;
+            ctx.save(); ctx.translate(2 * z, z); ctx.scale(art.flip ? -1 : 1, 1); ctx.globalAlpha *= 0.43;
+            ctx.drawImage(shade, -sw / 2, art.lift * z - sh, sw, sh); ctx.restore();
+          }
+          if (reinforcing) ctx.globalAlpha *= 0.78;
+          const drawn = drawDefense(ctx, 0, 0, z, { kind: 'barricade', art, rot: view.rot, previous, hpRatio: ratio, maxHp: max, id: sector, time: frame.time, motion: frame.defenseMotion });
+          ctx.restore();
+          if (!drawn) placeholder(ctx, 0, 0, 30 * z, 50 * z, '#7a5a35', 'door');
+        });
         ctx.restore();
-        if (!drawn) placeholder(ctx, p.x, p.y, 30 * z, 50 * z, '#7a5a35', 'door');
         if (frame.doorHighlight === sector) {
           ctx.strokeStyle = '#f2a531';
           ctx.lineWidth = 2;
@@ -1303,9 +1371,35 @@ export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: num
   return devices.find((d) => d.x === Math.floor(g.gx) && d.y === Math.floor(g.gy)) ?? null;
 }
 
-/** The piece of scenery of one of `kinds` whose footprint is under the pointer, if any. */
+const propMasks = new WeakMap<HTMLImageElement, ImageData>();
+
+/** The painted silhouettes receive clicks as well as their original ground footprints. */
 export function pickProp(view: View, kinds: readonly PropKind[], sx: number, sy: number): PropKind | null {
   if (!inView(view, sx, sy)) return null;
+  let picked: PropKind | null = null, front = -Infinity;
+  for (const prop of PROPS) {
+    if (!kinds.includes(prop.kind)) continue;
+    const art = sprite(propSpriteKey(prop.kind, view.rot));
+    if (!art) continue;
+    const h = PROP_ART[prop.kind].h * view.zoom, w = h * art.w / art.h;
+    const rect = spriteRect(propRoot(view, prop), w, h, PROP_FEET[prop.kind][view.rot]);
+    const u = (sx - rect.x) / w, v = (sy - rect.y) / h;
+    if (u < 0 || v < 0 || u >= 1 || v >= 1) continue;
+    let mask = propMasks.get(art.img);
+    if (!mask) {
+      const surface = document.createElement('canvas');
+      surface.width = 64; surface.height = Math.max(1, Math.round(64 * art.h / art.w));
+      const context = surface.getContext('2d');
+      if (!context) continue;
+      context.drawImage(art.img, 0, 0, surface.width, surface.height);
+      mask = context.getImageData(0, 0, surface.width, surface.height);
+      propMasks.set(art.img, mask);
+    }
+    const index = Math.floor(v * mask.height) * mask.width + Math.floor(u * mask.width);
+    const depth = depthOf(view.rot, prop.x + prop.w / 2, prop.y + prop.h / 2);
+    if (mask.data[4 * index + 3]! > 64 && depth > front) { picked = prop.kind; front = depth; }
+  }
+  if (picked) return picked;
   const g = unproject(view, sx, sy);
   return propAt(g.gx, g.gy, kinds);
 }

@@ -1,0 +1,11 @@
+{
+  "id": "epic_tape",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "5Mr6UfzeQ2AzIrmNfEq3",
+  "generatedAt": "2026-11-23T21:48:48.698Z",
+  "prompt": "One single dry, explosive arcade machine-gun shot sampled for a gritty 1980s action tape. One front-loaded sharp broadband crack fused with a compact low drum-like thump and a tight metallic clack just behind it. One trigger pull. The sound is spent within 0.12 seconds followed by silence. Close mono arcade cabinet sample, percussive, mildly gritty. No laser chirp, pitched sweep, music, echo, voice or extra shots.",
+  "bytes": 66070,
+  "sha256": "47b26437970e7c7c9c3f7a4498c6f00d311cf448cc303efcec1c11b34c6c89a6"
+}

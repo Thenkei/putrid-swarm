@@ -10,18 +10,26 @@ import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { drawPlate, inventoryBar, platePoint } from './common';
+import { drawClockPigeons } from '../render/clock-pigeons';
+import { calmMotion } from '../render/lighting';
 import { shouldPlayCrossing } from '../core/crossing';
 import { goCrossing, goDay, goLocation, goTravel } from './flow';
 
 const MAP_PLATE = 'plate_map';
 const MAP_FOCUS_Y = 0.25;
+const BELL_AT = 1.35;
+const lastToll = new WeakMap<App, string>();
 
 export class MapScene implements Scene {
   private root!: HTMLElement;
   private selected: LocationId | null = null;
   private time = 0;
+  private readonly hour: string;
+  private toll = false;
 
-  constructor(private readonly app: App) {}
+  constructor(private readonly app: App) {
+    this.hour = [this.state.seed, this.state.day, Math.floor(DAY_HOURS - this.state.hoursLeft)].join('/');
+  }
 
   private get state(): GameState {
     if (!this.app.state) throw new Error('MapScene needs a running game');
@@ -29,6 +37,7 @@ export class MapScene implements Scene {
   }
 
   enter(): void {
+    this.toll = lastToll.get(this.app) !== this.hour;
     audio.setAmbience('day');
     audio.setMusic('day');
     this.root = el('div');
@@ -170,11 +179,18 @@ export class MapScene implements Scene {
   }
 
   update(dt: number): void {
+    const previous = this.time;
     this.time += dt;
+    if (this.toll && previous < BELL_AT && this.time >= BELL_AT) {
+      lastToll.set(this.app, this.hour);
+      audio.play('village_bell', .77);
+    }
   }
 
   render(ctx: CanvasRenderingContext2D): void {
     drawPlate(ctx, MAP_PLATE, { focusY: MAP_FOCUS_Y });
+    drawClockPigeons(ctx, platePoint(MAP_PLATE, .934, .158, MAP_FOCUS_Y),
+      platePoint(MAP_PLATE, .538, .322, MAP_FOCUS_Y), this.toll ? this.time - BELL_AT : 6, calmMotion());
     // Late light as the day runs out.
     const dusk = 1 - this.state.hoursLeft / DAY_HOURS;
     ctx.fillStyle = `rgba(40, 30, 90, ${Math.max(0, dusk - 0.55) * 0.55})`;

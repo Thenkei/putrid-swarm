@@ -835,7 +835,7 @@ export const fr = {
     ending: {
       spared: {
         title: 'Un lapin',
-        text: 'Deux claques, et il a filé dans la brume sans se retourner. Tu n’as jamais vu sa tête. Le câble est raccordé : la caméra 4 renvoie une image.',
+        text: 'Tu as tapé une fois dans tes mains et il a filé dans la brume sans se retourner. Tu n’as jamais vu sa tête. Le câble est raccordé : la caméra 4 renvoie une image.',
         cost: 'Rien perdu. Douze heures de jour devant toi.',
       },
       maimed: {
@@ -1099,6 +1099,10 @@ export const fr = {
     last: 'DERNIER ACCORD',
   },
   voice: {
+    vo_epic_stove: 'Bon. Ce soir, on mange froid.',
+    vo_epic_pack: 'Attends. Y a un petit sous la grille.',
+    vo_epic_neighbor: 'Ça y est. Il a rallumé sa cuisine.',
+    vo_epic_neighbor_relay: 'Je te reçois. De ma fenêtre, je vois ta porte arrière. Je veille.',
     vo_later: 'Bon. La maison tient. Le break démarre encore. C’est déjà ça.',
     vo_coffee_1: 'Tout va bien.',
     vo_coffee_2: 'Mais d’abord, un café.',

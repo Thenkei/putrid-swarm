@@ -4,10 +4,13 @@
 // the sky while sawing), makes it heard, and puts the keys on screen. Nothing here changes the
 // campaign except `settle`, once, at the very end.
 
+import { PLATE, OVER, pointOnShot, shotTransform, type Cam, type Shot, type ShotLayer } from './shot-camera';
 import { PauseMenu } from './pause';
+import { bindPromptPointer, promptLayer } from './prompt-pointer';
 import { endingId } from '../core/endings';
 import { settleOrchard } from '../core/game';
 import {
+  NOTHING_HELD,
   ORCHARD,
   PLACES,
   infectionPace,
@@ -39,18 +42,10 @@ import { goDay, goEnd, goTitle } from './flow';
 
 // ───────────────────────────── Framing ─────────────────────────────
 
-const PLATE = { w: 1280, h: 853 } as const;
-/** How much taller than the stage a plate is: `focusY` chooses which part of it is cropped away. */
-const OVER = PLATE.h - STAGE_H;
 /** Cinema bars, top and bottom. */
 const BAR = 54;
 const CX = STAGE_W / 2;
 const CY = STAGE_H / 2;
-
-interface Shot {
-  readonly plate: string;
-  readonly focusY: number;
-}
 
 const WIDE: Shot = { plate: 'plate_orchard', focusY: 0.45 };
 const CANOPY: Shot = { plate: 'plate_orchard_canopy', focusY: 0.5 };
@@ -74,22 +69,13 @@ const SPOT = {
   far: at(WIDE, 0.535, 0.5),
   /** Its feet on the flattened grass. */
   rabbit: at(SHOT.pole, 0.44, 0.71),
-  /** The two gnawed ends of the cable. */
-  cableA: at(SHOT.pole, 0.672, 0.607),
-  cableB: at(SHOT.pole, 0.737, 0.626),
+  /** The contact point on the original pole illustration, in stage units. */
+  splice: { x: 893, y: 515 - OVER * SHOT.pole.focusY },
   /** The foot of the saw, between the roots. */
   saw: at(SHOT.tree, 0.555, 0.845),
   /** The bent nail the rope hangs on. */
   nail: at(SHOT.fence, 0.538, 0.1),
 } as const;
-
-interface Cam {
-  zoom: number;
-  x: number;
-  y: number;
-  /** A tilt of the head, in radians. */
-  roll?: number;
-}
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 const clamp01 = (v: number): number => clamp(v, 0, 1);
@@ -227,7 +213,8 @@ export class OrchardScene implements Scene {
   private nextBeat = 0;
   private coaxed = false;
   private greeted = false;
-  private lastHold = 0;
+  private workSound: 'tie' | 'splice' | null = null;
+  private nextWorkStroke = 0;
   private ending: Ending | null = null;
 
   /** Mist, leaves and dust in the dawn light, and whatever gets thrown about. */
@@ -267,7 +254,7 @@ export class OrchardScene implements Scene {
     audio.setMusic('orchard');
     const s = S();
     this.titleEl = el('div', { class: 'orchard-title' }, [el('h1', { text: s.orchard.title }), el('p', { text: fmt(s.orchard.when, { n: this.state.day + 1 }) })]);
-    this.promptsEl = el('div', { class: 'qte-layer' });
+    this.promptsEl = promptLayer(() => { this.pointerHold = null; });
     this.meterFill = el('i');
     this.meterTag = el('b', { text: s.orchard.tourniquet });
     this.meterEl = el('div', { class: 'orchard-meter' }, [el('span', { text: s.orchard.infection }), el('span', { class: 'bar' }, [this.meterFill]), this.meterTag]);
@@ -283,8 +270,7 @@ export class OrchardScene implements Scene {
   exit(): void {
     this.left = true;
     hush();
-    audio.fadeOut('tie', 0.2);
-    audio.fadeOut('splice', 0.2);
+    this.stopWorkSound();
   }
 
   // ───────────────────────────── Small machinery ─────────────────────────────
@@ -296,6 +282,11 @@ export class OrchardScene implements Scene {
 
   private line(id: VoiceId, interrupt = false): void {
     say(id, { interrupt });
+  }
+
+  private stopWorkSound(): void {
+    if (this.workSound) audio.fadeOut(this.workSound, .08);
+    this.workSound = null;
   }
 
   private held(): Held {
@@ -417,7 +408,6 @@ export class OrchardScene implements Scene {
         break;
       case 'spliced':
         this.spliced = true;
-        this.white = 0.35;
         this.line('vo_orchard_mended', true);
         break;
       case 'ended':
@@ -432,7 +422,7 @@ export class OrchardScene implements Scene {
     this.phaseTime = 0;
     this.keys.clear();
     this.pointerHold = null;
-    audio.fadeOut('tie', 0.2);
+    this.stopWorkSound();
     rememberEnding(ending);
     switch (ending) {
       case 'spared':
@@ -547,10 +537,6 @@ export class OrchardScene implements Scene {
     if (!this.paused) this.togglePause(true);
   }
 
-  onPointerUp(): void {
-    this.pointerHold = null;
-  }
-
   private promptDown(id: PromptId): void {
     const spec = SPEC[id];
     if (spec.hold) this.pointerHold = spec.hold;
@@ -567,6 +553,7 @@ export class OrchardScene implements Scene {
       this.pauseMenu.close();
       return;
     }
+    this.stopWorkSound();
     this.pauseMenu.open(() => this.togglePause(), () => goTitle(this.app), auto);
   }
 
@@ -603,7 +590,6 @@ export class OrchardScene implements Scene {
       this.nextBreath = this.time + (afraid ? 1.1 : 3.3);
       if (this.canopy < 0.5 && this.ending === null) this.atmo.puff(CX + 30, STAGE_H - 96, afraid ? 74 : 60, 'rgba(236, 240, 244, 0.5)', 14, -34);
     }
-    this.reach(dt);
     this.armUp = Math.min(1, this.armUp + dt * 2.6);
 
     if (this.phase === 'intro' && this.phaseTime >= INTRO_SECONDS) {
@@ -619,11 +605,12 @@ export class OrchardScene implements Scene {
     const up = this.orchard.beat === 'sawing' || this.orchard.beat === 'bleeding' || (this.phase === 'outro' && (this.ending === 'maimed' || this.ending === 'bled')) ? 1 : 0;
     this.canopy = clamp01(this.canopy + (up ? dt : -dt) * 2.4);
     this.follow(dt);
+    this.reach(dt);
     this.syncHud();
   }
 
   private play(dt: number): void {
-    const held = this.held();
+    const held = this.clap !== null && this.clap < CLAP_SECONDS ? NOTHING_HELD : this.held();
     const before = this.orchard;
     this.apply(tick(before, dt, held));
     const o = this.orchard;
@@ -644,7 +631,13 @@ export class OrchardScene implements Scene {
     }
 
     // The rabbit at work, heard from the pole.
-    if (o.beat === 'watch' && o.place === 'pole' && o.hold < 0.75 && this.time >= this.nextChew) {
+    if (o.beat === 'watch' && o.clapWait === ORCHARD.clapWaitSeconds && before.clapWait !== o.clapWait) {
+      this.chewing = 0;
+      this.twitch = .72;
+      this.nextChew = this.time + .88;
+      audio.fadeOut('chew', .07);
+    }
+    if (o.beat === 'watch' && o.place === 'pole' && o.hold < 0.75 && this.twitch <= 0 && this.time >= this.nextChew) {
       this.nextChew = this.time + 2.1 + Math.random() * 1.6;
       this.chewing = 0.9;
       audio.play('chew', 0.6 + o.hold * 0.5);
@@ -656,10 +649,15 @@ export class OrchardScene implements Scene {
     }
 
     // The knot and the splice are heard for as long as they are held.
-    const working = o.beat === 'loose' || o.beat === 'mend';
-    if (working && this.lastHold === 0 && o.hold > 0) audio.play(o.beat === 'loose' ? 'tie' : 'splice');
-    if (working && this.lastHold > 0 && o.hold === 0 && !o.tied && !this.spliced) audio.fadeOut(o.beat === 'loose' ? 'tie' : 'splice', 0.25);
-    this.lastHold = working ? o.hold : 0;
+    const working = held.act && o.hold > before.hold && (o.beat === 'loose' || o.beat === 'mend');
+    if (working) {
+      const sound = o.beat === 'loose' ? 'tie' : 'splice';
+      if (this.workSound !== sound || this.time >= this.nextWorkStroke) {
+        audio.play(sound);
+        this.workSound = sound;
+        this.nextWorkStroke = this.time + (sound === 'tie' ? 1.9 : .55);
+      }
+    } else this.stopWorkSound();
 
     // A heart that goes faster as it climbs, and slower as it empties.
     const beating = infectionPace(o) > 0 || o.beat === 'bleeding';
@@ -673,7 +671,9 @@ export class OrchardScene implements Scene {
 
   /** Where a point of the current shot lands on screen, through the camera. */
   private onScreen(point: Point): Point {
-    return { x: (point.x - this.cam.x) * this.cam.zoom + CX, y: (point.y - this.cam.y) * this.cam.zoom + CY };
+    const shots = this.groundShots();
+    const active = shots.find(layer => layer.place === this.orchard.place) ?? shots[0]!;
+    return pointOnShot(active.shot, active.cam, point);
   }
 
   /** The right hand comes into view whenever it is doing something, and goes back out the way it came. */
@@ -696,8 +696,12 @@ export class OrchardScene implements Scene {
       // Across to the other arm, pulling the rope tight.
       wanted = { tip: { x: 452 + Math.sin(this.time * 22) * 5, y: 548 - o.hold * 26 }, lean: -1.2 };
     } else if (o.beat === 'mend' && o.hold > 0) {
-      const cable = this.onScreen({ x: (SPOT.cableA.x + SPOT.cableB.x) / 2, y: SPOT.cableA.y });
-      wanted = { tip: { x: cable.x + 34 + Math.sin(this.time * 17) * 7, y: cable.y + 6 + Math.cos(this.time * 23) * 4 }, lean: -0.62 };
+      // Gather the loose ends, tack the first turn towards the left sleeve, then wind to the right.
+      const h = o.hold;
+      const offset = -47 * (1 - smooth(h / .33)) - 64 * smooth((h - .35) / .23) + 121 * smooth((h - .58) / .36);
+      const turn = Math.sin(smooth((h - .35) / .6) * Math.PI * 8);
+      const tip = this.onScreen({ x: SPOT.splice.x + offset, y: SPOT.splice.y + offset * .29 + turn * 3 });
+      wanted = { tip, lean: -.55 + turn * .065 };
     }
     if (wanted) this.hand = wanted;
     // Slow out, quick back: a hand is snatched away faster than it is offered.
@@ -720,11 +724,12 @@ export class OrchardScene implements Scene {
         target.zoom = o.beat === 'guard' ? 1.72 : o.clock > 0.62 ? 1.68 : 1.55;
         target.x = SPOT.rabbit.x;
         target.y = SPOT.rabbit.y - 80;
-      } else if (o.beat === 'mend' && o.hold > 0) {
-        const h = smooth(o.hold);
-        target.zoom = 1.05 + 0.55 * h;
-        target.x = lerp(target.x, (SPOT.cableA.x + SPOT.cableB.x) / 2, h);
-        target.y = lerp(target.y, SPOT.cableA.y - 20, h);
+      } else if (o.beat === 'mend' || (this.spliced && this.phase === 'outro')) {
+        // Settle in before the first wrap, then leave time to see the finished joint.
+        const h = this.spliced ? 1 - smooth((this.phaseTime - .95) / 1.55) : smooth(o.hold / .55);
+        target.zoom = 1.05 + .69 * h;
+        target.x = lerp(target.x, SPOT.splice.x, h);
+        target.y = lerp(target.y, SPOT.splice.y - 16, h);
       }
     }
     const k = 1 - Math.exp(-dt * (o.beat === 'reveal' || o.beat === 'guard' ? 9 : 5));
@@ -742,7 +747,8 @@ export class OrchardScene implements Scene {
     const titleOn = this.phase === 'intro' && this.phaseTime > 0.3 && this.phaseTime < INTRO_SECONDS - 0.5;
     this.titleEl.classList.toggle('on', titleOn);
 
-    const prompts = this.phase === 'play' && !this.paused ? promptsOf(o) : [];
+    const handsFree = this.clap === null || this.clap >= CLAP_SECONDS;
+    const prompts = this.phase === 'play' && !this.paused && handsFree ? promptsOf(o) : [];
     const signature = prompts.map((p) => `${p.id}:${p.to ?? ''}`).join('|');
     if (signature !== this.promptSignature) {
       this.promptSignature = signature;
@@ -787,11 +793,7 @@ export class OrchardScene implements Scene {
       },
       [el('span', { class: 'keys' }, keys), el('span', { class: 'what' }, [label, spec.how ? el('small', { text: s.orchard.how[spec.how] }) : null])],
     );
-    node.addEventListener('pointerdown', (event) => {
-      event.preventDefault();
-      audio.unlock();
-      this.promptDown(prompt.id);
-    });
+    bindPromptPointer(node, this.promptsEl, !!spec.hold, () => this.promptDown(prompt.id));
     this.promptEls.set(prompt.id, node);
     return node;
   }
@@ -814,17 +816,10 @@ export class OrchardScene implements Scene {
   /** Draws a plate through a camera, then whatever stands in it, in the same space. */
   private drawShot(ctx: CanvasRenderingContext2D, shot: Shot, cam: Cam, alpha: number, props?: () => void): void {
     if (alpha <= 0) return;
-    const zoom = Math.max(1, cam.zoom);
     const top = -OVER * shot.focusY;
-    // Never show past the edge of the picture.
-    const x = clamp(cam.x, CX / zoom, PLATE.w - CX / zoom);
-    const y = clamp(cam.y, top + CY / zoom, top + PLATE.h - CY / zoom);
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.translate(CX, CY);
-    if (cam.roll) ctx.rotate(cam.roll);
-    ctx.scale(zoom, zoom);
-    ctx.translate(-x, -y);
+    ctx.transform(...shotTransform(shot, cam));
     const art = sprite(shot.plate);
     if (art) ctx.drawImage(art.img, 0, top, PLATE.w, PLATE.h);
     else {
@@ -858,8 +853,8 @@ export class OrchardScene implements Scene {
         this.drawSprite(ctx, 'orchard_items_rope', SPOT.nail.x - 6, SPOT.nail.y - 4, 292, { ax: 0.42, ay: 0.03, rot: Math.sin(this.time * 0.9) * 0.012 });
       }
       if (place === 'pole') {
+        if (this.spliced || (o.beat === 'mend' && o.hold > 0)) this.drawSplice(ctx, this.spliced ? 1 : o.hold);
         this.drawRabbit(ctx);
-        if (this.spliced) this.drawSplice(ctx);
       }
     };
   }
@@ -903,33 +898,17 @@ export class OrchardScene implements Scene {
     }
   }
 
-  /** The cable back in one piece: a bridge of orange, and tape round it. */
-  private drawSplice(ctx: CanvasRenderingContext2D): void {
-    const a = SPOT.cableA;
-    const b = SPOT.cableB;
-    ctx.save();
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#6b2f12';
-    ctx.lineWidth = 19;
-    ctx.beginPath();
-    ctx.moveTo(a.x - 8, a.y - 3);
-    ctx.lineTo(b.x + 8, b.y + 3);
-    ctx.stroke();
-    ctx.strokeStyle = '#d2672a';
-    ctx.lineWidth = 14;
-    ctx.stroke();
-    // Black tape, wound by someone in a hurry.
-    const angle = Math.atan2(b.y - a.y, b.x - a.x);
-    ctx.translate((a.x + b.x) / 2, (a.y + b.y) / 2);
-    ctx.rotate(angle);
-    ctx.fillStyle = '#17181a';
-    ctx.fillRect(-34, -11, 68, 22);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-    for (let i = -28; i < 34; i += 12) ctx.fillRect(i, -11, 3, 22);
-    ctx.restore();
+  /** Each tile replaces only the working length of cable on the painted pole plate. */
+  private drawSplice(ctx: CanvasRenderingContext2D, progress: number): void {
+    const sheet = sprite('orchard_cable_repair');
+    if (!sheet) return;
+    const frame = Math.round(clamp01(progress) * 29);
+    const w = sheet.w / 6;
+    const h = sheet.h / 5;
+    ctx.drawImage(sheet.img, (frame % 6) * w, Math.floor(frame / 6) * h, w, h, 740, 436 - OVER * SHOT.pole.focusY, w, h);
   }
 
-  private drawGround(ctx: CanvasRenderingContext2D): void {
+  private groundShots(): ShotLayer<Place>[] {
     const o = this.orchard;
     const bob = this.walking ? Math.sin(this.stride * Math.PI) * 7 : 0;
 
@@ -938,10 +917,10 @@ export class OrchardScene implements Scene {
       const w = smooth(o.walk);
       const zoom = 1.04 + this.time * 0.006 + w * 0.82;
       const cam: Cam = { zoom, x: lerp(CX, SPOT.far.x, w), y: lerp(CY, SPOT.far.y - 20, w) + bob };
-      this.drawShot(ctx, WIDE, cam, 1);
       const arriving = clamp01((o.walk - 0.74) / 0.26);
-      if (arriving > 0) this.drawShot(ctx, SHOT.pole, { zoom: 1.24 - 0.2 * arriving, x: CX, y: CY + bob }, arriving, this.propsOf('pole'));
-      return;
+      const shots: ShotLayer<Place>[] = [{ shot: WIDE, cam, alpha: 1 }];
+      if (arriving > 0) shots.push({ shot: SHOT.pole, place: 'pole', cam: { zoom: 1.24 - 0.2 * arriving, x: CX, y: CY + bob }, alpha: arriving });
+      return shots;
     }
 
     // A head is never level: it tips with each step, and it trembles once the arm has been bitten.
@@ -953,11 +932,19 @@ export class OrchardScene implements Scene {
       const direction = Math.sign(PLACES.indexOf(o.heading) - PLACES.indexOf(o.place));
       const e = smooth(o.walk);
       const incoming = clamp01((e - 0.4) / 0.45);
-      this.drawShot(ctx, SHOT[o.place], { zoom: cam.zoom + 0.12 * e, x: cam.x + direction * e * 240, y: cam.y, roll }, 1, this.propsOf(o.place));
-      this.drawShot(ctx, SHOT[o.heading], { zoom: cam.zoom + 0.12 * (1 - e), x: CX - direction * (1 - e) * 240, y: CY + bob, roll }, incoming, this.propsOf(o.heading));
-      return;
+      return [
+        { shot: SHOT[o.place], place: o.place, cam: { zoom: cam.zoom + 0.12 * e, x: cam.x + direction * e * 240, y: cam.y, roll }, alpha: 1 },
+        { shot: SHOT[o.heading], place: o.heading, cam: { zoom: cam.zoom + 0.12 * (1 - e), x: CX - direction * (1 - e) * 240, y: CY + bob, roll }, alpha: incoming },
+      ];
     }
-    this.drawShot(ctx, SHOT[o.place], cam, 1, this.propsOf(o.place));
+    return [{ shot: SHOT[o.place], place: o.place, cam, alpha: 1 }];
+  }
+
+  private drawGround(ctx: CanvasRenderingContext2D): void {
+    for (const layer of this.groundShots()) {
+      const props = layer.place ? this.propsOf(layer.place) : undefined;
+      this.drawShot(ctx, layer.shot, layer.cam, layer.alpha, props);
+    }
   }
 
   /**
@@ -1132,7 +1119,13 @@ export class OrchardScene implements Scene {
     if (this.clap !== null && this.clap < CLAP_SECONDS) {
       this.drawClap(ctx, this.clap);
     } else if (this.handReach > 0 && this.canopy < 1) {
-      drawArm(ctx, sprite('desk_hand_open'), this.hand.tip, { height: 610, lean: this.hand.lean, reach: this.handReach, alpha: 1 - this.canopy });
+      const repairing = o.beat === 'mend' || this.spliced;
+      const tapeHand = repairing && sprite('orchard_tape_hand');
+      drawArm(ctx, tapeHand || sprite('desk_hand_open'), this.hand.tip, {
+        height: repairing ? 515 : 610, lean: this.hand.lean, reach: this.handReach, alpha: 1 - this.canopy,
+        // The tape tongue protrudes to the left of the fingers.
+        ...(tapeHand ? { contact: { x: .035, y: .023 } } : {}),
+      });
     }
 
     if (o.beat === 'sawing' || (this.phase === 'outro' && this.ending === 'maimed' && this.phaseTime < 0.5)) {

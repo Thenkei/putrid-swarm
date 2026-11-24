@@ -828,7 +828,7 @@ export const en: Strings = {
     ending: {
       spared: {
         title: 'A rabbit',
-        text: 'Two claps, and it was gone into the mist without looking back. You never saw its face. The cable is spliced: camera 4 is sending a picture again.',
+        text: 'One clap, and it was gone into the mist without looking back. You never saw its face. The cable is spliced: camera 4 is sending a picture again.',
         cost: 'Nothing lost. Twelve hours of daylight ahead.',
       },
       maimed: {
@@ -1090,6 +1090,10 @@ export const en: Strings = {
     last: 'LAST CHORD',
   },
   voice: {
+    vo_epic_stove: 'Right. Cold dinner tonight.',
+    vo_epic_pack: 'Wait. There’s a cub under the gate.',
+    vo_epic_neighbor: 'There. His kitchen light’s back on.',
+    vo_epic_neighbor_relay: 'I hear you. I can see your back door from my window. I’ll keep watch.',
     vo_later: 'Right. The house still stands. The old car still starts. That is something.',
     vo_coffee_1: 'This is fine.',
     vo_coffee_2: 'But first, coffee.',

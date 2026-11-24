@@ -42,12 +42,12 @@ export function heroArt(key: string, armless: boolean): string {
  * Draws a plate so it covers the stage, with an optional slow push-in. `focusY` picks the vertical crop (0 top … 1 bottom).
  * `oneArmed` shows the protagonist as he is once the orchard has taken his arm, in the pictures he is in.
  */
-export function drawPlate(ctx: CanvasRenderingContext2D, key: string, options: { zoom?: number; focusX?: number; focusY?: number; alpha?: number; oneArmed?: boolean } = {}): void {
+export function drawPlate(ctx: CanvasRenderingContext2D, key: string, options: { zoom?: number; focusX?: number; focusY?: number; alpha?: number; oneArmed?: boolean } = {}) {
   const art = sprite(heroArt(key, options.oneArmed ?? false));
   if (!art) {
     ctx.fillStyle = '#1b1610';
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);
-    return;
+    return null;
   }
   const zoom = options.zoom ?? 1;
   const scale = Math.max(STAGE_W / art.w, STAGE_H / art.h) * zoom;
@@ -58,6 +58,7 @@ export function drawPlate(ctx: CanvasRenderingContext2D, key: string, options: {
   ctx.globalAlpha = options.alpha ?? 1;
   ctx.drawImage(art.img, x, y, w, h);
   ctx.globalAlpha = 1;
+  return { x, y, w, h };
 }
 
 /** Where a point of a plate (as a 0..1 fraction of the image) lands on the stage, for the same cover framing. */

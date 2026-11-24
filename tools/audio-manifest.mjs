@@ -14,6 +14,7 @@ export const MODELS = {
 export const VOICES = {
   anchor: { id: 'm5U7XCsc8v988k2RJAqN', name: 'Manon' },
   hero: { id: 'DbbNuBL7lf62XwY7arQb', name: 'Hugo' },
+  neighbor: { id: 'A7zEkeWGohmgSvEAQHDG', name: 'Ash - Warm French Narrator' },
   mayor: { id: 'QMNPncWXVcTVhJ9rDEQO', name: 'Stephyra' },
   mail: { id: 'uFA9UGUhpwqGjVhz3lA2', name: 'Christine' },
   chief: { id: '5l4ttmr4SKNgi0HnOelT', name: 'Paul K' },
@@ -34,7 +35,31 @@ const loop = (id, seconds, text, extra = {}) => ({ id, kind: 'loop', seconds, te
 const music = (id, seconds, text, extra = {}) => ({ id, kind: 'music', seconds, text, gain: 1, ...extra });
 const voice = (id, role, text, extra = {}) => ({ id, kind: 'voice', role, text, stability: 0.45, similarity: 0.8, gain: 1, ...extra });
 
+// The generated take is a single short throttle pull. Overlap the exhaust pulses,
+// winding each one a little higher until the moped reaches the end of its lane.
+const mopedRun = [
+  'aresample=44100,asplit=6[a][b][c][d][e][f]',
+  '[a]atrim=end=0.39,asetpts=PTS-STARTPTS[a0]',
+  ...['b', 'c', 'd', 'e', 'f'].map((part, i) =>
+    `[${part}]atrim=start=0.06:end=0.42,asetpts=PTS-STARTPTS,asetrate=${Math.round(44100 * (1.03 + .09 * i))},aresample=44100[${part}0]`),
+  '[a0][b0]acrossfade=d=0.03[ab]',
+  '[ab][c0]acrossfade=d=0.03[abc]',
+  '[abc][d0]acrossfade=d=0.03[abcd]',
+  '[abcd][e0]acrossfade=d=0.03[abcde]',
+  '[abcde][f0]acrossfade=d=0.03',
+].join(';');
+
 export const AUDIO = [
+  sfx('moped_door', .75, 'One quiet close-miked wooden shed door opening, isolated French rural game Foley. Start immediately with a distinct small iron thumb latch lifting out of its keeper: click-clack. A short worn hinge creaks upward as the timber door swings open. The sound settles cleanly within seven tenths of a second. Intimate, tangible and dry, no slam, closing sound, impact, footsteps, motor, music, or background.', { edit: 'atrim=start=0.12:end=0.74,asetpts=PTS-STARTPTS,volume=16dB,atempo=0.67', peak: -8, gain: .76, maxSeconds: .72, tail: .055 }),
+  sfx('epic_flare', 0.65, 'A single 0.65 second burst of stylized fire for a retro French horror videogame, close dry gas ignition fwoomp and a crisp rushing flame tail, isolated sound effect, no ambience or speech.', { peak: -5, gain: 0.78, maxSeconds: 0.68 }),
+  sfx('epic_mob', 1.65, 'Isolated arcade game vehicle cue, 1.6 seconds of rapid acceleration on a scrappy old French two-stroke moped. Immediate dry put-put-put kick, then a rising raspy, nasal engine buzz as the tiny machine races down a lane. Front-loaded start, quick rev increase already within its first second, high rev by 1.4 seconds. Motor only. No horn, crash, impact, blast, background, music, or voice.', { edit: mopedRun, peak: -8, gain: .78, maxSeconds: 1.64, tail: .045 }),
+  sfx('epic_mob_blast', 1, 'Single stylized cartoon arcade explosion from a 1980s French horror-comedy game. Immediate bold short low drum whump and crunchy torn-paper crack, followed by a handful of descending metallic junk clatters rattling to rest. One cohesive slightly absurd cabinet impact, punchy and dry, around 0.85 seconds. No motor, horn, siren, voices, music, or lingering ambience.', { peak: -7, gain: .85, maxSeconds: .96, tail: .09 }),
+  sfx('epic_tape', 3, 'One single dry, explosive arcade machine-gun shot sampled for a gritty 1980s action tape. One front-loaded sharp broadband crack fused with a compact low drum-like thump and a tight metallic clack just behind it. One trigger pull. The sound is spent within 0.12 seconds followed by silence. Close mono arcade cabinet sample, percussive, mildly gritty. No laser chirp, pitched sweep, music, echo, voice or extra shots.', { peak: -4, gain: 0.65, maxSeconds: 0.125, tail: 0.018 }),
+  sfx('epic_pack', 2, 'A young wolf cub gives one questioning high whine from nearby, followed by a low soft answering howl in a French orchard at night. Two seconds of clean isolated animal foley, no music.', { peak: -5, gain: 0.72 }),
+  voice('vo_epic_stove', 'hero', '[dryly] Bon. Ce soir, on mange froid.', { peak: -4 }),
+  voice('vo_epic_pack', 'hero', '[whispering] Attends. Y a un petit sous la grille.', { peak: -4 }),
+  voice('vo_epic_neighbor', 'hero', '[quietly] Ça y est. Il a rallumé sa cuisine.', { peak: -4 }),
+  voice('vo_epic_neighbor_relay', 'neighbor', '[relieved, quietly] Je te reçois. De ma fenêtre, je vois ta porte arrière. Je veille.', { fx: 'radio', peak: -4 }),
   // ───────────── Traps ─────────────
   sfx('spikes', 0.9, 'Sharpened wooden stakes springing up out of the ground: a metal spring twang, then a hard wooden clack. Close, dry, no reverb.'),
   sfx('log', 1.8, 'A heavy tree trunk hung on ropes swings down: rope creak, a deep whoosh, then one massive dull thud. Close, dry.'),
@@ -141,6 +166,12 @@ export const AUDIO = [
   // The orchard, the morning after night 2: a camera that went dark, and what had chewed its cable.
   sfx('signal_lost', 1.6, 'An old CCTV monitor losing its video signal: a harsh burst of static, a short descending electronic whine, then a quiet steady hiss of white noise that fades out.', { gain: 0.75, tail: 0.5 }),
   sfx('step_grass_1', 0.6, 'One single slow footstep in tall wet grass: a soft swish and a damp squelch. Very close, dry, nothing else.', { gain: 0.6 }),
+  sfx('well_plop', .6, "One small frog drops into still water in a stone well. Single rounded low plop, followed immediately by two tiny liquid droplets and a faint short stone reflection. Quiet rural Foley, fully finished within half a second. No croak, birds, music or ambience.", { gain: .7, peak: -6, maxSeconds: .72, tail: .07 }),
+  sfx('shop_keys', .65, "One short, delicate jingle of three old loose brass keys brushing together on a hook. A small bright chink, a softer answering tick, then silence. Close and dry workshop Foley, under half a second. No lock, handles, doors, ambience or music.", { gain: .64, peak: -7, maxSeconds: .7, tail: .06 }),
+  sfx('village_bell', 2.2, "A single distant, mellow bronze French village town-hall clock bell toll, struck just once. Clear soft attack and a gently decaying open-air resonance over two seconds. Unaccompanied, no other tolls, birds, music or background noise.", { gain: .64, peak: -6, maxSeconds: 2.3, tail: .15 }),
+  sfx('yard_cat', 0.7, "Single sleepy greeting trill from a real adult ginger farm cat, one soft short closed-mouth 'mrrrp' rising gently and falling off, within half a second, paws still. Close dry outdoor field recording, isolated with silence before and after, natural and warm. No human voice, music, birds, second meow or background.", { gain: .76, peak: -5, maxSeconds: .75, tail: .065 }),
+  sfx('step_gravel', 0.5, "Exactly one boot planting on fine dry driveway gravel, a firm quiet thud with a handful of small pebbles ticking under the sole immediately afterwards. Short sharp attack, entire contact within 0.24 seconds. Close outdoor Foley, clean isolated recording with no echo, no other steps, no gait sequence, no music or other sound.", { gain: .64, peak: -5, maxSeconds: .27, tail: .045 }),
+  sfx('cat_bonnet', 0.5, "A cat's two soft forepaws landing almost together on a stationary old car's metal bonnet. One quiet padded pa-dum with a very short, low hollow sheet-metal resonance underneath. Close-up game Foley, finished completely in a quarter second. No voices, claws, meow, ringing, keys, engine or ambience.", { gain: .65, peak: -8, maxSeconds: .32, tail: .065 }),
   sfx('step_grass_2', 0.6, 'One single careful footstep in wet grass and dead leaves: a light crunch and a rustle. Very close, dry, nothing else.', { gain: 0.6 }),
   sfx('step_grass_3', 0.6, 'One single heavy boot step in long dewy grass: a swish, then a soft thud on damp earth. Very close, dry, nothing else.', { gain: 0.6 }),
   sfx('step_grass_4', 0.6, 'One single hurried footstep through wet grass: a quick brushing swish and a small squelch. Very close, dry, nothing else.', { gain: 0.6 }),
@@ -229,6 +260,7 @@ export const AUDIO = [
   sfx('news', 2.6, 'A regional TV news channel breaking-news jingle: short urgent synth brass and timpani sting, 1990s broadcast sound.', { gain: 0.8 }),
   sfx('exhale', 3.2, 'A man takes one long slow drag on a hand-rolled cigarette, paper crackling, then exhales slowly. Very close microphone.'),
   sfx('dawn', 4.5, 'Dawn in a French village: a rooster crows once, a distant church bell rings twice, first birds waking. Calm, relieved.', { gain: 0.9 }),
+  sfx('dawn_swallows', 3, 'One natural close barn swallow makes two liquid, cheerful twittering calls in the morning, answered by one softer more distant swallow a moment later. A two-second field recording in a rural French garden with clean silence at both ends. Only the small birds, no continuous ambience, no other animals, music or voices.', { gain: .74, peak: -5, tail: .18 }),
   sfx('lost', 3.2, 'A dark defeat sting: a deep impact, then a low drone sinking in pitch into silence. Horror, no melody.'),
 
   // ───────────── Beds (seamless loops) ─────────────

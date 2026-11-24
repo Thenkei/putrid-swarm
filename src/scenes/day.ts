@@ -1,6 +1,7 @@
 // Daytime at the refuge: the lot seen from above, the build menu, the doors, and the two ways
 // out of the day — the car, or waiting for night.
 
+import { epicObject } from './epic-day';
 import { BARRICADE, DEVICES, HOUSE_MAX_HP, HOUSE_REPAIR, facingsOf, isTrap, turned } from '../core/data/devices';
 import { BOSS } from '../core/data/enemies';
 import { DAY_HOURS } from '../core/data/locations';
@@ -49,6 +50,7 @@ import { S, fmt, hours } from '../engine/i18n';
 import { sayAny, sayOnce } from '../engine/voice';
 import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
 import { deviceArt } from '../render/defenses';
+import { FROG_RETURNS_AT, FROG_SPLASH_AT } from '../render/homestead-life';
 import { calmMotion } from '../render/lighting';
 import { VISIBLE_DOORS } from '../render/house';
 import { costLine, describeCost, inventoryBar } from './common';
@@ -142,6 +144,8 @@ export class DayScene implements Scene {
   private showRoutes = true;
   private sirenPreview: SirenSector | null = null;
   private sceneryAction: SceneryAction | null = null;
+  private hornAt = -Infinity;
+  private frogStart = -Infinity;
   private time = 0;
   private reveal: number;
   private readonly particles: Particle[] = [];
@@ -414,6 +418,8 @@ export class DayScene implements Scene {
         ])
       : null;
     if (this.deliverySlip) frame.append(this.deliverySlip);
+    const curiosity = epicObject(this.app, () => this.refresh());
+    if (curiosity) frame.append(curiosity);
     // One column: the doors' panel grows a line taller with every door that needs a nail, and the card under it follows.
     const side = el('div', { class: 'day-side' }, [doors, tonight]);
     this.root.replaceChildren(frame, topbar, panel, viewTools, side, actions, this.info);
@@ -969,6 +975,7 @@ export class DayScene implements Scene {
   update(dt: number): void {
     const previousTime = this.time;
     this.time += dt;
+    if (previousTime < this.frogStart + FROG_SPLASH_AT && this.time >= this.frogStart + FROG_SPLASH_AT) audio.play('well_plop', .65);
     const action = this.sceneryAction;
     if (action) {
       const age = this.time - action.startedAt;
@@ -1026,6 +1033,7 @@ export class DayScene implements Scene {
       carPresent: true,
       ...(this.options.arrivedByCar && { exhaustAge: this.time }),
       sceneryAction: this.sceneryAction,
+      homesteadLife: { day: state.day, hornAge: this.time - this.hornAt, wellAge: this.time - this.frogStart },
       ...(rattle && { rattle: { sector: rattle, struckAt: null } }),
       devices,
       ...(this.dismantling.length > 0 && !calmMotion() && {
@@ -1270,6 +1278,8 @@ export class DayScene implements Scene {
     const prop = pickProp(this.view, ['car', 'well'], this.app.pointer.x, this.app.pointer.y);
     if (this.sceneryAction || (prop !== 'car' && prop !== 'well')) return;
     this.sceneryAction = { kind: prop, startedAt: this.time };
+    if (prop === 'car' && this.time - this.hornAt > 4.65) this.hornAt = this.time;
+    if (prop === 'well' && this.time - this.frogStart > FROG_RETURNS_AT + .38) this.frogStart = this.time;
     audio.play(prop === 'car' ? 'horn' : 'washer');
   }
 

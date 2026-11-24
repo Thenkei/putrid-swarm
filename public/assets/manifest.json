@@ -2167,5 +2167,69 @@
     "file": "sprites/hero_departure_left.webp",
     "w": 1328,
     "h": 757
+  },
+  "epic_pack_art": {
+    "file": "sprites/epic_pack_art.webp",
+    "w": 1152,
+    "h": 768
+  },
+  "epic_moped_art": {
+    "file": "sprites/epic_moped_art.webp",
+    "w": 480,
+    "h": 320
+  },
+  "epic_vhs_hero": {
+    "file": "sprites/epic_vhs_hero.webp",
+    "w": 1152,
+    "h": 768
+  },
+  "epic_vhs_hero_center": {
+    "file": "sprites/epic_vhs_hero_center.webp",
+    "w": 1152,
+    "h": 768
+  },
+  "epic_vhs_market": { "file": "plates/epic_vhs_market.webp", "w": 1280, "h": 550 },
+  "epic_vhs_cinema": { "file": "plates/epic_vhs_cinema.webp", "w": 1280, "h": 550 },
+  "epic_vhs_underpass": { "file": "plates/epic_vhs_underpass.webp", "w": 1280, "h": 550 },
+  "epic_vhs_garage": { "file": "plates/epic_vhs_garage.webp", "w": 1280, "h": 550 },
+  "epic_vhs_hero_left": {
+    "file": "sprites/epic_vhs_hero_left.webp",
+    "w": 1152,
+    "h": 768
+  },
+  "epic_vhs_road_props": {
+    "file": "sprites/epic_vhs_road_props.webp",
+    "w": 768,
+    "h": 512
+  },
+  "yard_cat": {
+    "file": "sprites/yard_cat.webp",
+    "w": 768,
+    "h": 256
+  },
+  "dawn_wildlife": {
+    "file": "sprites/dawn_wildlife.webp",
+    "w": 896,
+    "h": 784
+  },
+  "village_wildlife": {
+    "file": "sprites/village_wildlife.webp",
+    "w": 768,
+    "h": 640
+  },
+  "village_keepsakes": {
+    "file": "sprites/village_keepsakes.webp",
+    "w": 384,
+    "h": 384
+  },
+  "orchard_cable_repair": {
+    "file": "sprites/orchard_cable_repair.webp",
+    "w": 1728,
+    "h": 720
+  },
+  "orchard_tape_hand": {
+    "file": "sprites/orchard_tape_hand.webp",
+    "w": 173,
+    "h": 640
   }
 }

@@ -1,6 +1,10 @@
 // The night: a desk, four cameras, and traps fired by hand.
 // The simulation runs on its own clock; this scene only chooses which part of it to look at.
 
+import { porchLights } from '../render/porch-flame';
+import { drawMopedBlast, mopedDoorOpen } from '../render/moped';
+import { project } from '../render/projection';
+import { EpicNight } from './epic-night';
 import { CassetteRecorder } from '../render/cassette';
 import { TAPE } from '../core/cassette';
 import { cameraPriority, type CameraPriority } from '../core/camera-priority';
@@ -9,6 +13,7 @@ import { LAST_NIGHT, sirenPackFor, type SirenSector } from '../core/data/waves';
 import { sirenForNight } from '../core/siren';
 import { detectContact, hasDetector, SCAN_RANGE, SCAN_SECONDS } from '../core/dead-channel';
 import { concludeNight } from '../core/game';
+import { MOPED_BLAST_RADIUS } from '../core/epics';
 import { HOUSE, sectorOf } from '../core/map';
 import { NightSim, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
 import { deskFor, outageFor } from '../core/orchard';
@@ -29,6 +34,7 @@ import { THRESHOLDS, doorStance, houseDamageStage } from '../render/house';
 import { HOUSE_BREAK_SECONDS, type HouseBreak } from '../render/house-debris';
 import { calmMotion, drawRetune } from '../render/lighting';
 import { smoothstep } from '../render/noise';
+import { SUNRISE_SECONDS, SWALLOW_CALL_AT, sunlight } from '../render/sunrise';
 import { LogReactions } from '../render/log-sweep';
 import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
 import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
@@ -109,6 +115,7 @@ interface TrapButton {
 
 export class NightScene implements Scene {
   private readonly sim: NightSim;
+  private epic!: EpicNight;
   private readonly recorder = new CassetteRecorder();
   private readonly siren: SirenSector | null;
   private readonly brushPassage = new BrushPassage();
@@ -301,8 +308,20 @@ export class NightScene implements Scene {
     const pauseOverlay = el('div');
     this.pauseMenu = new PauseMenu(pauseOverlay, pauseButton);
     this.coachEl = el('div', { class: 'coach' });
-    this.root = el('div', {}, [topbar, this.camFrame, ...minis, this.trapBar, this.banners, this.coachEl, this.overlay, pauseOverlay]);
-    this.app.ui.append(this.root);
+    this.root = el('div', {}, [topbar, this.camFrame, ...minis, this.trapBar, this.banners, this.coachEl, this.overlay]);
+    this.app.ui.append(this.root, pauseOverlay);
+    this.epic = new EpicNight(this.app, this.sim, this.root, (canvas, sector, burst) => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const view = this.viewFor(sector, { x: 0, y: 0, w: canvas.width, h: canvas.height }, 1.1);
+      drawWorld(ctx, view, this.frame(sector, false));
+      const lights = this.lights(view.rot);
+      if (burst) lights.push(...porchLights(view, burst));
+      applyNight(ctx, view, lights, this.sim.time);
+      return this.sim.enemies
+        .filter(e => e.alive && sectorOf(Math.floor(e.x), Math.floor(e.y)) === sector)
+        .map(e => ({ id: e.id, ...project(view, e.x, e.y) }));
+    }, sector => this.switchCam(sector), () => this.togglePause());
     if (this.sim.handView()) this.hand = new HandGauge();
     this.layoutMinis();
     for (const sector of SECTOR_IDS) this.renderMini(sector);
@@ -427,12 +446,21 @@ export class NightScene implements Scene {
 
   /** The night spans 21:00 to 06:00 on the desk. */
   private deskClock(): string {
-    const minutes = Math.round(21 * 60 + this.sim.progress() * 9 * 60) % (24 * 60);
+    const night = this.sim.progress();
+    const progress = night + (1 - night) * sunlight(this.sunriseAge);
+    const minutes = Math.round(21 * 60 + progress * 9 * 60) % (24 * 60);
     return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
   }
 
   private cameraTimestamp(clock: string): string {
-    return `${clock}:${String(Math.floor((this.time * 7) % 60)).padStart(2, '0')}`;
+    const seconds = clock === '06:00' ? 0 : Math.floor((this.time * 7) % 60);
+    return `${clock}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  private syncClock(blind: boolean): void {
+    const clock = this.deskClock();
+    setText(this.clockEl, `${clock} → ${S().night.dawn}`);
+    setText(this.camClock, blind ? this.lastSignalClock ?? '––:––:––' : this.cameraTimestamp(clock));
   }
 
   private otherSectors(): SectorId[] {
@@ -549,10 +577,8 @@ export class NightScene implements Scene {
     setText(this.energyEl, fmt(s.night.energy, { p: Math.round(sim.energy) }));
     this.syncPower(sim.energy);
 
-    const clock = this.deskClock();
     const blind = this.isDark(this.cam);
-    setText(this.clockEl, `${clock} → ${s.night.dawn}`);
-    setText(this.camClock, blind ? this.lastSignalClock ?? '––:––:––' : this.cameraTimestamp(clock));
+    this.syncClock(blind);
     this.camFrame.classList.toggle('no-link', blind);
     this.syncDetector(blind);
     if (this.rattleCaption && sim.rattleSector) {
@@ -754,9 +780,11 @@ export class NightScene implements Scene {
 
   onKeyDown(code: string, event: KeyboardEvent): void {
     if (code === 'Escape' || code === 'KeyP') {
+      event.preventDefault();
       this.togglePause();
       return;
     }
+    if (this.epic.active) return;
     if (code === 'F3') {
       this.debug = !this.debug;
       event.preventDefault();
@@ -768,6 +796,11 @@ export class NightScene implements Scene {
       return;
     }
     if (this.paused) return;
+    if (this.sunriseAge !== undefined && (code === 'Enter' || code === 'Space')) {
+      event.preventDefault();
+      this.finish();
+      return;
+    }
     if (code === 'KeyG' && this.detectorFound && this.isDark(this.cam)) {
       event.preventDefault();
       this.scan();
@@ -899,6 +932,14 @@ export class NightScene implements Scene {
           if (event.device === 'barrier') this.particles.push({ kind: 'dust', x: cx, y: cy, age: 0, life: 0.5, radius: 1 });
           break;
         }
+        case 'moped_departure':
+          audio.play('epic_mob');
+          break;
+        case 'moped_blast':
+          audio.fadeOut('epic_mob', 0.04);
+          audio.play('epic_mob_blast');
+          this.epic.finishMoped(event.kills);
+          break;
         case 'log_release':
           this.logReactions.release(event.contactAt, event.sweeps, now);
           break;
@@ -989,6 +1030,7 @@ export class NightScene implements Scene {
           this.coach = null;
           this.coachEl.className = 'coach';
           audio.setMusic('none');
+          if (this.sunriseAge !== undefined) audio.setAmbience('day', SUNRISE_SECONDS);
           audio.play(event.survived ? 'dawn' : 'lost');
           if (event.survived) sayAny('dawn', { interrupt: true, oneArmed: oneArmed(this.state) });
           else say('vo_lost', { interrupt: true });
@@ -1042,10 +1084,14 @@ export class NightScene implements Scene {
     if (this.paused) return;
     this.time += dt;
     if (this.ending) {
+      const previous = this.ending.t;
       this.advanceEffects(dt);
       this.ending.t += dt;
       this.advanceImpacts();
-      if (this.ending.t >= END_HOLD_SECONDS) this.finish();
+      const dawn = this.sunriseAge;
+      if (dawn !== undefined) this.syncClock(this.isDark(this.cam));
+      if (dawn !== undefined && previous < SWALLOW_CALL_AT && dawn >= SWALLOW_CALL_AT) audio.play('dawn_swallows', .76);
+      if (this.ending.t >= (dawn === undefined ? END_HOLD_SECONDS : SUNRISE_SECONDS)) this.finish();
       return;
     }
     if (this.coachNoteUntil > 0 && this.time >= this.coachNoteUntil && !this.coach) {
@@ -1057,6 +1103,7 @@ export class NightScene implements Scene {
       this.syncHud();
       return;
     }
+    if (this.epic.update(dt)) return;
     this.murmur();
 
     const previousTime = this.sim.time;
@@ -1112,15 +1159,25 @@ export class NightScene implements Scene {
     else goFinale(this.app);
   }
 
+  private get sunriseAge(): number | undefined {
+    if (this.ending?.survived && this.sim.night < LAST_NIGHT) return this.ending.t;
+    return undefined;
+  }
+
   private frame(sector: SectorId, main: boolean): WorldFrame {
     const hovered = main && this.hoverDevice !== null ? this.sim.device(this.hoverDevice) : undefined;
     const inspected = hovered ?? (main ? this.focusedBarrier : null);
     const showBarrier = inspected?.type === 'barrier' && inspected.state === 'armed' && !this.isDark(sector) && !this.paused && !this.ending;
     const previewCell = showBarrier ? inspected : hovered;
     const time = this.sim.time + (this.ending?.t ?? 0);
+    const ride = this.sim.mopedRide;
+    const open = ride && ride.blastAt === null ? mopedDoorOpen(time - ride.start) : 0;
     return {
       time,
+      ...(ride && ride.blastAt === null && { mopedRide: ride }),
+      ...(ride && open > 0 && { houseDoor: { sector: ride.sector, open } }),
       night: true,
+      ...(this.sunriseAge !== undefined && { sunriseAge: this.sunriseAge }),
       carPresent: true,
       houseHpRatio: this.sim.houseHp / HOUSE_MAX_HP,
       houseBreaks: this.houseBreaks,
@@ -1152,6 +1209,14 @@ export class NightScene implements Scene {
       { gx: (HOUSE.x0 + HOUSE.x1 + 1) / 2, gy: (HOUSE.y0 + HOUSE.y1 + 1) / 2, radius: 4.4, color: 'rgba(255,214,150,0.5)', lift: 40 },
       ...houseLights(rot, this.sim.barricades, this.sim.houseHp / HOUSE_MAX_HP, lanternIntensity),
     ];
+    const ride = this.sim.mopedRide;
+    if (ride && ride.blastAt !== null) {
+      const age = this.sim.time + (this.ending?.t ?? 0) - ride.blastAt;
+      if (age < 1.15) lights.push({
+        gx: ride.impact.x, gy: ride.impact.y, lift: 20, radius: MOPED_BLAST_RADIUS * 1.3,
+        color: 'rgba(255,208,128,0.95)', intensity: (calmMotion() ? .5 : 1) * (1 - smoothstep(.18, 1.15, age)),
+      });
+    }
     // A lamp over each door: the doorsteps are where the night is decided.
     for (const sector of SECTOR_IDS) lights.push({ gx: THRESHOLDS[sector].gx, gy: THRESHOLDS[sector].gy, radius: 2.6, color: 'rgba(255,196,120,0.72)', lift: 10, flicker: 0.35 });
     for (const device of this.sim.devices) {
@@ -1188,13 +1253,17 @@ export class NightScene implements Scene {
     const view = this.viewFor(sector, rect, (MAIN_ZOOM * MINI.w) / MAIN.w);
     const frame = this.frame(sector, false);
     drawWorld(mctx, view, frame);
-    applyNight(mctx, view, this.lights(view.rot), frame.time);
+    drawMopedBlast(mctx, view, this.sim.mopedRide, frame.time);
+    applyNight(mctx, view, this.lights(view.rot), frame.time, sunlight(frame.sunriseAge));
     applyCctv(mctx, view, frame.time + SECTOR_IDS.indexOf(sector) * 1.7, 1);
   }
 
   render(ctx: CanvasRenderingContext2D): void {
     ctx.fillStyle = '#0d0b09';
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+    // An opaque insert owns the screen while the simulation is held. The live porch
+    // still records the yard for the morning replay.
+    if (this.epic.holdsDesk) return;
 
     // Main feed.
     if (this.isDark(this.cam)) {
@@ -1203,7 +1272,8 @@ export class NightScene implements Scene {
       const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
       const frame = this.frame(this.cam, true);
       drawWorld(ctx, view, frame);
-      applyNight(ctx, view, this.lights(view.rot), frame.time);
+      drawMopedBlast(ctx, view, this.sim.mopedRide, frame.time);
+      applyNight(ctx, view, this.lights(view.rot), frame.time, sunlight(frame.sunriseAge));
       applyCctv(ctx, view, frame.time, 0.85);
       drawRetune(ctx, view, this.time - this.retuneAt);
     }
@@ -1219,7 +1289,7 @@ export class NightScene implements Scene {
       ctx.fillRect(-1, -1, 2, 2);
       ctx.restore();
     }
-    if (this.ending) {
+    if (this.ending && this.sunriseAge === undefined) {
       const t = Math.min(1, this.ending.t / END_HOLD_SECONDS);
       ctx.fillStyle = this.ending.survived ? `rgba(255, 190, 110, ${t * 0.5})` : `rgba(10, 0, 0, ${t * 0.8})`;
       ctx.fillRect(MAIN.x, MAIN.y, MAIN.w, MAIN.h);

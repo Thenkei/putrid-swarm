@@ -32,6 +32,8 @@ export function setLang(lang: Lang): void {
 
 export const getLang = (): Lang => current;
 
+export const line = (french: string, english: string): string => current === 'fr' ? french : english;
+
 /** Typed access to the whole table, for structured lookups (`S().device[type].name`). */
 export const S = (): Strings => TABLES[current];
 

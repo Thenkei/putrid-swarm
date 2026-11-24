@@ -1,0 +1,11 @@
+{
+  "id": "epic_pack",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "avmiHnyHM4YT3QhgysKv",
+  "generatedAt": "2026-11-23T20:30:20.051Z",
+  "prompt": "A young wolf cub gives one questioning high whine from nearby, followed by a low soft answering howl in a French orchard at night. Two seconds of clean isolated animal foley, no music.",
+  "bytes": 50187,
+  "sha256": "f2de72f6a1e57d6856fd55a88fcec65451a22e4719feeef451c592e162a08a61"
+}

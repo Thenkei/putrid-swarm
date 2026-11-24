@@ -1,0 +1,10 @@
+{
+  "id": "well_plop",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "OyVzRQLPxn74BnmOoCXQ",
+  "prompt": "One small frog drops into still water in a stone well. Single rounded low plop, followed immediately by two tiny liquid droplets and a faint short stone reflection. Quiet rural Foley, fully finished within half a second. No croak, birds, music or ambience.",
+  "bytes": 50187,
+  "sha256": "45b17a63f73557634bc78d5437f3bb788a6cf2a61d57f04b639c292aa9cd75f9"
+}
