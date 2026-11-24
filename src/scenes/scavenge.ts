@@ -21,6 +21,7 @@ export class ScavengePanel {
 
   private started = false;
   private finished = false;
+  private coursePaused = false;
 
   constructor(
     puzzle: Puzzle, spotName: string, spot: SearchSpot, plate: string, rng: Rng, level: PuzzleLevel,
@@ -96,6 +97,10 @@ export class ScavengePanel {
 
   update(dt: number): void {
     this.advance?.(dt);
+  }
+
+  pauseCourse(): void {
+    this.coursePaused = true;
   }
 
   private button(label: string, action: () => void): HTMLButtonElement {
@@ -177,6 +182,11 @@ export class ScavengePanel {
       setGate();
       if (!untimed) {
         this.advance = dt => {
+          if (this.coursePaused) {
+            // The first frame back still measures time since an unfocused frame.
+            this.coursePaused = document.hidden || !document.hasFocus();
+            return;
+          }
           elapsed += dt;
           const progress = elapsed / COURSE[index]!.seconds;
           if (progress >= 1) return this.miss(s.late);

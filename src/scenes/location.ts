@@ -544,6 +544,10 @@ export class LocationScene implements Scene {
     }
   }
 
+  onBlur(): void {
+    this.puzzle?.pauseCourse();
+  }
+
   render(ctx: CanvasRenderingContext2D): void {
     drawPlate(ctx, LOCATIONS[this.id].plate, { oneArmed: oneArmed(this.app.state) });
     this.roomLife.draw(ctx, calmMotion());
