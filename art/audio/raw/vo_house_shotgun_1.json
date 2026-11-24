@@ -1,0 +1,13 @@
+{
+  "id": "vo_house_shotgun_1",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "7FClJlB7f0WEJ26sCLNE",
+  "generatedAt": "2026-11-24T11:47:28.732Z",
+  "prompt": "[defiant] Allez, venez ! Je vais dégommer du zombie !",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "bytes": 65652,
+  "sha256": "8e314a15555a7a50409bb50354a356de26eb497b54f0ab88d3fbba92be649ece"
+}

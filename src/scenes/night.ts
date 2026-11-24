@@ -36,7 +36,7 @@ import { calmMotion, drawRetune } from '../render/lighting';
 import { smoothstep } from '../render/noise';
 import { SUNRISE_SECONDS, SWALLOW_CALL_AT, sunlight } from '../render/sunrise';
 import { LogReactions } from '../render/log-sweep';
-import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
+import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, indoorShotLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
 import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
 import { drawPlate, oneArmed } from './common';
 import { goFinale, goMorning, goNight, goTitle } from './flow';
@@ -169,6 +169,9 @@ export class NightScene implements Scene {
   private readonly detectorFound: boolean;
   private lastSignalClock: string | null = null;
   private trapBar!: HTMLElement;
+  private readonly awayTitle = el('strong');
+  private readonly returnClock = el('span');
+  private readonly awayNotice = el('div', { class: 'desk-away' }, [this.awayTitle, this.returnClock]);
   private doorContact!: HTMLElement;
   private doorContactState!: HTMLElement;
   private alertButton!: HTMLButtonElement;
@@ -302,13 +305,14 @@ export class NightScene implements Scene {
     this.doorContact = el('div', { class: 'door-contact' }, [
       el('span', { text: s.night.doorContact.label }), contactLamp, this.doorContactState,
     ]);
+    this.awayNotice.setAttribute('role', 'status');
     this.trapBar = el('div', { class: 'trap-bar' });
     this.banners = el('div', { class: 'banner' });
     this.overlay = el('div');
     const pauseOverlay = el('div');
     this.pauseMenu = new PauseMenu(pauseOverlay, pauseButton);
     this.coachEl = el('div', { class: 'coach' });
-    this.root = el('div', {}, [topbar, this.camFrame, ...minis, this.trapBar, this.banners, this.coachEl, this.overlay]);
+    this.root = el('div', {}, [topbar, this.camFrame, ...minis, this.trapBar, this.awayNotice, this.banners, this.coachEl, this.overlay]);
     this.app.ui.append(this.root, pauseOverlay);
     this.epic = new EpicNight(this.app, this.sim, this.root, (canvas, sector, burst) => {
       const ctx = canvas.getContext('2d');
@@ -361,7 +365,7 @@ export class NightScene implements Scene {
 
   /** Holds the night still on the first occasion of each lesson, until the player acts. */
   private maybeCoach(): void {
-    if (this.coach || this.coachPending.size === 0 || this.ending) return;
+    if (this.sim.awayFromDesk || this.coach || this.coachPending.size === 0 || this.ending) return;
     const s = S();
     if (this.coachPending.has('fire')) {
       const index = this.camTraps().findIndex((d) => this.sim.opportunity(d.id).now);
@@ -417,7 +421,7 @@ export class NightScene implements Scene {
   }
 
   private scan(): void {
-    if (this.paused || this.ending || !this.detectorFound || !this.isDark(this.cam) || this.scanEnds > 0 || this.state.inventory.battery < 1) return;
+    if (this.paused || this.ending || this.sim.awayFromDesk || !this.detectorFound || !this.isDark(this.cam) || this.scanEnds > 0 || this.state.inventory.battery < 1) return;
     this.scanEnds = this.sim.time + SCAN_SECONDS;
     audio.play('crt_on', 0.65);
     this.syncDetector(true);
@@ -499,7 +503,7 @@ export class NightScene implements Scene {
 
   /** True when a manual trap watched by that camera has enough under it to be worth firing. */
   private sectorCue(sector: SectorId): boolean {
-    return !this.isDark(sector) && this.sim.manualDevicesIn(sector).some((d) => this.sim.opportunity(d.id).now);
+    return !this.sim.awayFromDesk && !this.isDark(sector) && this.sim.manualDevicesIn(sector).some((d) => this.sim.opportunity(d.id).now);
   }
 
   private viewFor(sector: SectorId, rect: { x: number; y: number; w: number; h: number }, zoom: number): View {
@@ -596,6 +600,13 @@ export class NightScene implements Scene {
 
     setText(this.camLabel, fmt(s.night.cam, { i: String(SECTOR_IDS.indexOf(this.cam) + 1).padStart(2, '0'), name: s.sector[this.cam] }));
 
+    const away = sim.awayFromDesk;
+    this.trapBar.inert = away;
+    this.awayNotice.hidden = !away;
+    if (away) {
+      setText(this.awayTitle, s.night.defendingHouse);
+      setText(this.returnClock, fmt(s.night.deskReturn, { s: Math.ceil(sim.deskReturnIn) }));
+    }
     const handView = sim.handView();
     if (this.hand && handView) this.hand.sync(handView, sim);
     const lookAwaited = cameraAwaitingHand(handView);
@@ -614,7 +625,7 @@ export class NightScene implements Scene {
       ? { sector: this.coach.sector, reason: 'movement' }
       : cameraPriority(cameras, this.cam);
     const alert = this.alertTarget;
-    this.alertButton.disabled = !alert || alert.sector === this.cam;
+    this.alertButton.disabled = away || !alert || alert.sector === this.cam;
     this.alertButton.classList.toggle('urgent', !!alert && alert.reason !== 'movement');
     const alertText = alert ? fmt(s.night.alert[alert.reason], { sector: s.sector[alert.sector] }) : s.night.alert.quiet;
     setText(this.alertButton, `${s.night.space} · ${alertText}`);
@@ -628,6 +639,7 @@ export class NightScene implements Scene {
 
     for (const { sector, threat, doorRatio: ratio, dark, cue } of cameras) {
       const mini = this.miniEls.get(sector)!;
+      mini.root.inert = away;
       const danger = dark ? threat.atDoor > 0 : threat.atDoor > 0 || threat.boss !== null || (threat.breached && threat.count > 0);
       const cls = `mini ${danger ? 'danger' : !dark && threat.count > 0 ? 'alert' : ''}${cue ? ' cue' : ''}${alert?.sector === sector ? ' priority' : ''}${dark ? ' dark' : ''}${lookAwaited === sector ? ' queued' : ''}`;
       if (mini.root.className !== cls) mini.root.className = cls;
@@ -834,7 +846,7 @@ export class NightScene implements Scene {
     return this.sim.devices.map((d) => {
       const def = DEVICES[d.type];
       const slot = keyed.findIndex((k) => k.id === d.id);
-      const label = slot >= 0 ? labels[slot] : undefined;
+      const label = slot >= 0 && !this.sim.awayFromDesk ? labels[slot] : undefined;
       return {
         id: d.id,
         type: d.type,
@@ -847,7 +859,7 @@ export class NightScene implements Scene {
         hpRatio: Math.max(0, d.hp / def.maxHp),
         rearm: d.state === 'rearming' ? 1 - d.timer / def.rearmSeconds : 0,
         highlight: sector !== null && d.id === this.hoverDevice,
-        cue: slot >= 0 && sector !== null && !this.isDark(sector) && this.sim.opportunity(d.id).now,
+        cue: !this.sim.awayFromDesk && slot >= 0 && sector !== null && !this.isDark(sector) && this.sim.opportunity(d.id).now,
         ...(label ? { label } : {}),
       };
     });
@@ -986,11 +998,22 @@ export class NightScene implements Scene {
           this.banner(fmt(s.night.breach, { sector: s.sector[event.sector] }), 'bad');
           this.flash = 0.5;
           break;
+        case 'house_defense':
+          this.coachNoteUntil = 0;
+          this.coachEl.className = 'coach';
+          sayAny('houseDefense', { interrupt: true });
+          break;
+        case 'house_shot':
+          audio.play('house_shotgun');
+          break;
+        case 'desk_return':
+          this.banner(s.night.deskBack, 'good');
+          break;
         case 'entered':
           audio.play('inside');
-          this.remark('vo_inside', 18);
+          if (!this.sim.awayFromDesk) this.remark('vo_inside', 18);
           this.flash = Math.max(this.flash, 0.3);
-          if (this.time - this.lastInsideBanner > 4) {
+          if (!this.sim.awayFromDesk && this.time - this.lastInsideBanner > 4) {
             this.lastInsideBanner = this.time;
             this.banner(fmt(s.night.inside, { sector: s.sector[event.sector] }), 'bad');
           }
@@ -1111,7 +1134,7 @@ export class NightScene implements Scene {
     this.accumulator += dt * this.speed;
     let steps = 0;
     while (this.accumulator >= STEP && steps < MAX_STEPS_PER_FRAME * this.speed) {
-      this.sim.step(STEP);
+      this.sim.step(STEP, this.epic.active);
       this.brushPassage.update(this.sim.time, this.sim.enemies);
       this.accumulator -= STEP;
       steps++;
@@ -1181,6 +1204,7 @@ export class NightScene implements Scene {
       carPresent: true,
       houseHpRatio: this.sim.houseHp / HOUSE_MAX_HP,
       houseBreaks: this.houseBreaks,
+      ...(this.sim.lastHouseShot && this.sim.awayFromDesk && { indoorShot: { sector: this.sim.lastHouseShot.sector, age: this.sim.time - this.sim.lastHouseShot.at } }),
       devices: this.deviceVisuals(main ? sector : null),
       barricades: this.sim.barricades,
       defenseMotion: this.defenseMotion,
@@ -1209,6 +1233,10 @@ export class NightScene implements Scene {
       { gx: (HOUSE.x0 + HOUSE.x1 + 1) / 2, gy: (HOUSE.y0 + HOUSE.y1 + 1) / 2, radius: 4.4, color: 'rgba(255,214,150,0.5)', lift: 40 },
       ...houseLights(rot, this.sim.barricades, this.sim.houseHp / HOUSE_MAX_HP, lanternIntensity),
     ];
+    const shot = this.sim.lastHouseShot;
+    if (shot && this.sim.awayFromDesk) {
+      lights.push(...indoorShotLights(rot, shot.sector, this.sim.time - shot.at, calmMotion()));
+    }
     const ride = this.sim.mopedRide;
     if (ride && ride.blastAt !== null) {
       const age = this.sim.time + (this.ending?.t ?? 0) - ride.blastAt;

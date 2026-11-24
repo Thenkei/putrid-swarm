@@ -25,6 +25,7 @@ export type Sfx =
   | 'kill'
   | 'door'
   | 'breach'
+  | 'house_shotgun'
   | 'inside'
   | 'alert'
   | 'boss'
@@ -821,6 +822,10 @@ class AudioEngine {
 
   private synth(name: Sfx, rate = 1): void {
     switch (name) {
+      case 'house_shotgun':
+        this.noise('lowpass', 1800, 190, .25, .42);
+        this.tone('sine', 108, 42, .21, .26);
+        break;
       case 'epic_flare': this.noise('lowpass', 2000, 420, .42, .2); break;
       case 'moped_door':
         this.noise('bandpass', 2100, 1300, .045, .07);

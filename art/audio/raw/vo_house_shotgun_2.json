@@ -1,0 +1,13 @@
+{
+  "id": "vo_house_shotgun_2",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "YwjrvsQvXX32pGDKsYEH",
+  "generatedAt": "2026-11-24T11:47:32.054Z",
+  "prompt": "[angry] Putain, mais je vais tous vous exploser !",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "bytes": 63144,
+  "sha256": "03398bb68ace7da51a55c4df387be484c3785ddca5e93321096284ac6f9579a3"
+}

@@ -130,6 +130,7 @@ export interface NightReport {
   readonly triggers: number;
   /** Traps that went off by themselves. */
   readonly autoTriggers: number;
+  readonly indoorKills?: number;
   readonly letterDelivered?: true;
   readonly bossDefeated: NeighborId | null;
   readonly durationSeconds: number;

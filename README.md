@@ -48,6 +48,7 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Night | `A Z E R T Y` (the top-left letter row on any layout) | fire the hand-fired traps of the current camera |
 | Night, one arm | the same keys | one hand works both rows: a key on the other row than the last one waits for the hand to get there (the hand on the trap bar shows it), then is done by itself |
 | Night | click a hand-fired trap in the feed | fire it |
+| Intrusion | the operator leaves the desk for five seconds | The first intruder damages the house. The hero takes his shotgun and can stop up to two more intruders. Automatic traps continue firing while he is away. |
 | Night | `Esc` / `P` | pause |
 | Night | `F3` | debug overlay: phase, wave, balances, per-sector counts, trap states |
 | Orchard | hold `↑` / `←` / `→` (or `W` `A` `D`, by position) | walk in, go closer, go to the next place; letting go steps back |

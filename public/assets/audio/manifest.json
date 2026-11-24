@@ -1661,6 +1661,30 @@
     "seconds": 0.993,
     "gain": 1
   },
+  "house_shotgun": {
+    "file": "house_shotgun.mp3",
+    "kind": "sfx",
+    "seconds": 0.862,
+    "gain": 0.76
+  },
+  "vo_house_shotgun_1": {
+    "file": "vo_house_shotgun_1.mp3",
+    "kind": "voice",
+    "seconds": 2.612,
+    "gain": 1
+  },
+  "vo_house_shotgun_2": {
+    "file": "vo_house_shotgun_2.mp3",
+    "kind": "voice",
+    "seconds": 2.429,
+    "gain": 1
+  },
+  "vo_house_shotgun_3": {
+    "file": "vo_house_shotgun_3.mp3",
+    "kind": "voice",
+    "seconds": 3.239,
+    "gain": 1
+  },
   "vo_inside": {
     "file": "vo_inside.mp3",
     "kind": "voice",

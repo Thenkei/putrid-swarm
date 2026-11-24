@@ -199,8 +199,8 @@ describe('what each trap did last night', () => {
     expect(fired).toBe(report.triggers + report.autoTriggers);
     expect(fired).toBeGreaterThan(0);
     const kills = Object.values(report.kills).reduce((sum, n) => sum + (n ?? 0), 0);
-    // Every kill is a trap's: nothing else hurts them.
-    expect(Object.values(report.traps).reduce((sum, t) => sum + t.kills, 0)).toBe(kills);
+    const trapKills = Object.values(report.traps).reduce((sum, t) => sum + t.kills, 0);
+    expect(trapKills + (report.indoorKills ?? 0)).toBe(kills);
   });
 
   it('marks a working trap nobody walked into as silent, and never one laid since or broken', () => {
@@ -638,7 +638,9 @@ describe('night simulation', () => {
     let state = rich(newGame(1));
     state = unwrap(build(state, 'barrier', 10, 18));
     const barrier = state.yard.devices.at(-1)!;
-    const sim = new NightSim(2, state.yard, 1);
+    // Keep the operator at the desk for the mower's charge.
+    const door = { level: 1 as const, hp: 9999 };
+    const sim = new NightSim(2, { ...state.yard, barricades: { portail: door, grange: door, arriere: door, verger: door } }, 1);
     let jammed = false;
     run(sim, 200, (s) => {
       const mower = s.enemies.find((e) => e.type === 'mower');

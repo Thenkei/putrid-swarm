@@ -139,6 +139,9 @@ export type SimEvent = (
   | { readonly type: 'enemy_dead'; readonly id: number; readonly enemy: EnemyTypeId; readonly x: number; readonly y: number; readonly fx: number; readonly fy: number; readonly pose: EnemyImpact; readonly stain?: Decal }
   | { readonly type: 'barricade_hit'; readonly sector: SectorId }
   | { readonly type: 'breach'; readonly sector: SectorId }
+  | { readonly type: 'house_defense'; readonly sector: SectorId }
+  | { readonly type: 'house_shot'; readonly sector: SectorId }
+  | { readonly type: 'desk_return' }
   | { readonly type: 'entered'; readonly sector: SectorId; readonly enemy: EnemyTypeId; readonly damage: number }
   | { readonly type: 'telegraph'; readonly kind: TelegraphKind; readonly enemyId: number; readonly x: number; readonly y: number; readonly sector: SectorId; readonly seconds: number }
   | { readonly type: 'interrupt'; readonly x: number; readonly y: number }
@@ -157,7 +160,7 @@ export type SimEvent = (
   | { readonly type: 'outcome'; readonly survived: boolean }
 ) & { /** A log captures its victims on release. Its impact is shown when the timber reaches them. */ readonly showAt?: number };
 
-export type TriggerError = 'unknown' | 'passive' | 'automatic' | 'broken' | 'busy' | 'rearming' | 'no_energy' | 'over';
+export type TriggerError = 'unknown' | 'passive' | 'automatic' | 'broken' | 'busy' | 'rearming' | 'no_energy' | 'away' | 'over';
 
 // ───────────────────────────── The desk ─────────────────────────────
 
@@ -235,6 +238,16 @@ const MAX_DECALS = 90;
 /** Seconds after the last arrival before first light: whatever is still standing wanders off. */
 const DAWN_MARGIN = 55;
 
+const HOUSE_ROUNDS = [2.5, 3.35, 4.2] as const;
+export const HOUSE_RETURN_SECONDS = 4.95;
+const DESK_RECOVERY_SECONDS = 12;
+
+interface HouseDefense {
+  readonly started: number;
+  nextRound: number;
+  readonly intruders: { type: EnemyTypeId; sector: SectorId }[];
+}
+
 export class NightSim {
   readonly night: number;
   time = 0;
@@ -268,6 +281,16 @@ export class NightSim {
 
   private readonly kills: Partial<Record<EnemyTypeId, number>> = {};
   private killCount = 0;
+  private indoorKills = 0;
+  private defense: HouseDefense | null = null;
+  private nextDefenseAt = 0;
+  private operatorOutside = false;
+  lastHouseShot: { at: number; sector: SectorId } | null = null;
+
+  get awayFromDesk(): boolean { return this.defense !== null; }
+  get deskReturnIn(): number {
+    return this.defense ? Math.max(0, this.defense.started + HOUSE_RETURN_SECONDS - this.time) : 0;
+  }
   private highlight: NightHighlight | undefined;
   private breaches = 0;
   private houseDamage = 0;
@@ -418,6 +441,7 @@ export class NightSim {
    * presses are carried out in the order they were made.
    */
   act(press: DeskPress): DeskOutcome {
+    if (this.awayFromDesk) return 'refused';
     const hand = this.hand;
     if (!hand || !this.oneHand) {
       this.carryOut(press);
@@ -506,6 +530,7 @@ export class NightSim {
     const def = DEVICES[device.type];
     if (def.mode === 'passive') return deny('passive');
     if (def.mode === 'auto') return deny('automatic');
+    if (this.awayFromDesk) return deny('away');
     if (device.state === 'broken') return deny('broken');
     if (device.state === 'active') return deny('busy');
     if (device.state === 'rearming') return deny('rearming');
@@ -634,7 +659,8 @@ export class NightSim {
 
   // ───────────────────────────── Simulation step ─────────────────────────────
 
-  step(dt: number): void {
+  step(dt: number, operatorOutside = false): void {
+    this.operatorOutside = operatorOutside;
     if (this.outcome !== 'ongoing') return;
     this.time += dt;
     if (this.closingOutcome) {
@@ -668,6 +694,7 @@ export class NightSim {
       }
     }
     this.separate();
+    if (this.houseHp > 0) this.advanceHouseDefense();
     this.resolveOutcome(dt);
   }
 
@@ -1041,6 +1068,50 @@ export class NightSim {
     return e.type === 'boar' ? 'boar' : 'ram';
   }
 
+  private enterHouse(type: EnemyTypeId, sector: SectorId, damage: number): void {
+    // The first intruder gets through. Once the hero is inside, he can intercept
+    // one more intruder for each unclaimed shot left in this short sortie.
+    const defense = this.defense;
+    if (defense && defense.intruders.length < HOUSE_ROUNDS.length - defense.nextRound) {
+      defense.intruders.push({ type, sector });
+      return;
+    }
+    this.loseHouse(damage);
+    this.events.push({ type: 'entered', sector, enemy: type, damage });
+    if (defense || this.houseHp <= 0 || this.time < this.nextDefenseAt || this.operatorOutside) return;
+
+    this.lastHouseShot = null;
+    this.defense = { started: this.time, nextRound: 0, intruders: [{ type, sector }] };
+    if (this.hand) this.hand.queue.length = 0;
+    // Leave a live picture of the breach on the monitor as the operator gets up.
+    let feed = sector;
+    if (feed === this.cameraLost) feed = this.camera === this.cameraLost
+      ? SECTOR_IDS.find(other => other !== this.cameraLost)! : this.camera;
+    this.carryOut({ kind: 'look', sector: feed });
+    this.events.push({ type: 'house_defense', sector });
+  }
+
+  private advanceHouseDefense(): void {
+    const defense = this.defense;
+    if (!defense) return;
+    const age = this.time - defense.started;
+    while (defense.nextRound < HOUSE_ROUNDS.length && age >= HOUSE_ROUNDS[defense.nextRound]!) {
+      defense.nextRound++;
+      const target = defense.intruders.shift();
+      if (!target) continue;
+      this.kills[target.type] = (this.kills[target.type] ?? 0) + 1;
+      this.killCount++;
+      this.indoorKills++;
+      this.lastHouseShot = { at: this.time, sector: target.sector };
+      this.events.push({ type: 'house_shot', sector: target.sector });
+    }
+    if (age >= HOUSE_RETURN_SECONDS) {
+      this.defense = null;
+      this.nextDefenseAt = this.time + DESK_RECOVERY_SECONDS;
+      this.events.push({ type: 'desk_return' });
+    }
+  }
+
   private assaultDoor(e: Enemy, dt: number): void {
     const sector = e.target;
     const barricade = this.barricades[sector];
@@ -1058,8 +1129,7 @@ export class NightSim {
     // The door is open.
     if (!e.def.boss) {
       e.alive = false;
-      this.loseHouse(e.def.houseDamage);
-      this.events.push({ type: 'entered', sector, enemy: e.type, damage: e.def.houseDamage });
+      this.enterHouse(e.type, sector, e.def.houseDamage);
       return;
     }
     // Bosses stay on the doorstep and keep hammering the house itself.
@@ -1387,7 +1457,7 @@ export class NightSim {
   } | null = null;
 
   launchMoped(sector: SectorId): boolean {
-    if (this.mopedRide || this.outcome !== 'ongoing') return false;
+    if (this.awayFromDesk || this.mopedRide || this.outcome !== 'ongoing') return false;
     const sill = THRESHOLDS[sector];
     const farEnd = LANES[sector][2]!;
     const impact = { x: farEnd.x + 0.5, y: farEnd.y + 0.5 };
@@ -1548,7 +1618,8 @@ export class NightSim {
     if (this.pending.length === 0 && this.enemies.length === 0) this.clearFor += dt;
     else this.clearFor = 0;
     if (this.houseHp <= 0) this.closingOutcome = 'overrun';
-    else if (this.clearFor >= GRACE_AFTER_CLEAR || this.time >= this.dawnAt) this.closingOutcome = 'survived';
+    else if (!this.defense && (this.clearFor >= GRACE_AFTER_CLEAR || this.time >= this.dawnAt)) this.closingOutcome = 'survived';
+    if (this.closingOutcome) this.defense = null;
     if (!this.closingOutcome || this.mopedRide?.blastAt === null) return;
     this.outcome = this.closingOutcome;
     this.events.push({ type: 'outcome', survived: this.outcome === 'survived' });
@@ -1574,6 +1645,7 @@ export class NightSim {
       barricadeDamage,
       triggers: this.triggers,
       autoTriggers: this.autoTriggers,
+      ...(this.indoorKills > 0 && { indoorKills: this.indoorKills }),
       bossDefeated: this.bossDefeated,
       ...(this.letterDelivered && { letterDelivered: true as const }),
       durationSeconds: Math.round(this.time),

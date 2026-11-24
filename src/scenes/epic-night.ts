@@ -39,6 +39,7 @@ export class EpicNight {
   private readonly lane: number;
 
   private outside = false;
+  private mopedButton: HTMLButtonElement | null = null;
   private launched: HTMLButtonElement | null = null;
   private previousFocus: HTMLElement | null = null;
   constructor(private app: App, private sim: NightSim, private desk: HTMLElement,
@@ -59,6 +60,7 @@ export class EpicNight {
         this.launched = launch;
         launch.classList.add('epic-launched');
       });
+      this.mopedButton = launch;
       launch.classList.add('epic-launch');
       launch.title = L('Un seul départ. Les lames frappent sur le trajet. La mob explose au fond du jardin.', 'One ride. The blades strike on the way out. The moped explodes at the far end of the yard.');
       launch.setAttribute('aria-live', 'polite');
@@ -86,6 +88,8 @@ export class EpicNight {
       this.clock?.(dt);
       return !this.outside;
     }
+    if (this.mopedButton && !this.flag('spent')) this.mopedButton.disabled = this.sim.awayFromDesk;
+    if (this.sim.awayFromDesk) return false;
     const day = this.sim.night;
     if (this.shown || day < 2 || day > LAST_NIGHT || (day === LAST_NIGHT ? this.sim.progress() < 0.72 : day !== 4 && this.sim.time < 9)) return false;
     const ride = this.sim.mopedRide;
