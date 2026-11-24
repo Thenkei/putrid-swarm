@@ -98,6 +98,7 @@ export interface WorldFrame {
   readonly time: number;
   readonly night: boolean;
   readonly houseHpRatio: number;
+  readonly indoorShot?: { sector: SectorId; age: number };
   readonly houseDoor?: HouseDoor;
   readonly mopedRide?: NonNullable<NightSim['mopedRide']>;
   readonly houseBreaks?: readonly HouseBreak[];
@@ -224,6 +225,51 @@ export function houseLights(rot: Rot, barricades: WorldFrame['barricades'], hous
     });
   }
   return lights;
+}
+
+function shotEnvelope(age: number, reduced: boolean): number {
+  const duration = reduced ? .68 : .38;
+  if (age < 0 || age >= duration) return 0;
+  return reduced ? .29 * Math.sin(Math.PI * age / duration) : (1 - age / duration) ** 2;
+}
+
+/** Light the recess behind the broken door, following the painted jambs on either facade. */
+function drawLitDoorway(ctx: CanvasRenderingContext2D, sector: SectorId, age: number, left: number, top: number, scale: number) {
+  const pulse = shotEnvelope(age, calmMotion());
+  if (pulse <= 0) return;
+  const door = DOOR_OPENINGS[sector];
+  ctx.save();
+  ctx.transform(scale, scale * door.rise / door.w, 0, scale, left + door.x * scale, top + door.y * scale);
+  // Keep the threshold and loose planks in the foreground. The hot core is deeper in the room.
+  const glow = ctx.createRadialGradient(door.w * .55, door.h * .49, 0, door.w * .55, door.h * .49, door.h * .56);
+  glow.addColorStop(0, '#fff3c1');
+  glow.addColorStop(.32, '#ffb35d');
+  glow.addColorStop(1, 'rgba(233,92,24,0)');
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = .95 * pulse;
+  ctx.fillStyle = glow;
+  ctx.fillRect(door.w * .08, door.h * .08, door.w * .84, door.h * .73);
+  ctx.restore();
+}
+
+/** Light leaks through the painted panes and falls on the yard below the firing room. */
+export function indoorShotLights(rot: Rot, sector: SectorId, age: number, reducedMotion: boolean): Light[] {
+  const pulse = shotEnvelope(age, reducedMotion);
+  if (!pulse) return [];
+  const near = VISIBLE_DOORS[rot].includes(sector);
+  const intensity = (near ? 1 : .68) * pulse;
+  const lamps = HOUSE_ART[rot].lamps;
+  const window = sector === 'portail' || sector === 'arriere' ? lamps[0]! : lamps[1]!;
+  const face = near ? sector : VISIBLE_DOORS[rot][0]!;
+  const sill = ENTRIES[face];
+  const door = DOOR_OPENINGS[face];
+  return [
+    { gx: HOUSE_CENTER.x, gy: HOUSE_CENTER.y, ...houseOffset(rot, window.x, window.y),
+      radius: 3.4, glow: 1, round: true, color: 'rgba(255,217,139,.95)', intensity },
+    { gx: HOUSE_CENTER.x, gy: HOUSE_CENTER.y, ...houseOffset(rot, door.x + door.w / 2, door.y + (door.h + door.rise) / 2),
+      radius: 2.7, glow: .9, round: true, color: 'rgba(255,177,82,.85)', intensity },
+    { gx: sill.x + .5, gy: sill.y + .5, radius: 3.2, color: 'rgba(255,163,76,.8)', intensity: intensity * .8 },
+  ];
 }
 
 /** How each fixed thing meets the ground: a soft patch under it and, if it stands tall, the shadow it throws. */
@@ -522,6 +568,9 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           const left = root.x + origin.dx * z;
           const top = root.y - origin.lift * z;
           paintHouse(ctx, view.rot, side.key, art, left, top, w, frame.houseHpRatio, frame.barricades, frame.houseDoor);
+          if (frame.indoorShot && VISIBLE_DOORS[view.rot].includes(frame.indoorShot.sector)) {
+            drawLitDoorway(ctx, frame.indoorShot.sector, frame.indoorShot.age, left, top, w / art.w);
+          }
           if (frame.approachingHero && view.rot === 0) drawApproachWindow(ctx, frame.approachingHero, root, z);
           if (frame.houseBreaks?.length) drawHouseDebris(ctx, frame.houseBreaks, view.rot, side.key, art, left, top, w);
           const chimney = houseOffset(view.rot, side.chimney.x, side.chimney.y);

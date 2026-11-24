@@ -58,6 +58,7 @@ export class MorningScene implements Scene {
     const row = (label: string, value: string, tone: '' | 'bad' | 'good' | 'warn' = ''): HTMLElement => el('tr', {}, [el('td', { text: label }), el('td', { class: tone, text: value })]);
     const rows = [
       row(s.morning.kills, String(kills), 'good'),
+      ...(report?.indoorKills ? [row(s.morning.indoorKills, String(report.indoorKills))] : []),
       row(s.morning.autoTriggers, String(report?.autoTriggers ?? 0)),
       row(s.morning.triggers, String(report?.triggers ?? 0)),
       row(s.morning.breaches, String(report?.breaches ?? 0), (report?.breaches ?? 0) > 0 ? 'bad' : 'good'),

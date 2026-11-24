@@ -1,0 +1,11 @@
+{
+  "id": "house_shotgun",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "ityEE04hYXbjsSH5mRJd",
+  "generatedAt": "2026-11-24T11:47:36.858Z",
+  "prompt": "One isolated cinematic shotgun blast muffled through the walls of an old farmhouse, followed by a short metallic pump clack and a rapidly dying wooden room echo. Distinct low thump and dry mechanical ",
+  "bytes": 34305,
+  "sha256": "466958f9fc7386bca17a0b4f106b88dc166d2f3a5b4bf3f17b183e57afcfe95a"
+}

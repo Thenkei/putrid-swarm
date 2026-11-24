@@ -120,6 +120,8 @@ export class EpicNight {
       this.clock?.(dt);
       return !this.outside;
     }
+    if (this.launchButton && this.launchHint) this.launchButton.disabled = this.sim.awayFromDesk;
+    if (this.sim.awayFromDesk) return false;
     const day = this.sim.night;
     if (this.shown || day < 2 || day > LAST_NIGHT || (day === LAST_NIGHT ? this.sim.progress() < 0.72 : day !== 4 && this.sim.time < 9)) return false;
     const ride = this.sim.mopedRide;

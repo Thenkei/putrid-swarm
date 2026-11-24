@@ -95,7 +95,7 @@ describe('daily epics', () => {
     const state = newGame(11);
     const sim = new NightSim(3, state.yard, state.seed);
     expect(sim.mopedTargets('portail')).toBe(0);
-    while (sim.time < 45 && sim.mopedTargets('portail') < 3) sim.step(1 / 60);
+    while (sim.time < 45 && (sim.awayFromDesk || sim.mopedTargets('portail') < 3)) sim.step(1 / 60);
     expect(sim.mopedTargets('portail')).toBeGreaterThanOrEqual(3);
     expect(sim.launchMoped('portail')).toBe(true);
     for (let i = 0; i < 160; i++) sim.step(1 / 60);

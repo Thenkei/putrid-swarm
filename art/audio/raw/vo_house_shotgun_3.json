@@ -1,0 +1,13 @@
+{
+  "id": "vo_house_shotgun_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "moZjZxvXFd6Ga6FB5JqQ",
+  "generatedAt": "2026-11-24T11:53:20.289Z",
+  "prompt": "[exasperated] C’est chez moi, ici ! Essuyez-vous les pieds, au moins !",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "bytes": 74429,
+  "sha256": "af0e42012164b0733e611313950622235893546af9293052d56a8a3662aae05a"
+}
