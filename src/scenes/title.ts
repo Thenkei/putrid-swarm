@@ -68,6 +68,7 @@ export class TitleScene implements Scene {
   private togglePower(): void {
     desk.powered = !desk.powered;
     this.root.classList.toggle('off', !desk.powered);
+    this.syncMenuAvailability();
     this.root.classList.toggle('waking', desk.powered);
     if (desk.powered) {
       // The class only carries the wake-up animation: left on, every menu redraw would replay it.
@@ -98,6 +99,7 @@ export class TitleScene implements Scene {
     if (!this.saver) return;
     this.saver.node.remove();
     this.saver = null;
+    this.syncMenuAvailability();
   }
 
   private startSaver(): void {
@@ -105,6 +107,7 @@ export class TitleScene implements Scene {
     const node = el('div', { class: 'crt-saver' }, [logo]);
     this.root.append(node);
     this.saver = { node, logo, at: this.time, cornered: false };
+    this.syncMenuAvailability();
   }
 
   private updateSaver(): void {
@@ -138,6 +141,7 @@ export class TitleScene implements Scene {
     ]);
     this.root.append(node);
     this.mire = { node, until: this.time + MIRE_SECONDS };
+    this.syncMenuAvailability();
     audio.play('camera');
     window.setTimeout(() => this.alive && sayOnce('egg:mire', 'vo_egg_mire'), 1200);
   }
@@ -169,15 +173,21 @@ export class TitleScene implements Scene {
     this.setVolume(audio.volume + (deltaY < 0 ? VOLUME_STEP_WHEEL : -VOLUME_STEP_WHEEL));
   }
 
-  private build(): void {
+  private syncMenuAvailability(): void {
+    const menu = this.root.querySelector<HTMLElement>('.crt-menu');
+    if (menu) menu.inert = !desk.powered || !!this.saver || !!this.mire;
+  }
+
+  private build(focusItem = (document.activeElement as HTMLElement | null)?.dataset.menuItem): void {
     const s = S();
     const saved = this.app.loadSave();
     const logoUrl = assetUrl('logo');
     const logo = logoUrl ? el('img', { class: 'logo' }) : el('div', { class: 'logo-text', html: 'PUTRID<b>SWARM</b>' });
     if (logoUrl) (logo as HTMLImageElement).src = logoUrl;
 
-    const item = (label: string, onClick: () => void, disabled = false): HTMLButtonElement =>
+    const item = (id: string, label: string, onClick: () => void, disabled = false): HTMLButtonElement =>
       el('button', {
+        data: { menuItem: id },
         text: label,
         disabled,
         onClick: () => {
@@ -189,55 +199,56 @@ export class TitleScene implements Scene {
     let menu: HTMLElement;
     if (this.view === 'options') {
       menu = el('div', { class: 'menu options' }, [
-        item(`${s.title.language} · ${s.lang}`, () => {
+        item('language', `${s.title.language} · ${s.lang}`, () => {
           setLang(getLang() === 'fr' ? 'en' : 'fr');
           this.build();
         }),
-        item(`${s.title.sound} · ${audio.enabled ? s.title.on : s.title.off}`, () => {
+        item('sound', `${s.title.sound} · ${audio.enabled ? s.title.on : s.title.off}`, () => {
           audio.setEnabled(!audio.enabled);
           this.build();
         }),
-        item(`${s.title.music} · ${audio.musicEnabled ? s.title.on : s.title.off}`, () => {
+        item('music', `${s.title.music} · ${audio.musicEnabled ? s.title.on : s.title.off}`, () => {
           audio.setMusicEnabled(!audio.musicEnabled);
           this.build();
         }),
-        item(`${s.title.volume} · ${Math.round(audio.volume * 100)} %`, () => {
+        item('volume', `${s.title.volume} · ${Math.round(audio.volume * 100)} %`, () => {
           audio.setVolume(audio.volume < VOLUME_STEP_CLICK / 2 ? 1 : audio.volume - VOLUME_STEP_CLICK);
           this.build();
         }),
-        item(s.title.back, () => {
+        item('back', s.title.back, () => {
           this.view = 'main';
-          this.build();
+          this.build('options');
         }),
       ]);
     } else if (this.view === 'confirm') {
       menu = el('div', { class: 'menu' }, [
-        item(s.title.yes, () => this.begin()),
-        item(s.title.no, () => {
+        item('replace', s.title.yes, () => this.begin()),
+        item('keep', s.title.no, () => {
           this.view = 'main';
-          this.build();
+          this.build('start');
         }),
       ]);
     } else {
       menu = el('div', { class: 'menu' }, [
-        item(s.title.start, () => {
+        item('start', s.title.start, () => {
           if (saved) {
             this.view = 'confirm';
-            this.build();
+            this.build('keep');
           } else this.begin();
         }),
         item(
+          'continue',
           s.title.continue,
           () => {
             if (saved) resumeGame(this.app, saved);
           },
           !saved,
         ),
-        item(s.title.options, () => {
+        item('options', s.title.options, () => {
           this.view = 'options';
-          this.build();
+          this.build('language');
         }),
-        item(S().credits.menu, () => this.app.go(() => new CreditsScene(this.app))),
+        item('credits', S().credits.menu, () => this.app.go(() => new CreditsScene(this.app))),
       ]);
     }
 
@@ -253,6 +264,8 @@ export class TitleScene implements Scene {
     // Whatever was over the menu stays over it when the menu is redrawn.
     if (this.mire) this.root.append(this.mire.node);
     if (this.saver) this.root.append(this.saver.node);
+    this.syncMenuAvailability();
+    if (focusItem) menu.querySelector<HTMLButtonElement>(`[data-menu-item="${CSS.escape(focusItem)}"]`)?.focus();
   }
 
   private begin(): void {
@@ -266,6 +279,7 @@ export class TitleScene implements Scene {
     if (this.mire && (this.time >= this.mire.until || !desk.powered)) {
       this.mire.node.remove();
       this.mire = null;
+      this.syncMenuAvailability();
     }
   }
 
@@ -273,8 +287,14 @@ export class TitleScene implements Scene {
     desk.draw(ctx, this.time);
   }
 
-  onKeyDown(code: string): void {
+  onKeyDown(code: string, event: KeyboardEvent): void {
+    const sleeping = this.saver !== null;
     this.awake();
+    if (sleeping) {
+      event.preventDefault();
+      return;
+    }
+    if (!desk.powered || this.mire) return;
     this.typed = code === CODE[this.typed] ? this.typed + 1 : code === CODE[0] ? 1 : 0;
     if (this.typed === CODE.length) {
       this.typed = 0;
@@ -282,13 +302,14 @@ export class TitleScene implements Scene {
       return;
     }
     // The way out of a sub-menu never depends on reaching its last line.
-    if (code === 'Escape' && this.view !== 'main' && desk.powered) {
+    if (code === 'Escape' && this.view !== 'main') {
       audio.play('click');
+      const parent = this.view === 'options' ? 'options' : 'start';
       this.view = 'main';
-      this.build();
+      this.build(parent);
       return;
     }
-    if (code === 'Enter' && this.view === 'main' && desk.powered) {
+    if ((code === 'Enter' || code === 'NumpadEnter') && this.view === 'main' && !(event.target instanceof HTMLButtonElement)) {
       const saved = this.app.loadSave();
       if (saved) resumeGame(this.app, saved);
       else this.begin();
