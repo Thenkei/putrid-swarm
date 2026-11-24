@@ -7,7 +7,7 @@
 // size they come out soft, with no blur filter anywhere.
 
 import { sprite } from '../engine/assets';
-import { BOTTOM_CENTRE, type Foot } from './registration';
+import { BOTTOM_CENTRE, type Foot, type PaintFit } from './registration';
 
 /** Where the top of a sprite of height 1 lands, in screen units, relative to its foot. */
 export const SHADOW_REACH = { x: 0.62, y: -0.31 } as const;
@@ -44,19 +44,24 @@ export function shadowOutline(key: string): HTMLCanvasElement | null {
  * The shadow thrown by a standing sprite whose foot is at (x, y) and which is drawn `height` tall.
  * `length` scales how far it reaches (1 = as far as the thing is tall, along the light).
  */
-export function castShadow(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, height: number, flip: boolean, alpha: number, length = 1, foot: Foot = BOTTOM_CENTRE): void {
+export function castShadow(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, height: number, flip: boolean, alpha: number, length = 1, foot: Foot = BOTTOM_CENTRE, fit?: PaintFit): void {
   const shape = shadowOutline(key);
   if (!shape || alpha <= 0) return;
-  castSilhouette(ctx, shape, x, y, height, flip, alpha, length, foot);
+  castSilhouette(ctx, shape, x, y, height, flip, alpha, length, foot, fit);
 }
 
 /** Project a silhouette made from an articulated pose using the same light as the scenery. */
-export function castSilhouette(ctx: CanvasRenderingContext2D, shape: HTMLCanvasElement, x: number, y: number, height: number, flip: boolean, alpha: number, length: number, foot: Foot = BOTTOM_CENTRE): void {
+export function castSilhouette(ctx: CanvasRenderingContext2D, shape: HTMLCanvasElement, x: number, y: number, height: number, flip: boolean, alpha: number, length: number, foot: Foot = BOTTOM_CENTRE, fit?: PaintFit): void {
   const width = (shape.width / shape.height) * height;
   ctx.save();
   ctx.globalAlpha *= alpha;
-  // Sprite space has y running up the figure as negative: its top (0, -height) lands on the tip.
-  ctx.transform(flip ? -1 : 1, 0, -SHADOW_REACH.x * length, -SHADOW_REACH.y * length, x, y);
+  // At horizontal position u, the supporting ground is at slope*u + intercept. Only the
+  // height above that line casts sideways; either end of a sloping rail stays on its foot.
+  const slope = fit?.support?.slope ?? 0;
+  const intercept = (fit?.support?.interceptPerHeight ?? 0) * height;
+  const rx = SHADOW_REACH.x * length, ry = SHADOW_REACH.y * length;
+  ctx.transform((flip ? -1 : 1) + rx * slope, (1 + ry) * slope, -rx, -ry, x + rx * intercept, y + (1 + ry) * intercept);
+  if (fit) ctx.transform(1, fit.shearY, 0, fit.scaleY, 0, 0);
   ctx.drawImage(shape, -width * foot[0], -height * foot[1], width, height);
   ctx.restore();
 }

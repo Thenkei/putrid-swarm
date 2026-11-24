@@ -2,9 +2,20 @@ import type { Cell } from '../core/types';
 import { calmMotion } from './lighting';
 import { depthOf, project, type View } from './projection';
 
+// The whistle and cord lie flat. A half-turn reverses both ground axes.
+const bearing = -.32;
+const cos = Math.cos(bearing), sin = Math.sin(bearing);
+const groundScale = (view: View) => view.rot === 0 ? view.zoom : -view.zoom;
+
 export function hitsWhistle(view: View, at: Cell, x: number, y: number): boolean {
   const p = project(view, at.x, at.y);
-  return Math.hypot((x - p.x) / 15, (y - p.y + 3 * view.zoom) / 9) <= Math.max(view.zoom, .85);
+  const scale = groundScale(view);
+  const dx = (x - p.x) / scale, dy = (y - p.y) / scale;
+  const localX = dx * cos + dy * sin, localY = -dx * sin + dy * cos;
+  const tolerance = Math.max(1, .85 / view.zoom);
+  const body = Math.hypot(localX / 15, (localY + 3) / 9) <= tolerance;
+  const cord = localX >= 5 && localX <= 22 + 2 * tolerance && Math.abs(localY + 2) <= 3 * tolerance;
+  return body || cord;
 }
 
 /** The leather cord and brass barrel lie on the ground at the last position of the Chief. */
@@ -13,8 +24,9 @@ export function whistleDrawable(ctx: CanvasRenderingContext2D, view: View, at: C
   return { depth: depthOf(view.rot, at.x, at.y) + .08, draw: () => {
     ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.scale(view.zoom, view.zoom);
-    ctx.rotate(view.rot === 0 ? -.32 : .24);
+    const scale = groundScale(view);
+    ctx.scale(scale, scale);
+    ctx.rotate(bearing);
     ctx.fillStyle = '#2b201e86';
     ctx.beginPath(); ctx.ellipse(1, 1, 10, 3, 0, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#513a27'; ctx.lineWidth = 1.7;

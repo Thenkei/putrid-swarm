@@ -153,6 +153,20 @@ async function writeSprite(img, box, entry, name) {
   const resize = entry.h ? { height: Math.min(entry.h, height) } : { width: Math.min(entry.w ?? width, width) };
   pipeline = pipeline.resize({ ...resize, kernel: 'lanczos3' });
   if (entry.mirrorSprites?.includes(name)) pipeline = pipeline.flop();
+  // Perspective in these reverse paintings shortened the vegetable bed and wheelbase.
+  // Re-space the source columns at the near post or tyres without leaning the uprights.
+  const columns = name === 'yard_rear_veg' ? [[0, 0], [252, 219], [342, 342]]
+    : name === 'obj_car_back' ? [[0, 0], [175, 137], [281, 268], [320, 320]] : undefined;
+  if (columns) {
+    const { data, info } = await pipeline.raw().toBuffer({ resolveWithObject: true });
+    const strips = [];
+    for (let i = 1; i < columns.length; i++) {
+      const [start, left] = columns[i - 1], [end, right] = columns[i];
+      const source = sharp(data, { raw: info }).extract({ left: start, top: 0, width: end - start, height: info.height });
+      strips.push({ left, top: 0, input: await source.resize(right - left, info.height, { fit: 'fill' }).png().toBuffer() });
+    }
+    pipeline = sharp({ create: { width: info.width, height: info.height, channels: 4, background: '#00000000' } }).composite(strips);
+  }
   if (['dev_log', 'dev_spikes', 'dev_net', 'dev_barrier', 'dev_floodlight', 'dev_horn'].includes(entry.id) && name.endsWith('_triggered')) {
     // The concept sheet included detached comic rays, dust and action strokes. Keep the
     // actual apparatus: sound waves, light and impact fragments are animated in the game.
