@@ -670,6 +670,10 @@ export const ART = [
     prompt: "A single tawny owl perched upright with feet together, isolated on transparent background. A hand-painted cutout sprite for an isometric rural French survival game. Three-quarter body with round tuftless head turned toward camera, dark eyes in warm tawny facial discs, scalloped wing, pale crescent of moonlight from upper left. Thick gouache shapes, muted bark-brown feathers and a readable cream face at 32 pixels. Entire owl including curled talons and tail. No branch, ground, shadow, scenery, lettering or border.",
   },
   {
+    id: 'night_owl_flight', kind: 'atlas', w: 512, source: { concept: 'art/raw/night_owl_flight.png' },
+    prompt: "Game animation sprite sheet of the same warm brown tawny owl as the reference, now in flight. Transparent background. Exactly FOUR separate birds in a regular 2x2 square grid, isolated non-touching with roomy transparent margins, no divider, no shadows, scenery or text. The SAME owl in exactly the same scale and body orientation in every cell, flying toward screen LEFT in LEFT-facing three-quarter profile, cream face on left, tail to right, broad rounded wings with barred flight feathers. Each bird's torso sits around the center of its cell. Top left = spring off perch, talons stretching below, wings high above back. Top right = wings opening on downstroke, fanned wide toward viewer. Bottom left = wings swept low below belly, toes tucked. Bottom right = wings level in a long glide seen slightly from above. Muted gouache brushwork, moonlit upper edges, dark flight feathers, natural tawny owl anatomy and a recognizable round head, readable at 48px. Entire wingtips contained in each cell. No perched poses.",
+  },
+  {
     id: 'dawn_wildlife', kind: 'atlas', w: 896, source: { concept: 'art/raw/dawn_wildlife.png' },
     prompt: 'Four registered poses each of a russet European hare, fork-tailed barn swallow, red admiral butterfly and clump of opening oxeye daisies. Ink and gouache, transparent four by four sheet.',
   },

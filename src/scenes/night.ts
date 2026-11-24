@@ -1123,6 +1123,7 @@ export class NightScene implements Scene {
     if (this.paused) return;
     this.time += dt;
     if (this.ending) {
+      this.quietWildlife(dt);
       const previous = this.ending.t;
       this.advanceEffects(dt);
       this.ending.t += dt;
@@ -1139,11 +1140,12 @@ export class NightScene implements Scene {
       this.coachEl.className = 'coach';
     }
     if (this.coach) {
+      this.quietWildlife(dt);
       // The lesson holds the night still; the desk stays live so the player can act.
       this.syncHud();
       return;
     }
-    if (this.epic.update(dt)) { this.quietWildlife(); return; }
+    if (this.epic.update(dt)) { this.quietWildlife(dt); return; }
     this.murmur();
 
     const previousTime = this.sim.time;
@@ -1175,8 +1177,8 @@ export class NightScene implements Scene {
     this.syncHud();
   }
 
-  private quietWildlife(): void {
-    if (this.wildlife.hush()) this.fadeWildlife();
+  private quietWildlife(dt = 0): void {
+    if (this.wildlife.hush(dt)) this.fadeWildlife();
   }
 
   private fadeWildlife(): void {
@@ -1185,14 +1187,14 @@ export class NightScene implements Scene {
 
   private updateWildlife(dt: number): void {
     if (this.epic.active || this.coach || this.ending || this.sim.awayFromDesk || this.speed !== 1) {
-      this.quietWildlife();
+      this.quietWildlife(dt);
       return;
     }
-    const wasPerched = !!this.wildlife.owl;
+    const wasPerched = this.wildlife.owl?.flightAge === null;
     // NightSim has removed the dead and the intruders before this frame reaches us.
     const outside = this.sim.enemies.length;
     const cue = this.wildlife.step(dt, outside, this.sim.secondsToNextSpawn(), audio.speaking);
-    if (wasPerched && !this.wildlife.owl) audio.fadeOut('owl_call', .065);
+    if (wasPerched && this.wildlife.owl?.flightAge !== null) audio.fadeOut('owl_call', .065);
     if (cue === 'owl_call') audio.play(cue, audio.speaking ? .29 : .56);
     else if (cue) audio.play(cue, cue === 'hedge_twig' ? .65 : .52, .96 + Math.random() * .08);
   }
