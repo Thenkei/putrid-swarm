@@ -2390,6 +2390,12 @@ button:disabled {
   flex: none;
 }
 
+/* Keep the remaining reading time when the desk is behind the pause dialog. */
+[inert] .banner div,
+[inert] .boss-card {
+  animation-play-state: paused;
+}
+
 .boss-card h2 {
   font-size: 28px;
 }
