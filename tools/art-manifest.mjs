@@ -700,6 +700,11 @@ export const ART = [
       'right arm. No blood, no injury detail.',
   },
   {
+    id: 'hero_window_descent', kind: 'atlas', w: 960, source: { concept: 'art/raw/hero_window_descent.png' },
+    refs: ['art/raw/hero_departure.png', 'art/raw/hero_departure_one_arm.png'],
+    prompt: 'Six isolated cels of the refuge protagonist lowering himself off an awning. Three columns: seated at the lip, elbows bent as his hips drop, hanging by bent arms. Two arms in the top row, just the right arm and a knotted empty sleeve in the bottom row. Match the painted departure sheets, isometric viewpoint and ochre jacket. Transparent background.',
+  },
+  {
     id: 'hero_departure_left', kind: 'atlas', w: 1328, source: { concept: 'art/raw/hero_departure_left.png' },
     refs: ['art/raw/car_boarding.png', 'art/raw/car_boarding_one_arm.png'],
     prompt:

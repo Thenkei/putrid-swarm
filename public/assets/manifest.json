@@ -2231,5 +2231,10 @@
     "file": "sprites/orchard_tape_hand.webp",
     "w": 173,
     "h": 640
+  },
+  "hero_window_descent": {
+    "file": "sprites/hero_window_descent.webp",
+    "w": 960,
+    "h": 640
   }
 }

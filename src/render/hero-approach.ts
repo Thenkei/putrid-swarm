@@ -22,6 +22,22 @@ const INSIDE_SILL = -1.18;
 const OUTSIDE_SILL = 1.25;
 const HOUSE_FOOT_Y = 723;
 const EAVE_Y = 486;
+const FULL_HANG = .76;
+const RELEASE = .80;
+const LAND = .89;
+const EDGE_GRIP = .41;
+type GripPose = 0 | 1 | 2 | 3;
+// Source landmarks on the load-bearing right hand and the lowest boot. The final pose
+// belongs to the original walk sheet, where the fingers extend above the nominal cell.
+const WINDOW_GRIPS = [
+  [[175, 278, 454], [677, 235, 469], [1198, 103, 511], [1003, 444, 896]],
+  [[180, 790, 974], [678, 740, 978], [1198, 616, 1014], [1008, 490, 921]],
+] as const;
+const gripScale = (pose: GripPose) => pose === 3 ? .198 : .163;
+function gripReach(oneArmed: boolean, pose: GripPose): number {
+  const [, handY, bootY] = WINDOW_GRIPS[oneArmed ? 1 : 0][pose];
+  return (bootY - handY) * gripScale(pose);
+}
 
 // Measured relative to each cell in the original sheets. Anchor the walk below
 // the hips and the descent cels at the boots, regardless of their silhouette.
@@ -40,6 +56,7 @@ export interface ApproachShot {
   readonly start: Start;
   readonly right: Sprite;
   readonly left: Sprite;
+  readonly descent: Sprite | undefined;
   readonly oneArmed: boolean;
   readonly intro: number;
   readonly duration: number;
@@ -55,6 +72,7 @@ export interface ApproachingHero {
   readonly frame: number;
   readonly left: boolean;
   readonly opening: number;
+  readonly windowPose?: GripPose;
   /** First step inside the hall through to both boots on the landing. */
   readonly emergence?: number;
 }
@@ -81,6 +99,8 @@ export function heroApproachShot(outings: number, oneArmed: boolean, houseHealth
   const damage = houseDamageStage(houseHealth);
   if (damage === 5) start = 'grange';
   else if (start === 'window' && damage >= 3) start = 'portail';
+  const descent = start === 'window' ? sprite('hero_window_descent') : undefined;
+  if (start === 'window' && !descent) start = 'portail';
 
   const tail = { x: PARKED_CAR.x + (oneArmed ? 2.44 : 2.83), y: PARKED_CAR.y + (oneArmed ? 1.09 : 1.22) };
   const landing = start === 'window' ? LANDING : stepFromSill(start, OUTSIDE_SILL);
@@ -94,15 +114,15 @@ export function heroApproachShot(outings: number, oneArmed: boolean, houseHealth
     return { from, to, distance: Math.hypot(dx, dy), left: dx < dy };
   });
   const distance = walk.reduce((total, segment) => total + segment.distance, 0);
-  const intro = start === 'window' ? (oneArmed ? 2.08 : 1.68) : (oneArmed ? 1.51 : 1.31);
+  const intro = start === 'window' ? (oneArmed ? 2.50 : 2.08) : (oneArmed ? 1.51 : 1.31);
   const duration = intro + distance / WALK_SPEED + SLOW_AT_CAR / 2 + TURN_AT_CAR;
   const cues: Cue[] = [];
   if (start === 'window') {
-    cues.push({ at: intro * 0.46, sound: 'hand' }, { at: intro * 0.85, sound: 'step_shed' });
+    cues.push({ at: intro * EDGE_GRIP, sound: 'hand' }, { at: intro * LAND, sound: 'step_shed' });
   } else {
     cues.push({ at: UNLATCH_AT, sound: 'moped_door' }, { at: FIRST_STEP + .24, sound: 'step_shed' }, { at: intro - .09, sound: 'step_shed' });
   }
-  const shot = { start, right, left, oneArmed, intro, duration, walk, distance, cues };
+  const shot = { start, right, left, descent, oneArmed, intro, duration, walk, distance, cues };
   // The walk sheet is driven by distance. Keep each boot strike on its cel, including the slowdown at the car.
   for (let stride = WALK_STEP * WALK_SPEED; stride < distance; stride += 2 * WALK_STEP * WALK_SPEED) {
     const remaining = distance - stride;
@@ -126,13 +146,22 @@ export function sampleApproach(shot: ApproachShot, time: number): ApproachingHer
   }
   if (shot.start === 'window' && time < shot.intro) {
     const progress = clamp01(time / shot.intro);
-    const frame = progress < 0.25 ? 4 : progress < 0.52 ? 5 : progress < 0.82 ? 6 : 7;
-    const hang = (shot.oneArmed ? 444 / 402 : 422 / 365) * HERO_HEIGHT / HOUSE_PAINT_SCALE;
-    const bootsY = frame === 4 ? 444 + 9 * smoothstep(0.05, 0.25, progress)
-      : frame === 5 ? 453 + 31 * smoothstep(0.25, 0.52, progress)
-      : frame === 6 ? Math.min(HOUSE_FOOT_Y - 5, EAVE_Y + hang)
-      : HOUSE_FOOT_Y;
-    return { shot, position: LANDING, frame, left: false, lift: (HOUSE_FOOT_Y - bootsY) * HOUSE_PAINT_SCALE, opening: 1 };
+    const reach = gripReach(shot.oneArmed, 3);
+    const hangY = EAVE_Y + reach / HOUSE_PAINT_SCALE;
+    const lower = smoothstep(.34, FULL_HANG, progress);
+    const fall = clamp01((progress - RELEASE) / (LAND - RELEASE));
+    const bootsY = 444 + 9 * smoothstep(.05, .24, progress) + (EAVE_Y - 453) * smoothstep(.24, .34, progress)
+      + (hangY - EAVE_Y) * lower + (HOUSE_FOOT_Y - hangY) * fall * fall;
+    const frame = progress < .24 ? 4 : progress < FULL_HANG ? 5 : progress < LAND ? 6 : 7;
+    const drop = lower * reach;
+    // Change pose halfway between each pair of painted reaches. The supporting
+    // hand stays on the same tile while the knees straighten underneath it.
+    const windowPose = progress < EDGE_GRIP || progress >= LAND ? undefined
+      : drop < (gripReach(shot.oneArmed, 0) + gripReach(shot.oneArmed, 1)) / 2 ? 0
+      : drop < (gripReach(shot.oneArmed, 1) + gripReach(shot.oneArmed, 2)) / 2 ? 1
+      : drop < (gripReach(shot.oneArmed, 2) + reach) / 2 ? 2 : 3;
+    return { shot, position: LANDING, frame, ...(windowPose !== undefined && { windowPose }),
+      left: false, lift: (HOUSE_FOOT_Y - bootsY) * HOUSE_PAINT_SCALE, opening: 1 };
   }
 
   const walkTime = Math.max(0, time - shot.intro);
@@ -172,6 +201,32 @@ export function drawApproachingHero(ctx: CanvasRenderingContext2D, hero: Approac
   const { shot, frame, left } = hero;
   if (hero.emergence === 0) return;
   const zoom = view.zoom;
+  if (hero.windowPose !== undefined && shot.descent) {
+    const pose = hero.windowPose;
+    const hanging = pose === 3;
+    const art = hanging ? shot.right : shot.descent;
+    // The tall two-arm cel starts above its row on the old sheet; the new sheet
+    // has a clear seam below the third pose's boot at y=524.
+    const left = hanging ? 830 : pose * 512;
+    const top = hanging ? (shot.oneArmed ? 474 : 424) : (shot.oneArmed ? 524 : 0);
+    const bottom = hanging ? 948 : (shot.oneArmed ? 1024 : 524);
+    const width = hanging ? 414 : 512;
+    const sx = art.w / (hanging ? 1659 : 1536);
+    const sy = art.h / (hanging ? 948 : 1024);
+    const [handX, handY, bootY] = WINDOW_GRIPS[shot.oneArmed ? 1 : 0][pose];
+    const scale = gripScale(pose) * zoom;
+    const lipHeight = (HOUSE_FOOT_Y - EAVE_Y) * HOUSE_PAINT_SCALE;
+    const drop = lipHeight - hero.lift;
+    const release = Math.max(0, drop - gripReach(shot.oneArmed, 3));
+    const gripY = foot.y - (lipHeight - release) * zoom;
+    const destX = foot.x - 8 * zoom - (handX - left) * scale;
+    const legScale = (drop - release) * zoom / (bootY - handY);
+    ctx.drawImage(art.img, left * sx, top * sy, width * sx, (handY - top) * sy,
+      destX, gripY - (handY - top) * scale, width * scale, (handY - top) * scale);
+    ctx.drawImage(art.img, left * sx, handY * sy, width * sx, (bottom - handY) * sy,
+      destX, gripY, width * scale, (bottom - handY) * legScale);
+    return;
+  }
   const picture = left ? shot.left : shot.right;
   const cell = frame + (left && shot.oneArmed ? 4 : 0);
   const [x, y] = (left ? LEFT_FEET : shot.oneArmed ? RIGHT_ONE_ARM_FEET : RIGHT_FEET)[cell]!;
