@@ -1,0 +1,11 @@
+{
+  "id": "camper_inside_knock",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "Bqa2Fr4TekjVUbVWa9kY",
+  "generatedAt": "2026-11-24T14:15:08.135Z",
+  "prompt": "Single isolated heavy muffled wooden thud, a shoulder bumps against the inside face of a shut thick timber back door. A short woody low-mid wall resonance with just a tiny latch chatter at the end. The recording position is on the outside, so the impact is dull and enclosed. One impact only, less than one second. No knocking pattern, footsteps, voice, music or outside ambience.",
+  "bytes": 50187,
+  "sha256": "7038e0cee01a7f464cc8284c6e97a22fdb7c4bc91d6f0e42eab1f1de19d8cf04"
+}

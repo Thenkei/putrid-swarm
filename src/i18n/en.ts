@@ -429,8 +429,9 @@ export const en: Strings = {
       coachWait: 'The hand is on its way. Whatever you ask meanwhile waits its turn: nothing is lost. It is there, on the trap bar.',
     },
     /** Someone from the radio, holding a door on the last night. */
-    ally: '{name} is holding the {sector} door. He is sitting with his back against the planks.',
-    allyTurned: '{name} has turned · {sector} door',
+    ally: '{name} is holding the {sector} door. His rust fleece is caught against the boards.',
+    allyAtSill: '{name} watches the {sector} opening. One hand on what’s left of the frame.',
+    allyTurned: '{sector} · {name} strikes from inside.',
   },
   cassette: {
     title: 'The Sunday tape',
@@ -724,7 +725,7 @@ export const en: Strings = {
           fight: '“Stay back. I have taken my share, and I have learned since last time.”',
         },
         cue: {
-          firm: 'He hugs the crate to his chest. This one he will not let go of.',
+          firm: 'The crate is wedged between his boots. You’ll have to come to terms with him.',
           nervous: 'He is alone, and glances at the door every three seconds.',
         },
         refused: '“No. No, no. Not this one.” He is shaking, but he does not step back.',

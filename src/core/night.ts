@@ -1149,8 +1149,9 @@ export class NightSim {
   private allyTurns(ally: Ally): void {
     this.heldDoor = null;
     const barricade = this.barricades[ally.sector];
-    barricade.hp = Math.round(barricade.hp * (1 - ally.loss));
     this.events.push({ type: 'ally_turned', sector: ally.sector });
+    // The last splinter can give way from the hall. Count that breach exactly as a blow from outside.
+    this.hitBarricade(ally.sector, barricade.hp - Math.round(barricade.hp * (1 - ally.loss)), false);
   }
 
   private hitBarricade(sector: SectorId, amount: number, announce: boolean): void {

@@ -3,6 +3,7 @@
 // plays through the ways out and saves a screenshot at every step.
 //   node tools/encounter-shots.mjs <outDir> [baseUrl]
 import { execFileSync } from 'node:child_process';
+import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -15,7 +16,7 @@ const URL = process.argv[3] ?? process.env.PS_URL ?? 'http://localhost:5173/';
 const LANG = process.env.PS_LANG ?? 'fr';
 mkdirSync(OUT, { recursive: true });
 
-const saves = JSON.parse(execFileSync('npx', ['tsx', 'tools/encounter-saves.ts'], { cwd: ROOT, encoding: 'utf8' }));
+const saves = JSON.parse(execFileSync(process.execPath, ['--import', 'tsx', 'tools/encounter-saves.ts'], { cwd: ROOT, encoding: 'utf8' }));
 
 const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1, locale: LANG === 'fr' ? 'fr-FR' : 'en-GB' });
@@ -55,8 +56,8 @@ async function open(save) {
 }
 
 const T = LANG === 'fr'
-  ? { share: 'Partager', play: 'Jouer aux rondelles', threaten: 'Insister', fight: 'En venir aux mains', later: 'Voir d’abord', ok: 'Continuer', pay: 'Donner ce qu', defend: 'Défendre', detour: 'Faire le tour', favor: 'Rappeler', leave: 'Reprendre le break', car: 'Prendre le break', hardware: 'La quincaillerie', drive: 'Y aller' }
-  : { share: 'Share', play: 'Play washers', threaten: 'Insist', fight: 'Come to blows', later: 'Look around', ok: 'Continue', pay: 'Hand over what', defend: 'Defend', detour: 'Go round', favor: 'Call in', leave: 'Back to the car', car: 'Take the car', hardware: 'hardware', drive: 'Drive there' };
+  ? { share: 'Partager', play: 'Jouer aux rondelles', threaten: 'Insister', fight: 'En venir aux mains', later: 'Voir d’abord', ok: 'Continuer', pay: 'Donner ce qu', defend: 'Défendre', detour: 'Faire le tour', favor: 'Rappeler', leave: 'Rentrer au refuge', car: 'Prendre le break', hardware: 'La quincaillerie', drive: 'Y aller' }
+  : { share: 'Share', play: 'Play washers', threaten: 'Insist', fight: 'Come to blows', later: 'Look around', ok: 'Continue', pay: 'Hand over what', defend: 'Defend', detour: 'Go round', favor: 'Call in', leave: 'Drive home', car: 'Take the car', hardware: 'hardware', drive: 'Drive there' };
 
 // ── The whole trip, the way a player meets it: refuge → map → shop → dispute → road → refuge.
 await open(saves.home);
@@ -134,7 +135,16 @@ await shot('11-fight-result');
 // ── The camper.
 if (saves.camper) {
   await open(saves.camper);
+  await page.locator('.camper-pocket[data-pose="terminal"]').waitFor();
   await shot('12-camper');
+  const before = await state();
+  assert.equal(before.flags['camper:pocketDay'], before.day);
+  await page.reload();
+  await page.getByRole('button', { name: T.ok, exact: true }).click();
+  const pocket = page.locator('.camper-pocket');
+  await pocket.waitFor({ state: 'attached' });
+  assert.equal(await pocket.getAttribute('data-pose'), 'terminal', 'reloading the lot replayed the zipper');
+  assert.deepEqual((await state()).outing, before.outing);
   console.log('camper:', await choices());
 }
 

@@ -1,0 +1,11 @@
+{
+  "id": "camper_breath",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "eYdmzGGBzXibdAgVkdLp",
+  "generatedAt": "2026-11-24T14:15:12.643Z",
+  "prompt": "Very short isolated natural Foley, under one second. A middle aged man quietly inhaling through his nose while his hiking jacket sleeve brushes his wrist, a momentary catch in the middle of the breath, then suppresses it. Intimate, discreet, dry close microphone, suitable as a small radio story clue. No words, cough, gasp, growl, static, music or background.",
+  "bytes": 34305,
+  "sha256": "2d99704a8bcf2f7f9939c5e74f54c2f4e31c9db49218219ba63f5f4cd4d0855b"
+}

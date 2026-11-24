@@ -101,6 +101,9 @@ export type Sfx =
   | 'flour'
   | 'knead'
   | 'baker_bowl_slide'
+  | 'camper_zip'
+  | 'camper_breath'
+  | 'camper_inside_knock'
   | 'letter_fold'
   | 'clamp'
   | 'unlock'
@@ -485,8 +488,9 @@ class AudioEngine {
   /**
    * Plays an effect: the recording when it is loaded, the synthesised version otherwise.
    * `volume` scales it (1 = normal); `rate` replays it faster and higher, for one recording played as several notes.
+   * A nonzero `offset` resumes a recording at that many seconds.
    */
-  play(name: Sfx, volume = 1, rate = 1): void {
+  play(name: Sfx, volume = 1, rate = 1, offset = 0): void {
     if (!this.ctx || !this.enabled) return;
     // Collapse bursts of the same sound (twenty hits in one frame should not clip).
     const now = this.ctx.currentTime;
@@ -496,12 +500,13 @@ class AudioEngine {
 
     const sample = this.deal(name, VARIANTS[name] ?? [name]);
     if (sample?.buffer && this.sfxBus) {
+      if (offset >= sample.buffer.duration) return;
       const drift = PITCH_DRIFT[name] ?? 0;
-      const playing = this.playBuffer(sample.buffer, this.sfxBus, sample.entry.gain * volume, rate * (1 + (Math.random() * 2 - 1) * drift));
+      const playing = this.playBuffer(sample.buffer, this.sfxBus, sample.entry.gain * volume, rate * (1 + (Math.random() * 2 - 1) * drift), offset);
       if (playing) this.track(name, playing);
       return;
     }
-    this.synth(name, rate);
+    if (offset === 0) this.synth(name, rate);
   }
 
   /** Seconds into the music track that is playing, or null when there is none to go by (sound off, not started). */
@@ -679,14 +684,32 @@ class AudioEngine {
   sayOn(channel: string, id: string, level: number, offset = 0): number {
     const sample = this.samples.get(id);
     if (!sample || sample.entry.kind !== 'voice') return 0;
-    const seconds = sample.entry.seconds;
-    if (!this.ctx || !this.enabled || !sample.buffer || !this.voiceBus) return seconds;
+    if (this.voiceBus) this.sampleOn(channel, sample, this.voiceBus, level, offset);
+    return sample.entry.seconds;
+  }
+
+  /** The very same recording as in the village, heard through the CB's small speaker. */
+  receiveFoley(id: 'camper_zip' | 'camper_breath', level: number, offset = 0): void {
+    const sample = this.samples.get(id);
+    if (!sample?.buffer || !this.ctx || !this.enabled || !this.sfxBus) return;
+    const speaker = this.ctx.createBiquadFilter();
+    speaker.type = 'bandpass';
+    speaker.frequency.value = 1500;
+    speaker.Q.value = .62;
+    speaker.connect(this.sfxBus);
+    const playing = this.sampleOn('radio-foley', sample, speaker, level, offset);
+    if (playing) playing.source.addEventListener('ended', () => speaker.disconnect(), { once: true });
+    else speaker.disconnect();
+  }
+
+  private sampleOn(channel: string, sample: Sample, bus: AudioNode, level: number, offset: number): Playing | null {
+    if (!this.ctx || !this.enabled || !sample.buffer) return null;
     this.hushOn(channel);
     const remaining = sample.buffer.duration - offset;
-    if (remaining <= 0) return seconds;
-    const playing = this.playBuffer(sample.buffer, this.voiceBus, sample.entry.gain * Math.max(0, level), 1, offset);
+    if (remaining <= 0) return null;
+    const playing = this.playBuffer(sample.buffer, bus, sample.entry.gain * Math.max(0, level), 1, offset);
     if (playing) this.channels.set(channel, { playing, gain: sample.entry.gain, endsAt: this.ctx.currentTime + remaining });
-    return seconds;
+    return playing;
   }
 
   /** Follows the tuning: the line on that channel, louder or fainter. */
@@ -1247,6 +1270,19 @@ class AudioEngine {
       case 'baker_bowl_slide':
         this.noise('bandpass', 760, 410, .35, .056, 0, 2);
         this.tone('triangle', 340, 240, .075, .025, .32);
+        break;
+      case 'camper_zip':
+        this.noise('bandpass', 1100, 2800, .16, .078, 0, 2);
+        this.noise('bandpass', 2100, 900, .38, .09, .44, 2);
+        this.tone('triangle', 1750, 1250, .045, .028, .82);
+        break;
+      case 'camper_breath':
+        this.noise('lowpass', 1300, 760, .19, .06);
+        this.noise('lowpass', 850, 1300, .24, .047, .27);
+        break;
+      case 'camper_inside_knock':
+        this.tone('sine', 138, 62, .22, .26);
+        this.noise('lowpass', 650, 175, .16, .16);
         break;
       case 'letter_fold':
         this.noise('highpass', 2300, 4000, .16, .044);

@@ -106,6 +106,8 @@ export interface WorldFrame {
   readonly night: boolean;
   readonly houseHpRatio: number;
   readonly indoorShot?: { sector: SectorId; age: number };
+  /** A fold of his orange sleeve is pinched at the rear jamb while he holds it from the hall. */
+  readonly camperAtRearDoor?: boolean;
   readonly houseDoor?: HouseDoor;
   readonly mopedRide?: NonNullable<NightSim['mopedRide']>;
   readonly mopedWreck?: SectorId | undefined;
@@ -1155,6 +1157,18 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
           if (!drawn) placeholder(ctx, 0, 0, 30 * z, 50 * z, '#7a5a35', 'door');
         });
         ctx.restore();
+        if (sector === 'arriere' && frame.camperAtRearDoor && barricade.hp > 0) {
+          const hitAge = frame.time - (frame.defenseMotion?.at(sector)?.hitAt ?? -Infinity);
+          const brace = hitAge < .54 ? 1 : 0;
+          ctx.save();
+          ctx.translate(p.x + jambWidth * .43, p.y - door.h * k * z * .50);
+          ctx.scale(z, z);
+          ctx.fillStyle = '#713b22'; ctx.strokeStyle = '#392a20'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(-3, -7); ctx.quadraticCurveTo(2 + brace * 2, -5, 3 + brace, -1);
+          ctx.lineTo(2, 6); ctx.quadraticCurveTo(-1, 6, -2, 3); ctx.lineTo(-3, -7); ctx.fill(); ctx.stroke();
+          ctx.strokeStyle = '#d39050'; ctx.beginPath(); ctx.moveTo(-2, -5); ctx.quadraticCurveTo(1 + brace, -3, 1, 2); ctx.stroke();
+          ctx.restore();
+        }
         if (frame.doorHighlight === sector) {
           ctx.strokeStyle = '#f2a531';
           ctx.lineWidth = 2;

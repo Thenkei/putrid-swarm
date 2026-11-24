@@ -5,6 +5,24 @@
     "seconds": 1.045,
     "gain": 0.78
   },
+  "camper_zip": {
+    "file": "camper_zip.mp3",
+    "kind": "sfx",
+    "seconds": 1.045,
+    "gain": 0.9
+  },
+  "camper_breath": {
+    "file": "camper_breath.mp3",
+    "kind": "sfx",
+    "seconds": 0.94,
+    "gain": 0.9
+  },
+  "camper_inside_knock": {
+    "file": "camper_inside_knock.mp3",
+    "kind": "sfx",
+    "seconds": 0.993,
+    "gain": 0.9
+  },
   "letter_fold": {
     "file": "letter_fold.mp3",
     "kind": "sfx",

@@ -150,6 +150,42 @@ class Player {
 
 const words = (id: string): number => fr.voice[id as keyof typeof fr.voice].split(' ').length;
 
+describe('the camper on the CB', () => {
+  it.each(['camper_owes', 'camper_grudge'] as const)('receives the two pulls before %s identifies himself, once per call', caller => {
+    const p = new Player(callOf(caller)).leanIn().hold(8);
+    expect(p.said('foley')).toBe(false);
+    p.tunedUntil(() => p.said('foley'));
+    expect(p.said('line')).toBe(false);
+    expect(p.cues.at(-1)).toEqual({ type: 'foley', sound: 'camper_zip' });
+    p.tuned(18);
+    expect(p.cues.filter(cue => cue.type === 'foley')).toHaveLength(1);
+    expect(p.said('line')).toBe(true);
+  });
+
+  it('hears his breath after the bite admission, never for the healthy camper or either grudge secret', () => {
+    for (const [caller, secret, breath] of [
+      ['camper_owes', true, true], ['camper_owes', false, false],
+      ['camper_grudge', true, false], ['camper_grudge', false, false],
+      ['dealer_owes', true, false], ['ham', false, false],
+    ] as const) {
+      const p = new Player(callOf(caller, secret)).hear();
+      const foley = p.cues.filter(cue => cue.type === 'foley');
+      expect(foley.some(cue => cue.sound === 'camper_zip')).toBe(caller.startsWith('camper'));
+      expect(foley.some(cue => cue.sound === 'camper_breath')).toBe(breath);
+    }
+  });
+
+  it('does not explain a missed admission when the dial returns at the end of the line', () => {
+    const p = new Player(callOf('camper_owes', true)).find().press('act');
+    p.tunedUntil(r => r.on?.line === 'vo_cb_camper_owes_2a');
+    p.radio = { ...p.radio, dial: .02 };
+    p.hold(2.5);
+    p.radio = { ...p.radio, dial: callerAt(p.radio.call, p.radio.elapsed) };
+    p.tunedUntil(r => r.beat === 'answer');
+    expect(p.cues).not.toContainEqual({ type: 'foley', sound: 'camper_breath' });
+  });
+});
+
 // ───────────────────────────── Finding the voice ─────────────────────────────
 
 describe('the radio: finding the voice', () => {
@@ -710,6 +746,18 @@ describe('the radio: the last day and the last night', () => {
     expect(sim.waveIndex).toBe(RADIO.ally.turnWave);
     expect(sim.barricades[RADIO.ally.door].hp).toBeLessThanOrEqual(Math.round(before * (1 - RADIO.ally.turnLoss)) + 1);
     expect(sim.heldDoor).toBeNull();
+  });
+
+  it.each([[0.8, 1], [0, 0]])('counts the camper’s blow exactly once with %s HP left on the rear jamb', (hp, breaches) => {
+    const { yard } = newGame(11);
+    const ally = allyOf(callOf('camper_owes', true), 'shelter')!;
+    const injured = { ...yard, barricades: { ...yard.barricades, arriere: { ...yard.barricades.arriere, hp } } };
+    const sim = new NightSim(LAST_NIGHT, injured, 11, null, null, { ...ally, turnsAtWave: 1 });
+    while (!sim.waveIndex) sim.step(STEP);
+    const events = sim.drainEvents().filter(e => e.type === 'ally_turned' || e.type === 'breach');
+    expect(events.map(e => e.type)).toEqual(breaches ? ['ally_turned', 'breach'] : ['ally_turned']);
+    expect(sim.barricades.arriere.hp).toBe(0);
+    expect(sim.report().breaches).toBe(breaches);
   });
 
   it('lays out the last night door by door from the wave table, only the doors that got through', () => {
