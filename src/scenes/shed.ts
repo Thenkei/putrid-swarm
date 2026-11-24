@@ -6,6 +6,7 @@
 
 import { PLATE, OVER, pointOnShot, shotTransform, type Cam, type Shot, type ShotLayer } from './shot-camera';
 import { PauseMenu } from './pause';
+import leadSleeves from '../render/shed-lead-sleeves.webp';
 import { bindPromptPointer, promptLayer } from './prompt-pointer';
 import { BOSS_NIGHT } from '../core/data/locations';
 import { settleShed } from '../core/game';
@@ -346,6 +347,7 @@ export class ShedScene implements Scene {
   }
 
   enter(): void {
+    this.leadPainting.src = leadSleeves;
     audio.setAmbience('day');
     audio.setMusic('shed');
     const s = S();
@@ -1061,6 +1063,7 @@ export class ShedScene implements Scene {
     ctx.restore();
   }
 
+  private readonly leadPainting = new Image();
   /** Traced on the 1280 × 853 paintings. The tabletop leads curl over the timber lip. */
   private readonly leadPaths = {
     bench: [
@@ -1075,6 +1078,7 @@ export class ShedScene implements Scene {
 
   private drawLeads(ctx: CanvasRenderingContext2D, place: 'bench' | 'post', live: boolean): void {
     const bench = place === 'bench';
+    const painted = this.leadPainting.complete && this.leadPainting.naturalWidth > 0;
     ctx.save();
     ctx.translate(0, -OVER * SHOT[place].focusY);
     ctx.lineCap = 'round';
@@ -1086,6 +1090,7 @@ export class ShedScene implements Scene {
       ctx.lineWidth = 11;
       ctx.stroke(lead);
       ctx.restore();
+      if (painted) continue;
       ctx.strokeStyle = red ? '#48261d' : '#28231d';
       ctx.lineWidth = 9;
       ctx.stroke(lead);
@@ -1104,6 +1109,12 @@ export class ShedScene implements Scene {
       ctx.lineWidth = 1.2;
       ctx.stroke(lead);
       ctx.restore();
+    }
+    // Rubber cross-sections and scuffs are sampled from the original coil painting, then
+    // laid along these paths. The bench cutout begins at the occluding edge of the box.
+    if (painted) {
+      if (bench) ctx.drawImage(this.leadPainting, 0, 0, 363, 336, 366, 517, 363, 336);
+      else ctx.drawImage(this.leadPainting, 363, 0, 180, 82, -62, 497, 180, 82);
     }
     if (live && Math.random() < 0.5) {
       const from = bench ? { x: SPOT.battery.x, y: SPOT.battery.y + OVER * SHOT.bench.focusY }

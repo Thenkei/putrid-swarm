@@ -146,10 +146,10 @@ for (const branch of BRANCHES) {
     await wait(60);
     await page.keyboard.up('ArrowLeft');
     await page.keyboard.up('ArrowRight');
-    await waitFor('splice');
-    await wait(300);
+    await wait(240);
     await shot('a-08-clapped');
-    await wait(1200);
+    await waitFor('splice');
+    await wait(500);
     await shot('a-09-gone');
     await page.keyboard.down('Space');
     await wait(1300);
