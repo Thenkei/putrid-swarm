@@ -1457,7 +1457,8 @@ button:disabled {
 }
 
 .loc-title .conceal-button {
-  margin-top: 8px;
+  flex: none;
+  pointer-events: auto;
   min-height: 32px;
   font-size: 18px;
 }
@@ -1543,22 +1544,17 @@ button:disabled {
 .loc-title {
   position: absolute;
   left: 16px;
-  bottom: 16px;
-  padding: 10px 16px 8px;
-  max-width: 520px;
-}
-
-.loc-title h3 {
-  margin: 0;
-  font-size: 30px;
-  font-weight: 400;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #fff3d6;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 5px 10px;
+  max-width: 850px;
+  pointer-events: none;
 }
 
 .loc-title p {
-  margin: 2px 0 0;
+  margin: 0;
   font-size: 18px;
   color: var(--cream-dim);
   line-height: 1.25;

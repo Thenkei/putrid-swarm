@@ -1,9 +1,15 @@
-import { RESOURCE_IDS, type GameState, type Inventory } from './types';
+import { LANES } from './map';
+import { RESOURCE_IDS, type GameState, type Inventory, type SectorId } from './types';
 
 export const MOPED_RUN_SECONDS = 1.65;
 /** From releasing the door to the moped reaching the outside lane. */
 export const MOPED_EXIT_SECONDS = 0.8;
 export const MOPED_BLAST_RADIUS = 4.25;
+
+export function mopedImpact(sector: SectorId) {
+  const cell = LANES[sector][2]!;
+  return { x: cell.x + 0.5, y: cell.y + 0.5 };
+}
 
 export function markEpic(state: GameState, key: string, value = 1): GameState {
   return { ...state, flags: { ...state.flags, ['epic.' + key]: value } };

@@ -1,7 +1,7 @@
 import type { SectorId } from '../core/types';
 import { ENTRIES, HOUSE_CENTER } from '../core/map';
 import { DOOR_REACH, type EnemyImpact } from '../core/night';
-import { sprite, type Sprite } from '../engine/assets';
+import { paintingImage, sprite, type Sprite } from '../engine/assets';
 import { depthOf, project, unproject, type Rot, type View } from './projection';
 import { HOUSE_PAINT_SCALE } from './registration';
 import { DOOR_OPENINGS, DOOR_OUTWARD, THRESHOLDS, VISIBLE_DOORS } from '../house-layout';
@@ -24,14 +24,21 @@ export function houseDamageStage(health: number): number {
 
 const facadeSuffix = ['', '', 'damaged', 'stripped', 'failing', 'ruin'] as const;
 
-export function facadeForStage(rot: Rot, key: string, intact: Sprite, stage: number): CanvasImageSource {
+export function damagedFacade(key: string, stage: number): Sprite | undefined {
   // A missing optional painting falls back to the closest less damaged state for this side.
   for (let i = stage; i >= 2; i--) {
     const image = sprite(`${key}_${facadeSuffix[i]}`);
-    if (image) return i === 5 ? exposedInterior(rot, intact, image) : image.img;
+    if (image) return image;
   }
+}
+
+export function facadeForStage(rot: Rot, key: string, intact: Sprite, stage: number): CanvasImageSource {
+  const ruin = stage === 5 && sprite(`${key}_ruin`);
+  if (ruin) return exposedInterior(rot, intact, ruin);
+  const image = damagedFacade(key, stage);
+  if (image) return paintingImage(image);
   const damage = stage > 0 && sprite(`${key}_damaged`);
-  return damage ? wornFacade(rot, intact, damage) : intact.img;
+  return damage ? wornFacade(rot, intact, damage) : paintingImage(intact);
 }
 
 /** Through the missing wall and roof, the camera sees the far wall and the loft floor. Keep
@@ -79,7 +86,7 @@ function exposedInterior(rot: Rot, intact: Sprite, ruin: Sprite): HTMLCanvasElem
   ctx.globalCompositeOperation = 'destination-in';
   ctx.drawImage(intact.img, 0, 0, canvas.width, canvas.height);
   ctx.globalCompositeOperation = 'source-over';
-  ctx.drawImage(ruin.img, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(paintingImage(ruin), 0, 0, canvas.width, canvas.height);
   exposedInteriors.set(rot, canvas);
   return canvas;
 }
@@ -106,7 +113,7 @@ function wornFacade(rot: Rot, intact: Sprite, damage: Sprite): HTMLCanvasElement
   ctx.fillRect(-intact.w, -intact.h * 2, intact.w * 2, intact.h * 4);
   ctx.restore();
   ctx.globalCompositeOperation = 'destination-over';
-  ctx.drawImage(intact.img, 0, 0);
+  ctx.drawImage(paintingImage(intact), 0, 0);
   ctx.globalCompositeOperation = 'source-over';
   worn.set(rot, canvas);
   return canvas;

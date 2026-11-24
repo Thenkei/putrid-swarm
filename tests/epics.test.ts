@@ -38,15 +38,16 @@ describe('daily epics', () => {
   });
   it('strikes once down the chosen lane and credits kills in the night report', () => {
     const s = newGame(3);
-    const sim = new NightSim(3, s.yard, s.seed);
+    const sim = new NightSim(3, { ...s.yard, devices: [] }, s.seed);
     while (sim.enemies.length < 2) sim.step(1/60);
     const [inLane, outside] = sim.enemies;
-    Object.assign(inLane!, { x: 10.5, y: 17, hp: 1 });
+    Object.assign(inLane!, { x: 10.5, y: 17, hp: 1, stunnedFor: 10 });
     Object.assign(outside!, { x: 16, y: 19, hp: 1 });
     expect(sim.launchMoped('portail')).toBe(true);
     expect(inLane!.alive).toBe(true);
     for (let i = 0; i < 120; i++) sim.step(1/60);
     expect(inLane!.alive).toBe(false);
+    expect(sim.mopedRide!.bladeKills).toBe(1);
     expect(outside!.alive).toBe(true);
     expect(sim.launchMoped('portail')).toBe(false);
     expect(sim.report().kills[inLane!.type]).toBeGreaterThan(0);
@@ -90,6 +91,17 @@ describe('daily epics', () => {
     expect(sim.drainEvents().some(e => e.type === 'moped_blast')).toBe(false);
     expect(SECTOR_IDS.some(lane => sim.launchMoped(lane))).toBe(false);
   });
+  it('signals a real incoming group with enough lead for the ride to reach the gate hedge', () => {
+    const state = newGame(11);
+    const sim = new NightSim(3, state.yard, state.seed);
+    expect(sim.mopedTargets('portail')).toBe(0);
+    while (sim.time < 45 && sim.mopedTargets('portail') < 3) sim.step(1 / 60);
+    expect(sim.mopedTargets('portail')).toBeGreaterThanOrEqual(3);
+    expect(sim.launchMoped('portail')).toBe(true);
+    for (let i = 0; i < 160; i++) sim.step(1 / 60);
+    expect(sim.mopedRide!.blastKills).toBeGreaterThanOrEqual(2);
+  });
+
   it('lets the moped reach the hedge and show its impact when launched just before dawn', () => {
     const state = newGame(3);
     const sim = new NightSim(3, state.yard, state.seed);
