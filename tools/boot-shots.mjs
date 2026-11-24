@@ -6,6 +6,7 @@
 // gives its layout away (a key pressed on an AZERTY keyboard, then on a QWERTY one).
 // PS_BROWSER=chrome|firefox|webkit, PS_LANG=en for English.
 import { execFileSync } from 'node:child_process';
+import assert from 'node:assert/strict';
 import { mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,7 +24,7 @@ const T =
     : { understood: 'Understood', cont: 'Continue', night: 'Wait for night', begin: 'Take the desk', anyway: 'Continue anyway' };
 const locale = LANG === 'fr' ? 'fr-FR' : 'en-GB';
 
-const saves = JSON.parse(execFileSync('npx', ['tsx', 'tools/orchard-saves.ts'], { cwd: ROOT, encoding: 'utf8' }));
+const saves = JSON.parse(execFileSync(process.execPath, ['--import', 'tsx', 'tools/orchard-saves.ts'], { cwd: ROOT, encoding: 'utf8' }));
 const browser = await launch();
 const errors = [];
 const watch = (page) => {
@@ -68,6 +69,22 @@ const shot = async (page, name) => {
   await page.reload();
   await page.waitForSelector('.crt', { timeout: 60000 });
   await wait(page, 1200);
+  const action = id => page.locator(`.crt [data-menu-item="${id}"]`);
+  const focused = () => page.evaluate(() => document.activeElement?.dataset.menuItem);
+  await action('options').focus();
+  await page.keyboard.press('Enter');
+  assert.equal(await focused(), 'language');
+  await page.keyboard.press('Enter');
+  assert.equal(await focused(), 'language');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Escape');
+  assert.equal(await focused(), 'options');
+  await action('start').focus();
+  await page.keyboard.press('Enter');
+  assert.equal(await focused(), 'keep');
+  await page.keyboard.press('Enter');
+  assert.equal(await focused(), 'start');
+  assert.equal(await page.evaluate(() => localStorage.getItem('putrid-swarm.save.v1')), saves.evening);
   await page.getByText(T.cont, { exact: false }).first().click();
   await page.getByText(T.night, { exact: true }).click({ timeout: 15000 });
   await wait(page, 1200);

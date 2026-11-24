@@ -631,12 +631,14 @@ button:disabled {
 }
 
 .menu button:hover:not(:disabled),
+.menu button:focus-visible,
 .menu button.sel {
   color: #fff;
   background: linear-gradient(90deg, rgba(214, 52, 40, 0.92), rgba(214, 52, 40, 0.25));
 }
 
 .menu button:hover:not(:disabled)::before,
+.menu button:focus-visible::before,
 .menu button.sel::before {
   content: '▶';
   position: absolute;
