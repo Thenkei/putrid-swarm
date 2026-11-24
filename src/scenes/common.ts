@@ -6,7 +6,7 @@ import type { Cost, GameState, Inventory, ResourceId } from '../core/types';
 import { RESOURCE_IDS } from '../core/types';
 import { STAGE_H, STAGE_W } from '../engine/app';
 import { assetUrl, sprite } from '../engine/assets';
-import { audio, type Sfx } from '../engine/audio';
+import type { Sfx } from '../engine/audio';
 import { sayAny } from '../engine/voice';
 import { el } from '../engine/dom';
 import { S, isSingular } from '../engine/i18n';
@@ -94,12 +94,6 @@ export function tripLine(moment: 'car' | 'home', state: Pick<GameState, 'day' | 
   const key = `${moment}:${state.day}`;
   if (tripsSpoken.has(key) && Math.random() > LATER_TRIP_CHANCE) return;
   if (sayAny(moment, { oneArmed: oneArmed(state) }) > 0) tripsSpoken.add(key);
-}
-
-/** Door, then starter: leaving somewhere in the break. */
-export function carDeparture(): void {
-  audio.play('car_door');
-  window.setTimeout(() => audio.play('engine'), 350);
 }
 
 export function resourceChip(id: ResourceId, amount: number | string, extraClass = ''): HTMLElement {
