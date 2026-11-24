@@ -1,13 +1,14 @@
 import { GRID_W, HOUSE_CENTER, PROPS, roadCentre } from '../core/map';
-import { PARKED } from '../core/car-path';
 import { facadeForStage, houseDamageStage } from './house';
 import { smoothstep } from '../core/math';
-import { COAST_METRES, COAST_RUT, coastVerge, type CoastDrive } from '../core/coast-home';
+import { COAST_METRES, COAST_RUT, type CoastDrive } from '../core/coast-home';
 import { sprite } from '../engine/assets';
 import { drawMobStride } from './infected';
+import { coastLaneCentre, drawCoastGround } from './coast-ground';
 
 export interface CoastArt {
   woods: HTMLImageElement;
+  grove: HTMLImageElement;
   cottage: HTMLImageElement;
   lane: HTMLImageElement;
   posts: HTMLImageElement;
@@ -21,22 +22,22 @@ const EYE = 1.37;
 const HORIZON = 139;
 const metresPerCell = 1.55;
 // The break returns along the same east-side gravel track it used to leave.
-export const GATE_AT = COAST_METRES - (GRID_W - PARKED.x) * metresPerCell;
+export const GATE_AT = 4.2;
+export const coastGatePosts = [-2.55, 2.65].map(offset => ({ x: coastLaneCentre(GATE_AT) + offset, z: GATE_AT }));
 export function alleyPosition(gx: number, gy: number) {
-  return { x: (roadCentre('barn', gx) - gy) * metresPerCell, z: GATE_AT + (GRID_W - gx) * metresPerCell };
+  return { x: (roadCentre('barn', gx) - gy) * metresPerCell, z: COAST_METRES + (GRID_W - gx) * metresPerCell };
 }
 const focusX = 320;
-const fieldLength = 36;
-const fieldWidth = 22.8;
 
 export function coastCamera(drive: CoastDrive, reduced: boolean) {
   const z = drive.metres;
   const intoBay = smoothstep(COAST_METRES - 3.2, COAST_METRES, z);
-  const x = drive.lane * 1.64 * (1 - intoBay) - intoBay * .55 * metresPerCell;
+  const x = coastLaneCentre(z) + drive.lane * 1.64 * (1 - intoBay) - intoBay * .55 * metresPerCell;
   const jolt = reduced ? 0 : Math.sin(drive.jolt * Math.PI * 3) * drive.jolt * 2.4;
   const horizon = HORIZON + jolt + (reduced ? 0 : .38 * drive.speed * Math.sin(z * 7));
   const turning = drive.wheel * drive.lane > 0 ? 1 - smoothstep(.65, 1, Math.abs(drive.lane)) : 1;
-  const centre = focusX + intoBay * (reduced ? 12 : 40) - (reduced ? 0 : drive.wheel * turning * 11);
+  const look = (coastLaneCentre(z + 3.1) - coastLaneCentre(z)) / 3.1;
+  const centre = focusX - FOCAL * look * .64 + intoBay * (reduced ? 12 : 40) - (reduced ? 0 : drive.wheel * turning * 11);
   return { x, z, horizon, centre };
 }
 
@@ -53,34 +54,29 @@ function available(image: HTMLImageElement): boolean {
   return image.complete && image.naturalWidth > 0;
 }
 
-function ground(ctx: CanvasRenderingContext2D, image: HTMLImageElement, camera: Camera): void {
-  if (!available(image)) return;
-  // Inverse-project each band of gravel and verge onto the same plane as the wheel contacts.
-  // The outlying edges of the strip feather into the painted farmyard beyond the gate.
-  const h = image.naturalHeight, w = image.naturalWidth, strip = 1.35;
-  for (let y = camera.horizon + EYE * FOCAL / 41; y < 293; y += strip) {
-    const near = FOCAL * EYE / (y + strip - camera.horizon);
-    const far = FOCAL * EYE / (y - camera.horizon);
-    const z = camera.z + (near + far) / 2;
-    const repeat = Math.floor(z / fieldLength);
-    const v = z / fieldLength - repeat;
-    const sy = (repeat % 2 ? v : 1 - v) * (h - 1);
-    const sh = Math.min(h, Math.max(1, h * (far - near) / fieldLength));
-    const scale = FOCAL / ((near + far) / 2);
-    const left = camera.centre + (1.64 * coastVerge(z) - .52 * fieldWidth - camera.x) * scale;
-    ctx.globalAlpha = 1 - smoothstep(19, 39, (near + far) / 2);
-    ctx.drawImage(image, 0, Math.min(h - sh, Math.max(0, sy - sh / 2)), w, sh, left, y, fieldWidth * scale, strip + .22);
-  }
-  ctx.globalAlpha = 1;
-}
+let softShadow: HTMLCanvasElement | undefined;
 
-function shadow(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) {
-  ctx.fillStyle = 'rgba(22,24,27,.27)';
-  ctx.beginPath(); ctx.ellipse(x, y, radius, radius * .15, -.07, 0, 2 * Math.PI); ctx.fill();
+function shadow(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, opacity = .42) {
+  if (!softShadow) {
+    softShadow = document.createElement('canvas');
+    softShadow.width = 64;
+    softShadow.height = 64;
+    const stamp = softShadow.getContext('2d')!;
+    const gradient = stamp.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gradient.addColorStop(0, '#111517');
+    gradient.addColorStop(.55, 'rgba(21,24,24,.64)');
+    gradient.addColorStop(1, 'rgba(30,28,24,0)');
+    stamp.fillStyle = gradient;
+    stamp.fillRect(0, 0, 64, 64);
+  }
+  ctx.save();
+  ctx.globalAlpha *= opacity;
+  ctx.drawImage(softShadow, x - radius, y - radius * .21, radius * 2, radius * .42);
+  ctx.restore();
 }
 
 function gatepost(ctx: CanvasRenderingContext2D, art: CoastArt, camera: Camera, right: boolean): void {
-  const p = roadPoint(camera, right ? 3.45 : -3.15, GATE_AT);
+  const p = roadPoint(camera, coastGatePosts[right ? 1 : 0]!.x, GATE_AT);
   if (GATE_AT <= camera.z || !available(art.posts)) return;
   const h = 2.05 * p.scale;
   const half = art.posts.naturalWidth / 2;
@@ -91,10 +87,37 @@ function gatepost(ctx: CanvasRenderingContext2D, art: CoastArt, camera: Camera, 
   ctx.drawImage(art.posts, right ? half : 0, 0, half, art.posts.naturalHeight, left, p.y - h, w, h);
 }
 
+// Eye-level woodland cutouts share the distant clearing's ink, bark and dusk light.
+const grove = [
+  { oak: false, x: -8.9, z: 29, h: 7.6 }, { oak: true, x: 10.1, z: 25.4, h: 8.8 },
+  { oak: true, x: -5.8, z: 22.4, h: 7.3 }, { oak: false, x: 7.4, z: 20, h: 7.7 },
+  { oak: true, x: -4.8, z: 17.7, h: 8.7 }, { oak: false, x: 5.9, z: 16.9, h: 6.4 },
+  { oak: false, x: -2.65, z: 14.6, h: 7.4 }, { oak: true, x: 6.3, z: 13.8, h: 8.4 },
+  { oak: false, x: -2.4, z: 12.4, h: 6.1 }, { oak: true, x: 2.14, z: 9.05, h: 7.9 },
+  { oak: false, x: -6.9, z: 8.3, h: 6.8 }, { oak: false, x: 2.6, z: 6.8, h: 7.2 },
+  { oak: true, x: -5.55, z: 5.8, h: 8.2 },
+] as const;
+
+function tree(ctx: CanvasRenderingContext2D, image: HTMLImageElement, c: Camera, n: number, age: number, reduced: boolean) {
+  const t = grove[n]!;
+  if (!available(image) || t.z < c.z + .6) return;
+  const p = roadPoint(c, t.x, t.z);
+  const half = image.naturalWidth / 2;
+  const h = t.h * p.scale, w = h * half / image.naturalHeight;
+  if (p.x + w * .71 < 0 || p.x - w * .71 > 640) return;
+  shadow(ctx, p.x, p.y, w * .28, .47);
+  ctx.save(); ctx.translate(p.x, p.y);
+  const wind = reduced ? 0 : .0038 * Math.sin(age * .61 + n * 1.7);
+  ctx.transform(n % 3 === 1 ? -1 : 1, 0, wind, 1, 0, 0);
+  ctx.drawImage(image, t.oak ? 0 : half, 0, half, image.naturalHeight,
+    -w * (t.oak ? .335 : .47), -h * .972, w, h);
+  ctx.restore();
+}
+
 const hedgerow = [
   { x: -6.3, z: 23, height: 1.85 }, { x: 6.8, z: 20.2, height: 1.42 },
-  { x: -5.3, z: 17.4, height: 1.14 }, { x: -4.9, z: 11.2, height: 1.66 },
-  { x: 5.2, z: 8.1, height: 1.27 }, { x: -4.55, z: 6.4, height: 1.61 },
+  { x: -4.5, z: 17.4, height: 1.44 }, { x: -3.05, z: 12.85, height: 2.26 },
+  { x: 3.55, z: 9.05, height: 1.86 }, { x: -6.3, z: 6.4, height: 1.61 },
   { x: -3.4, z: 4.3, height: .98 },
 ] as const;
 
@@ -105,73 +128,145 @@ function bush(ctx: CanvasRenderingContext2D, art: CoastArt, camera: Camera, inde
   const h = prop.height * p.scale;
   const w = h * art.thorn.naturalWidth / art.thorn.naturalHeight * (.72 + (index % 3) * .10);
   if (p.x - w / 2 > 640 || p.x + w / 2 < 0) return;
+  shadow(ctx, p.x, p.y, w * .43, .36);
   ctx.save(); ctx.translate(p.x, p.y); ctx.scale(index % 2 ? -1 : 1, 1);
   ctx.drawImage(art.thorn, -w / 2, -.97 * h, w, h);
   ctx.restore();
 }
 
+// Both windows look at the same tracks. Each figure shuffles diagonally onto the left verge.
+export function coastWalkerPosition(d: CoastDrive, i: number) {
+  const walk = d.walkerTravel * (i === 0 ? .94 : 1.04);
+  const z = 7.7 + 1.7 * i + .626 * walk;
+  return { x: coastLaneCentre(7.7 + 1.7 * i) - 2.49 + .48 * i - .78 * walk, z };
+}
+
 function walker(ctx: CanvasRenderingContext2D, d: CoastDrive, c: Camera, i: number, age: number, alertAge: number, reduced: boolean) {
-  const z = 7.7 + i * 1.7;
-  if (z < c.z + 1) return;
-  const turn = d.heard ? smoothstep(i * .38, .76 + i * .38, alertAge) : 0;
-  const listen = d.noise > .52 && !d.heard;
-  const walk = Math.min(d.metres, 4);
-  const toHedge = 1 - smoothstep(1.1, 5.8, z - d.metres);
-  const x = -2.26 + .97 * i - walk * .10 - (.62 + .8 * i) * toHedge;
-  const p = roadPoint(c, x, z + walk * .08);
+  const pos = coastWalkerPosition(d, i);
+  if (pos.z <= c.z + .25) return;
+  const p = roadPoint(c, pos.x, pos.z);
   const height = p.scale * (1.63 + .1 * i);
-  shadow(ctx, p.x, p.y, height * .16);
-  ctx.save(); ctx.translate(p.x, p.y);
-  ctx.scale(1 - Math.sin(Math.PI * turn) * .45, 1);
-  const stride = reduced || listen || d.heard || d.phase === 'ready' ? .18 + i * .32 : (age * .45 + i * .31) % 1;
-  if (!drawMobStride(ctx, 'shambler', stride, height, turn >= .5)) {
+  if (p.x + height * .58 < 0 || p.x - height * .58 > 640) return;
+  const turn = d.heard ? smoothstep(i * .38, .76 + i * .38, alertAge) : 0;
+  const stride = (d.walkerTravel * (i === 0 ? .94 : 1.04) / .91 + .34 + .37 * i) % 1;
+  const lean = reduced ? 0 : d.listening ? .034 : .009 * Math.sin(age * 1.4 + i * 2.1);
+  shadow(ctx, p.x, p.y, height * .24, .68);
+  shadow(ctx, p.x - height * .035, p.y, height * .11, .82);
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.transform(-(1 - Math.sin(Math.PI * turn) * .48), 0, lean, 1, 0, 0);
+  if (!drawMobStride(ctx, 'shambler', reduced ? .34 : stride, height, turn >= .5)) {
     const cel = sprite(turn >= .5 ? 'en_shambler_front' : 'en_shambler_back');
     if (cel) ctx.drawImage(cel.img, -height * cel.w / cel.h / 2, -height, height * cel.w / cel.h, height);
   }
   ctx.restore();
 }
 
-function rut(ctx: CanvasRenderingContext2D, camera: Camera) {
-  // Two exposed roots cross the outside wheel rut. Both ends are projected on the ground.
-  if (camera.z > COAST_RUT - .8) return;
-  for (let i = 0; i < 2; i++) {
-    const start = roadPoint(camera, .87 + .08 * i, COAST_RUT + .15 * i);
-    const mid = roadPoint(camera, 1.45, COAST_RUT + .2 + .05 * i);
-    const tip = roadPoint(camera, 2.45 - .21 * i, COAST_RUT - .35 + .44 * i);
-    ctx.lineCap = 'round'; ctx.lineWidth = start.scale * (.054 - i * .017);
-    ctx.strokeStyle = '#463c30'; ctx.beginPath(); ctx.moveTo(start.x, start.y);
-    ctx.quadraticCurveTo(mid.x, mid.y - .085 * mid.scale, tip.x, tip.y); ctx.stroke();
-    ctx.lineWidth *= .35; ctx.strokeStyle = '#a19673'; ctx.stroke();
+// The roots break out of the bank, cross the wheel rut and disappear under the gravel.
+const rootRuns = [
+  [[2.81, -.28, .076], [2.52, -.24, .068], [2.22, -.11, .058], [1.96, -.14, .052], [1.71, .08, .046], [1.4, .11, .035], [1.12, .03, .025], [.84, .09, .007]],
+  [[2.43, -.22, .044], [2.27, .02, .039], [2.01, .12, .029], [1.89, .3, .023], [1.63, .38, .012], [1.40, .48, .003]],
+  [[1.73, .08, .022], [1.62, -.05, .015], [1.42, -.14, .005]],
+] as const;
+
+function rut(ctx: CanvasRenderingContext2D, c: Camera) {
+  if (c.z >= COAST_RUT + .5) return;
+  const lane = coastLaneCentre(COAST_RUT);
+  ctx.save();
+  ctx.lineCap = 'round';
+  for (const root of rootRuns) {
+    for (let i = 1; i < root.length; i++) {
+      const [ax, az, ar] = root[i - 1]!;
+      const [bx, bz, br] = root[i]!;
+      if (COAST_RUT + Math.min(az, bz) < c.z + .3) continue;
+      const a = roadPoint(c, lane + ax, COAST_RUT + az), b = roadPoint(c, lane + bx, COAST_RUT + bz);
+      if (Math.min(a.x, b.x) > 640 || Math.max(a.x, b.x) < 0) continue;
+      const thick = (ar * a.scale + br * b.scale) * .5;
+      ctx.strokeStyle = '#423b30';
+      ctx.lineWidth = thick * 1.28;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      ctx.strokeStyle = i % 3 === 1 ? '#85765a' : '#75664d';
+      ctx.lineWidth = thick * .66;
+      ctx.beginPath(); ctx.moveTo(a.x, a.y - thick * .31); ctx.lineTo(b.x, b.y - thick * .27); ctx.stroke();
+    }
   }
+  ctx.restore();
 }
 
-function fence(ctx: CanvasRenderingContext2D, c: Camera, side: number) {
-  const at = (z: number) => roadPoint(c, side * (2.7 + .18 * Math.sin(z * .35)), z);
-  // Timber uprights and twin rails mark the edges of the wooded drive. The bay stays open inside.
-  for (let z = GATE_AT - .75; z > -3; z -= 2.1) {
-    const near = Math.max(c.z + .75, z - 2.1);
-    if (near >= z) continue;
-    const a = at(z), b = at(near);
-    ctx.fillStyle = '#514536';
-    for (const height of [.39, .73]) {
-      ctx.beginPath(); ctx.moveTo(a.x, a.y - height * a.scale);
-      ctx.lineTo(b.x, b.y - height * b.scale);
-      ctx.lineTo(b.x, b.y - (height - .065) * b.scale);
-      ctx.lineTo(a.x, a.y - (height - .065) * a.scale); ctx.fill();
+// Sample an unbroken length of weathered oak from the open gate's first pale.
+const pale = { x: 282 / 1200, y: 266 / 600, width: 11 / 1200, height: 169 / 600 };
+function fence(ctx: CanvasRenderingContext2D, c: Camera, side: number, posts: HTMLImageElement) {
+  if (!available(posts)) return;
+  const at = (z: number) => roadPoint(c, coastLaneCentre(z) + side * (2.48 + .18 * Math.sin(z * .35)), z);
+  const sx = pale.x * posts.naturalWidth, sy = pale.y * posts.naturalHeight;
+  const sw = pale.width * posts.naturalWidth, sh = pale.height * posts.naturalHeight;
+  const span = 2.1;
+  for (let z = GATE_AT - .34, index = 0; z > -3 && z > c.z + .4; z -= span, index++) {
+    const base = at(z);
+    const near = at(Math.max(c.z + .4, z - span));
+    if (Math.min(base.x, near.x) > 652 || Math.max(base.x, near.x) < -12) continue;
+    const cut = .93 + .057 * Math.sin(index * 4.8 + side);
+    for (const rail of [.38, .72]) {
+      // World-space lengths keep the grain anchored and perspective foreshortens the far end.
+      for (let j = 0; j < 6; j++) {
+        const u = j / 6;
+        const v = Math.min((j + 1) / 6, (z - c.z - .4) / span);
+        if (v <= u) break;
+        const a = at(z - span * u), b = at(z - span * v);
+        if (Math.min(a.x, b.x) > 641 || Math.max(a.x, b.x) < -1) continue;
+        const ay = a.y - (rail - .037 * Math.sin(Math.PI * u)) * a.scale;
+        const by = b.y - (rail - .037 * Math.sin(Math.PI * v)) * b.scale;
+        const ah = a.scale * .081, bh = b.scale * .081;
+        ctx.save();
+        ctx.beginPath(); ctx.moveTo(a.x, ay); ctx.lineTo(b.x, by);
+        ctx.lineTo(b.x, by + bh); ctx.lineTo(a.x, ay + ah); ctx.closePath(); ctx.clip();
+        ctx.fillStyle = '#534737'; ctx.fill();
+        ctx.transform(0, Math.max(ah, bh), b.x - a.x, by - ay, a.x, ay);
+        ctx.drawImage(posts, sx, sy + sh * u, sw, sh * (v - u), 0, 0, 1, 1);
+        ctx.restore();
+        ctx.strokeStyle = 'rgba(150,136,103,.72)';
+        ctx.lineWidth = Math.max(.38, .009 * a.scale);
+        ctx.beginPath(); ctx.moveTo(a.x, ay); ctx.lineTo(b.x, by); ctx.stroke();
+      }
     }
-    ctx.fillStyle = '#544735'; ctx.fillRect(a.x - .047*a.scale, a.y - .99*a.scale, .094*a.scale, a.scale);
-    ctx.fillStyle = '#9a896c'; ctx.fillRect(a.x - .047*a.scale, a.y - .99*a.scale, .023*a.scale, .97*a.scale);
+    const w = .105 * base.scale, h = cut * base.scale;
+    const lean = w * .29 * Math.sin(index * 2.8 + side);
+    shadow(ctx, base.x, base.y, .24 * base.scale, .54);
+    ctx.save(); ctx.translate(base.x, base.y); ctx.transform(1, 0, -lean / h, 1, 0, 0);
+    ctx.beginPath(); ctx.moveTo(-w * .56, 0); ctx.lineTo(-w * .49, -h + w * .36);
+    ctx.lineTo(-w * .25, -h); ctx.lineTo(w * .35, -h + w * .12);
+    ctx.lineTo(w * .52, -h + w * .52); ctx.lineTo(w * .48, 0); ctx.closePath(); ctx.clip();
+    ctx.drawImage(posts, sx, sy, sw, sh, -w * .57, -h, w * 1.15, h);
+    ctx.fillStyle = 'rgba(34,31,26,.42)'; ctx.fillRect(w * .2, -h, w * .33, h);
+    for (const level of [.38, .72]) {
+      ctx.fillStyle = '#39362e'; ctx.fillRect(-w * .08, -level * base.scale + w * .26, w * .19, w * .17);
+    }
+    ctx.restore();
   }
 }
 
 function refuge(ctx: CanvasRenderingContext2D, assets: CoastArt, c: Camera, health: number) {
+  // The far courtyard emerges through the last band of canopy as the break rounds the bend.
+  const clearing = smoothstep(COAST_METRES - 4.1, COAST_METRES - 2.9, c.z);
+  if (!clearing) return;
   const intact = sprite('obj_house_front');
   if (!intact) return;
   const anchor = alleyPosition(HOUSE_CENTER.x, HOUSE_CENTER.y);
   const p = roadPoint(c, anchor.x, anchor.z);
   const stage = houseDamageStage(health);
   const eyeLevel = stage === 0 && available(assets.cottage);
-  const h = 5.8 * p.scale, w = h * (eyeLevel ? assets.cottage.naturalWidth / assets.cottage.naturalHeight : intact.w / intact.h);
+  const h = 5.05 * p.scale, w = h * (eyeLevel ? assets.cottage.naturalWidth / assets.cottage.naturalHeight : intact.w / intact.h);
+  ctx.save();
+  if (clearing < 1) {
+    // The last thicket parts across the sightline. Keep the cottage and its windows opaque.
+    const rim = p.x + w * (1.34 - 2.85 * clearing);
+    ctx.beginPath(); ctx.moveTo(640, 0); ctx.lineTo(640, 293);
+    for (let y = 293; y >= -4; y -= 3) {
+      const fringe = Math.sin(y * .15) * 4.5 + Math.cos(y * .37) * 3 + Math.sin(y * .53) * 1.75;
+      ctx.lineTo(rim + (y - p.y) * .29 + fringe, y);
+    }
+    ctx.closePath(); ctx.clip();
+  }
   shadow(ctx, p.x, p.y, w * .46);
   const facade = eyeLevel ? assets.cottage : facadeForStage(0, 'obj_house_front', intact, stage);
   ctx.drawImage(facade, p.x - w * .50, p.y - h, w, h);
@@ -182,28 +277,43 @@ function refuge(ctx: CanvasRenderingContext2D, assets: CoastArt, c: Camera, heal
     const loc = alleyPosition(prop.x + .5, prop.y + .5);
     const ground = roadPoint(c, loc.x, loc.z), height = ground.scale * (prop.kind === 'barrel' ? .86 : 1.12);
     const width = height * art.w / art.h;
+    shadow(ctx, ground.x, ground.y, width * .53, .55);
     ctx.drawImage(art.img, ground.x - width / 2, ground.y - height, width, height);
   }
+  ctx.restore();
 }
+
+const forestLayers = [
+  ...grove.map((prop, i) => ({ z: prop.z, kind: 'tree' as const, i })),
+  ...hedgerow.map((prop, i) => ({ z: prop.z, kind: 'bush' as const, i })),
+  { z: COAST_RUT, kind: 'root' as const, i: 0 },
+  { z: GATE_AT, kind: 'gate' as const, i: 0 },
+].sort((a, b) => b.z - a.z);
 
 export function paintRoad(ctx: CanvasRenderingContext2D, art: CoastArt, d: CoastDrive, age: number, alertAge: number, reduced: boolean, health: number): void {
   const c = coastCamera(d, reduced);
   if (available(art.woods)) {
     // Forest beyond the clearing. The house and parking apron have their actual yard coordinates.
     const far = roadPoint(c, 0, 110);
-    const w = 810 * 110 / (110 - c.z), h = w * art.woods.naturalHeight / art.woods.naturalWidth;
+    const w = 1050 * 110 / (110 - c.z), h = w * art.woods.naturalHeight / art.woods.naturalWidth;
     ctx.drawImage(art.woods, far.x - .53 * w, far.y - .49 * h, w, h);
   } else if (available(art.hedge)) ctx.drawImage(art.hedge, 0, -46, 640, 360);
-  ground(ctx, art.lane, c);
-  bush(ctx, art, c, 0);
+  drawCoastGround(ctx, art.lane, c, FOCAL, EYE, 293, 1);
   refuge(ctx, art, c, health);
-  for (let i = 1; i <= 3; i++) bush(ctx, art, c, i);
-  walker(ctx, d, c, 1, age, alertAge, reduced);
-  bush(ctx, art, c, 4);
-  walker(ctx, d, c, 0, age, alertAge, reduced);
-  rut(ctx, c);
-  bush(ctx, art, c, 5);
-  gatepost(ctx, art, c, false); gatepost(ctx, art, c, true);
-  fence(ctx, c, -1); fence(ctx, c, 1);
-  bush(ctx, art, c, 6);
+  // Depth-sort the fixed grove against the moving foot anchors, including bushes
+  // that can momentarily cover a walker as the driver rounds the first bend.
+  let next = 1;
+  let foot = coastWalkerPosition(d, next);
+  for (const layer of forestLayers) {
+    while (next >= 0 && foot.z >= layer.z) {
+      walker(ctx, d, c, next, age, alertAge, reduced);
+      next--;
+      if (next >= 0) foot = coastWalkerPosition(d, next);
+    }
+    if (layer.kind === 'tree') tree(ctx, art.grove, c, layer.i, age, reduced);
+    else if (layer.kind === 'bush') bush(ctx, art, c, layer.i);
+    else if (layer.kind === 'root') rut(ctx, c);
+    else { gatepost(ctx, art, c, false); gatepost(ctx, art, c, true); }
+  }
+  fence(ctx, c, -1, art.posts); fence(ctx, c, 1, art.posts);
 }

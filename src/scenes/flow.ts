@@ -1,7 +1,7 @@
 // Scene navigation in one place. Scenes call these instead of constructing each other,
 // which keeps the phase order (day → night → morning → …) readable and avoids import knots.
 
-import { shouldCoastHome } from '../core/coast-home';
+import { coastForNight, finishCoastHome, finishCoastParking, shouldCoastHome } from '../core/coast-home';
 import { CoastHomeScene } from './coast-home';
 import { epicFlag, mopedCargo } from '../core/epics';
 import type { ChapterId } from '../core/chapters';
@@ -12,7 +12,7 @@ import { units } from '../core/encounters';
 import { arriveHome, type NeighborMeeting } from '../core/game';
 import type { GameState, LocationId } from '../core/types';
 import type { App, Scene } from '../engine/app';
-import { S, fmt, hours } from '../engine/i18n';
+import { S, fmt, hours, line } from '../engine/i18n';
 import { tripLine } from './common';
 import { DayScene, type DayOptions } from './day';
 import { EndScene, type EndOptions } from './end';
@@ -83,19 +83,34 @@ export function goHomeStretch(app: App, sub = '', ignitionAt?: number): void {
     return;
   }
   if (shouldCoastHome(state)) {
-    app.go(() => new CoastHomeScene(app, () => goHomeStretch(app, sub)));
+    app.go(() => new CoastHomeScene(app, outcome => {
+      app.state = finishCoastHome(state, outcome);
+      app.save();
+      goHomeStretch(app, sub);
+    }));
     return;
   }
   const s = S();
   const moped = epicFlag(state, 'loaded') ? mopedCargo(outing.trunk) : undefined;
   const cargo = moped?.kept ?? outing.trunk;
+  const outcome = (outing.coastParking || outing.coastParked) && coastForNight(state);
+  const nightHint = outcome === 'followed'
+    ? line('Ils nous ont suivis. Ces deux-là seront au portail dès le début de la vague.', 'They followed us. Those two will be at the gate when the wave starts.')
+    : outcome === 'quiet' ? line('Ils ont continué leur chemin. Ce soir, ils arriveront avec le reste de la vague.', 'They walked on. Tonight they’ll arrive with the rest of the wave.') : '';
+  const tripSummary = sub || (moped ? fmt(s.loc.leaveCost, { h: hours(LOCATIONS[outing.to].travelHours) }) : '');
   const buildable = affordableDevices(state.inventory, cargo, state.hoursLeft).map((type) => s.device[type].name);
   goTravel(app, {
     plate: !moped && units(cargo) > 0 ? 'plate_trunk' : 'plate_return',
     title: s.location.home,
-    sub: sub || (moped ? fmt(s.loc.leaveCost, { h: hours(LOCATIONS[outing.to].travelHours) }) : ''),
+    sub: [tripSummary, nightHint].filter(Boolean).join(' '),
     ...(ignitionAt !== undefined && { ignitionAt }),
     parked: outing.coastParked === true,
+    parking: outing.coastParking === true,
+    onParked: () => {
+      if (!app.state?.outing?.coastParking) return;
+      app.state = finishCoastParking(app.state);
+      app.save();
+    },
     loot: cargo,
     lost: outing.parted,
     ...(moped && { mopedDisplaced: moped.displaced }),
@@ -113,7 +128,7 @@ export function resumeGame(app: App, state: GameState): void {
       // Resume unfinished road encounters and show the load before delivering the moped.
       else if (state.where === 'road') {
         if (state.encounter) goAmbush(app);
-        else if (shouldCoastHome(state) || state.outing?.coastParked || state.outing?.crossbowStop || epicFlag(state, 'loaded')) goHomeStretch(app);
+        else if (shouldCoastHome(state) || state.outing?.coastParking || state.outing?.coastParked || state.outing?.crossbowStop || epicFlag(state, 'loaded')) goHomeStretch(app);
         else unload(app);
       }
       else goLocation(app, state.where, null);

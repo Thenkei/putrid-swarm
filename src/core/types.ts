@@ -275,7 +275,9 @@ export interface Outing {
   readonly marks: readonly OutingMark[];
   /** The last stretch is blocked by infected and must be played before unloading. */
   readonly crossbowStop?: true;
-  /** This load is parked at the gate after the dusk approach and still needs unloading. */
+  /** The break has cleared the woods and still has to be driven into the bay. */
+  readonly coastParking?: true;
+  /** The break is in its bay, with the load still in the boot. */
   readonly coastParked?: true;
   /** Pending arrival remark, numbered across the run. */
   readonly lootNotice?: number;

@@ -3,6 +3,7 @@ import { sprite, type Sprite } from '../engine/assets';
 import { clamp01, smoothstep } from './noise';
 import { PROP_FEET } from './registration';
 import { groundMatrix, type Point, type View } from './projection';
+import { drawReturningCar } from './yard-parking';
 
 export { carManeuver } from '../core/car-path';
 
@@ -63,6 +64,7 @@ interface DepartureShot {
 }
 
 export type DepartingCar = { readonly position: Point } & (
+  | { readonly kind: 'returning'; readonly heading: number }
   | { readonly kind: 'boarding'; readonly picture: CarArt; readonly pose: number }
   | { readonly kind: 'driving'; readonly driver: Sprite; readonly turn: Sprite; readonly yaw: number; readonly shake: number; readonly headlights: number }
 );
@@ -128,6 +130,10 @@ export function drawHeadlightPools(ctx: CanvasRenderingContext2D, view: View, ca
 
 /** The rack and wheelbase are registered to the same point as the parked yard sprite. */
 export function drawDepartingCar(ctx: CanvasRenderingContext2D, car: DepartingCar, root: Point, height: number): void {
+  if (car.kind === 'returning') {
+    drawReturningCar(ctx, root, height, car.heading);
+    return;
+  }
   if (car.kind === 'driving') {
     drawDrivingCar(ctx, car, root, height);
     return;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CoastDrive, coastForNight, finishCoastHome, shouldCoastHome } from '../src/core/coast-home';
+import { COAST_METRES, CoastDrive, coastForNight, finishCoastHome, finishCoastParking, shouldCoastHome } from '../src/core/coast-home';
 import { arriveHome, leaveLocation, newGame, travelTo } from '../src/core/game';
-import { alleyPosition, coastCamera, GATE_AT, roadPoint } from '../src/render/coast-road';
+import { alleyPosition, coastCamera, coastGatePosts, GATE_AT, roadPoint } from '../src/render/coast-road';
 import { PARKED } from '../src/core/car-path';
 import { GRID_W, HOUSE_CENTER, roadCentre } from '../src/core/map';
 import { NightSim } from '../src/core/night';
@@ -61,15 +61,17 @@ describe('the last fifteen metres', () => {
   it('moves the gateposts past opposite windows while distant sightlines stay steady', () => {
     const d = new CoastDrive();
     const outset = coastCamera(d, false);
-    const gate = roadPoint(outset, 3.45, GATE_AT);
+    const [left, right] = coastGatePosts;
+    const gate = roadPoint(outset, right!.x, GATE_AT);
     const house = roadPoint(outset, 12, 110);
-    d.metres = GATE_AT - 2;
+    d.metres = GATE_AT - 1;
     d.lane = .3;
     const approach = coastCamera(d, false);
-    expect(roadPoint(approach, 3.45, GATE_AT).x).toBeGreaterThan(640);
-    expect(roadPoint(approach, -3.15, GATE_AT).x).toBeLessThan(0);
+    expect(roadPoint(approach, right!.x, GATE_AT).x).toBeGreaterThan(640);
+    expect(roadPoint(approach, left!.x, GATE_AT).x).toBeLessThan(0);
     expect(gate.x).toBeLessThan(640);
-    expect(Math.abs(roadPoint(approach, 12, 110).x - house.x)).toBeLessThan(5);
+    expect(roadPoint(outset, left!.x, GATE_AT).x).toBeGreaterThan(0);
+    expect(Math.abs(roadPoint(approach, 12, 110).scale / house.scale - 1)).toBeLessThan(.04);
     d.jolt = .5;
     expect(coastCamera(d, true).horizon).toBe(outset.horizon);
   });
@@ -79,8 +81,10 @@ describe('the last fifteen metres', () => {
     const aisle = alleyPosition(PARKED.x, roadCentre('barn', PARKED.x));
     const bay = alleyPosition(PARKED.x, PARKED.y);
     const house = alleyPosition(HOUSE_CENTER.x, HOUSE_CENTER.y);
-    expect(entrance).toEqual({ x: 0, z: GATE_AT });
-    expect(aisle).toEqual({ x: 0, z: 15 });
+    expect(entrance).toEqual({ x: 0, z: COAST_METRES });
+    expect(GATE_AT).toBeLessThan(entrance.z);
+    expect(aisle.x).toBe(0);
+    expect(aisle.z).toBeGreaterThan(entrance.z);
     expect(bay.x).toBeLessThan(aisle.x);
     expect(house.x).toBeGreaterThan(aisle.x);
     expect(house.z).toBeGreaterThan(bay.z);
@@ -103,7 +107,14 @@ describe('the last fifteen metres', () => {
   it('keeps the load for normal arrival and remembers the pair only on their own night', () => {
     const s = road();
     const loaded = { ...s, outing: { ...s.outing!, trunk: { ...s.outing!.trunk, wire: 2 } } };
-    const done = deserialize(serialize(finishCoastHome(loaded, 'followed')))!;
+    const parking = deserialize(serialize(finishCoastHome(loaded, 'followed')))!;
+    expect(parking.outing?.coastParking).toBe(true);
+    expect(parking.outing?.coastParked).toBeUndefined();
+    expect(arriveHome(parking).ok).toBe(false);
+    expect(shouldCoastHome(parking)).toBe(false);
+    const done = deserialize(serialize(finishCoastParking(parking)))!;
+    expect(done.outing?.coastParking).toBeUndefined();
+    expect(finishCoastParking(done)).toBe(done);
     expect(coastForNight(done)).toBe('followed');
     expect(done.outing?.coastParked).toBe(true);
     expect(finishCoastHome(done, 'quiet')).toBe(done);

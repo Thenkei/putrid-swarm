@@ -58,6 +58,10 @@ export class App {
   private fadeTarget = 0;
   private pendingScene: (() => Scene) | null = null;
   private canvasPointer: number | null = null;
+  private readonly heldArrows = new Set<string>();
+
+  /** The next driving camera can pick up a steering input held through its entry fade. */
+  isArrowHeld(code: string): boolean { return this.heldArrows.has(code); }
 
   constructor() {
     this.canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -113,6 +117,7 @@ export class App {
     }, { passive: false });
     this.canvas.addEventListener('contextmenu', (event) => event.preventDefault());
     window.addEventListener('keydown', (event) => {
+      if (event.code.startsWith('Arrow')) this.heldArrows.add(event.code);
       if (this.pendingScene) return;
       audio.unlock();
       if (event.repeat) return;
@@ -120,8 +125,12 @@ export class App {
       if (hearKey(event.code, event.key)) this.scene?.onKeyLabels?.();
       this.scene?.onKeyDown?.(event.code, event);
     });
-    window.addEventListener('keyup', (event) => this.scene?.onKeyUp?.(event.code, event));
+    window.addEventListener('keyup', (event) => {
+      this.heldArrows.delete(event.code);
+      this.scene?.onKeyUp?.(event.code, event);
+    });
     const blur = () => {
+      this.heldArrows.clear();
       this.cancelPointer();
       this.scene?.onBlur?.();
     };

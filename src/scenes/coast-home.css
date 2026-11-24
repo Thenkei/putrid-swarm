@@ -15,7 +15,8 @@
 .coast-key:disabled { opacity: .56; }
 .coast-pedal { padding: 2px; border: 0; background: none; }
 .coast-pedal kbd { display: inline-block; border: 1px solid #8f8778; border-bottom-width: 2px; padding: 1px 6px; margin-right: 5px; border-radius: 3px; color: #ffeaca; }
-.coast-pedal:active kbd { background: #66573e; }
+.coast-pedal[aria-pressed=true] kbd { transform: translateY(1px); border-color: #d3b579; color: #211d18; background: #d3b579; }
+.coast-pedal:disabled { opacity: .43; }
 .coast-dash button:focus-visible { outline: 2px solid #ffdb9d; outline-offset: 2px; }
 .coast-dash[data-alert=true] .coast-distance { color: #f0ac87; }
 #stage:has(.coast-dash) #subtitle { bottom: 162px; }

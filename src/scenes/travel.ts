@@ -2,25 +2,30 @@
 
 import { PARKED } from '../core/car-path';
 import { HOUSE_MAX_HP } from '../core/data/devices';
-import { packTrail, wreckSector } from '../core/epics';
+import { epicFlag, packTrail, wreckSector } from '../core/epics';
+import { rattleForNight } from '../core/rattle';
 import { drivewayImpacts, type DrivewayImpact } from '../core/driveway';
+import { HOUSE_CENTER } from '../core/map';
+import { YardParking } from '../core/yard-parking';
 import { DAY_HOURS } from '../core/data/locations';
-import type { Cost, GameState } from '../core/types';
+import { SECTOR_IDS, type Cost, type GameState } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt } from '../engine/i18n';
-import { carDepartureShot, carManeuver, departingCar } from '../render/car-departure';
+import { S, fmt, line as L } from '../engine/i18n';
+import { carDepartureShot, carManeuver, departingCar, type DepartingCar } from '../render/car-departure';
 import { approachView, heroApproachShot, sampleApproach, type ApproachShot } from '../render/hero-approach';
 import { applyDayGrade, calmMotion } from '../render/lighting';
 import { smoothstep } from '../render/noise';
 import { CAT_BONNET_AT, CAT_LANDS_AT, CAT_SETTLES_AT, catWakeTime, sampleYardCat } from '../render/yard-cat';
 import { applyDaylight, dayDeviceVisual, drawWorld, houseLights, prepareWorld, type Particle, type View } from '../render/world';
 import { costLine, drawPlate, oneArmed, platePoint, tripLine } from './common';
+import { goTitle } from './flow';
+import { PauseMenu } from './pause';
 
 const HOLD_SECONDS = 3.2;
-const BAY_ROLL = 1.75;
+const BAY_DOOR_AT = .24;
 const OUTBOUND_ROAD_SECONDS = 1.95;
 const DEPARTURE_FADE_OUT = 0.28;
 const ROAD_FADE_IN = 0.3;
@@ -51,7 +56,8 @@ function drawRadioNeedle(ctx: CanvasRenderingContext2D, seconds: number): void {
 
 // Start on the door, then widen toward the gravel road beside the barn.
 const BOARDING_VIEW: View = { ...STAGE, rot: 0, zoom: 2.5, cx: 16.6, cy: 13.1 };
-const BAY_VIEW: View = { ...STAGE, rot: 0, zoom: 1.28, cx: PARKED.x - 1.35, cy: PARKED.y - 1.72 };
+// Leave headroom for the chimney and keep the bay and the barn drive in one fixed shot.
+const BAY_VIEW: View = { ...STAGE, rot: 0, zoom: 1.10, cx: HOUSE_CENTER.x + .9, cy: HOUSE_CENTER.y + .1 };
 const STILL_VIEW: View = { ...STAGE, rot: 0, zoom: 1.65, cx: 13.5, cy: 13.2 };
 const STILL_BOARD = .98;
 const STILL_SEATED = 1.61;
@@ -87,6 +93,18 @@ function departureView(progress: number): View {
   };
 }
 
+function parkingCar(bay: NonNullable<ReturnType<typeof carDepartureShot>>, time: number, still: boolean): DepartingCar {
+  if (still) return departingCar(bay, 0, 0);
+  // The same registered paintings take Hugo back out of the driver's seat.
+  if (time >= BAY_DOOR_AT) return departingCar(bay, Math.max(0, bay.latchAt - (time - BAY_DOOR_AT)), 0);
+  const settle = time / BAY_DOOR_AT;
+  return {
+    kind: 'driving', driver: bay.driver, turn: bay.turn, yaw: 0, headlights: 0,
+    position: PARKED,
+    shake: .68 * Math.sin(settle * Math.PI * 2) * (1 - settle),
+  };
+}
+
 // These paintings are lit for daytime. The dusk return and roadblock plates have their own light.
 const DAYLIGHT_PLATES = new Set(['plate_village', 'plate_town', 'plate_trunk', ...OUTBOUND_PLATES]);
 
@@ -98,7 +116,9 @@ export interface TravelOptions {
   readonly departure?: GameState;
   /** App clock when the return starter follows the door slam at the location. */
   readonly ignitionAt?: number;
+  readonly parking?: boolean;
   readonly parked?: boolean;
+  readonly onParked?: () => void;
   /** What is in the boot, when driving home. */
   readonly loot?: Cost;
   readonly mopedDisplaced?: Cost;
@@ -113,6 +133,18 @@ export class TravelScene implements Scene {
   private time = 0;
   private done = false;
   private shot: ReturnType<typeof carDepartureShot> = null;
+  private bayShot: ReturnType<typeof carDepartureShot> = null;
+  private baySummaryAt = 0;
+  private parking: YardParking | null = null;
+  private parkedAt = 0;
+  private gravelAt = .15;
+  private parkingHud: HTMLElement | null = null;
+  private parkingHint: HTMLElement | null = null;
+  private parkingPause: PauseMenu | null = null;
+  private paused = false;
+  private keys = new Set<string>();
+  private pedalKeys = new Set<string>();
+  private pedals: HTMLButtonElement[] = [];
   private approach: ApproachShot | null = null;
   private catWake: number | null = null;
   private stills = false;
@@ -160,7 +192,8 @@ export class TravelScene implements Scene {
       }
       if (!this.approach) tripLine('car', departure);
     }
-    if (!this.shot && !this.options.parked) audio.setAmbience('car', ROAD_AUDIO_FADE_IN);
+    const inYard = this.options.parking || this.options.parked;
+    if (!this.shot && !inYard) audio.setAmbience('car', ROAD_AUDIO_FADE_IN);
     const some = (cost: Cost | undefined): cost is Cost => cost !== undefined && Object.values(cost).some((n) => (n ?? 0) > 0);
     const s = S();
     const bikeArt = mopedDisplaced && assetUrl('epic_moped_art');
@@ -183,9 +216,24 @@ export class TravelScene implements Scene {
       some(lost) ? el('p', { class: 'lost' }, [`${s.encounter.arrival.lost} : `, costLine(lost, undefined, '−')]) : null,
       note ? el('p', { class: 'muted', text: note }) : null,
     ]);
-    this.summary = el('div', { class: 'travel-summary' }, [summary]);
-    this.summary.hidden = this.shot !== null || this.options.parked === true;
-    if (this.options.parked) prepareWorld(BAY_VIEW);
+    this.summary = el('div', { class: inYard ? 'travel-summary travel-parked' : 'travel-summary' }, [summary]);
+    if (inYard) {
+      this.bayShot = carDepartureShot(oneArmed(this.app.state));
+      this.stills = calmMotion() || !this.bayShot;
+      if (!this.stills && this.bayShot) {
+        this.baySummaryAt = BAY_DOOR_AT + this.bayShot.latchAt - this.bayShot.poseEnds[0]! + .28;
+      }
+      prepareWorld(BAY_VIEW);
+      audio.setAmbience('day', 1.25);
+      if (!this.options.parked) {
+        this.parking = new YardParking();
+        for (const code of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
+          if (this.app.isArrowHeld(code)) this.keys.add(code);
+        }
+        this.showParkingControls();
+      }
+    }
+    this.summary.hidden = this.shot !== null || this.parking !== null || this.baySummaryAt > 0;
     this.app.ui.append(this.summary);
     if (departure) this.app.ui.append(el('button', { class: 'btn skip', text: s.map.skipTravel, onClick: () => this.finish() }));
   }
@@ -195,9 +243,49 @@ export class TravelScene implements Scene {
     this.engineStarted = true;
   }
 
+  private showParkingControls(): void {
+    const buttons = el('div', { class: 'travel-pedals' });
+    for (const [code, icon, title] of [
+      ['ArrowUp', '↑', L('Avancer', 'Forward')], ['ArrowDown', '↓', L('Reculer', 'Reverse')],
+      ['ArrowLeft', '←', L('Gauche', 'Left')], ['ArrowRight', '→', L('Droite', 'Right')],
+    ] as const) {
+      const button = el('button', { class: 'coast-pedal', data: { key: code } }, [el('kbd', { text: icon }), title]);
+      button.addEventListener('pointerdown', event => {
+        if (event.button !== 0) return;
+        button.setPointerCapture(event.pointerId);
+        this.pedalKeys.add(code);
+      });
+      button.addEventListener('lostpointercapture', () => this.pedalKeys.delete(code));
+      const activate = (event: KeyboardEvent) => event.code === 'Space' || event.code === 'Enter';
+      button.addEventListener('keydown', event => { if (activate(event)) { event.preventDefault(); this.pedalKeys.add(code); } });
+      button.addEventListener('keyup', event => { if (activate(event)) this.pedalKeys.delete(code); });
+      button.addEventListener('blur', () => this.pedalKeys.delete(code));
+      this.pedals.push(button);
+      buttons.append(button);
+    }
+    this.parkingHint = el('p', { text: L('Avance dans l’allée jusqu’à la place tracée.', 'Drive up the lane to the marked bay.') });
+    this.parkingHint.setAttribute('role', 'status');
+    this.parkingHud = el('section', { class: 'travel-parking' }, [this.parkingHint, buttons]);
+    const overlay = el('div');
+    this.parkingPause = new PauseMenu(overlay);
+    this.app.ui.append(this.parkingHud, overlay);
+  }
+
+  private pauseParking(auto = false): void {
+    if (!this.parkingPause) return;
+    this.keys.clear();
+    this.pedalKeys.clear();
+    this.paused = !this.paused;
+    if (this.paused) {
+      audio.fadeOut('coast_gravel', .1);
+      this.parkingPause.open(() => this.pauseParking(), () => goTitle(this.app), auto);
+    } else this.parkingPause.close();
+  }
+
   private finish(): void {
     if (this.done) return;
     this.done = true;
+    if (this.options.parking || this.options.parked) audio.fadeOut('coast_gravel', .12);
     if (this.options.departure) {
       audio.fadeOut('yard_cat', .08);
       audio.fadeOut('moped_door', .12);
@@ -205,7 +293,7 @@ export class TravelScene implements Scene {
     }
     if (this.plate === RADIO_PLATE) audio.fadeOut('radio_squelch', 0.15);
     // A skipped ignition has no engine to wind down. Other road scenes may already be driving.
-    if (this.engineStarted || (!this.options.departure && !this.options.parked && this.options.ignitionAt === undefined)) {
+    if (this.engineStarted || (!this.options.departure && !this.options.parking && !this.options.parked && this.options.ignitionAt === undefined)) {
       audio.fadeOut(this.options.departure ? 'engine_depart' : 'engine', 0.5);
       audio.play('engine_stop');
     }
@@ -213,9 +301,40 @@ export class TravelScene implements Scene {
   }
 
   update(dt: number): void {
-    if (this.done) return;
+    if (this.done || this.paused) return;
     const previous = this.time;
     this.time += dt;
+    if (this.parking && this.parking.phase !== 'parked') {
+      const drive = this.parking;
+      const atTurn = drive.atTurn;
+      const held = (key: string) => this.keys.has(key) || this.pedalKeys.has(key);
+      for (const pedal of this.pedals) {
+        const pressed = String(held(pedal.dataset.key!));
+        if (pedal.getAttribute('aria-pressed') !== pressed) pedal.setAttribute('aria-pressed', pressed);
+      }
+      // A single pointer can feather the throttle with either steering pedal.
+      const creep = this.pedalKeys.has('ArrowLeft') || this.pedalKeys.has('ArrowRight') ? .65 : 0;
+      const throttle = held('ArrowUp') || held('ArrowDown') ? Number(held('ArrowUp')) - Number(held('ArrowDown')) : creep;
+      drive.update(dt, throttle, Number(held('ArrowLeft')) - Number(held('ArrowRight')));
+      if (this.parkingHint && atTurn !== drive.atTurn) {
+        this.parkingHint.textContent = drive.atTurn
+          ? L('Braque à gauche en avançant dans la place.', 'Keep moving and steer left into the bay.')
+          : L('Avance dans l’allée jusqu’à la place tracée.', 'Drive up the lane to the marked bay.');
+      }
+      if (drive.distance >= this.gravelAt) {
+        audio.play('coast_gravel', .23 + .045 * Math.abs(drive.speed), .87 + .035 * Math.abs(drive.speed));
+        this.gravelAt = drive.distance + 2.0;
+      }
+      if (drive.phase === 'parked') {
+        this.parkedAt = this.time;
+        this.keys.clear();
+        this.pedalKeys.clear();
+        this.parkingHud?.remove();
+        this.options.onParked?.();
+        if (this.stills) this.summary.hidden = false;
+      }
+      return;
+    }
     if (!this.engineStarted && this.options.ignitionAt !== undefined && this.app.time >= this.options.ignitionAt) {
       audio.play('engine');
       this.engineStarted = true;
@@ -257,34 +376,46 @@ export class TravelScene implements Scene {
       if (crossed(roadStart + RADIO_STOPS[0])) audio.play('radio_squelch', 0.24, 1.22);
       if (crossed(roadStart + RADIO_STOPS[1])) audio.play('radio_squelch', 0.16, 1.3);
     }
-    if (this.options.parked && crossed(BAY_ROLL)) {
-      this.summary.hidden = false;
-      audio.play('car_latch', .42);
+    if ((this.options.parking || this.options.parked) && this.bayShot && !this.stills) {
+      const door = this.parkedAt + BAY_DOOR_AT;
+      if (crossed(door + this.bayShot.latchAt - this.bayShot.poseEnds[1]!)) audio.play('step_gravel', .38);
+      if (crossed(door + this.bayShot.latchAt - this.bayShot.poseEnds[0]!)) audio.play('car_latch', .48);
+      if (crossed(this.parkedAt + this.baySummaryAt)) this.summary.hidden = false;
     }
     const duration = this.options.mopedDisplaced ? 6 : this.stills || !shot ? HOLD_SECONDS : roadStart + OUTBOUND_ROAD_SECONDS;
-    if (this.time >= duration + (this.options.parked ? BAY_ROLL : 0)) this.finish();
+    if (this.time >= this.parkedAt + duration + this.baySummaryAt) this.finish();
   }
 
   render(ctx: CanvasRenderingContext2D): void {
     const { departure } = this.options;
     const shot = this.shot;
     const approach = this.approach;
-    if (this.options.parked && this.app.state) {
+    if ((this.options.parking || this.options.parked) && this.app.state) {
       const state = this.app.state, yard = state.yard;
-      const progress = calmMotion() ? 1 : smoothstep(0, BAY_ROLL, this.time);
-      const driver = sprite('car_driver'), turn = sprite('car_turn_road');
       const health = yard.houseHp / HOUSE_MAX_HP;
+      const rattle = rattleForNight(state);
+      const drive = this.parking?.phase === 'parked' ? null : this.parking;
+      const car: DepartingCar | null = drive
+        ? { kind: 'returning', position: drive, heading: drive.heading }
+        : this.bayShot && parkingCar(this.bayShot, this.time - this.parkedAt, this.stills);
       drawWorld(ctx, BAY_VIEW, {
         time: this.app.time, night: false, carPresent: true, houseHpRatio: health,
-        ...(progress < 1 && driver && turn && { departingCar: {
-          kind: 'driving' as const, driver, turn, yaw: 0, headlights: 0, shake: 0,
-          position: { x: PARKED.x, y: PARKED.y - (1 - progress) * 1.86 },
-        } }),
+        ...(car && { departingCar: car }), parkingBay: !!drive,
+        homesteadLife: { day: state.day },
         mopedWreck: wreckSector(state), packTrail: packTrail(state),
+        ...(rattle && { rattle: { sector: rattle, struckAt: null } }),
+        ...(epicFlag(state, 'moped') && !epicFlag(state, 'spent') && { parkedMoped: {
+          sector: SECTOR_IDS[epicFlag(state, 'lane') % SECTOR_IDS.length]!, previous: undefined, aimAge: Infinity,
+        } }),
         devices: yard.devices.map(device => dayDeviceVisual(device)), barricades: yard.barricades,
         decals: yard.decals, particles: [], enemies: [],
       });
-      applyDaylight(ctx, BAY_VIEW, 1 - state.hoursLeft / DAY_HOURS, houseLights(BAY_VIEW.rot, yard.barricades, health), this.app.time);
+      // Keep the blue of the wooded approach and the warm porch lamps in the same shot.
+      // Once the hatch is unloaded the exposure returns to the campaign's actual hour.
+      const hour = 1 - state.hoursLeft / DAY_HOURS;
+      const blueHour = Math.max(hour, .988);
+      const unloaded = drive ? 0 : smoothstep(.2, HOLD_SECONDS - .18, this.time - this.parkedAt - this.baySummaryAt);
+      applyDaylight(ctx, BAY_VIEW, blueHour + (hour - blueHour) * unloaded, houseLights(BAY_VIEW.rot, yard.barricades, health), this.app.time);
       return;
     }
     if (departure && shot && this.time < this.roadStart) {
@@ -368,10 +499,23 @@ export class TravelScene implements Scene {
   }
 
   onPointerDown(): void {
+    if (this.paused || (this.parking && this.parking.phase !== 'parked')) return;
     this.finish();
   }
 
-  onKeyDown(code: string): void {
+  onKeyDown(code: string, event?: KeyboardEvent): void {
+    if (this.parking && this.parking.phase !== 'parked') {
+      if (code === 'Escape') this.pauseParking();
+      if (!this.paused && code.startsWith('Arrow')) { event?.preventDefault(); this.keys.add(code); }
+      return;
+    }
     if (code === 'Space' || code === 'Enter' || code === 'Escape') this.finish();
+  }
+
+  onKeyUp(code: string): void { this.keys.delete(code); }
+  onBlur(): void {
+    this.keys.clear();
+    this.pedalKeys.clear();
+    if (this.parking && this.parking.phase === 'driving' && !this.paused) this.pauseParking(true);
   }
 }

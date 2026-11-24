@@ -34,6 +34,7 @@ import { windAt } from './wind';
 import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
 import { drawDepartingCar, drawHeadlightPools, wagonLeaves, type DepartingCar } from './car-departure';
+import { drawParkingBay } from './yard-parking';
 import { drawApproachWindow, drawApproachingHero, type ApproachingHero } from './hero-approach';
 import type { NightOwl } from '../scenes/night-wildlife';
 import { owlDrawable } from './night-owl';
@@ -132,6 +133,7 @@ export interface WorldFrame {
   readonly homesteadLife?: HomesteadLife;
   readonly sunriseAge?: number;
   readonly departingCar?: DepartingCar;
+  readonly parkingBay?: boolean;
   readonly secondsSinceCarRoll?: number;
   /** Seconds since the car shut off after returning from an outing. */
   readonly exhaustAge?: number;
@@ -524,6 +526,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
 
   const passage = calmMotion() ? undefined : frame.brushPassage;
   drawGround(ctx, view, frame.time, passage);
+  if (frame.parkingBay) drawParkingBay(ctx, view);
 
   const drawables: Drawable[] = [];
   /** Shadows go down before anything stands on them; they are collected as the scene is. */

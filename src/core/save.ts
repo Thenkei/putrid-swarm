@@ -154,6 +154,7 @@ function parseOuting(v: unknown, onRoad: boolean): Outing | null {
   return {
     to: v['to'], trunk: v['trunk'], parted: v['parted'], major: v['major'] === true, marks: marks as Outing['marks'],
     ...(onRoad && v['coastParked'] === true ? { coastParked: true } : {}),
+    ...(onRoad && v['coastParked'] !== true && v['coastParking'] === true ? { coastParking: true } : {}),
     ...(onRoad && v['crossbowStop'] === true ? { crossbowStop: true } : {}),
     ...(!onRoad && isCount(lootNotice) && lootNotice > 0 ? { lootNotice } : {}),
   };

@@ -442,7 +442,7 @@ export interface Arrival {
 export function arriveHome(state: GameState): Result<Arrival, DayError> {
   if (state.phase !== 'day') return err({ code: 'wrong_phase' });
   if (state.where !== 'road' || !state.outing) return err({ code: 'not_on_road' });
-  if (state.encounter || state.outing.crossbowStop) return err({ code: 'encounter_pending' });
+  if (state.encounter || state.outing.crossbowStop || state.outing.coastParking) return err({ code: 'encounter_pending' });
   const { trunk, parted, state: unloaded } = unloadMoped(state, state.outing.trunk, state.outing.parted);
   return ok({
     state: { ...unloaded, yard: driveThroughYard(unloaded.yard), where: 'home', inventory: gain(state.inventory, trunk), outing: null },
