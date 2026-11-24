@@ -1158,6 +1158,7 @@ export const en: Strings = {
     vo_home_2: 'The house is still standing. Good start.',
     vo_home_3: 'In one piece. So is the car.',
     vo_home_4: 'Not a soul on the road. Not a living one, anyway.',
+    vo_coast_descent: 'If this slope could just last another fifteen metres…',
     vo_home_5: 'Empty the boot, and get to work.',
     vo_home_6: 'The gate held without me. Good gate.',
     vo_home_7: 'Right. What can we nail together with all this?',

@@ -95,6 +95,7 @@ export interface TravelOptions {
   readonly departure?: GameState;
   /** App clock when the return starter follows the door slam at the location. */
   readonly ignitionAt?: number;
+  readonly parked?: boolean;
   /** What is in the boot, when driving home. */
   readonly loot?: Cost;
   readonly mopedDisplaced?: Cost;
@@ -156,7 +157,7 @@ export class TravelScene implements Scene {
       }
       if (!this.approach) tripLine('car', departure);
     }
-    if (!this.shot) audio.setAmbience('car', ROAD_AUDIO_FADE_IN);
+    if (!this.shot && !this.options.parked) audio.setAmbience('car', ROAD_AUDIO_FADE_IN);
     const some = (cost: Cost | undefined): cost is Cost => cost !== undefined && Object.values(cost).some((n) => (n ?? 0) > 0);
     const s = S();
     const bikeArt = mopedDisplaced && assetUrl('epic_moped_art');
@@ -200,7 +201,7 @@ export class TravelScene implements Scene {
     }
     if (this.plate === RADIO_PLATE) audio.fadeOut('radio_squelch', 0.15);
     // A skipped ignition has no engine to wind down. Other road scenes may already be driving.
-    if (this.engineStarted || (!this.options.departure && this.options.ignitionAt === undefined)) {
+    if (this.engineStarted || (!this.options.departure && !this.options.parked && this.options.ignitionAt === undefined)) {
       audio.fadeOut(this.options.departure ? 'engine_depart' : 'engine', 0.5);
       audio.play('engine_stop');
     }

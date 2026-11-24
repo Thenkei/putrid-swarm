@@ -1,0 +1,11 @@
+{
+  "id": "coast_jars",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "pkFnCMC0dh88GbakRhAg",
+  "generatedAt": "2026-11-24T16:19:15.103Z",
+  "prompt": "Two loose glass preserving jars with metal lids in the luggage compartment of a 1980s estate car. A little pothole: one low dull clonk and two delicate uneven glass clinks settling in a blanket. Close",
+  "bytes": 130018,
+  "sha256": "1d286e7bc00339c837c5cb06b6eca2761ccb9a8b3be8c0d6ad206349f27726b8"
+}
