@@ -5,8 +5,26 @@ import { NightSim } from '../src/core/night';
 import { opensRadio } from '../src/core/radio';
 import { deserialize, serialize } from '../src/core/save';
 import type { GameState } from '../src/core/types';
+import { hitsWhistle } from '../src/render/fallen-whistle';
+import { project, unproject, type View } from '../src/render/projection';
 
 const at = { x: 8.72, y: 4.31 };
+
+it('keeps the end of the fallen whistle cord selectable at the same spot on the ground after a half-turn', () => {
+  const front: View = { rot: 0, zoom: 1, cx: at.x, cy: at.y, x: 0, y: 0, w: 400, h: 300 };
+  const root = project(front, at.x, at.y);
+  // The leather tip is 20 px right and 9 px up from the brass in the front view.
+  const tip = unproject(front, root.x + 20, root.y - 9);
+  const empty = unproject(front, root.x - 20, root.y + 9);
+  for (const rot of [0, 1] as const) for (const zoom of [.7, 1.5]) {
+    const view = { ...front, cx: at.x + .5, rot, zoom };
+    const cord = project(view, tip.gx, tip.gy);
+    const ground = project(view, empty.gx, empty.gy);
+    expect(hitsWhistle(view, at, cord.x, cord.y)).toBe(true);
+    expect(hitsWhistle(view, at, ground.x, ground.y)).toBe(false);
+  }
+});
+
 function morning() {
   const base = newGame(7);
   const report = { ...new NightSim(6, base.yard, base.seed).report(), night: 6, survived: true, bossDefeated: 'chief' as const, chiefFellAt: at };

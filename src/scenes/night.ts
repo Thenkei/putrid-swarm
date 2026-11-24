@@ -960,7 +960,7 @@ export class NightScene implements Scene {
     this.hoverFeedDevice = null;
     if (!pointer.overCanvas || this.isDark(this.cam)) return;
     const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
-    const picked = pickDevice(view, this.deviceVisuals(null).filter((d) => isManual(d.type)), pointer.x, pointer.y);
+    const picked = pickDevice(view, this.deviceVisuals(this.cam).filter((d) => isManual(d.type)), pointer.x, pointer.y, true);
     this.hoverFeedDevice = picked?.id ?? null;
   }
 
@@ -968,7 +968,7 @@ export class NightScene implements Scene {
     if (this.paused || this.ending) return;
     const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
     // Nothing can be picked out of snow: on a dark camera the traps are fired from the keys.
-    const picked = this.isDark(this.cam) ? undefined : pickDevice(view, this.deviceVisuals(null).filter((d) => isManual(d.type)), pointer.x, pointer.y);
+    const picked = this.isDark(this.cam) ? undefined : pickDevice(view, this.deviceVisuals(this.cam).filter((d) => isManual(d.type)), pointer.x, pointer.y, true);
     if (picked) {
       this.fire(picked.id);
       return;
@@ -1388,7 +1388,7 @@ export class NightScene implements Scene {
       focusSector: sector,
       hoverCell: previewCell ? { x: previewCell.x, y: previewCell.y } : null,
       hoverRadius: hovered ? DEVICES[hovered.type].radius : 0,
-      hoverBarrier: showBarrier,
+      ...(showBarrier && { hoverBarrier: inspected.facing }),
     };
   }
 
@@ -1427,8 +1427,10 @@ export class NightScene implements Scene {
         const color = (alpha: number): string =>
           `rgba(255,${Math.round(171 + 73 * rise)},${Math.round(103 + 111 * rise)},${alpha})`;
         lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: def.radius * (0.78 + 0.22 * rise), color: color(1), intensity });
+        const wear = this.defenseMotion.at(device.id);
+        const hitAge = this.sim.time + (this.ending?.t ?? 0) - (wear?.hitAt ?? -Infinity);
         lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.2, color: color(0.6), intensity,
-          ...floodlightEmitter(device.facing, rot), glow: 1, round: true });
+          ...floodlightEmitter(device.facing, rot, device.hp / def.maxHp, hitAge, wear?.strikes), glow: 1, round: true });
       }
       else if (device.state === 'active') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.6, color: 'rgba(255,180,90,0.6)' });
       else if (device.state === 'armed') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 0.9, color: 'rgba(255,170,70,0.35)', lift: 20 });

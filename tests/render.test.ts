@@ -8,12 +8,13 @@ import { NightSim } from '../src/core/night';
 import { GRID_H, GRID_W, HOUSE, HOUSE_CENTER, LANES, PARKED_CAR, PROPS, SPAWN_CELLS } from '../src/core/map';
 import { DEVICE_TYPE_IDS, SECTOR_IDS } from '../src/core/types';
 import { carManeuver } from '../src/render/car-departure';
-import { deviceArt, floodlightEmitter } from '../src/render/defenses';
+import { defensePaintMatrix, deviceArt, floodlightEmitter, type DefenseArt } from '../src/render/defenses';
 import { fbm, hash2, periodicFbm, seeded, smoothstep, valueNoise } from '../src/render/noise';
-import { cameraView, depthOf, groundMatrix, project, unproject, viewBounds, type Rot, type View } from '../src/render/projection';
+import { cameraView, depthOf, groundMatrix, project, TH, TW, unproject, viewBounds, type Rot, type View } from '../src/render/projection';
 import { TREES, TREE_ROWS, treesIn } from '../src/render/scenery';
 import { FIELD_MARGIN, GROUND_TERRAINS, buildTerrainField, groundTerrainAt, layerAlpha, onTrack, roadCentre, vergeCover, weightAt } from '../src/render/terrainfield';
-import { pickDoor, propSpriteKey } from '../src/render/world';
+import { drawBarrierFootprint, drawParticle, pickDoor, propSpriteKey } from '../src/render/world';
+import { castSilhouette } from '../src/render/shadows';
 import { DOOR_OPENINGS, VISIBLE_DOORS, THRESHOLDS, doorStance } from '../src/render/house';
 import { HOUSE_PAINT_SCALE, PROP_FEET, houseOffset, propRoot, spriteRect } from '../src/render/registration';
 
@@ -201,6 +202,133 @@ describe('projection', () => {
 });
 
 describe('sprite registration through a camera change', () => {
+  async function paintedContacts(art: DefenseArt, samples: readonly (readonly [x: number, y: number])[]) {
+    const { data, info } = await sharp(`public/assets/sprites/${art.key}.webp`).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const [a, b, , d, e, f] = defensePaintMatrix(art, info.width / info.height);
+    return samples.map(([x, nearY]) => {
+      const alpha = (y: number) => data[(y * info.width + x) * 4 + 3] ?? 0;
+      for (let y = nearY - 2; y <= nearY + 2; y++) {
+        if (alpha(y) < 160 || alpha(y + 1) >= 160) continue;
+        const u = (x + 0.5) * 200 / info.width, v = (y + 1) * 200 / info.height;
+        return { x: (a * u + e) * (art.flip ? -1 : 1), y: b * u + d * v + f };
+      }
+      throw new Error(`No timber edge near (${x}, ${nearY}) in ${art.key}`);
+    });
+  }
+
+  // Sample the underside of the timber at its left, near and right corners. A short
+  // vertical search excludes loose springs and splinters below the broken frame.
+  const spikeBases = [
+    [0, 'resting',   [[13, 81], [66, 103], [113, 71]]],
+    [0, 'armed',     [[3, 84],  [55, 106], [103, 73]]],
+    [0, 'triggered', [[14, 78], [64, 99],  [106, 67]]],
+    [0, 'broken',    [[2, 78],  [49, 94],  [93, 69]]],
+    [1, 'resting',   [[16, 96], [70, 127], [118, 74]]],
+    [1, 'armed',     [[15, 95], [70, 127], [117, 75]]],
+    [1, 'triggered', [[16, 96], [71, 127], [118, 74]]],
+    [1, 'broken',    [[18, 90], [74, 124], [118, 74]]],
+  ] as const;
+
+  it.each(spikeBases)('keeps the painted spike base on its grid axes in camera %i, pose %s', async (rot, pose, corners) => {
+    for (const facing of [0, 1] as const) {
+      const screen = await paintedContacts(deviceArt('spikes', facing, pose, rot), corners);
+      const left = screen[0]!, near = screen[1]!, right = screen[2]!;
+      expect(Math.hypot((left.x + right.x) / 2, (left.y + right.y) / 2)).toBeLessThan(2);
+      const width = (right.x - left.x) * (facing === 0 ? 1 : -1);
+      expect(Math.abs(width - 39)).toBeLessThan(4);
+      for (const end of [left, right]) {
+        const gridRise = Math.abs(near.x - end.x) * TH / TW;
+        expect(Math.abs(near.y - end.y - gridRise)).toBeLessThan(1.25);
+      }
+    }
+  });
+
+  // Bottom tips of the two net or fence posts and the two feet under the long barrier rail.
+  it.each([
+    ['net', 0, 'resting', [[43, 185], [146, 158]]],
+    ['net', 1, 'resting', [[50, 173], [156, 153]]],
+    ['net', 0, 'armed', [[26, 183], [131, 159]]],
+    ['net', 1, 'armed', [[50, 174], [156, 154]]],
+    ['barrier', 0, 'resting', [[65, 161], [166, 139]]],
+    ['barrier', 1, 'resting', [[47, 167], [164, 147]]],
+    ['barrier', 0, 'triggered', [[51, 158], [153, 136]]],
+    ['barrier', 1, 'triggered', [[38, 167], [156, 147]]],
+    ['fence', 0, 'resting', [[25, 110], [149, 148]]],
+    ['fence', 1, 'resting', [[22, 106], [147, 147]]],
+  ] as const)('aligns the %s supports with the installed axis in camera %i, pose %s', async (type, rot, pose, ends) => {
+    for (const facing of [0, 1] as const) {
+      const art = deviceArt(type, facing, pose, rot);
+      const screen = await paintedContacts(art, ends);
+      const left = screen[0]!, right = screen[1]!;
+      const slope = (type === 'fence' ? 1 : -1) * (facing === 0 ? 1 : -1) * TH / TW;
+      expect(Math.abs((right.y - left.y) - (right.x - left.x) * slope)).toBeLessThan(1.25);
+      // A post tip is at ground level, so its shadow and paint meet at the same pixel.
+      const matrices: number[][] = [];
+      const ctx = { save() {}, restore() {}, drawImage() {}, transform: (...m: number[]) => matrices.push(m) };
+      castSilhouette(ctx as unknown as CanvasRenderingContext2D, { width: 40, height: 40 } as HTMLCanvasElement,
+        0, 0, art.h, art.flip, 1, .85, art.foot, art.fit);
+      const cast = matrices[0]!;
+      for (const tip of screen) {
+        const x = tip.x * (art.flip ? -1 : 1);
+        expect(Math.abs(cast[0]! * x + cast[2]! * tip.y + cast[4]! - tip.x)).toBeLessThan(1);
+        expect(Math.abs(cast[1]! * x + cast[3]! * tip.y + cast[5]! - tip.y)).toBeLessThan(1);
+      }
+    }
+  });
+
+  it('turns the barrier hatching with the installed rail while keeping its clipped square', () => {
+    for (const rot of [0, 1] as const) for (const facing of [0, 1] as const) {
+      const v = view(rot, 1.45, 5, 13);
+      const paths: { gx: number; gy: number }[][] = [];
+      const vertex = (x: number, y: number) => paths.at(-1)!.push(unproject(v, x, y));
+      let clipped = -1;
+      const ctx = { beginPath() { paths.push([]); }, moveTo: vertex, lineTo: vertex, closePath() {},
+        clip() { clipped = paths.length - 1; }, save() {}, restore() {}, fill() {}, stroke() {} };
+      drawBarrierFootprint(ctx as unknown as CanvasRenderingContext2D, v, { x: 11, y: 14 }, facing);
+      expect(clipped).toBe(0);
+      const corners = paths[clipped]!;
+      expect(corners).toHaveLength(4);
+      for (const corner of corners) {
+        expect(Math.abs(corner.gx - 11.5)).toBeCloseTo(.45);
+        expect(Math.abs(corner.gy - 14.5)).toBeCloseTo(.45);
+      }
+      for (const [start, end] of paths.slice(1)) {
+        expect(end!.gx - start!.gx).toBeCloseTo(facing ? 1 : .44);
+        expect(end!.gy - start!.gy).toBeCloseTo(facing ? .44 : 1);
+      }
+    }
+  });
+
+  it('lands the seven spike fragments on the same world points after a half turn', () => {
+    const p = { kind: 'burst', x: 8.5, y: 9.5, age: 1, life: 1 } as const;
+    const landings = ([0, 1] as const).map(rot => {
+      const v = view(rot, rot ? .69 : 1.45, 7.1, 10.2);
+      const root = project(v, p.x, p.y);
+      const offsets: { x: number; y: number }[] = [];
+      const ctx = { save() {}, restore() {}, beginPath() {}, closePath() {}, moveTo() {}, lineTo() {}, fill() {},
+        scale() {}, rotate() {}, translate(x: number, y: number) { offsets.push({ x, y }); } };
+      drawParticle(ctx as unknown as CanvasRenderingContext2D, v, p);
+      return offsets.slice(1).map(offset => unproject(v, root.x + (rot ? -1 : 1) * v.zoom * offset.x, root.y + v.zoom * offset.y));
+    });
+    expect(landings[0]).toHaveLength(7);
+    for (const [i, point] of landings[0]!.entries()) {
+      expect(landings[1]![i]!.gx).toBeCloseTo(point.gx);
+      expect(landings[1]![i]!.gy).toBeCloseTo(point.gy);
+    }
+  });
+
+  it('keeps the working lamp glow on its leaning pole after a strike', () => {
+    for (const rot of [0, 1] as const) for (const facing of [0, 1] as const) {
+      const healthy = floodlightEmitter(facing, rot);
+      const worn = floodlightEmitter(facing, rot, .1);
+      const hit = floodlightEmitter(facing, rot, .1, .025, 1);
+      const direction = (rot ? -1 : 1) * (facing ? -1 : 1);
+      expect((healthy.dx - worn.dx) * direction).toBeGreaterThan(3);
+      expect((worn.dx - hit.dx) * direction).toBeGreaterThan(3);
+      expect(hit.lift).toBeLessThan(worn.lift);
+    }
+  });
+
   it('keeps the footprint centre under a cropped sprite when rotating a multi-cell prop', () => {
     const car = PROPS.find(p => p.kind === 'car')!;
     const planter = PROPS.find(p => p.kind === 'veg')!;
