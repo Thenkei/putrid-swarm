@@ -240,6 +240,7 @@ export class OrchardScene implements Scene {
   private noteEl!: HTMLElement;
   private overlay!: HTMLElement;
   private pauseMenu!: PauseMenu;
+  private pauseButton!: HTMLButtonElement;
   private promptSignature = '';
   private readonly promptEls = new Map<PromptId, HTMLElement>();
 
@@ -262,8 +263,11 @@ export class OrchardScene implements Scene {
     this.noteEl = el('div', { class: 'orchard-note' });
     this.overlay = el('div');
     const pauseOverlay = el('div');
-    this.pauseMenu = new PauseMenu(pauseOverlay);
-    this.root = el('div', { class: 'orchard' }, [this.titleEl, this.promptsEl, this.meterEl, this.noteEl, this.overlay, pauseOverlay]);
+    this.pauseButton = el('button', { class: 'btn orchard-pause', text: s.finale.pause, onClick: () => this.togglePause() });
+    this.root = el('div', { class: 'orchard orchard-run' }, [this.titleEl, this.promptsEl, this.meterEl, this.noteEl, this.pauseButton, this.overlay, pauseOverlay]);
+    this.root.tabIndex = -1;
+    this.root.setAttribute('aria-label', s.orchard.title);
+    this.pauseMenu = new PauseMenu(pauseOverlay, this.root);
     this.app.ui.append(this.root);
     this.after(0.9, () => say('vo_orchard_arrive'));
   }
@@ -473,6 +477,7 @@ export class OrchardScene implements Scene {
     const ending = this.ending;
     if (ending !== 'spared' && ending !== 'maimed') return;
     this.phase = 'card';
+    this.pauseButton.remove();
     this.phaseTime = 0;
     audio.setMusic('morning');
     const s = S();
@@ -507,6 +512,7 @@ export class OrchardScene implements Scene {
       return;
     }
     if (this.paused) return;
+    if (event.target === this.pauseButton && (code === 'Space' || code === 'Enter')) return;
     const name = KEY_OF[code];
     if (!name) return;
     event.preventDefault();
@@ -794,7 +800,10 @@ export class OrchardScene implements Scene {
       },
       [el('span', { class: 'keys' }, keys), el('span', { class: 'what' }, [label, spec.how ? el('small', { text: s.orchard.how[spec.how] }) : null])],
     );
-    bindPromptPointer(node, this.promptsEl, !!spec.hold, () => this.promptDown(prompt.id));
+    bindPromptPointer(node, this.promptsEl, !!spec.hold, () => {
+      node.focus({ preventScroll: true });
+      this.promptDown(prompt.id);
+    });
     this.promptEls.set(prompt.id, node);
     return node;
   }

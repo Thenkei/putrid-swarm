@@ -3006,6 +3006,61 @@ button:disabled {
     transform 0.9s;
 }
 
+.orchard-pause {
+  position: absolute;
+  right: 14px;
+  top: 8px;
+  transform-origin: top right;
+}
+
+@media (pointer: coarse) {
+  #ui .orchard-pause {
+    min-height: 46px;
+    min-width: 54px;
+    font-size: 16px;
+    transform: scale(calc(1 / var(--stage-scale, 1)));
+    transition: none;
+  }
+  .orchard-run .pause .btn {
+    min-height: calc(44px / var(--stage-scale, 1));
+    font-size: calc(16px / var(--stage-scale, 1));
+    width: 72%;
+  }
+}
+
+@media (pointer: coarse) and (orientation: portrait) {
+  /* The film stays in its original frame. The space below it belongs to the touch controls. */
+  #stage:has(.orchard-run) { overflow: visible; }
+  .orchard-pause { top: auto; bottom: 100%; transform-origin: bottom right; }
+  .orchard-run .qte-layer {
+    inset: 100% auto auto 50%;
+    width: min(100vw, 540px);
+    transform-origin: top left;
+    transform: scale(calc(1 / var(--stage-scale, 1))) translateX(-50%);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 8px;
+    gap: 6px;
+  }
+  .orchard-run .qte-layer[inert] { visibility: hidden; }
+  .orchard-run .qte {
+    position: static;
+    transform: none;
+    animation: none;
+    justify-content: center;
+    padding: 6px 8px;
+    min-height: 46px;
+    border: 1px solid #746447;
+    border-radius: 4px;
+    background: #231f18;
+  }
+  .orchard-run .qte:only-child { grid-column: 1 / -1; }
+  .orchard-run .qte .keys, .orchard-run .how-both small { display: none; }
+  .orchard-run .qte .what { align-items: center; text-align: center; font-size: 17px; line-height: 1.08; white-space: normal; }
+  .orchard-run .qte .what small { margin-top: 2px; font-size: 11px; }
+  .orchard-run .qte .what::after { min-width: 74px; }
+}
+
 .orchard-title.on {
   opacity: 1;
   transform: none;
