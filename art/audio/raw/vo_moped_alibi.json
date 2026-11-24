@@ -1,0 +1,13 @@
+{
+  "id": "vo_moped_alibi",
+  "model": "eleven_v4",
+  "generationId": "66R2BIOBaP2HSYD9zZ00",
+  "generatedAt": "2026-11-24T12:23:42.371Z",
+  "prompt": "[dryly] Bon. Pour Gérard, on dit qu’on l’a pas trouvée.",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "bytes": 73175,
+  "sha256": "67f5bfc8e42acc15dd0577deeb5368357310d5ca15ff56917ed78742b4adf8d9"
+}

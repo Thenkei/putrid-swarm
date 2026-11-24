@@ -13,7 +13,7 @@ import { LAST_NIGHT, sirenPackFor, type SirenSector } from '../core/data/waves';
 import { sirenForNight } from '../core/siren';
 import { detectContact, hasDetector, SCAN_RANGE, SCAN_SECONDS } from '../core/dead-channel';
 import { concludeNight } from '../core/game';
-import { MOPED_BLAST_RADIUS } from '../core/epics';
+import { MOPED_BLAST_RADIUS, wreckSector } from '../core/epics';
 import { HOUSE, sectorOf } from '../core/map';
 import { NightSim, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
 import { deskFor, outageFor } from '../core/orchard';
@@ -948,6 +948,9 @@ export class NightScene implements Scene {
         case 'moped_departure':
           audio.play('epic_mob');
           break;
+        case 'moped_blade_contact':
+          audio.play('moped_blade_contact');
+          break;
         case 'moped_blast':
           audio.fadeOut('epic_mob', 0.04);
           audio.play('epic_mob_blast');
@@ -1198,7 +1201,8 @@ export class NightScene implements Scene {
     const open = ride && ride.blastAt === null ? mopedDoorOpen(time - ride.start) : 0;
     return {
       time,
-      ...(ride && ride.blastAt === null && { mopedRide: ride }),
+      ...(ride && { mopedRide: ride }),
+      mopedWreck: ride?.blastAt === null ? undefined : wreckSector(this.state),
       ...(ride && open > 0 && { houseDoor: { sector: ride.sector, open } }),
       night: true,
       ...(this.sunriseAge !== undefined && { sunriseAge: this.sunriseAge }),

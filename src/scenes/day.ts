@@ -2,6 +2,8 @@
 // out of the day — the car, or waiting for night.
 
 import { epicObject } from './epic-day';
+import { epicFlag, markEpic, wreckSector } from '../core/epics';
+import { hitsMopedWreck } from '../render/moped-wreck';
 import { BARRICADE, DEVICES, HOUSE_MAX_HP, HOUSE_REPAIR, facingsOf, isTrap, turned } from '../core/data/devices';
 import { BOSS } from '../core/data/enemies';
 import { DAY_HOURS } from '../core/data/locations';
@@ -46,8 +48,8 @@ import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/
 import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours } from '../engine/i18n';
-import { sayAny, sayOnce } from '../engine/voice';
+import { S, fmt, hours, line } from '../engine/i18n';
+import { say, sayAny, sayOnce } from '../engine/voice';
 import { onDriveway } from '../core/driveway';
 import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
 import { deviceArt } from '../render/defenses';
@@ -138,6 +140,7 @@ export class DayScene implements Scene {
   private hover: Cell | null = null;
   private hoverDevice: DeviceInstance | null = null;
   private hoverDoor: SectorId | null = null;
+  private hoverWreck = false;
   private panelDoor: SectorId | null = null;
   private previewHp: number | undefined;
   private reinforcementPreview: SectorId | null = null;
@@ -146,6 +149,8 @@ export class DayScene implements Scene {
   private showRoutes = true;
   private sirenPreview: SirenSector | null = null;
   private sceneryAction: SceneryAction | null = null;
+  private mopedAimAt = -Infinity;
+  private previousMopedAim: SectorId | undefined;
   private hornAt = -Infinity;
   private frogStart = -Infinity;
   private time = 0;
@@ -421,7 +426,12 @@ export class DayScene implements Scene {
         ])
       : null;
     if (this.deliverySlip) frame.append(this.deliverySlip);
-    const curiosity = epicObject(this.app, () => this.refresh());
+    const curiosity = epicObject(this.app, () => this.refresh(), (sector, previous) => {
+      this.mopedAimAt = this.time;
+      this.previousMopedAim = previous;
+      this.zoom = Math.max(.94, this.zoom);
+      this.showDoor(sector);
+    });
     if (curiosity) frame.append(curiosity);
     // One column: the doors' panel grows a line taller with every door that needs a nail, and the card under it follows.
     const side = el('div', { class: 'day-side' }, [doors, tonight]);
@@ -666,6 +676,12 @@ export class DayScene implements Scene {
       return;
     }
     const sector = this.inspectedDoor;
+    if (this.hoverWreck) {
+      this.info.replaceChildren(el('b', { text: line('Épave de la mob', 'Moped wreck') }),
+        epicFlag(this.state, 'wreckSeen') ? line('La roue ne tourne plus.', 'The wheel has stopped.')
+          : line('Cliquer pour examiner', 'Click to examine'));
+      return;
+    }
     if (sector) {
       const door = this.state.yard.barricades[sector];
       const reinforcing = this.reinforceButtons.get(sector)?.matches(':hover, :focus');
@@ -1035,9 +1051,14 @@ export class DayScene implements Scene {
     const frame: WorldFrame = {
       time: this.time,
       night: false,
+      mopedWreck: wreckSector(state),
       carPresent: true,
       ...(this.options.arrivedByCar && { exhaustAge: this.time }),
       sceneryAction: this.sceneryAction,
+      ...(epicFlag(state, 'moped') && !epicFlag(state, 'spent') && { parkedMoped: {
+        sector: SECTOR_IDS[epicFlag(state, 'lane') % SECTOR_IDS.length]!,
+        previous: this.previousMopedAim, aimAge: this.time - this.mopedAimAt,
+      } }),
       homesteadLife: { day: state.day, hornAge: this.time - this.hornAt, wellAge: this.time - this.frogStart },
       ...(rattle && { rattle: { sector: rattle, struckAt: null } }),
       devices,
@@ -1107,8 +1128,10 @@ export class DayScene implements Scene {
 
   private updateHover(pointer: Pointer, refreshInfo = false, inspected?: SectorId): void {
     const view = this.view;
-    const before = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor}`;
+    const before = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverWreck}`;
     const inside = pointer.overCanvas && inView(view, pointer.x, pointer.y);
+    const wreck = wreckSector(this.state);
+    this.hoverWreck = !inspected && inside && this.mode.kind === 'idle' && !!wreck && hitsMopedWreck(view, wreck, pointer.x, pointer.y);
     if (inspected) this.panelDoor = inspected;
     else if (inside) this.panelDoor = null;
     if (!inside) {
@@ -1119,7 +1142,7 @@ export class DayScene implements Scene {
       const g = unproject(view, pointer.x, pointer.y);
       const cell = { x: Math.floor(g.gx), y: Math.floor(g.gy) };
       this.hover = cell.x >= 0 && cell.y >= 0 && cell.x < GRID_W && cell.y < GRID_H ? cell : null;
-      if (this.mode.kind === 'build') {
+      if (this.mode.kind === 'build' || this.hoverWreck) {
         this.hoverDevice = null;
         this.hoverDoor = null;
       } else {
@@ -1133,9 +1156,10 @@ export class DayScene implements Scene {
     if (inside) {
       if (this.mode.kind === 'repair' || this.mode.kind === 'dismantle') cursor = this.mode.kind;
       else if (this.mode.kind === 'idle' && this.quickRepair) cursor = 'repair';
+      else if (this.hoverWreck && !epicFlag(this.state, 'wreckSeen')) cursor = 'inspect';
     }
     if (this.app.canvas.dataset.yardCursor !== cursor) this.app.canvas.dataset.yardCursor = cursor;
-    const after = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor}`;
+    const after = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverWreck}`;
     if (refreshInfo || before !== after) this.updateInfo();
   }
 
@@ -1274,6 +1298,15 @@ export class DayScene implements Scene {
         if (this.apply(dismantle(state, at.id), s.day.dismantled, 'click', calmMotion() ? undefined : at) && !calmMotion()) {
           this.dismantling.push({ device: at, age: 0 });
         }
+      }
+      return;
+    }
+    if (this.hoverWreck) {
+      if (!epicFlag(state, 'wreckSeen')) {
+        this.app.state = markEpic(state, 'wreckSeen');
+        this.app.save();
+        say('vo_moped_alibi', { interrupt: true });
+        this.updateHover(this.app.pointer, true);
       }
       return;
     }

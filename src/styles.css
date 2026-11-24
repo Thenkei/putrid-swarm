@@ -65,6 +65,10 @@ body {
   cursor: url('./cursors/dismantle.svg') 2 2, crosshair;
 }
 
+#game[data-yard-cursor='inspect'] {
+  cursor: pointer;
+}
+
 #game[data-yard-cursor='pan'] {
   cursor: grabbing;
 }

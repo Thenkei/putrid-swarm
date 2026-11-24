@@ -1,0 +1,11 @@
+{
+  "id": "moped_blade_contact",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "9UJHHo9NfESXCsdY4xbA",
+  "generatedAt": "2026-11-24T12:23:36.195Z",
+  "prompt": "One single very short dry metallic scrape on an old moped fork, followed immediately by one small muted spring clack. Close rural comedy game Foley under an existing motor track. Crisp onset, slightly raspy midrange, quick natural stop, half a second. Isolated, no voices, no engine or music.",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "bytes": 34305,
+  "sha256": "12ed0886f4c7a8a6cde7faaaf20e51fbf72a0b9e968b78b1579e940d9fddd982"
+}
