@@ -9,10 +9,11 @@ import { ORCHARD, hasLeftArm } from '../core/orchard';
 import { SHED, briefingFor, type Briefing } from '../core/shed';
 import { allyFor, guestOf, lookoutFor } from '../core/radio';
 import { canRigRattle, rattleForNight, RATTLE_COST, RATTLE_HOURS, rigRattle } from '../core/rattle';
+import { previewHornTurn } from '../core/horn-preview';
 import { LAST_NIGHT, planForNight, SIREN_SECTORS, sirenPackFor, type SirenSector } from '../core/data/waves';
 import { canPlanSiren, scheduleSiren, SIREN_COST, sirenForNight } from '../core/siren';
 import { bossOfNight, clockLabel, startNight } from '../core/game';
-import { ENTRIES, GRID_H, GRID_W, MAILBOX, SPAWN_CELLS, idx } from '../core/map';
+import { ENTRIES, GRID_H, GRID_W, MAILBOX, SPAWN_CELLS, idx, inGrid } from '../core/map';
 import { computeField, traceRoute } from '../core/pathing';
 import type { Cell, Cost, DeviceInstance, DeviceTypeId, Facing, GameState, Result, SectorId } from '../core/types';
 import { DEVICE_TYPE_IDS, RESOURCE_IDS, SECTOR_IDS, ok } from '../core/types';
@@ -79,7 +80,10 @@ const PAN_INSET = 2;
 const panLimit = (value: number, size: number): number => Math.min(size - PAN_INSET, Math.max(PAN_INSET, value));
 
 /** How close a predicted route must pass for a device there to do anything. A barrier only holds what walks into it. */
-const coverReach = (type: DeviceTypeId): number => (type === 'barrier' ? 0.5 : DEVICES[type].reach);
+const coverReach = (type: DeviceTypeId): number => {
+  if (type === 'barrier') return 0.5;
+  return type === 'horn' ? DEVICES.horn.radius : DEVICES[type].reach;
+};
 
 /** Where the infected are predicted to walk: sample routes to draw, and every cell stepped on per door. */
 interface RouteOverlay {
@@ -175,6 +179,7 @@ export class DayScene implements Scene {
   private readonly buildIcons = new Map<DeviceTypeId, HTMLImageElement>();
   private routeCache: { key: string; forecast: Forecast } | null = null;
   private ghostCache: { key: string; ghost: Ghost | null; problem: YardError | null } | null = null;
+  private hornPreview: { forecast: Forecast; x: number; y: number; turn: readonly Cell[] } | null = null;
 
   constructor(
     private readonly app: App,
@@ -697,7 +702,9 @@ export class DayScene implements Scene {
       else if (ghost && isTrap(ghost.type)) {
         // The most useful thing to know before paying: will anybody actually walk into it?
         const idle = this.ghostIdle();
-        this.info.append(el('div', { style: { color: idle ? '#ffc24a' : '#c8f08a', marginTop: '4px' }, text: idle ? s.day.offRoute : s.day.onRoute }));
+        const turn = !idle && ghost.type === 'horn' ? this.hornTurn(ghost, this.forecast()) : null;
+        const text = turn ? (turn.length ? s.day.hornTurn : s.day.hornStraight) : idle ? s.day.offRoute : s.day.onRoute;
+        this.info.append(el('div', { style: { color: turn?.length ? '#a8d9f2' : idle || turn ? '#ffc24a' : '#c8f08a', marginTop: '4px' }, text }));
       } else if (DEVICES[this.mode.type].blocks) this.info.append(el('div', { class: 'muted', style: { marginTop: '4px' }, text: s.day.dragHint }));
       this.info.append(el('div', { class: 'muted', style: { marginTop: '4px' }, text: s.day.turnHint }));
       return;
@@ -953,7 +960,7 @@ export class DayScene implements Scene {
     const span = Math.ceil(reach);
     for (let dy = -span; dy <= span; dy++) {
       for (let dx = -span; dx <= span; dx++) {
-        if (Math.hypot(dx, dy) <= reach && traffic.has(idx(x + dx, y + dy))) return true;
+        if (inGrid(x + dx, y + dy) && Math.hypot(dx, dy) <= reach && traffic.has(idx(x + dx, y + dy))) return true;
       }
     }
     return false;
@@ -964,6 +971,14 @@ export class DayScene implements Scene {
     const ghost = this.currentGhost().ghost;
     if (!ghost || !ghost.ok || !isTrap(ghost.type)) return false;
     return !this.covers(ghost.type, ghost.x, ghost.y, this.forecast().traffic);
+  }
+
+  private hornTurn(horn: Cell, forecast: Forecast): readonly Cell[] {
+    const cached = this.hornPreview;
+    if (cached?.forecast === forecast && cached.x === horn.x && cached.y === horn.y) return cached.turn;
+    const turn = previewHornTurn(horn, forecast.routes, forecast.traffic, fenceCells(this.state.yard.devices));
+    this.hornPreview = { forecast, x: horn.x, y: horn.y, turn };
+    return turn;
   }
 
   /** The approaches tonight's infected come from: the tracks the protagonist found this morning. */
@@ -1049,6 +1064,7 @@ export class DayScene implements Scene {
       ghost,
       // While placing something the routes are the whole point, so they show regardless of the toggle.
       ...(overlay && { routes: overlay.routes, traffic: overlay.traffic }),
+      ...(ghost?.type === 'horn' && ghost.ok && !ghost.idle && forecast && { hornTurn: this.hornTurn(ghost, forecast) }),
       hoverCell: reaching ? { x: reaching.x, y: reaching.y } : this.hover,
       hoverRadius: !barrier && reachDef && reachDef.mode !== 'passive' ? Math.max(reachDef.radius, reachDef.reach) : 0,
       hoverBarrier: barrier && (ghost?.ok === true || (this.mode.kind === 'idle' && reaching !== null)),

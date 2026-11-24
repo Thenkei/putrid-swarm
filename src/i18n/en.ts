@@ -238,6 +238,8 @@ export const en: Strings = {
     tagPassive: 'OBSTACLE',
     offRoute: 'No predicted route comes within reach: this trap would do nothing here.',
     onRoute: 'On their way.',
+    hornTurn: 'Blue marks where a walker could turn toward the horn.',
+    hornStraight: 'No turn toward the horn on the routes shown.',
     dragHint: 'Hold the button and drag to draw a line of palisades.',
     turnHint: 'F or right click: turn the piece.',
     placed: '{name} in place',

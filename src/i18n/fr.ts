@@ -240,6 +240,8 @@ export const fr = {
     tagPassive: 'OBSTACLE',
     offRoute: 'Aucun trajet prévu ne passe à portée : ce piège ne servirait à rien ici.',
     onRoute: 'Sur le passage.',
+    hornTurn: 'En bleu, où un infecté pourrait bifurquer vers le klaxon.',
+    hornStraight: 'Aucune bifurcation vers le klaxon sur les trajets affichés.',
     dragHint: 'Maintenez le clic et glissez pour tirer une ligne de palissades.',
     turnHint: 'F ou clic droit : tourner la pièce.',
     placed: '{name} en place',
