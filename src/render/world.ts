@@ -15,7 +15,8 @@ import { drawGround, prepareGround, setGroundDresser } from './ground';
 import { DOOR_OPENINGS, VISIBLE_DOORS, damagedFacade, doorStance, hingedLeaves, houseDamageStage, outsideSillDepth, paintHouse, type HouseDoor } from './house';
 import { drawMopedScorch, mopedRideDrawable, mopedStruckPose } from './moped';
 import { drawMopedTracks, mopedParkingSpot, parkedMopedDrawable, trackOpacity, type ParkedMoped } from './parked-moped';
-import { mopedPath } from '../core/epics';
+import { mopedPath, type PackTrail } from '../core/epics';
+import { yardPackTrail } from './pack-tracks';
 import { drawHouseDebris, type HouseBreak } from './house-debris';
 import { calmMotion, drawCloudShadows, drawMist, type Light } from './lighting';
 import { hash2, smoothstep } from './noise';
@@ -105,6 +106,7 @@ export interface WorldFrame {
   readonly houseDoor?: HouseDoor;
   readonly mopedRide?: NonNullable<NightSim['mopedRide']>;
   readonly mopedWreck?: SectorId | undefined;
+  readonly packTrail?: PackTrail | undefined;
   readonly parkedMoped?: ParkedMoped;
   readonly houseBreaks?: readonly HouseBreak[];
   readonly carPresent: boolean;
@@ -818,6 +820,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
 
   drawDecals(ctx, view, frame.decals);
   if (frame.mopedWreck) drawMopedScorch(ctx, view, frame.mopedWreck);
+  if (frame.packTrail) yardPackTrail(ctx, view, frame.packTrail);
   if (frame.departingCar) drawHeadlightPools(ctx, view, frame.departingCar);
   drawGroundOverlays(ctx, view, frame);
   if (frame.parkedMoped) {

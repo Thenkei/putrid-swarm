@@ -1,5 +1,7 @@
 import { clamp01, hash2, smoothstep } from './noise';
 import { dawnCel, flowerPose, gateHare } from './sunrise';
+import type { PackTrail } from '../core/epics';
+import { paintedPackTrail } from './pack-tracks';
 
 type Point = { x: number; y: number };
 type Bounds = Point & { w: number; h: number };
@@ -101,7 +103,7 @@ export class MorningGarden {
   private readonly firstPatch: number;
   private readonly hareDelay: number;
 
-  constructor(night: number) {
+  constructor(night: number, private readonly trail?: PackTrail) {
     this.firstPatch = (night - 1) % PATCHES.length;
     this.fromPatch = this.firstPatch;
     this.hareDelay = (night - 1) % 3 * .28;
@@ -120,6 +122,7 @@ export class MorningGarden {
     this.bounds = bounds;
     ctx.save();
     ctx.translate(bounds.x, bounds.y); ctx.scale(bounds.w / PAPER_W, bounds.h / PAPER_H);
+    if (this.trail) paintedPackTrail(ctx, this.trail);
     kitchenGardenMist(ctx, time, still);
     gateWeb(ctx, time, still);
     hareAtGate(ctx, time - this.hareDelay, still);

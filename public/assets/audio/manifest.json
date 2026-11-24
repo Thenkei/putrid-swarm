@@ -1,4 +1,40 @@
 {
+  "bolt_slide": {
+    "file": "bolt_slide.mp3",
+    "kind": "sfx",
+    "seconds": 0.601,
+    "gain": 0.55
+  },
+  "bolt_seat": {
+    "file": "bolt_seat.mp3",
+    "kind": "sfx",
+    "seconds": 0.601,
+    "gain": 0.8
+  },
+  "photo_dip": {
+    "file": "photo_dip.mp3",
+    "kind": "sfx",
+    "seconds": 0.679,
+    "gain": 0.7
+  },
+  "photo_lift": {
+    "file": "photo_lift.mp3",
+    "kind": "sfx",
+    "seconds": 0.679,
+    "gain": 0.72
+  },
+  "vhs_play": {
+    "file": "vhs_play.mp3",
+    "kind": "sfx",
+    "seconds": 0.862,
+    "gain": 0.73
+  },
+  "vhs_eject": {
+    "file": "vhs_eject.mp3",
+    "kind": "sfx",
+    "seconds": 0.862,
+    "gain": 0.74
+  },
   "moped_door": {
     "file": "moped_door.mp3",
     "kind": "sfx",

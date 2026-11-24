@@ -52,3 +52,18 @@ it('costs a warning when seen moving and ends after the second sighting', () => 
   }
   expect(game.outcome).toBe('fled');
 });
+
+it('anchors the acknowledgement to the signal and releases the pose at the next gate', () => {
+  const game = new GardenEscort(true, 42);
+  game.position = game.layout.length - .1;
+  game.step(.5);
+  game.signal();
+  expect(game.signalTime).toBe(.5);
+  expect(game.signalPosition).toBe(game.position);
+  expect(game.step(.05)).toBe('next');
+  expect(game.signalTime).toBe(-Infinity);
+  expect(game.advance).toBe(false);
+  game.signal();
+  expect(game.signalTime).toBe(0);
+  expect(game.signalPosition).toBe(0);
+});

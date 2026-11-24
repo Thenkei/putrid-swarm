@@ -1,0 +1,11 @@
+{
+  "id": "vhs_eject",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "NbdKE2vnFkVpjGMLtpGu",
+  "generatedAt": "2026-11-24T12:51:05.889Z",
+  "prompt": "Isolated sound of a 1980s VHS player ejecting a cassette. Start with the little motor winding down, then the tape carriage rises with a very distinct hollow plastic double clunk and stops. Compact 0.8 second close mechanical foley, no beep, music or speech.",
+  "bytes": 66070,
+  "sha256": "f7f12a601d730b023ebbf4e03486b572b2fb23648cb8b230eee7504ca0e26227"
+}

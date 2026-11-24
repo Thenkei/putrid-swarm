@@ -62,7 +62,29 @@ const houseShotgun = [
   '[boom][floor][crack][slide][latch]amix=inputs=5:duration=first:dropout_transition=0,aformat=channel_layouts=mono,volume=8,alimiter=limit=0.86:attack=2:release=35',
 ].join(';');
 
+// Bring the play key and the capstan run-up together on the first arcade frame.
+const vhsTransport = [
+  'asplit[key][motor]',
+  '[key]atrim=start=0.14:end=0.245,asetpts=PTS-STARTPTS[keyDown]',
+  '[motor]atrim=start=1.06:end=2.29,asetpts=PTS-STARTPTS,atempo=1.7,afade=t=out:st=0.61:d=0.1[spin]',
+  '[keyDown][spin]concat=n=2:v=0:a=1',
+].join(';');
+
+const vhsEjection = [
+  'asplit=3[key][motor][tray]',
+  '[key]atrim=start=0.09:end=0.22,asetpts=PTS-STARTPTS,volume=0.60[release]',
+  '[motor]atrim=start=1.71:end=2.30,asetpts=PTS-STARTPTS,atempo=1.6,volume=2.8[whirr]',
+  '[tray]atrim=start=2.38:end=2.78,asetpts=PTS-STARTPTS,atempo=1.24,volume=1.45[clunk]',
+  '[release][whirr][clunk]concat=n=3:v=0:a=1',
+].join(';');
+
 export const AUDIO = [
+  sfx('bolt_slide', 0.55, "One short gritty scrape of an old iron barrel bolt pushed a few centimetres along a wooden farmhouse door. Starts moving immediately, intimate low rasp of steel against its guides, fades out cleanly. No closing impact, knocking, room tone, voices or music.", { gain: 0.55, peak: -6, maxSeconds: 0.55, tail: .045 }),
+  sfx('bolt_seat', 0.55, "Single thick iron barrel bolt seating in its keeper on an old oak door. Immediate compact, weighty metal-on-metal ka-chunk with a tiny wooden resonance. Less than half a second. Isolated dry foley, no jingling keys or door slam.", { gain: 0.8, peak: -4, maxSeconds: 0.55, tail: .045 }),
+  sfx('photo_dip', 0.65, "Close quiet darkroom foley. One small sheet of stiff photographic paper touches a shallow enamel tray of water and slides under the surface. Delicate paper-edge skiff and low soft slosh in one gesture, stops in half a second. No running water, pouring, large splash, music or voice.", { edit: 'atrim=start=0.48:end=1.2,asetpts=PTS-STARTPTS,atempo=1.12', gain: 0.7, peak: -6, maxSeconds: 0.65, tail: .045 }),
+  sfx('photo_lift', 0.78, "One wet photographic print lifted from a shallow darkroom tray. A soft sticky peel from the water and two small clear droplets falling back into the tray. Start immediately, delicate quiet close dry Foley. Complete in three quarters of a second, no running water or background.", { gain: 0.72, peak: -6, maxSeconds: 0.78, tail: .045 }),
+  sfx('vhs_play', 0.85, "Close mechanical one-shot of a 1980s domestic VHS deck engaging PLAY. A solid plastic key clack, followed by a low short motor whirr spinning up as the tape threads. Tactile worn mechanism, finished in under one second. No beep, television static, music or speech.", { edit: vhsTransport, gain: 0.73, peak: -5, maxSeconds: 0.85, tail: .045 }),
+  sfx('vhs_eject', 0.85, "Isolated sound of a 1980s VHS player ejecting a cassette. Start with the little motor winding down, then the tape carriage rises with a very distinct hollow plastic double clunk and stops. Compact 0.8 second close mechanical foley, no beep, music or speech.", { edit: vhsEjection, gain: 0.74, peak: -5, maxSeconds: 0.85, tail: .045 }),
   sfx('moped_door', .75, 'One quiet close-miked wooden shed door opening, isolated French rural game Foley. Start immediately with a distinct small iron thumb latch lifting out of its keeper: click-clack. A short worn hinge creaks upward as the timber door swings open. The sound settles cleanly within seven tenths of a second. Intimate, tangible and dry, no slam, closing sound, impact, footsteps, motor, music, or background.', { edit: 'atrim=start=0.12:end=0.74,asetpts=PTS-STARTPTS,volume=16dB,atempo=0.67', peak: -8, gain: .76, maxSeconds: .72, tail: .055 }),
   sfx('epic_flare', 0.65, 'A single 0.65 second burst of stylized fire for a retro French horror videogame, close dry gas ignition fwoomp and a crisp rushing flame tail, isolated sound effect, no ambience or speech.', { peak: -5, gain: 0.78, maxSeconds: 0.68 }),
   sfx('epic_mob', 1.65, 'Isolated arcade game vehicle cue, 1.6 seconds of rapid acceleration on a scrappy old French two-stroke moped. Immediate dry put-put-put kick, then a rising raspy, nasal engine buzz as the tiny machine races down a lane. Front-loaded start, quick rev increase already within its first second, high rev by 1.4 seconds. Motor only. No horn, crash, impact, blast, background, music, or voice.', { edit: mopedRun, peak: -8, gain: .78, maxSeconds: 1.64, tail: .045 }),

@@ -43,6 +43,7 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
   const control = (label: string, click: () => void) => el('button', { class: 'btn', text: label, onClick: click });
   let camera = 2, stage = 0, time = 0, arrivalTime = 0, opened: number | null = null, crossed = false, done = false, slow = false;
   let feedback = '', feedbackUntil = 0;
+  let heardBoot = false;
   const atGate = () => stage === route.length;
   function end(rescued: boolean, damage: number, message: string) {
     if (done) return;
@@ -64,6 +65,7 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
     feedbackUntil = time + 1.7;
   }
   function switchCamera(index: number) {
+    if (index === 2 && camera !== index) arrivalTime = 0;
     if (camera !== index) audio.play('click', .30);
     camera = index;
     const plate = plates[index];
@@ -141,6 +143,10 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
     time += dt * (slow ? .45 : 1);
     arrivalTime += dt * (slow ? .45 : 1);
     const gate = atGate(), subject = route[stage] ?? 2;
+    if (!heardBoot && !gate && camera === 2 && subject === 2 && arrivalTime >= .8) {
+      heardBoot = true;
+      audio.play('step_gravel', .48, .88);
+    }
     let cue: string;
     if (gate) {
       const phase = packPhase(time);
@@ -160,11 +166,14 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
         cue = crossed ? L('Queue dégagée. Referme !', 'Tail clear. Lower it!') : L('Le petit traverse…', 'The cub is crossing…');
       } else {
         cue = phase >= PACK_RETURN - .95 && phase < PACK_RETURN ? L('Ils reviennent. Attends la prochaine trouée.', 'They’re coming back. Wait for the next gap.')
-          : phase >= PACK_GAP && phase < PACK_RETURN ? L('Passage libre.', 'The approach is clear.') : L('Des infectés traversent.', 'Infected crossing.');
+          : phase >= PACK_GAP && phase < PACK_RETURN ? L('Passage libre.', 'The approach is clear.')
+          : phase < PACK_GAP ? L('Un infecté passe à portée de patte. Le museau reste tourné vers le petit.', 'An infected passes within reach. The wolf keeps its muzzle turned towards the cub.')
+          : L('Des infectés traversent.', 'Infected crossing.');
       }
     } else {
-      cue = camera === subject ? L('Quatre petites empreintes. Une touffe claire au bout de la queue.', 'Four small prints. A pale tuft at the tip of the tail.')
-        : camera === 2 ? L('Un adulte s’avance dans la lumière. L’autre monte la garde au verger.', 'An adult steps into the light. The other keeps watch at the orchard.')
+      cue = camera === 2 && camera === subject ? L('Quatre petites empreintes sous la grille. L’adulte baisse le museau vers le petit.', 'Four small prints under the gate. The adult lowers its muzzle towards the cub.')
+        : camera === subject ? L('Quatre petites empreintes. Une touffe claire au bout de la queue.', 'Four small prints. A pale tuft at the tip of the tail.')
+        : camera === 2 ? L('Un adulte entre dans la lumière. Un infecté le frôle et poursuit sa route.', 'An adult steps into the light. An infected brushes past and keeps walking.')
         : camera === (subject + 1) % 3 ? L('Silhouette haute. Les oreilles d’un adulte pivotent.', 'Tall silhouette. An adult’s ears turn.')
         : L('Deux pas traînants. Un infecté longe le grillage.', 'Two dragging footsteps. An infected follows the fence.');
     }

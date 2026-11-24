@@ -7,6 +7,7 @@ import { Decks } from './deck';
 
 export type Sfx =
   | 'epic_flare' | 'moped_door' | 'moped_blade_contact' | 'epic_mob' | 'epic_mob_blast' | 'epic_tape' | 'epic_pack'
+  | 'bolt_slide' | 'bolt_seat' | 'photo_dip' | 'photo_lift' | 'vhs_play' | 'vhs_eject' | 'vhs_knock'
   | 'click'
   | 'deny'
   | 'build'
@@ -160,6 +161,7 @@ const VARIANTS: Partial<Record<Sfx, readonly string[]>> = {
   hit: numbered('hit', 3),
   kill: numbered('kill', 3),
   door: numbered('door', 3),
+  vhs_knock: ['door'],
   build: numbered('build', 3),
   rummage: numbered('rummage', 4),
   loot: numbered('loot', 3),
@@ -929,6 +931,12 @@ class AudioEngine {
         this.tone('sawtooth', 130, 45, 0.3, 0.16);
         this.noise('lowpass', 500, 100, 0.25, 0.25, 0.04);
         break;
+      case 'vhs_knock':
+        for (const delay of [0, .32, .62]) {
+          this.noise('lowpass', 620, 110, .12, .19, delay / rate);
+          this.tone('triangle', 104, 51, .13, .17, delay / rate);
+        }
+        break;
       case 'door':
         this.tone('sine', 85, 45, 0.16, 0.5);
         this.noise('lowpass', 400, 120, 0.12, 0.3);
@@ -1066,6 +1074,30 @@ class AudioEngine {
       case 'broken':
         this.noise('bandpass', 1600, 500, 0.3, 0.4, 0, 1.5);
         this.tone('square', 160, 60, 0.2, 0.2, 0.05);
+        break;
+      case 'bolt_slide':
+        this.noise('bandpass', 1250, 480, .24, .07);
+        break;
+      case 'bolt_seat':
+        this.noise('bandpass', 1900, 610, .055, .16);
+        this.tone('triangle', 210, 113, .10, .10);
+        break;
+      case 'photo_dip':
+        this.noise('lowpass', 850, 340, .19, .065);
+        break;
+      case 'photo_lift':
+        this.noise('highpass', 530, 1100, .11, .035);
+        this.tone('sine', 710, 420, .045, .045, .20);
+        this.tone('sine', 800, 540, .035, .035, .37);
+        break;
+      case 'vhs_play':
+        this.noise('bandpass', 1300, 430, .05, .09);
+        this.tone('triangle', 95, 170, .3, .048, .045);
+        break;
+      case 'vhs_eject':
+        this.tone('triangle', 170, 88, .22, .055);
+        this.noise('bandpass', 1400, 410, .07, .12, .22);
+        this.noise('lowpass', 1000, 310, .08, .10, .30);
         break;
       case 'car_latch':
       case 'car_door':

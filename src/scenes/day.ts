@@ -2,7 +2,7 @@
 // out of the day — the car, or waiting for night.
 
 import { epicObject } from './epic-day';
-import { epicFlag, markEpic, wreckSector } from '../core/epics';
+import { epicFlag, markEpic, packTrail, wreckSector } from '../core/epics';
 import { hitsMopedWreck } from '../render/moped-wreck';
 import { BARRICADE, DEVICES, HOUSE_MAX_HP, HOUSE_REPAIR, facingsOf, isTrap, turned } from '../core/data/devices';
 import { BOSS } from '../core/data/enemies';
@@ -1052,6 +1052,7 @@ export class DayScene implements Scene {
       time: this.time,
       night: false,
       mopedWreck: wreckSector(state),
+      packTrail: packTrail(state),
       carPresent: true,
       ...(this.options.arrivedByCar && { exhaustAge: this.time }),
       sceneryAction: this.sceneryAction,

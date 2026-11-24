@@ -1,0 +1,18 @@
+.epic-key-door.stove-return { position:absolute; inset:0; overflow:hidden; isolation:isolate; background:#262b2b url('../assets/epic-stove-door.webp') center / 100% 100% no-repeat; }
+.stove-return [hidden] { display:none; }
+.stove-return .stove-cord { position:absolute; inset:0; width:100%; height:100%; object-fit:fill; }
+.stove-return canvas.epic-key { position:absolute; height:24%; width:auto; object-fit:contain; transform:translate(-50%,-10%) rotate(var(--tilt)); transform-origin:50% 10%; filter:drop-shadow(2px 3px 2px #141109); }
+.stove-return canvas.stove-hand { position:absolute; height:145%; width:auto; max-width:none; transform-origin:23% 0; object-fit:contain; filter:brightness(.83) saturate(.81) drop-shadow(4px 5px 2px #100f12a6); }
+.stove-return[data-beat=caught] .stove-hand, .stove-return[data-beat=unlock] .stove-hand { transform-origin:9% 0; }
+.stove-return .stove-gauge { position:absolute; bottom:6%; left:9%; right:9%; height:15px; border-radius:2px; background:#151b1aeb; box-shadow:0 1px 0 #9c8c6d80; }
+.stove-gauge .epic-slot { position:absolute; inset:3px auto 2px 50%; transform:translateX(-50%); border:solid #c9ad7b; border-width:0 2px; background:#a88c553e; }
+.stove-gauge .epic-slot[data-aligned=true] { background:#edc97f88; border-color:#fff1c6; }
+.stove-marker { position:absolute; top:-4px; height:21px; width:4px; transform:translateX(-50%); background:#ffdd9a; box-shadow:0 0 0 1px #282016; }
+.stove-return canvas.stove-soot-print { position:absolute; left:47.8%; top:46%; width:13%; height:auto; opacity:.94; transform:rotate(-9deg); }
+.refuge-curiosities .stove-morning[open] { width:430px; max-width:min(430px,76vw); }
+.stove-morning-photo { position:relative; overflow:hidden; margin-top:7px; background:#32291d; }
+.stove-morning-photo img { display:block; width:100%; height:auto; }
+.stove-morning-photo .stove-soot-print { position:absolute; left:89.2%; top:37.7%; width:9%; height:auto; transform:rotate(-9deg); }
+@media (min-width:881px) and (pointer:fine) {
+  #stage:has(.stove-return) #subtitle { top:28px; bottom:auto; left:58%; max-width:52%; }
+}

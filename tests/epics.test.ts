@@ -183,10 +183,10 @@ describe('daily epics', () => {
       expect(epicFlag(morning, 'spent')).toBe(1);
     }
   });
-  it('restores the garage print only after its darkroom night is concluded', () => {
-    const state = markEpic({ ...newGame(17), day: 3, phase: 'night' }, 'garagePrint');
-    expect(epicFlag(deserialize(serialize(state))!, 'garagePrint')).toBe(0);
-    expect(epicFlag(deserialize(serialize({ ...state, phase: 'morning' }))!, 'garagePrint')).toBe(1);
+  it.each([[2, 'sootyLock'], [3, 'garagePrint']] as const)('restores the night %i print only after its night is concluded', (day, print) => {
+    const state = markEpic({ ...newGame(17), day, phase: 'night' }, print);
+    expect(epicFlag(deserialize(serialize(state))!, print)).toBe(0);
+    expect(epicFlag(deserialize(serialize({ ...state, phase: 'morning' }))!, print)).toBe(1);
   });
   it.each(SECTOR_IDS)('waits for the wheel to clear the %s sill before enabling the blades', sector => {
     const state = newGame(12);
