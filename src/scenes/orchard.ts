@@ -38,6 +38,7 @@ import { S, fmt, hours } from '../engine/i18n';
 import { endingsTally, rememberEnding as remember } from '../engine/progress';
 import { hush, say, type VoiceId } from '../engine/voice';
 import { Atmosphere, drawArm } from './atmosphere';
+import { calmMotion } from '../render/lighting';
 import { goDay, goEnd, goTitle } from './flow';
 
 // ───────────────────────────── Framing ─────────────────────────────
@@ -910,7 +911,8 @@ export class OrchardScene implements Scene {
 
   private groundShots(): ShotLayer<Place>[] {
     const o = this.orchard;
-    const bob = this.walking ? Math.sin(this.stride * Math.PI) * 7 : 0;
+    const still = calmMotion();
+    const bob = !still && this.walking ? Math.sin(this.stride * Math.PI) * 7 : 0;
 
     if (this.phase === 'intro' || o.beat === 'arrive') {
       // Out of the back door, toward the white dot at the foot of the pole.
@@ -924,7 +926,7 @@ export class OrchardScene implements Scene {
     }
 
     // A head is never level: it tips with each step, and it trembles once the arm has been bitten.
-    const roll = (this.walking ? Math.sin(this.stride * Math.PI) * 0.007 : 0) + (o.infection > 0 ? Math.sin(this.time * 9) * 0.0025 * (1 + o.infection * 2) : 0);
+    const roll = still ? 0 : (this.walking ? Math.sin(this.stride * Math.PI) * 0.007 : 0) + (o.infection > 0 ? Math.sin(this.time * 9) * 0.0025 * (1 + o.infection * 2) : 0);
     // Zoomed in a little further when tilted, so the corners never show.
     const cam: Cam = { zoom: this.cam.zoom + Math.abs(roll) * 2.4, x: this.cam.x, y: this.cam.y + bob, roll };
     if (o.heading !== null && o.walk > 0) {
@@ -980,6 +982,10 @@ export class OrchardScene implements Scene {
 
   /** Looking anywhere but down: the branches, swaying more with every stroke. */
   private drawCanopy(ctx: CanvasRenderingContext2D, alpha: number): void {
+    if (calmMotion()) {
+      this.drawShot(ctx, CANOPY, { zoom: 1.2, x: CX, y: CY }, alpha);
+      return;
+    }
     const o = this.orchard;
     const fall = o.beat === 'bleeding' ? clamp01(o.clock / ORCHARD.bleedSeconds) : this.ending === 'bled' ? 1 : 0;
     const sway = Math.sin(this.time * 1.3) * 0.02 + this.sawSwing * (this.sawSide === 'left' ? -0.02 : 0.02) + fall * 0.22;
@@ -1049,12 +1055,18 @@ export class OrchardScene implements Scene {
   /** What the player sees of himself: the arm, the rabbit on it, the saw. */
   private drawBody(ctx: CanvasRenderingContext2D): void {
     const o = this.orchard;
-    const jitter = (amount: number): number => (Math.random() * 2 - 1) * amount;
+    const still = calmMotion();
+    const jitter = (amount: number): number => still ? 0 : (Math.random() * 2 - 1) * amount;
 
     if (o.beat === 'guard' || this.ending === 'throat') {
       // Straight at the eyes, teeth first.
       const t = this.ending === 'throat' ? 1 + this.phaseTime * 2.2 : o.clock / ORCHARD.guardSeconds;
       const from = this.onScreen({ x: SPOT.rabbit.x, y: SPOT.rabbit.y - 70 });
+      if (still) {
+        // Leave the guard prompt unobstructed. The change of pose signals the attack.
+        this.drawSprite(ctx, 'orchard_rabbit_more_leap', from.x, from.y - 36, 275, { ay: 0.5 });
+        return;
+      }
       const off = 0.26;
       if (t < off) {
         // Off the ground: small, still over there.
@@ -1086,7 +1098,7 @@ export class OrchardScene implements Scene {
       this.drawSprite(ctx, 'orchard_arm_guard', -34 + jitter(this.shake * 0.5), STAGE_H + 92 + rise * 300 + jitter(this.shake * 0.5), 810, {
         ax: 0,
         ay: 1,
-        rot: -this.kick * 0.07 + Math.sin(this.time * 37) * 0.008,
+        rot: still ? 0 : -this.kick * 0.07 + Math.sin(this.time * 37) * 0.008,
       });
       return;
     }
@@ -1182,7 +1194,8 @@ export class OrchardScene implements Scene {
       edge(0, 0, 0, 0.5 + t * 0.9, 0.5 - t * 0.48);
       flat('#000', t * t * 0.85);
     }
-    flat('#fff', this.white);
+    if (calmMotion()) edge(103, 32, 15, this.white * .38, .38);
+    else flat('#fff', this.white);
 
     if (this.phase === 'intro') flat('#000', 1 - this.phaseTime / 1.4);
     if (this.phase === 'outro' && this.ending) {
@@ -1191,9 +1204,11 @@ export class OrchardScene implements Scene {
         case 'spared':
           break;
         case 'maimed':
-          // White first, like a faint; then nothing for a while.
-          flat('#fff', clamp01(t / 0.9) * (1 - clamp01((t - 1.6) / 1.2)));
-          flat('#000', clamp01((t - 1.6) / 1.2));
+          if (calmMotion()) flat('#000', clamp01(t / 2.8));
+          else {
+            flat('#fff', clamp01(t / 0.9) * (1 - clamp01((t - 1.6) / 1.2)));
+            flat('#000', clamp01((t - 1.6) / 1.2));
+          }
           break;
         case 'throat':
           flat('#3a0604', clamp01(t / 0.25));
@@ -1218,7 +1233,7 @@ export class OrchardScene implements Scene {
     const shown = !(this.phase === 'outro' && this.ending === 'throat' && this.phaseTime > 1.5);
     if (shown) {
       ctx.save();
-      ctx.translate((Math.random() * 2 - 1) * this.shake, (Math.random() * 2 - 1) * this.shake);
+      if (!calmMotion()) ctx.translate((Math.random() * 2 - 1) * this.shake, (Math.random() * 2 - 1) * this.shake);
       if (this.phase === 'card' && this.ending === 'maimed') this.drawShot(ctx, WIDE, { zoom: 1.08 + this.phaseTime * 0.004, x: CX, y: CY }, 1);
       else {
         if (this.canopy < 1) this.drawGround(ctx);
