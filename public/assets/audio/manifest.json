@@ -1,4 +1,10 @@
 {
+  "chief_pocket": {
+    "file": "chief_pocket.mp3",
+    "kind": "sfx",
+    "seconds": 0.888,
+    "gain": 0.78
+  },
   "chief_watch": {
     "file": "chief_watch.mp3",
     "kind": "sfx",

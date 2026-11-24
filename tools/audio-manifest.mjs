@@ -89,6 +89,7 @@ const quietNightBed = [
 ].join(';');
 
 export const AUDIO = [
+  sfx('chief_pocket', .85, 'One tiny close foley gesture of slipping an old brass whistle into a worn work trouser pocket. A short soft dry rustle of coarse cotton, a little leather lanyard brushing a seam, one quiet muted brass tap inside fabric, then stillness. All in the first second. Absolutely no blown whistle, high ringing, keys jingling, voices, movement afterwards, music or ambience.', { gain: .78, peak: -10, maxSeconds: .85, tail: .06 }),
   sfx('chief_watch', .24, 'A single close dry foley of a worn police pocket watch being snapped shut by a thumb. One tiny soft metal hinge movement then a decisive crisp high double click of the lid seating against brass. Intimate, easily recognizable from a desk or a quiet garden, no repeat. Start instantly, done in a quarter second. No clock ticking, background, footsteps, music, voices or echo.', {
     // Keep the hinge and the lid seating, close together like one movement of the thumb.
     edit: 'asplit=2[a][b];[a]atrim=end=0.095,asetpts=PTS-STARTPTS,volume=0.58[hinge];[b]atrim=start=1.50:end=1.63,asetpts=PTS-STARTPTS[seat];[hinge][seat]concat=n=2:v=0:a=1',

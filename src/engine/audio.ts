@@ -34,6 +34,7 @@ export type Sfx =
   | 'whistle'
   | 'chief_watch'
   | 'chief_dawn_whistle'
+  | 'chief_pocket'
   | 'megaphone'
   | 'ram'
   | 'interrupt'

@@ -95,7 +95,7 @@ At the garage, the Mechanic holds up a greasy palm until the hoist chain goes qu
 
 [Watch the Chief at the station, the crowd splitting at the gate and the whistle at dawn, with the in-game sound.](docs/previews/chief-whistle.mp4)
 
-After the second search at the police station, a desk lamp catches the Chief's eyes in the window. He snaps his watch shut, blows his whistle and points to the exit. On night six the same click precedes the whistle. The walkers tight behind his shield keep their course as the horn draws stragglers away from the hedge. A floodlight exposes the Chief himself. If he falls, the whistle lies where he landed. After the radio call, Hugo can pick it up and blow it once.
+After the second search at the police station, a desk lamp catches the Chief's eyes in the window. He snaps his watch shut, blows his whistle and points to the exit. On night six the same click precedes the whistle. The walkers tight behind his shield keep their course as the horn draws stragglers away from the hedge. A floodlight exposes the Chief himself. If he falls, the whistle lies where he landed. After the radio call, Hugo can blow it once. Two infected line up at the hedge and wait for the second blast. Hugo pockets the whistle.
 
 | Night | At the desk |
 | --- | --- |
