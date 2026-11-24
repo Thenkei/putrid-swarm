@@ -93,6 +93,10 @@ Each night from the second to the seventh has one special scene. Daytime clues c
 
 At the garage, the Mechanic holds up a greasy palm until the hoist chain goes quiet. He slides a spring or two pieces of scrap across the bench and pencils them onto his bill. Interrupt his hoist with a log on night four and, if you visited him, you can find the carbon copy nailed to the boards he was attacking. It stays there after the shed on day five.
 
+[Watch the Chief at the station, the crowd splitting at the gate and the whistle at dawn, with the in-game sound.](docs/previews/chief-whistle.mp4)
+
+After the second search at the police station, a desk lamp catches the Chief's eyes in the window. He snaps his watch shut, blows his whistle and points to the exit. On night six the same click precedes the whistle. The walkers tight behind his shield keep their course as the horn draws stragglers away from the hedge. A floodlight exposes the Chief himself. If he falls, the whistle lies where he landed. After the radio call, Hugo can pick it up and blow it once.
+
 | Night | At the desk |
 | --- | --- |
 | 2 | Brace the kitchen door under pressure. A sketch found in town unlocks a trip outside with the stove. Catch the swinging key to get back inside. If you used the flame, your fingerprints are still on the lock when you find the cold ravioli the next day. |
@@ -182,7 +186,7 @@ The house falls when its integrity reaches zero; infected only get in through a 
 | 3 | prowlers, rams, jumpers | flanking, breaching, clearing obstacles |
 | 4 | Le Dépanneur | the chain rattles, the last link draws taut and his boots settle before the hoist strikes |
 | 5 | La Dernière Tournée | two knocks per door, exploits any breach. On her first stop at the gate she waits for a signature. A wet slip in the yard mailbox on the fourth afternoon announces her visit. Leave her undisturbed and a registered letter can be opened in the morning. If you read the complaint, the same letter comes out of your pocket when you start the mower. |
-| 6 | Le Chef de la Police | shields the queue around him, makes it ignore the horn |
+| 6 | Le Chef de la Police | leads a file behind his shield while stragglers come through the hedge |
 | 7 | Le Maire | every speech brings reinforcements to another sector |
 
 Each neighbour is met alive at their place until the day of their night.

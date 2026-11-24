@@ -1,4 +1,16 @@
 {
+  "chief_watch": {
+    "file": "chief_watch.mp3",
+    "kind": "sfx",
+    "seconds": 0.261,
+    "gain": 0.95
+  },
+  "chief_dawn_whistle": {
+    "file": "chief_dawn_whistle.mp3",
+    "kind": "sfx",
+    "seconds": 1.071,
+    "gain": 0.66
+  },
   "mechanic_chain": {
     "file": "mechanic_chain.mp3",
     "kind": "sfx",

@@ -171,6 +171,14 @@ export function searchStop(state: GameState, location: LocationDef): SearchStop 
   return visitSearchesLeft(state, location) === 0 && remainingSearches(state, location) > 0 ? 'noise' : null;
 }
 
+/** A paid second attempt spends the allowance even when Hugo puts its contents back. */
+export function noticeChiefEscort(state: GameState): GameState {
+  if (state.where !== 'police' || state.phase !== 'day' || searchStop(state, LOCATIONS.police) !== 'escorted') return state;
+  const visit = state.locations.police.visits;
+  if (state.flags['chief:escortedVisit'] === visit) return state;
+  return { ...state, flags: { ...state.flags, 'chief:escortedVisit': visit } };
+}
+
 /** Search limit and yard daylight after a trip at that limit, before any encounters. */
 export function planVisit(state: GameState, location: LocationDef): { searches: number; hoursAfterReturn: number } {
   const time = state.hoursLeft - roundTripHours(location) - greetingHours(state, location);

@@ -1,0 +1,14 @@
+.chief-station { background:rgba(22,20,18,.58); }
+#ui .chief-station-card {
+  display:grid; grid-template-columns:400px 1fr; width:765px; max-width:94%; overflow:hidden;
+  padding:0; border:2px solid #928772; border-radius:3px; background:#222923; color:#f1e7cf;
+  box-shadow:0 12px 36px #151511d9;
+}
+.chief-frame { aspect-ratio:1; background:#35362d center / contain no-repeat; border-right:2px solid #9a8a68; }
+.chief-cel { display:block; width:100%; height:100%; }
+.chief-copy { display:flex; flex-direction:column; align-items:flex-start; padding:27px 24px 23px; }
+.chief-copy h2 { margin:0; color:#eddbab; font-size:32px; }
+.chief-caption { margin:19px 0 10px; font-size:22px; line-height:1.3; }
+.chief-note { margin:8px 0 0; color:#d1c7aa; font-size:17px; }
+.chief-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:auto; padding-top:16px; }
+.chief-actions .btn { font-size:17px; }

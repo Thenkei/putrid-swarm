@@ -32,6 +32,8 @@ export type Sfx =
   | 'boss'
   | 'mower'
   | 'whistle'
+  | 'chief_watch'
+  | 'chief_dawn_whistle'
   | 'megaphone'
   | 'ram'
   | 'interrupt'
@@ -257,7 +259,7 @@ class AudioEngine {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private noiseBuffer: AudioBuffer | null = null;
-  private hoistFallback: AudioBuffer | null = null;
+  private readonly fallbackCues = new Map<Sfx, AudioBuffer>();
   private bed: Bed | null = null;
   private ambienceKind: Ambience = 'none';
   private birdTimer: number | null = null;
@@ -487,22 +489,39 @@ class AudioEngine {
 
   // ───────────────────────────── Effects ─────────────────────────────
 
-  /** Four dry links. As a buffer this can stop or resume mid-pull during a slow download. */
-  private hoistLinks(ctx: AudioContext): AudioBuffer {
-    if (this.hoistFallback) return this.hoistFallback;
-    const buffer = ctx.createBuffer(1, Math.ceil(.72 * ctx.sampleRate), ctx.sampleRate);
+  /** These short cues are synchronised to poses. A buffer can seek or stop even before the recording loads. */
+  private fallbackCue(name: Sfx, ctx: AudioContext): AudioBuffer | null {
+    if (name !== 'mechanic_chain' && name !== 'chief_watch' && name !== 'chief_dawn_whistle') return null;
+    const cached = this.fallbackCues.get(name);
+    if (cached) return cached;
+    const seconds = name === 'mechanic_chain' ? .72 : name === 'chief_watch' ? .22 : 1.04;
+    const buffer = ctx.createBuffer(1, Math.ceil(seconds * ctx.sampleRate), ctx.sampleRate);
     const waveform = buffer.getChannelData(0);
-    for (const [onset, frequency] of [[0, 770], [.17, 880], [.39, 730], [.64, 1260]] as const) {
-      const start = Math.round(onset * ctx.sampleRate);
-      const end = Math.min(waveform.length, start + Math.round(.1 * ctx.sampleRate));
-      for (let i = start; i < end; i++) {
-        const t = (i - start) / ctx.sampleRate;
-        const angle = 2 * Math.PI * frequency * t;
-        const envelope = Math.min(1, t * 900) * Math.exp(-70 * t);
-        waveform[i] = envelope * (.25 * Math.sin(angle) + .17 * Math.sin(2.63 * angle));
+    if (name === 'chief_dawn_whistle') {
+      const breath = this.noiseBuffer?.getChannelData(0);
+      for (let i = 0; i < waveform.length; i++) {
+        const t = i / ctx.sampleRate;
+        const attack = Math.min(1, t / .12);
+        const release = Math.min(1, (seconds - t) / .22);
+        const phase = 2 * Math.PI * (2310 * t + .8 * Math.sin(26 * t));
+        waveform[i] = attack * release * (.18 * Math.sin(phase) + .04 * (breath?.[i] ?? 0));
+      }
+    } else {
+      const strikes: ReadonlyArray<readonly [number, number]> = name === 'chief_watch'
+        ? [[0, 1340], [.095, 2190]]
+        : [[0, 770], [.17, 880], [.39, 730], [.64, 1260]];
+      for (const [onset, frequency] of strikes) {
+        const start = Math.round(onset * ctx.sampleRate);
+        const end = Math.min(waveform.length, start + Math.round(.1 * ctx.sampleRate));
+        for (let i = start; i < end; i++) {
+          const t = (i - start) / ctx.sampleRate;
+          const angle = 2 * Math.PI * frequency * t;
+          const envelope = Math.min(1, t * 900) * Math.exp(-70 * t);
+          waveform[i] = envelope * (.25 * Math.sin(angle) + .17 * Math.sin(2.63 * angle));
+        }
       }
     }
-    this.hoistFallback = buffer;
+    this.fallbackCues.set(name, buffer);
     return buffer;
   }
 
@@ -520,7 +539,7 @@ class AudioEngine {
     this.lastPlayed.set(name, now);
 
     const sample = this.deal(name, VARIANTS[name] ?? [name]);
-    const buffer = sample?.buffer ?? (name === 'mechanic_chain' ? this.hoistLinks(this.ctx) : null);
+    const buffer = sample?.buffer ?? this.fallbackCue(name, this.ctx);
     if (buffer && this.sfxBus) {
       if (offset >= buffer.duration) return;
       const drift = PITCH_DRIFT[name] ?? 0;

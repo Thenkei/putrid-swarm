@@ -9,6 +9,9 @@ import { bakerMorning } from './baker-morning';
 import { pinnedInvoice } from '../core/mechanic-invoice';
 import { hitsInvoice } from '../render/pinned-invoice';
 import { invoiceDetail } from './mechanic-invoice';
+import { blowChiefWhistle, whistleInGrass } from '../core/chief-whistle';
+import { hitsWhistle } from '../render/fallen-whistle';
+import { prepareWhistlePaintings, WhistleDawn } from './chief-whistle';
 import { BARRICADE, DEVICES, HOUSE_MAX_HP, HOUSE_REPAIR, facingsOf, isTrap, turned } from '../core/data/devices';
 import { BOSS } from '../core/data/enemies';
 import { DAY_HOURS } from '../core/data/locations';
@@ -19,7 +22,7 @@ import { canRigRattle, rattleForNight, RATTLE_COST, RATTLE_HOURS, rigRattle } fr
 import { LAST_NIGHT, planForNight, SIREN_SECTORS, sirenPackFor, type SirenSector } from '../core/data/waves';
 import { canPlanSiren, scheduleSiren, SIREN_COST, sirenForNight } from '../core/siren';
 import { bossOfNight, clockLabel, startNight } from '../core/game';
-import { ENTRIES, GRID_H, GRID_W, MAILBOX, SPAWN_CELLS, idx } from '../core/map';
+import { ENTRIES, GRID_H, GRID_W, MAILBOX, SPAWN_CELLS, idx, sectorOf } from '../core/map';
 import { computeField, traceRoute } from '../core/pathing';
 import type { Cell, Cost, DeviceInstance, DeviceTypeId, Facing, GameState, Result, SectorId } from '../core/types';
 import { DEVICE_TYPE_IDS, RESOURCE_IDS, SECTOR_IDS, ok } from '../core/types';
@@ -148,6 +151,7 @@ export class DayScene implements Scene {
   private hoverWreck = false;
   private hoverKindling = false;
   private hoverInvoice = false;
+  private hoverWhistle = false;
   private panelDoor: SectorId | null = null;
   private previewHp: number | undefined;
   private reinforcementPreview: SectorId | null = null;
@@ -186,6 +190,7 @@ export class DayScene implements Scene {
   private deliverySlip: HTMLDetailsElement | null = null;
   private bakerVisit: ReturnType<typeof bakerMorning> | null = null;
   private invoice: ReturnType<typeof invoiceDetail> | null = null;
+  private whistle: WhistleDawn | null = null;
   private refundTag!: HTMLElement;
   private readonly buildIcons = new Map<DeviceTypeId, HTMLImageElement>();
   private routeCache: { key: string; forecast: Forecast } | null = null;
@@ -215,11 +220,40 @@ export class DayScene implements Scene {
     this.root = el('div');
     this.app.ui.append(this.root);
     this.refresh();
+    if (whistleInGrass(this.state)) {
+      prepareWhistlePaintings();
+      void audio.prepareSample('chief_dawn_whistle');
+    }
     if (this.options.deliveredMoped) this.app.toast(S().encounter.arrival.mopedDelivered, 'good');
   }
 
   exit(): void {
+    this.whistle?.pause();
     delete this.app.canvas.dataset.yardCursor;
+  }
+
+  onBlur(): void { this.whistle?.pause(); }
+
+  private openWhistle(): void {
+    if (this.whistle || !whistleInGrass(this.state)) return;
+    this.drag = null;
+    this.root.inert = true;
+    this.whistle = new WhistleDawn(() => {
+      const next = blowChiefWhistle(this.state);
+      if (next === this.state) return false;
+      this.app.state = next;
+      this.app.save();
+      return true;
+    }, () => {
+      this.whistle?.pause();
+      this.whistle?.root.remove();
+      this.whistle = null;
+      this.root.inert = false;
+      this.refresh();
+      (this.root.querySelector<HTMLButtonElement>('.whistle-find') ?? this.root.querySelector<HTMLButtonElement>('.topbar button'))?.focus({ preventScroll: true });
+    });
+    this.app.ui.append(this.whistle.root);
+    this.whistle.focus();
   }
 
   // ───────────────────────────── HUD ─────────────────────────────
@@ -456,6 +490,13 @@ export class DayScene implements Scene {
       });
       curiosity ??= el('div', { class: 'refuge-curiosities' });
       curiosity.prepend(this.invoice.detail);
+    }
+    const whistle = whistleInGrass(state);
+    if (whistle) {
+      const sector = sectorOf(Math.floor(whistle.x), Math.floor(whistle.y));
+      const label = line('Sifflet dans l’herbe', 'Whistle on the ground') + ' · ' + s.sector[sector];
+      curiosity ??= el('div', { class: 'refuge-curiosities' });
+      curiosity.prepend(el('button', { class: 'whistle-find', text: label, onClick: () => this.openWhistle() }));
     }
     if (curiosity) frame.append(curiosity);
     // One column: the doors' panel grows a line taller with every door that needs a nail, and the card under it follows.
@@ -701,6 +742,10 @@ export class DayScene implements Scene {
       return;
     }
     const sector = this.inspectedDoor;
+    if (this.hoverWhistle) {
+      this.info.replaceChildren(el('b', { text: line('Le sifflet du Chef', 'The Chief’s whistle') }), line('Cliquer pour examiner', 'Click to examine'));
+      return;
+    }
     if (this.hoverInvoice && this.invoice) {
       this.info.replaceChildren(el('b', { text: this.invoice.label }), line('Cliquer pour lire', 'Click to read'));
       return;
@@ -1027,6 +1072,7 @@ export class DayScene implements Scene {
   // ───────────────────────────── Loop ─────────────────────────────
 
   update(dt: number): void {
+    if (this.whistle) { this.whistle.update(dt); return; }
     const previousTime = this.time;
     this.time += dt;
     this.bakerVisit?.update(dt);
@@ -1088,6 +1134,7 @@ export class DayScene implements Scene {
       mopedWreck: wreckSector(state),
       bakerKindling: this.bakerVisit?.freed === true,
       pinnedInvoice: this.invoice?.sector,
+      fallenWhistle: whistleInGrass(state),
       packTrail: packTrail(state),
       carPresent: true,
       ...(this.options.arrivedByCar && { exhaustAge: this.time }),
@@ -1165,9 +1212,11 @@ export class DayScene implements Scene {
 
   private updateHover(pointer: Pointer, refreshInfo = false, inspected?: SectorId): void {
     const view = this.view;
-    const before = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverWreck},${this.hoverKindling},${this.hoverInvoice}`;
+    const before = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverWreck},${this.hoverKindling},${this.hoverInvoice},${this.hoverWhistle}`;
     const inside = pointer.overCanvas && inView(view, pointer.x, pointer.y);
     const wreck = wreckSector(this.state);
+    const whistle = whistleInGrass(this.state);
+    this.hoverWhistle = !inspected && inside && this.mode.kind === 'idle' && !!whistle && hitsWhistle(view, whistle, pointer.x, pointer.y);
     this.hoverWreck = !inspected && inside && this.mode.kind === 'idle' && !!wreck && hitsMopedWreck(view, wreck, pointer.x, pointer.y);
     this.hoverKindling = !inspected && inside && this.mode.kind === 'idle' && this.bakerVisit?.freed === true && hitsKindling(view, pointer.x, pointer.y);
     this.hoverInvoice = !inspected && inside && this.mode.kind === 'idle' && !!this.invoice
@@ -1182,7 +1231,7 @@ export class DayScene implements Scene {
       const g = unproject(view, pointer.x, pointer.y);
       const cell = { x: Math.floor(g.gx), y: Math.floor(g.gy) };
       this.hover = cell.x >= 0 && cell.y >= 0 && cell.x < GRID_W && cell.y < GRID_H ? cell : null;
-      if (this.mode.kind === 'build' || this.hoverWreck || this.hoverKindling || this.hoverInvoice) {
+      if (this.mode.kind === 'build' || this.hoverWreck || this.hoverKindling || this.hoverInvoice || this.hoverWhistle) {
         this.hoverDevice = null;
         this.hoverDoor = null;
       } else {
@@ -1196,10 +1245,10 @@ export class DayScene implements Scene {
     if (inside) {
       if (this.mode.kind === 'repair' || this.mode.kind === 'dismantle') cursor = this.mode.kind;
       else if (this.mode.kind === 'idle' && this.quickRepair) cursor = 'repair';
-      else if (this.hoverInvoice || this.hoverKindling || (this.hoverWreck && !epicFlag(this.state, 'wreckSeen'))) cursor = 'inspect';
+      else if (this.hoverWhistle || this.hoverInvoice || this.hoverKindling || (this.hoverWreck && !epicFlag(this.state, 'wreckSeen'))) cursor = 'inspect';
     }
     if (this.app.canvas.dataset.yardCursor !== cursor) this.app.canvas.dataset.yardCursor = cursor;
-    const after = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverWreck},${this.hoverKindling},${this.hoverInvoice}`;
+    const after = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverWreck},${this.hoverKindling},${this.hoverInvoice},${this.hoverWhistle}`;
     if (refreshInfo || before !== after) this.updateInfo();
   }
 
@@ -1341,6 +1390,7 @@ export class DayScene implements Scene {
       }
       return;
     }
+    if (this.hoverWhistle) { this.openWhistle(); return; }
     if (this.hoverInvoice && this.invoice) {
       this.invoice.detail.open = true;
       this.invoice.detail.querySelector('summary')?.focus();
@@ -1388,6 +1438,7 @@ export class DayScene implements Scene {
   }
 
   onKeyDown(code: string): void {
+    if (this.whistle) return;
     if (code === 'KeyR') this.flip();
     else if (code === 'KeyF') this.turn();
     else if (code === 'KeyT') this.toggleRoutes();

@@ -1,0 +1,14 @@
+.whistle-find {
+  display: block; width: fit-content; padding: 6px 10px; pointer-events: auto;
+  background: #27221cf0; border: 0; border-left: 3px solid #cfa366; color: #f3e8ca;
+  font: inherit; font-size: 15px; cursor: pointer;
+}
+.whistle-find:focus-visible { outline: 2px solid #f2d39b; }
+#ui .whistle-dawn { pointer-events: auto; }
+.whistle-card { width: 888px; background: #28251f; color: #f3e7ca; border: 2px solid #ab916d; box-shadow: 0 12px 38px #130e0ad9; }
+.whistle-shot { display: block; width: 100%; aspect-ratio: 2; background: #413829; }
+.whistle-strip { padding: 10px 20px 14px; }
+.whistle-strip h2 { margin: 0; font-size: 24px; color: #eacf93; }
+.whistle-caption { margin: 3px 0 9px; font-size: 19px; }
+.whistle-actions { display: flex; gap: 12px; }
+.whistle-shot[hidden], .whistle-actions button[hidden] { display: none; }

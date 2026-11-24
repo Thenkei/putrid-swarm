@@ -9,6 +9,7 @@ import { SECTOR_IDS } from '../core/types';
 import { wreckDrawable } from './moped-wreck';
 import { kindlingDrawable } from './baker-kindling';
 import { drawPinnedInvoice } from './pinned-invoice';
+import { whistleDrawable } from './fallen-whistle';
 import sillCamperUrl from '../assets/camper-sill-figure.webp';
 import { paintingImage, preparePaintings, sprite, type Sprite } from '../engine/assets';
 import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseMotion, type LogLayer } from './defenses';
@@ -122,6 +123,7 @@ export interface WorldFrame {
   readonly mopedWreck?: SectorId | undefined;
   readonly bakerKindling?: boolean;
   readonly pinnedInvoice?: SectorId | undefined;
+  readonly fallenWhistle?: Cell | null | undefined;
   readonly packTrail?: PackTrail | undefined;
   readonly parkedMoped?: ParkedMoped;
   readonly houseBreaks?: readonly HouseBreak[];
@@ -817,10 +819,11 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
 
   // Infected.
   const outsideWall = depthOf(view.rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.32;
+  const chief = actors.find(e => e.type === 'chief');
   for (const enemy of actors) {
     let depth = depthOf(view.rot, enemy.x, enemy.y);
     if (enemy.threshold && VISIBLE_DOORS[view.rot].includes(enemy.threshold)) depth = Math.max(depth, outsideWall);
-    drawables.push({ depth, draw: () => drawEnemy(ctx, view, frame, enemy) });
+    drawables.push({ depth, draw: () => drawEnemy(ctx, view, frame, enemy, chief) });
   }
 
   for (const fallen of bodies ?? []) {
@@ -877,6 +880,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     drawables.push(wreckDrawable(ctx, view, frame.mopedWreck, blastAt == null ? Infinity : frame.time - blastAt));
   }
   if (frame.bakerKindling) drawables.push(kindlingDrawable(ctx, view));
+  if (frame.fallenWhistle) drawables.push(whistleDrawable(ctx, view, frame.fallenWhistle, frame.time));
   drawables.sort((a, b) => a.depth - b.depth);
   for (const drawable of drawables) drawable.draw();
   if (frame.hoverCell && frame.hoverBarrier) drawBarrierFootprint(ctx, view, frame.hoverCell);

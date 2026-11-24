@@ -8,7 +8,7 @@ const recorded: Record<string, unknown> = Object.values(import.meta.glob<Record<
 const MOMENTS = Object.keys(LINES) as Moment[];
 
 it('ships the daily episodes with recorded action cues and both subtitle languages', () => {
-  for (const id of ['epic_flare', 'moped_door', 'moped_blade_contact', 'epic_mob', 'epic_mob_blast', 'epic_tape', 'vhs_eject', 'epic_pack', 'baker_bowl_slide', 'letter_fold', 'camper_zip', 'camper_breath', 'camper_inside_knock', 'mechanic_chain']) {
+  for (const id of ['epic_flare', 'moped_door', 'moped_blade_contact', 'epic_mob', 'epic_mob_blast', 'epic_tape', 'vhs_eject', 'epic_pack', 'baker_bowl_slide', 'letter_fold', 'camper_zip', 'camper_breath', 'camper_inside_knock', 'mechanic_chain', 'chief_watch', 'chief_dawn_whistle']) {
     expect(recorded[id]).toMatchObject({ kind: 'sfx', file: id + '.mp3' });
   }
   for (const id of ['vo_epic_stove', 'vo_moped_alibi', 'vo_epic_pack', 'vo_epic_neighbor', 'vo_mechanic_bill'] as const) {

@@ -1,0 +1,11 @@
+{
+  "id": "chief_watch",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "4J1ygthDWDIaCWE315BD",
+  "generatedAt": "2026-11-24T16:18:39.021Z",
+  "prompt": "A single close dry foley of a worn police pocket watch being snapped shut by a thumb. One tiny soft metal hinge movement then a decisive crisp high double click of the lid seating against brass. Intimate, easily recognizable from a desk or a quiet garden, no repeat. Start instantly, done in a quarter second. No clock ticking, background, footsteps, music, voices or echo.",
+  "bytes": 50187,
+  "sha256": "9da8fc680cf80afa0e923a8465b23be7aee0d8ec35adbecf7a82cf1054806a32"
+}

@@ -11,6 +11,8 @@ export interface SpawnGroup {
   readonly every: number;
   /** Delay before the first spawn, from the wave start. */
   readonly delay: number;
+  /** The Chief's ordered column comes down the track; the loose walkers come through the hedge. */
+  readonly approach?: 'file' | 'verge';
 }
 
 export interface Wave {
@@ -86,8 +88,9 @@ export const NIGHTS: readonly NightPlan[] = [
       {
         after: 30,
         groups: [
-          g('portail', 'shambler', 6, 1.9),
-          g('portail', 'chief', 1, 1, 5),
+          { ...g('portail', 'chief', 1, 1, 2), approach: 'file' },
+          { ...g('portail', 'shambler', 3, 1.2, 3), approach: 'file' },
+          { ...g('portail', 'shambler', 3, 2.4, 2.4), approach: 'verge' },
           g('portail', 'brute', 1, 1, 9),
           g('verger', 'dog', 4, 2, 9),
           g('grange', 'shambler', 5, 2.4, 12),

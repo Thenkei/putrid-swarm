@@ -289,6 +289,7 @@ export class NightScene implements Scene {
       void audio.prepareSample('camper_inside_knock');
     }
     if (this.sim.night === BOSS_NIGHT.mechanic) void audio.prepareSample('mechanic_chain');
+    if (this.sim.night === BOSS_NIGHT.chief) void audio.prepareSample('chief_watch');
     if (this.sim.rattleSector) {
       this.rattleCaption = el('span', { class: 'rattle-caption' });
       this.rattleCaption.setAttribute('role', 'status');
@@ -1125,6 +1126,11 @@ export class NightScene implements Scene {
           }
           break;
         case 'telegraph':
+          if (event.kind === 'watch') {
+            this.overlay.querySelector('.boss-card')?.remove();
+            if (this.speed === 1) audio.play('chief_watch');
+            break;
+          }
           if (event.kind === 'hoist') {
             // A fence near the spawn can bring the first swing forward. Clear the portrait from the live shot.
             this.overlay.querySelector('.boss-card')?.remove();

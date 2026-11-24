@@ -1,0 +1,11 @@
+{
+  "id": "chief_dawn_whistle",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "hdllPRKnso4YersqTxLL",
+  "generatedAt": "2026-11-24T16:18:42.720Z",
+  "prompt": "A single hesitant breath blown into an old metal pea whistle, close and exposed in a quiet French country garden. Air leaks at first, then a brief clear slightly wavering policeman's whistle, tapering off as a tired man runs out of breath. One tentative short note in less than a second. No second blast, voices, birds, echo or music. Isolated clean game foley.",
+  "bytes": 50187,
+  "sha256": "55466f903043234304c37df68606a71ff77bae8cae8c229acef91051a50d1325"
+}

@@ -4,8 +4,9 @@
 import { epicObject } from './epic-day';
 import { ShopLife } from './shop-life';
 import { MechanicVisit } from './mechanic-visit';
+import { ChiefStation } from './chief-station';
 import { CONCEAL_HOURS, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER } from '../core/data/locations';
-import { clockLabel, concealableSpots, concealSpot, leaveLocation, neighborStatus, prepareSearch, searchAttemptKey, searchStop, takeSpringReceipt, type NeighborMeeting, type SearchOutcome, type SearchStop } from '../core/game';
+import { clockLabel, concealableSpots, concealSpot, leaveLocation, neighborStatus, noticeChiefEscort, prepareSearch, searchAttemptKey, searchStop, takeSpringReceipt, type NeighborMeeting, type SearchOutcome, type SearchStop } from '../core/game';
 import { hasViceLeftovers } from '../core/garage-vice';
 import { spotRng, type Puzzle } from '../core/scavenge';
 import { puzzleLevel } from '../core/difficulty';
@@ -41,6 +42,7 @@ export class LocationScene implements Scene {
   private panel!: EncounterPanel;
   private puzzle: ScavengePanel | null = null;
   private mechanicVisit: MechanicVisit | null = null;
+  private chiefStation: ChiefStation | null = null;
   private concealing = false;
   private readonly roomLife: ShopLife;
   private searchDust: { readonly x: number; readonly y: number; age: number } | null = null;
@@ -87,6 +89,7 @@ export class LocationScene implements Scene {
     if (lootNotice) void this.reactToLooting(lootNotice);
     if (this.meeting) this.showMeeting(this.meeting);
     else if (this.dispute) this.panel.show();
+    else this.checkEscort();
   }
 
   private async reactToLooting(notice: number): Promise<void> {
@@ -294,6 +297,11 @@ export class LocationScene implements Scene {
   }
 
   private showMeeting(meeting: NeighborMeeting): void {
+    if (meeting.neighbor === 'chief') {
+      const chief = S().neighbor.chief;
+      this.showChief(meeting.first ? chief.first : chief.later);
+      return;
+    }
     if (meeting.neighbor === 'mechanic') {
       this.hud.inert = true;
       const close = () => {
@@ -339,6 +347,29 @@ export class LocationScene implements Scene {
     ]);
     this.overlay.append(modal);
     if (hasGift) audio.play('loot');
+  }
+
+  private showChief(greeting: string | null): void {
+    this.hud.inert = true;
+    const close = () => {
+      this.chiefStation?.close();
+      this.chiefStation = null;
+      this.meeting = null;
+      this.hud.inert = false;
+    };
+    this.chiefStation = new ChiefStation(this.overlay, greeting, () => {
+      close();
+      const target = greeting ? '.spot:not(.done,.blocked)' : '.loc-leave button';
+      this.hud.querySelector<HTMLButtonElement>(target)?.focus({ preventScroll: true });
+    }, () => { close(); this.leave(); });
+  }
+
+  private checkEscort(): void {
+    const next = noticeChiefEscort(this.state);
+    if (next === this.state) return;
+    this.app.state = next;
+    this.app.save();
+    this.showChief(null);
   }
 
   private search(index: number, at: { x: number; y: number }, retry = false): void {
@@ -392,6 +423,7 @@ export class LocationScene implements Scene {
         close();
         this.collect({ ...attempt.success, state: withNoise(attempt.success.state) }, at);
         this.noticeLostSearch(attempt.paid);
+        this.checkEscort();
       },
       () => {
         if (heard > 0) {
@@ -399,6 +431,7 @@ export class LocationScene implements Scene {
           this.noticeLostSearch(attempt.paid);
         }
         close();
+        this.checkEscort();
       },
       () => {
         this.app.state = attempt.paid;
@@ -550,8 +583,9 @@ export class LocationScene implements Scene {
   }
 
   update(dt: number): void {
+    this.chiefStation?.update(dt);
     this.mechanicVisit?.update(dt);
-    if (!this.puzzle && !this.meeting && !this.panel.open) this.roomLife.update(dt, this.app.pointer, calmMotion());
+    if (!this.puzzle && !this.meeting && !this.chiefStation && !this.panel.open) this.roomLife.update(dt, this.app.pointer, calmMotion());
     this.puzzle?.update(dt);
     this.panel.update(dt);
     if (this.searchDust) {
@@ -561,12 +595,14 @@ export class LocationScene implements Scene {
   }
 
   onBlur(): void {
+    this.chiefStation?.pause();
     this.mechanicVisit?.pause();
     this.panel.onBlur();
     this.puzzle?.pauseCourse();
   }
 
   exit(): void {
+    this.chiefStation?.close();
     this.mechanicVisit?.close();
     this.panel.hide();
   }

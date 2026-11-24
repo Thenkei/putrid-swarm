@@ -4,7 +4,7 @@
 import { BARRICADE, COMBAT, DEVICES, isManual, isTrap } from './data/devices';
 import { BOSS, ENEMIES, type EnemyDef } from './data/enemies';
 import { BOSS_NIGHT } from './data/locations';
-import { NIGHT_LEAD_IN, planForNight, type SirenSector } from './data/waves';
+import { NIGHT_LEAD_IN, planForNight, type SirenSector, type SpawnGroup } from './data/waves';
 import type { DefenseTake } from './cassette';
 import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlocked, sectorOf } from './map';
 import type { CameraOutage } from './orchard';
@@ -88,6 +88,8 @@ export interface Enemy {
   lureDevice: number | null;
   lit: boolean;
   shielded: boolean;
+  /** Position in the three-person column entering with the Chief. */
+  fileRank?: number;
   windup: number;
   cooldown: number;
   hitFlash: number;
@@ -100,7 +102,7 @@ export interface Enemy {
   alive: boolean;
 }
 
-export type TelegraphKind = 'mower' | 'ram' | 'hoist' | 'speech' | 'whistle' | 'boar';
+export type TelegraphKind = 'mower' | 'ram' | 'hoist' | 'speech' | 'watch' | 'whistle' | 'boar';
 
 /** Elapsed time in a blow that the log can still interrupt. */
 export function hoistAge(e: Enemy): number | null {
@@ -205,6 +207,8 @@ export const rowOf = (press: DeskPress): HandRow => (press.kind === 'look' ? 'ca
 const samePress = (a: DeskPress, b: DeskPress): boolean =>
   a.kind === b.kind && (a.kind === 'look' ? a.sector === (b as typeof a).sector : a.kind === 'key' ? a.slot === (b as typeof a).slot : a.deviceId === (b as typeof a).deviceId);
 
+const CHIEF_FOOTSTEP = 0.45;
+
 /** What firing a manual trap right now would catch. `now` is the desk's cue: enough is under it to be worth it. */
 export interface Opportunity {
   readonly targets: number;
@@ -220,6 +224,8 @@ interface PendingSpawn {
   readonly wave: number;
   readonly sector: SectorId;
   readonly type: EnemyTypeId;
+  readonly approach?: SpawnGroup['approach'];
+  readonly fileRank?: number;
 }
 
 export interface SectorThreat {
@@ -312,6 +318,8 @@ export class NightSim {
   private readonly tallies = new Map<number, { fired: number; hits: number; kills: number }>();
   private letterDelivered = false;
   private mechanicStoppedAt?: SectorId;
+  private chiefFellAt?: Cell;
+  private readonly chiefTracks: Cell[] = [];
   private bossDefeated: NeighborId | null = null;
   /** A camera that stopped sending. The lot goes on without it: only the desk is blind. */
   cameraLost: SectorId | null = null;
@@ -377,7 +385,8 @@ export class NightSim {
       waveStart += wave.after;
       for (const group of wave.groups) {
         for (let n = 0; n < group.count; n++) {
-          this.pending.push({ time: waveStart + group.delay + n * group.every, wave: waveIndex + 1, sector: group.sector, type: group.type });
+          this.pending.push({ time: waveStart + group.delay + n * group.every, wave: waveIndex + 1, sector: group.sector,
+            type: group.type, approach: group.approach, ...(group.approach === 'file' && !ENEMIES[group.type].boss && { fileRank: n + 1 }) });
         }
       }
     });
@@ -741,13 +750,16 @@ export class NightSim {
         if (this.outage && spawn.wave === this.outage.wave && this.cameraLost === null) this.outageAt = this.time + this.outage.delay;
         if (this.ally && this.heldDoor !== null && spawn.wave === this.ally.turnsAtWave) this.allyTurns(this.ally);
       }
-      this.spawn(spawn.type, spawn.sector);
+      this.spawn(spawn.type, spawn.sector, true, spawn);
     }
   }
 
-  private spawn(type: EnemyTypeId, sector: SectorId, announce = true): Enemy {
+  private spawn(type: EnemyTypeId, sector: SectorId, announce = true, group?: PendingSpawn): Enemy {
     const def = ENEMIES[type];
-    const cell = type === 'mower' ? (LANES[sector][0] as Cell) : this.rng.pick(SPAWN_CELLS[sector]);
+    const lane = LANES[sector][0]!;
+    const edges = SPAWN_CELLS[sector];
+    const cell = type === 'mower' || group?.approach === 'file' ? lane
+      : this.rng.pick(group?.approach === 'verge' ? edges.filter(c => Math.hypot(c.x - lane.x, c.y - lane.y) >= 5) : edges);
     const enemy: Enemy = {
       id: this.nextEnemyId++,
       type,
@@ -773,6 +785,7 @@ export class NightSim {
       lureDevice: null,
       lit: false,
       shielded: false,
+      ...(group?.fileRank && { fileRank: group.fileRank }),
       windup: 0,
       cooldown: 0,
       hitFlash: 0,
@@ -889,6 +902,10 @@ export class NightSim {
       if (!e.alive) continue;
       e.lit = lights.some((l) => Math.hypot(e.x - (l.x + 0.5), e.y - (l.y + 0.5)) <= DEVICES.floodlight.radius);
       e.shielded = !e.def.boss && chiefs.some((c) => Math.hypot(e.x - c.x, e.y - c.y) <= BOSS.chief.auraRadius);
+      if (e.shielded && e.lureDevice !== null) {
+        e.lureDevice = null;
+        e.lureFor = 0;
+      }
       if (e.def.boss || e.shielded) continue;
       for (const horn of horns) {
         if (Math.hypot(e.x - (horn.x + 0.5), e.y - (horn.y + 0.5)) <= DEVICES.horn.radius) {
@@ -965,7 +982,36 @@ export class NightSim {
     }
 
     if (e.lureDevice !== null && this.followLure(e, dt)) return;
+    if (e.fileRank && e.shielded && this.followChief(e, e.fileRank, dt)) return;
     this.advance(e, dt);
+  }
+
+  /** Walk in the Chief's own footprints. Yield to ordinary pathfinding around obstructions
+   * and once the Chief reaches the barricade so the people at the back can attack. */
+  private followChief(e: Enemy, rank: number, dt: number): boolean {
+    const chief = this.enemies.find(other => other.alive && other.type === 'chief');
+    if (!chief || chief.action !== 'walk' || chief.target !== e.target || this.chiefTracks.length === 0) return false;
+    const first = this.chiefTracks[0]!;
+    const stride = e.hasteFor > 0 ? 1.48 : 2;
+    const between = Math.min(1, Math.hypot(chief.x - first.x, chief.y - first.y) / CHIEF_FOOTSTEP);
+    const along = Math.min(this.chiefTracks.length - 1, rank * stride - between);
+    const lead = this.chiefTracks[Math.floor(along)]!;
+    const back = this.chiefTracks[Math.ceil(along)]!;
+    const blend = along % 1;
+    const mark = { x: lead.x + (back.x - lead.x) * blend, y: lead.y + (back.y - lead.y) * blend };
+    const cx = Math.floor(e.x), cy = Math.floor(e.y), tx = Math.floor(mark.x), ty = Math.floor(mark.y);
+    if (Math.abs(cx - tx) > 1 || Math.abs(cy - ty) > 1) return false;
+    const blocked = (x: number, y: number) => isStaticBlocked(x, y) || this.fences.has(idx(x, y)) || this.raised.has(idx(x, y));
+    if (blocked(tx, ty) || (cx !== tx && cy !== ty && (blocked(cx, ty) || blocked(tx, cy)))) return false;
+    if ((mark.x - e.x) * chief.fx + (mark.y - e.y) * chief.fy < 0 || Math.hypot(mark.x - e.x, mark.y - e.y) < 0.025) {
+      e.action = 'idle';
+      e.fx = chief.fx;
+      e.fy = chief.fy;
+    } else {
+      e.action = 'walk';
+      this.moveToward(e, mark.x, mark.y, this.speedOf(e), dt);
+    }
+    return true;
   }
 
   /** Walk toward the target door, dealing with whatever stands in the way. */
@@ -1437,7 +1483,15 @@ export class NightSim {
   }
 
   private updateChiefWhistle(e: Enemy, boss: BossRuntime, dt: number): void {
+    const last = this.chiefTracks[0];
+    if (!last || Math.hypot(e.x - last.x, e.y - last.y) >= CHIEF_FOOTSTEP) {
+      this.chiefTracks.unshift({ x: e.x, y: e.y });
+      this.chiefTracks.length = Math.min(7, this.chiefTracks.length);
+    }
+    const before = boss.ability;
     boss.ability -= dt;
+    if (before > BOSS.chief.watchLead && boss.ability <= BOSS.chief.watchLead)
+      this.telegraph('watch', e, sectorOf(Math.floor(e.x), Math.floor(e.y)), BOSS.chief.watchLead);
     if (boss.ability > 0) return;
     boss.ability = BOSS.chief.whistleEvery;
     for (const other of this.enemies) {
@@ -1590,6 +1644,7 @@ export class NightSim {
     this.events.push({ type: 'enemy_dead', id: e.id, enemy: type, x, y, fx, fy, pose, ...(stain && { stain }) });
     if (e.def.boss) {
       this.bossDefeated = e.def.boss;
+      if (e.type === 'chief' && this.night === BOSS_NIGHT.chief) this.chiefFellAt = { x: e.x, y: e.y };
       this.events.push({ type: 'boss_dead', boss: e.def.boss, x: e.x, y: e.y });
     }
   }
@@ -1699,6 +1754,7 @@ export class NightSim {
       bossDefeated: this.bossDefeated,
       ...(this.letterDelivered && { letterDelivered: true as const }),
       ...(this.mechanicStoppedAt && { mechanicStoppedAt: this.mechanicStoppedAt }),
+      ...(this.chiefFellAt && { chiefFellAt: this.chiefFellAt }),
       durationSeconds: Math.round(this.time),
       cameraLost: this.cameraLost,
       traps: Object.fromEntries([...this.tallies].map(([id, tally]) => [id, { ...tally }])) as Record<number, TrapTally>,

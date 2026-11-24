@@ -327,7 +327,7 @@ export const fr = {
     found: 'Trouvé',
     leave: 'Rentrer au refuge',
     leaveCost: 'retour {h} h',
-    escorted: 'Le Chef vous raccompagne à la porte. Revenez demain.',
+    escorted: 'Le Chef vous raccompagne à la porte, montre refermée.',
     noTime: 'Il faut garder le temps de rentrer.',
     trunk: 'Dans le coffre',
     disputed: 'Ce lot se règle avec la personne qui est dessus.',

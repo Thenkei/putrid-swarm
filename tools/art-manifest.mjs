@@ -129,6 +129,15 @@ const CAR_BOARDING_BRIEF =
   'open. Camera never moves. Match full car placement when comparing any two cells.';
 
 export const ART = [
+  ...[
+    ['watch', 'He glances down at the brass pocket watch in his raised hand, thumb clicking the lid shut, his old rectangular riot shield held upright.'],
+    ['exposed', 'He turns his face away from a yard lamp, free forearm shading his eyes, chest exposed as the shield hangs diagonally below his belt.'],
+  ].map(([pose, action]) => ({
+    id: 'chief_' + pose + '_pose', kind: 'split', cols: 2, rows: 1, h: 260,
+    names: ['front', 'back'],
+    refs: ['07-authorities-before-after.png'],
+    prompt: charPair('The infected village police chief in his navy cap and worn uniform. ' + action),
+  })),
   // ───────────────────────────── Plates taken directly from the concept art ─────────────────────────────
   { id: 'plate_control_room', kind: 'plate', w: 1280, source: { concept: C('12-surveillance-room.png') } },
   { id: 'plate_morning', kind: 'plate', w: 1280, source: { concept: C('17-morning-after.png') } },
