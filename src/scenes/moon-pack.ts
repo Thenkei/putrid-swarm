@@ -2,7 +2,7 @@ import { CUB_CROSSING, PACK_CYCLE, PACK_GAP, PACK_RETURN, gatePassage, packPhase
 import orchardPainting from '../render/epic-moon-orchard.webp';
 import barnPainting from '../render/epic-moon-barn.webp';
 import { audio } from '../engine/audio';
-import { say } from '../engine/voice';
+import { hush, say } from '../engine/voice';
 import { el } from '../engine/dom';
 import { moonFeed, packAftermath, trailCubX } from '../render/moon-pack';
 import gatePainting from '../render/epic-moon-gate.webp';
@@ -47,6 +47,7 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
   function end(rescued: boolean, damage: number, message: string) {
     if (done) return;
     done = true;
+    if (atGate()) hush();
     finish(rescued, damage, message);
     screen.dataset.phase = 'result';
     screen.dataset.outcome = rescued ? 'reunion' : 'lost';

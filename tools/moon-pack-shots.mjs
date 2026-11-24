@@ -52,8 +52,12 @@ try {
         assert.ok(found);
       }
       if (outcome === 'impact') {
-        await click(button('Lift the gate'));
+        const warning = page.locator('#subtitle.on').filter({ hasText: 'cub under the gate' });
+        assert.equal(await warning.count(), 1);
+        assert.ok(await button('Lift the gate').evaluate(button => button === document.activeElement));
+        await page.keyboard.press('Enter');
         await page.getByText(/slams the gate/).waitFor();
+        assert.equal(await warning.count(), 0);
       } else {
         await click(button('Slow motion'));
         await page.locator('.moon-screen[data-passage="clear"]').waitFor();
