@@ -717,7 +717,7 @@ export class NightScene implements Scene {
     const node = el('div', { class: kind, text });
     this.banners.append(node);
     while (this.banners.children.length > 3) this.banners.firstElementChild?.remove();
-    window.setTimeout(() => node.remove(), 3300);
+    node.addEventListener('animationend', () => node.remove(), { once: true });
   }
 
   private bossCard(boss: NeighborId, name: string, tip: string): void {
@@ -726,7 +726,7 @@ export class NightScene implements Scene {
     if (url) img.src = url;
     const card = el('div', { class: 'card boss-card' }, [img, el('div', {}, [el('h2', { text: name }), el('p', { text: tip })])]);
     this.overlay.append(card);
-    window.setTimeout(() => card.remove(), 7100);
+    card.addEventListener('animationend', () => card.remove(), { once: true });
   }
 
   // ───────────────────────────── Input ─────────────────────────────
