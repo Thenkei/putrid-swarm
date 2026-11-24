@@ -452,7 +452,7 @@ export class LocationScene implements Scene {
     const foundSiren = !hasSiren(this.state) && hasSiren(result.state);
     audio.play('rummage');
     const found = lootSfx(result.loot);
-    if (found) window.setTimeout(() => audio.play(found), 380);
+    if (found) this.app.playSceneCue(found, 380);
     this.app.state = result.state;
     this.app.save();
     this.refresh();
