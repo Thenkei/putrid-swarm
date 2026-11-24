@@ -1076,6 +1076,8 @@ export const fr = {
     next: 'Commencer le jour {n}',
   },
   finale: {
+    leaveSong: 'Quitter le morceau',
+    pause: 'Pause',
     shed: 'Au fond du jardin',
     shedSub: 'Une lame à l’avant. Deux murs d’amplis à l’arrière.',
     /** The camper from the radio, locked in the shed for the night. */

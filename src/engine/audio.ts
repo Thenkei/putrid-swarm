@@ -263,6 +263,7 @@ class AudioEngine {
   private readonly decks = new Decks<string>();
   private voiceEndsAt = 0;
   private musicKind: Music = 'none';
+  private musicPaused = false;
   private musicEl: HTMLAudioElement | null = null;
   private musicLevel = 0;
   private musicBase = 0;
@@ -719,9 +720,17 @@ class AudioEngine {
   setMusic(kind: Music): void {
     if (kind === this.musicKind) return;
     this.musicKind = kind;
+    this.musicPaused = false;
     this.retireMusic();
     this.startRequestedMusic();
     if (this.dying.length > 0) this.ensureMusicTimer();
+  }
+
+  /** Hold this track's playhead, including while waiting for a gesture or the manifest. */
+  setMusicPaused(paused: boolean): void {
+    this.musicPaused = paused;
+    if (paused) this.musicEl?.pause();
+    else this.resumeMusic();
   }
 
   private startRequestedMusic(): void {
@@ -755,7 +764,7 @@ class AudioEngine {
 
   private resumeMusic(): void {
     const element = this.musicEl;
-    if (!element || !element.paused || element.ended || !this.enabled || !this.musicEnabled) return;
+    if (!element || !element.paused || element.ended || this.musicPaused || !this.enabled || !this.musicEnabled) return;
     // Rejected until the first user gesture; unlock() calls back here.
     element.play().catch(() => undefined);
   }

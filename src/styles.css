@@ -4146,6 +4146,37 @@ button:disabled {
   transform: translateY(-3px);
 }
 
+.jam-pause {
+  position: absolute;
+  top: 12px;
+  right: 26px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #fff6e077;
+  border-radius: 4px;
+  background: #100e0dcc;
+  color: #fff6e0;
+  font: 18px var(--hud-font);
+  cursor: pointer;
+}
+
+@media (pointer: coarse) {
+  .jam-pause {
+    top: auto;
+    bottom: 176px;
+    min-width: 90px;
+    min-height: 90px;
+    font-size: 30px;
+  }
+  .finale-overlay .pause .btn { min-height: 88px; font-size: 32px; }
+}
+
+@media (pointer: coarse) and (orientation: portrait) {
+  .jam-pause { min-width: 150px; min-height: 150px; font-size: 40px; }
+  .finale-overlay .pause .btn { min-height: 150px; width: 640px; font-size: 42px; }
+  .finale-overlay .pause-reason { max-width: 920px; font-size: 36px; }
+}
+
 .jam-swap {
   position: absolute;
   right: 26px;

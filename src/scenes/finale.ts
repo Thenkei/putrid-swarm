@@ -24,8 +24,10 @@ import { TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
 import { drawPlate } from './common';
 import type { EndOptions } from './end';
 import { goEnd } from './flow';
+import { PauseMenu } from './pause';
 
 type Stage = 'dawn' | 'fall' | 'devoured' | 'shed' | 'jam' | 'swarm';
+type JamCue = 'vo_finale_shed_dawn' | 'vo_finale_shed' | 'vo_finale_one_arm' | 'vo_finale_go';
 
 const SECONDS: Readonly<Record<Exclude<Stage, 'jam'>, number>> = { dawn: 10.4, fall: 3, devoured: 5.6, shed: 9, swarm: 9 };
 /** The seventh dawn: the quiet picture, then the same picture with everyone in it. */
@@ -127,6 +129,9 @@ export class FinaleScene implements Scene {
   /** Seconds since the song was started, off the wall clock: a slow frame must not put the notes late. */
   private clock = 0;
   private startedAt = 0;
+  private pausedAt: number | null = null;
+  private labelsChanged = false;
+  private cue: { id: JamCue; until: number } | null = null;
   private drift = 0;
   /** Chord keys held, oldest first: the last one pressed is the one that sounds. */
   private readonly chords: number[] = [];
@@ -148,6 +153,8 @@ export class FinaleScene implements Scene {
   private warned = false;
 
   private root!: HTMLElement;
+  private readonly overlay = el('div', { class: 'finale-overlay' });
+  private pauseMenu!: PauseMenu;
   private countEl!: HTMLElement;
   private comboEl!: HTMLElement;
   private outEl!: HTMLElement;
@@ -186,7 +193,9 @@ export class FinaleScene implements Scene {
     audio.setAmbience(this.dawn ? 'day' : 'night');
     audio.setMusic('none');
     this.root = el('div', { class: 'finale' });
-    this.app.ui.append(this.root);
+    this.root.tabIndex = -1;
+    this.pauseMenu = new PauseMenu(this.overlay, this.root);
+    this.app.ui.append(this.root, this.overlay);
     if (this.options.encore && this.kind !== 'desk') {
       this.go('shed');
       return;
@@ -255,10 +264,10 @@ export class FinaleScene implements Scene {
         audio.setMusic('none');
         audio.play('shed_door');
         this.shake = 10;
-        this.after(0.9, () => say(this.dawn ? 'vo_finale_shed_dawn' : 'vo_finale_shed', { interrupt: true }));
+        this.after(0.9, () => this.speakCue(this.dawn ? 'vo_finale_shed_dawn' : 'vo_finale_shed'));
         this.after(1.6, () => audio.play('amp_on'));
         this.after(3.4, () => audio.play('mower_start'));
-        if (this.oneArmed) this.after(3.6, () => say('vo_finale_one_arm', { interrupt: true }));
+        if (this.oneArmed) this.after(3.6, () => this.speakCue('vo_finale_one_arm'));
         this.modeEls.clear();
         this.root.replaceChildren(
           el('div', { class: 'finale-title' }, [
@@ -279,6 +288,7 @@ export class FinaleScene implements Scene {
           el('div', { class: 'finale-skip', text: s.finale.start }),
         );
         this.pickMode(this.mode);
+        if (document.hidden || !document.hasFocus()) this.pause(true);
         break;
       case 'jam':
         this.startJam();
@@ -382,7 +392,7 @@ export class FinaleScene implements Scene {
 
   private startJam(): void {
     audio.setMusic('finale');
-    say('vo_finale_go', { interrupt: true });
+    this.speakCue('vo_finale_go');
     this.clock = 0;
     this.startedAt = performance.now();
     this.drift = 0;
@@ -414,6 +424,7 @@ export class FinaleScene implements Scene {
     this.outEl = el('button', { class: 'jam-out', onClick: () => this.bowOut() }, [el('kbd', { text: s.finale.enter }), el('span', {}, [s.finale.out, el('small', { text: s.finale.outNote })])]);
     this.root.replaceChildren(
       el('div', { class: 'jam' }, [el('div', { class: 'jam-count' }, [this.countEl, el('span', { text: s.finale.mown })]), this.comboEl, el('div', { class: 'jam-keys' }, [...keys, this.spaceEl]), this.hintEl, swap, this.outEl]),
+      el('button', { class: 'jam-pause', text: s.finale.pause, onClick: () => this.pause(false) }),
     );
   }
 
@@ -564,7 +575,19 @@ export class FinaleScene implements Scene {
   // ───────────────────────────── Input ─────────────────────────────
 
   onKeyDown(code: string, event: KeyboardEvent): void {
+    if (this.pausedAt !== null) {
+      if (code === 'Escape') {
+        event.preventDefault();
+        this.resume();
+      }
+      return;
+    }
     if (this.stage === 'jam') {
+      if (code === 'Escape') {
+        event.preventDefault();
+        this.pause(false);
+        return;
+      }
       const chord = (TRAP_KEY_CODES as readonly string[]).indexOf(code);
       if (chord >= 0 && chord < this.chordCount) {
         event.preventDefault();
@@ -600,17 +623,53 @@ export class FinaleScene implements Scene {
   }
 
   onBlur(): void {
+    if (this.stage === 'jam' || this.stage === 'shed') this.pause(true);
+  }
+
+  private pause(auto: boolean): void {
+    if (this.left || this.pausedAt !== null) return;
+    this.pausedAt = performance.now();
     this.chords.length = 0;
+    this.keyEls.forEach(key => key.classList.remove('held'));
+    if (this.stage === 'jam') audio.setMusicPaused(true);
+    hush();
+    this.pauseMenu.open(() => this.resume(), () => {
+      this.left = true;
+      goEnd(this.app);
+    }, auto, S().finale.leaveSong);
+  }
+
+  private speakCue(id: JamCue): void {
+    const duration = say(id, { interrupt: true });
+    this.cue = { id, until: this.time + duration };
+  }
+
+  private resume(): void {
+    if (this.left || this.pausedAt === null) return;
+    if (this.stage === 'jam') {
+      this.startedAt += performance.now() - this.pausedAt;
+      audio.setMusicPaused(false);
+    }
+    this.pausedAt = null;
+    this.pauseMenu.close();
+    if (this.cue && this.time < this.cue.until) this.speakCue(this.cue.id);
+    if (this.stage === 'jam') {
+      if (this.labelsChanged) this.buildJamHud();
+      this.labelsChanged = false;
+      this.root.focus();
+    }
   }
 
   onKeyLabels(): void {
-    if (this.stage === 'jam') this.buildJamHud();
+    if (this.stage !== 'jam') return;
+    if (this.pausedAt !== null) this.labelsChanged = true;
+    else this.buildJamHud();
   }
 
   // ───────────────────────────── Loop ─────────────────────────────
 
   update(dt: number): void {
-    if (this.left) return;
+    if (this.left || this.pausedAt !== null) return;
     this.time += dt;
     this.stageTime += dt;
     this.shake = Math.max(0, this.shake - dt * 30);
@@ -865,7 +924,7 @@ export class FinaleScene implements Scene {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, STAGE_W, STAGE_H);
     ctx.save();
-    ctx.translate((Math.random() * 2 - 1) * this.shake, (Math.random() * 2 - 1) * this.shake);
+    if (this.pausedAt === null) ctx.translate((Math.random() * 2 - 1) * this.shake, (Math.random() * 2 - 1) * this.shake);
     const t = this.stageTime;
     // Leaving the desk (or the garden at dawn) and landing on the next picture is one turn of the head, not a cut.
     const out = this.stage === 'fall' || this.stage === 'dawn' ? clamp01((t - (SECONDS[this.stage] - WHIP)) / WHIP) : 0;
