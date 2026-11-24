@@ -142,6 +142,7 @@ export class App {
 
   private resize(): void {
     this.scale = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+    this.stage.style.setProperty('--stage-scale', String(this.scale));
     this.stage.style.transform = `translate(-50%, -50%) scale(${this.scale})`;
     this.dpr = Math.min(2, Math.max(1, (window.devicePixelRatio || 1) * Math.min(1.5, this.scale)));
     this.canvas.width = Math.round(STAGE_W * this.dpr);
