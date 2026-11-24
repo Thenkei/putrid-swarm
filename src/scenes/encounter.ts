@@ -28,7 +28,7 @@ import { assetUrl } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
-import { costLine, drawPlate, inventoryBar, lootSfx, oneArmed, resourceChip } from './common';
+import { costLine, drawPlate, returnCargoBar, lootSfx, oneArmed, resourceChip } from './common';
 import { goHomeStretch } from './flow';
 import { WashersBoard, type Landing, type Side } from './washers';
 
@@ -596,8 +596,7 @@ export class AmbushScene implements Scene {
         el('span', { class: 'meter' }, [el('i', { style: { width: `${(state.hoursLeft / DAY_HOURS) * 100}%` } })]),
         el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { h: hours(state.hoursLeft) }) }),
         el('span', { class: 'grow' }),
-        el('span', { class: 'muted', text: s.encounter.trunk }),
-        state.outing ? inventoryBar(state.outing.trunk) : null,
+        ...returnCargoBar(state),
       ]),
     );
   }

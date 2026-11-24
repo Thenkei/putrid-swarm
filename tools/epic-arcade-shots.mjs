@@ -125,6 +125,77 @@ async function garage(profile) {
   console.log(profile+' garage: retrieval, cargo cost, one launch, wreck and spent save after reload verified');
 }
 
+// Resume at the garage after the puzzle, with known goods and an earlier road loss.
+async function mopedCargo(profile, packed, loaded = true) {
+  const base = garageSave();
+  const save = { ...base, flags: { ...base.flags, 'epic.loaded': Number(loaded) }, outing: {
+    ...base.outing, trunk: { ...base.outing.trunk, scrap: 0, ...packed }, parted: { ...base.outing.parted, wire: 1 },
+  } };
+  const { page, click, shot, finish } = await openSave(profile, save);
+  const bar = page.locator('.topbar .cost .res');
+  await bar.first().waitFor();
+  const ids = ['wood','scrap','wire','springs','battery'];
+  const have = id => loaded ? Math.floor(save.outing.trunk[id] / 2) : save.outing.trunk[id];
+  for (const id of ids) {
+    const label = bar.filter({has:page.locator('img[src*="icons_'+id+'"]')});
+    assert.equal(Number(await label.textContent()), have(id), id);
+  }
+  await page.evaluate(() => {
+    const draw = CanvasRenderingContext2D.prototype.drawImage;
+    CanvasRenderingContext2D.prototype.drawImage = function(image,...args) {
+      draw.call(this,image,...args);
+      const plate = image.src?.match(/\b(plate_trunk|plate_return)\.webp/);
+      if (plate) window.arrivalPlate = plate[1];
+    };
+  });
+  await click(page.locator('.loc-leave button'));
+  const summary = page.locator('.travel-summary .center-col');
+  await summary.waitFor();
+  await page.waitForFunction(expected => window.arrivalPlate === expected,loaded ? 'plate_return' : 'plate_trunk');
+  assert.equal(await summary.locator('.moped-delivery').count(), Number(loaded));
+  if (loaded) {
+    assert.ok(await summary.locator('.moped-delivery img').evaluate(img => img.complete && img.naturalWidth > 0));
+    assert.match(await summary.textContent(), /Laissé pour la mob/);
+    assert.doesNotMatch(await summary.textContent(), /Coffre vide/);
+  }
+  assert.match(await summary.textContent(), /Laissé en route/);
+  for (const id of ids) {
+    const found = summary.locator('p:not(.lost) .res').filter({has:page.locator('img[src*="icons_'+id+'"]')});
+    assert.equal(await found.count(), Number(have(id)>0));
+    if (have(id)) assert.equal(await found.textContent(), '+'+have(id));
+  }
+  const label = !loaded ? 'ordinary' : ids.some(id => have(id) > 0) ? 'mixed' : 'single';
+  await page.waitForTimeout(220);
+  await shot('cargo-'+label);
+  if (loaded) {
+    const displaced = summary.locator('p.lost').filter({hasText:/pour la mob/});
+    for (const id of ids) {
+      const loss = save.outing.trunk[id] - have(id);
+      const chip = displaced.locator('.res').filter({has:page.locator('img[src*="icons_'+id+'"]')});
+      assert.equal(await chip.count(), Number(loss > 0));
+      if (loss) assert.equal(await chip.textContent(), '−'+loss);
+    }
+  }
+  await click(summary);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem('putrid-swarm.save.v1')).where==='home');
+  const read = () => page.evaluate(() => JSON.parse(localStorage.getItem('putrid-swarm.save.v1')));
+  const home = await read();
+  assert.equal(Boolean(home.flags['epic.moped']),loaded);
+  for (const id of ids) assert.equal(home.inventory[id],base.inventory[id]+have(id));
+  if (loaded) {
+    await page.getByText(/Mob livrée au refuge/).waitFor();
+    await page.waitForTimeout(250);
+    await shot('home-'+label);
+  }
+  await page.reload();
+  if(profile.startsWith('phone')) await click(page.locator('.gate button'));
+  await click(page.getByRole('button',{name:'Continuer',exact:true}));
+  await page.locator('.topbar').waitFor();
+  assert.deepEqual((await read()).inventory,home.inventory);
+  await finish();
+  console.log(profile+' cargo '+label+': topbar, illustration, full breakdown, stock and reload verified');
+}
+
 async function arcade(profile, motion, armless = false) {
   const save = {...newGame(37),day:4,hoursLeft:0,orchard:armless ? 'maimed' : 'quiet',flags:{'epic.vhs':1}};
   const {page,click,btn,shot,finish} = await openSave(profile,save,motion);
@@ -195,10 +266,15 @@ async function arcade(profile, motion, armless = false) {
 
 try {
   await garage('desktop');
-  await arcade('desktop','no-preference');
-  await arcade('desktop','no-preference',true);
-  await arcade('desktop','reduce');
-  if(BROWSER==='chrome') {
-    for (const phone of ['phone','phone-wide']) { await garage(phone); await arcade(phone,'reduce'); }
+  await mopedCargo('desktop', {springs:1});
+  await mopedCargo('phone-wide', {wood:5,scrap:3,battery:1});
+  await mopedCargo('desktop', {springs:1}, false);
+  if (!process.argv.includes('--cargo-only')) {
+    await arcade('desktop','no-preference');
+    await arcade('desktop','no-preference',true);
+    await arcade('desktop','reduce');
+    if(BROWSER==='chrome') {
+      for (const phone of ['phone','phone-wide']) { await garage(phone); await arcade(phone,'reduce'); }
+    }
   }
 } finally { await browser.close(); }

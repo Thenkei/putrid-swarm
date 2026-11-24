@@ -2467,6 +2467,19 @@ button:disabled {
   text-shadow: 0 2px 6px #000;
 }
 
+.center-col .moped-delivery {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #ffe8a9;
+}
+.moped-delivery img {
+  width: 96px;
+  height: 64px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 3px #17120e);
+}
+
 .center-col .row {
   display: flex;
   gap: 14px;

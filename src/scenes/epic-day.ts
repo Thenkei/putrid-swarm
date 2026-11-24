@@ -31,10 +31,10 @@ export function epicObject(app: App, refresh: () => void): HTMLElement | null {
   };
   const { where, day } = state;
   if (where === 'garage' && !flag('moped')) {
-    if (flag('loaded')) return item(line('Le break', 'Station wagon'), line('La mob dépasse du coffre.', 'The moped sticks out of the boot.'));
+    if (flag('loaded')) return item(line('Le break', 'Station wagon'), line('La mob dépasse du coffre. Avec elle, tu gardes un objet par paire de même type.', 'The moped sticks out of the boot. You can bring home one item per matching pair.'));
     return item(flag('garagePrint') ? line('La clé sur la photo', 'The key in the photo') : line('Rétroviseur fêlé', 'Cracked mirror'), day < 3
       ? line('« Si tu touches, tu pédales. » Gérard a fermé le rideau.', '“Touch it and you pedal.” Gérard pulled the shutter down.')
-      : line('Dans le rétro, une clé pend au rideau levé. La mob occupera la moitié de chaque lot au retour, arrondie en sa faveur.', 'In the mirror, a key hangs from the raised shutter. The moped takes half of each stack on return, rounded up.'),
+      : line('Dans le rétro, une clé pend au rideau levé. Avec la mob, tu rapportes un objet par paire de même type. Un objet seul reste ici.', 'In the mirror, a key hangs from the raised shutter. With the moped, you can bring home one item per matching pair. Single items stay behind.'),
       day >= 3 ? line('Décrocher la clé et sortir la mob', 'Take the key and roll the moped out') : undefined,
       () => clearGarageAisle(app.ui, () => mark('loaded')));
   }
