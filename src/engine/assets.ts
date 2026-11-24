@@ -22,6 +22,9 @@ interface ManifestEntry {
 
 const sprites = new Map<string, Sprite>();
 const BASE = `${import.meta.env.BASE_URL}assets/`;
+// Everything visible or interactive on the opening desk, including its news inset.
+const TITLE_ART = new Set(['plate_title_desk', 'logo', 'plate_news', 'desk_joint', 'desk_mug',
+  'desk_hand_open', 'desk_hand_joint', 'desk_hand_mug', 'fx_smoke']);
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -38,7 +41,7 @@ export interface LoadReport {
   readonly failed: readonly string[];
 }
 
-export async function loadAssets(onProgress: (done: number, total: number) => void): Promise<LoadReport> {
+export async function loadAssets(onProgress: (done: number, total: number) => void, onTitleReady?: () => void): Promise<LoadReport> {
   let manifest: Record<string, ManifestEntry> = {};
   try {
     const response = await fetch(`${BASE}manifest.json`);
@@ -50,9 +53,10 @@ export async function loadAssets(onProgress: (done: number, total: number) => vo
 
   const entries = Object.entries<ManifestEntry>({ ...manifest, ...mobGaitSheets });
   const failed: string[] = [];
-  let done = 0;
-  await Promise.all(
-    entries.map(async ([key, entry]) => {
+  async function loadBatch(batch: typeof entries): Promise<void> {
+    let done = 0;
+    onProgress(0, batch.length);
+    await Promise.all(batch.map(async ([key, entry]) => {
       try {
         const img = await loadImage(BASE + entry.file);
         sprites.set(key, { img, w: entry.w, h: entry.h, footX: entry.footX ?? 0.5, footY: entry.footY ?? 1 });
@@ -60,10 +64,17 @@ export async function loadAssets(onProgress: (done: number, total: number) => vo
         failed.push(key);
         console.warn(`[assets] ${key}`, error);
       } finally {
-        onProgress(++done, entries.length);
+        onProgress(++done, batch.length);
       }
-    }),
-  );
+    }));
+  }
+  if (onTitleReady) {
+    await loadBatch(entries.filter(([key]) => TITLE_ART.has(key)));
+    onTitleReady();
+    await loadBatch(entries.filter(([key]) => !TITLE_ART.has(key)));
+  } else {
+    await loadBatch(entries);
+  }
   return { loaded: sprites.size, failed };
 }
 

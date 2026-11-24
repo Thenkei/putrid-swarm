@@ -34,7 +34,7 @@ export class TitleScene implements Scene {
   private alive = true;
   private recentDrags: number[] = [];
 
-  constructor(private readonly app: App) {}
+  constructor(private readonly app: App, private readonly whenReady: (launch: () => void) => void = launch => launch()) {}
 
   enter(): void {
     desk.reset();
@@ -62,7 +62,7 @@ export class TitleScene implements Scene {
     const now = performance.now();
     this.recentDrags = this.recentDrags.filter((at) => now - at < 30_000);
     this.recentDrags.push(now);
-    if (this.recentDrags.length === 5) this.app.go(() => new TaranjaDeathScene(this.app));
+    if (this.recentDrags.length === 5) this.whenReady(() => this.app.go(() => new TaranjaDeathScene(this.app)));
   };
 
   private togglePower(): void {
@@ -240,7 +240,7 @@ export class TitleScene implements Scene {
           'continue',
           s.title.continue,
           () => {
-            if (saved) resumeGame(this.app, saved);
+            if (saved) this.whenReady(() => resumeGame(this.app, saved));
           },
           !saved,
         ),
@@ -248,7 +248,7 @@ export class TitleScene implements Scene {
           this.view = 'options';
           this.build('language');
         }),
-        item('credits', S().credits.menu, () => this.app.go(() => new CreditsScene(this.app))),
+        item('credits', S().credits.menu, () => this.whenReady(() => this.app.go(() => new CreditsScene(this.app)))),
       ]);
     }
 
@@ -269,7 +269,7 @@ export class TitleScene implements Scene {
   }
 
   private begin(): void {
-    this.app.go(() => new IntroScene(this.app));
+    this.whenReady(() => this.app.go(() => new IntroScene(this.app)));
   }
 
   update(dt: number): void {
@@ -311,7 +311,7 @@ export class TitleScene implements Scene {
     }
     if ((code === 'Enter' || code === 'NumpadEnter') && this.view === 'main' && !(event.target instanceof HTMLButtonElement)) {
       const saved = this.app.loadSave();
-      if (saved) resumeGame(this.app, saved);
+      if (saved) this.whenReady(() => resumeGame(this.app, saved));
       else this.begin();
     }
   }

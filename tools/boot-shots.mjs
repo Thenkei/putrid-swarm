@@ -115,6 +115,35 @@ const shot = async (page, name) => {
   await context.close();
 }
 
+// A slow campaign plate must leave the desk interactive and preserve an early Start.
+{
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, locale });
+  await context.addInitScript(() => localStorage.setItem('putrid-swarm.warned', '1'));
+  const page = await context.newPage();
+  watch(page);
+  let release;
+  const latch = new Promise(resolve => { release = resolve; });
+  await page.route('**/plates/plate_shed_end.webp', async route => {
+    await latch;
+    await route.continue();
+  });
+  try {
+    await page.goto(URL, { waitUntil: 'domcontentloaded' });
+    const item = id => page.locator(`[data-menu-item="${id}"]`);
+    await item('options').click();
+    await item('language').waitFor();
+    await page.keyboard.press('Escape');
+    await item('start').click();
+    await page.locator('.loading').waitFor();
+    assert.equal(await page.locator('.news').count(), 0);
+    release();
+    await page.locator('.news').waitFor();
+  } finally {
+    release();
+    await context.close();
+  }
+}
+
 // ── On a phone ──
 if (BROWSER === 'firefox') console.log('(phone emulation is not available in Firefox: the keyboard notice is not shot)');
 else {
