@@ -15,6 +15,10 @@ export const SAVE_VERSION = 1;
 const PHASES: readonly Phase[] = ['day', 'night', 'morning', 'lost', 'held'];
 /** Saved when holding the seventh night still counted as winning: the same run, under its new name. */
 const LEGACY_PHASES: Readonly<Record<string, Phase>> = { won: 'held' };
+/** Awarded during that night's playable scene, settled with the rest of its report at dawn. */
+const NIGHT_OUTCOMES: Readonly<Partial<Record<number, string>>> = {
+  3: 'epic.garagePrint', 5: 'epic.cub', 6: 'epic.neighbor',
+};
 
 export const serialize = (state: GameState): string => JSON.stringify(state);
 
@@ -285,7 +289,6 @@ export function deserialize(raw: string): GameState | null {
   if (!locations) return null;
   if (!isRecord(data['flags']) || !isRecord(data['totals'])) return null;
 
-  // A night in progress is not resumable: restart that night from the evening.
   const receipt = data['springReceipt'];
   const springReceipt = locations.hardware.looted.includes(HARDWARE_SPRING_BIN) && (receipt === 'left' || receipt === 'held' || receipt === 'answered') ? receipt : 'none';
   const { morningTape, ...campaign } = data;
@@ -306,5 +309,11 @@ export function deserialize(raw: string): GameState | null {
   // Outside the day nobody is out: the trip, if a save still carries one, is over.
   const trip = reported.fate === 'lift' ? { where: 'garage' as const, outing: null, encounter: null, people: parsePeople(data['people']) } : parseTrip(data, parsed.phase === 'day' ? parsed.where : 'home');
   const state: GameState = { ...reported, ...trip, yard: { ...reported.yard, devices: withBuiltDay(withFacing(reported.yard.devices)) } };
-  return state.phase === 'night' ? { ...state, phase: 'day', where: 'home', hoursLeft: 0 } : state;
+  if (state.phase !== 'night') return state;
+  // The desk saves immediately when the single-use moped leaves. Rewind the night's
+  // unfinished encounter alongside its simulation, preserving the spent moped and earlier nights.
+  const flags = { ...state.flags };
+  const outcome = NIGHT_OUTCOMES[state.day];
+  if (outcome) delete flags[outcome];
+  return { ...state, flags, phase: 'day', where: 'home', hoursLeft: 0 };
 }
