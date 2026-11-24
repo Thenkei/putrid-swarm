@@ -533,7 +533,7 @@ class AudioEngine {
     playing.source.addEventListener('ended', () => owner.delete(playing), { once: true });
   }
 
-  private playBuffer(buffer: AudioBuffer, bus: AudioNode, gain: number, rate = 1): Playing | null {
+  private playBuffer(buffer: AudioBuffer, bus: AudioNode, gain: number, rate = 1, offset = 0): Playing | null {
     if (!this.ctx) return null;
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
@@ -541,7 +541,7 @@ class AudioEngine {
     const amp = this.ctx.createGain();
     amp.gain.value = gain;
     source.connect(amp).connect(bus);
-    source.start();
+    source.start(0, offset);
     return { source, amp };
   }
 
@@ -671,14 +671,16 @@ class AudioEngine {
    * whatever else is tuned in. Returns its duration (0 with no recording); a line already on that
    * channel is faded out first.
    */
-  sayOn(channel: string, id: string, level: number): number {
+  sayOn(channel: string, id: string, level: number, offset = 0): number {
     const sample = this.samples.get(id);
     if (!sample || sample.entry.kind !== 'voice') return 0;
     const seconds = sample.entry.seconds;
     if (!this.ctx || !this.enabled || !sample.buffer || !this.voiceBus) return seconds;
     this.hushOn(channel);
-    const playing = this.playBuffer(sample.buffer, this.voiceBus, sample.entry.gain * Math.max(0, level));
-    if (playing) this.channels.set(channel, { playing, gain: sample.entry.gain, endsAt: this.ctx.currentTime + seconds });
+    const remaining = sample.buffer.duration - offset;
+    if (remaining <= 0) return seconds;
+    const playing = this.playBuffer(sample.buffer, this.voiceBus, sample.entry.gain * Math.max(0, level), 1, offset);
+    if (playing) this.channels.set(channel, { playing, gain: sample.entry.gain, endsAt: this.ctx.currentTime + remaining });
     return seconds;
   }
 
@@ -693,6 +695,14 @@ class AudioEngine {
   speakingOn(channel: string): boolean {
     const on = this.channels.get(channel);
     return on !== undefined && this.ctx !== null && this.ctx.currentTime < on.endsAt;
+  }
+
+  /** Current playhead in the decoded recording, or null when the channel is silent. */
+  positionOn(channel: string): number | null {
+    const on = this.channels.get(channel);
+    const buffer = on?.playing.source.buffer;
+    if (!on || !buffer || !this.ctx || this.ctx.currentTime >= on.endsAt) return null;
+    return Math.max(0, buffer.duration - (on.endsAt - this.ctx.currentTime));
   }
 
   /** Fades out whatever that channel is saying. */
