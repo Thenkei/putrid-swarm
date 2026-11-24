@@ -3,6 +3,7 @@ import type { NightSim } from '../core/night';
 import { THRESHOLDS, VISIBLE_DOORS } from '../house-layout';
 import { clipAtSill, doorSwing, outsideSillDepth } from './house';
 import { calmMotion } from './lighting';
+import { smoothstep } from '../core/math';
 import { depthOf, project, TW, TH, type View } from './projection';
 
 import { MOPED_RUN_SECONDS, MOPED_EXIT_SECONDS, MOPED_BLAST_RADIUS, mopedImpact } from '../core/epics';
@@ -13,9 +14,15 @@ const STEEL = '#b7ada0';
 const BLAST_WIDTH = MOPED_BLAST_RADIUS * Math.SQRT2 * TW;
 const paintedCels: HTMLCanvasElement[] = [];
 
+function compressFork(ctx: CanvasRenderingContext2D, kick: number) {
+  ctx.translate(4, 0);
+  ctx.transform(1 - .07 * kick, -.17 * kick, 0, 1, 0, 0);
+  ctx.translate(-4, 0);
+}
+
 /** The garage and CCTV use the same registered vehicle. The tips extend beyond the front tyre
  * so the special wheel keeps its silhouette in the small feeds and behind the night grading. */
-export function drawPaintedMoped(ctx: CanvasRenderingContext2D, rotation = 0): boolean {
+export function drawPaintedMoped(ctx: CanvasRenderingContext2D, rotation = 0, fork = 0): boolean {
   const painted = sprite('epic_moped_art');
   if (!painted) return false;
   // Seven identical blades share a turn; six cels cover the sweep at both garage and CCTV sizes.
@@ -31,7 +38,17 @@ export function drawPaintedMoped(ctx: CanvasRenderingContext2D, rotation = 0): b
     paintWheelCel(paint, painted.img, index * period / 6);
     paintedCels[index] = cel;
   }
-  ctx.drawImage(cel, -33, -35, 70, 46);
+  if (fork) {
+    // The headstock is x=4 in the registered painting. The two halves meet
+    // along that fixed line while the front axle rises into the fork.
+    ctx.drawImage(cel, 0, 0, 111, 138, -33, -35, 37, 46);
+    ctx.save();
+    compressFork(ctx, fork);
+    ctx.drawImage(cel, 111, 0, 99, 138, 4, -35, 33, 46);
+    ctx.restore();
+  } else {
+    ctx.drawImage(cel, -33, -35, 70, 46);
+  }
   return true;
 }
 
@@ -109,6 +126,16 @@ function wheel(ctx: CanvasRenderingContext2D, x: number, turn: number, blades: b
 
 type Ride = NonNullable<NightSim['mopedRide']>;
 
+/** Keep the readable skid on the filmed body; the blades still hit the original simulated path. */
+export function mopedStruckPose<T extends { id: number; x: number; y: number }>(actor: T, contact: Ride['contact'], time: number): T {
+  if (!contact || actor.id !== contact.id || calmMotion()) return actor;
+  const age = time - contact.at;
+  const settle = contact.fatal ? 1 : 1 - smoothstep(.17, .48, age);
+  const slide = .73 * smoothstep(0, .17, age) * settle;
+  if (!slide) return actor;
+  return { ...actor, x: actor.x + slide * contact.pushX, y: actor.y + slide * contact.pushY };
+}
+
 export function mopedDoorOpen(age: number): number {
   return doorSwing(age, 1.05, 1.40);
 }
@@ -169,8 +196,12 @@ export function mopedRideDrawable(ctx: CanvasRenderingContext2D, view: View, rid
   // Move along the same line through the painted sill and onto the simulated blade path.
   const t = Math.min(1, (age - .22) / (MOPED_EXIT_SECONDS - .22));
   const emergence = 2.25 * t * t * (1.8 - .8 * t) - 1.25;
-  const gx = sill.gx + (start.x - sill.gx) * emergence + (next.x - start.x) * progress;
-  const gy = sill.gy + (start.y - sill.gy) * emergence + (next.y - start.y) * progress;
+  const contact = ride.contact;
+  const contactAge = contact ? time - contact.at : Infinity;
+  const kick = contactAge < .37 && !calmMotion()
+    ? smoothstep(0, .06, contactAge) * (1 - smoothstep(.06, .37, contactAge)) : 0;
+  const gx = sill.gx + (start.x - sill.gx) * emergence + (next.x - start.x) * progress - (contact?.pushX ?? 0) * kick * .18;
+  const gy = sill.gy + (start.y - sill.gy) * emergence + (next.y - start.y) * progress - (contact?.pushY ?? 0) * kick * .18;
   const { x, y } = project(view, gx, gy);
   const radius = 85 * view.zoom;
   if (x + radius < view.x || x - radius > view.x + view.w || y + radius < view.y || y - radius > view.y + view.h) return;
@@ -186,13 +217,13 @@ export function mopedRideDrawable(ctx: CanvasRenderingContext2D, view: View, rid
       ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
       if (front && age < 1.05) clipAtSill(ctx, view, ride.sector, facing);
       ctx.translate(x, y); ctx.scale(view.zoom * facing, view.zoom); ctx.rotate(pitch * .65);
-      drawRiderlessMoped(ctx, age, progress, emergence);
+      drawRiderlessMoped(ctx, age, progress, emergence, kick, contactAge);
       ctx.restore();
     },
   };
 }
 
-function drawRiderlessMoped(ctx: CanvasRenderingContext2D, age: number, progress: number, emergence: number) {
+function drawRiderlessMoped(ctx: CanvasRenderingContext2D, age: number, progress: number, emergence: number, kick: number, contactAge: number) {
   const still = calmMotion();
   // Exhaust and kick-up stay low enough to leave the infected visible on every feed.
   if (!still) {
@@ -212,9 +243,18 @@ function drawRiderlessMoped(ctx: CanvasRenderingContext2D, age: number, progress
   const roll = age - .46;
   const lift = !still && roll > 0 && roll < .38 ? -.16 * Math.sin(Math.PI * roll / .38) : 0;
   ctx.rotate(lift);
+  if (kick > 0) {
+    // Brace the rear tyre against the ground. The fork dips first, then recoils;
+    // the headlight and its cone follow the same steering motion as the front end.
+    ctx.translate(-16, 0);
+    ctx.rotate(Math.sin(contactAge * 26) * kick * .13);
+    ctx.translate(16, 0);
+  }
   // A headlamp illuminates the path long enough for the player to follow a single launch.
   const painted = sprite('epic_moped_art');
   const lampX = painted ? 21 : 11, lampY = painted ? -24 : -13;
+  ctx.save();
+  if (kick) compressFork(ctx, kick);
   const beam = ctx.createLinearGradient(lampX, lampY, lampX + 65, lampY);
   beam.addColorStop(0, '#ffe7a15f');
   beam.addColorStop(1, '#ffe7a100');
@@ -225,13 +265,15 @@ function drawRiderlessMoped(ctx: CanvasRenderingContext2D, age: number, progress
   ctx.lineTo(lampX + 66, lampY + 19);
   ctx.closePath();
   ctx.fill();
+  ctx.restore();
 
   const turn = still ? 0 : (emergence + 1.25) * 2 + progress * 17;
-  if (!drawPaintedMoped(ctx, turn)) {
+  if (!drawPaintedMoped(ctx, turn, kick)) {
     drawFallbackFrame(ctx, turn);
   }
 
   if (!still && painted) {
+    if (kick) compressFork(ctx, kick);
     ctx.translate(20.8, -4.5);
     ctx.strokeStyle = '#fce8b1b8';
     ctx.lineWidth = 1.2;
@@ -242,7 +284,7 @@ function drawRiderlessMoped(ctx: CanvasRenderingContext2D, age: number, progress
   }
 }
 
-function drawFallbackFrame(ctx: CanvasRenderingContext2D, rotation: number) {
+export function drawFallbackFrame(ctx: CanvasRenderingContext2D, rotation: number) {
   wheel(ctx, -11, rotation, false);
   wheel(ctx, 12, rotation, true);
   ctx.lineWidth = 2.6;
@@ -277,6 +319,28 @@ function drawFallbackFrame(ctx: CanvasRenderingContext2D, rotation: number) {
 const blastArt = typeof Image === 'undefined' ? null : new Image();
 if (blastArt) blastArt.src = blastSheet;
 
+let scorch: HTMLCanvasElement | undefined;
+
+/** The soot is in the ground pass so devices, bodies and the wreck can sit on top of it. */
+export function drawMopedScorch(ctx: CanvasRenderingContext2D, view: View, sector: SectorId) {
+  if (!blastArt?.naturalWidth) return;
+  if (!scorch) {
+    scorch = document.createElement('canvas');
+    scorch.width = 140; scorch.height = 112;
+    const ink = scorch.getContext('2d')!;
+    // Take only earth and splinters from the fourth cel. The loose wheel is animated separately.
+    ink.drawImage(blastArt, 498, 643, 125, 112, 0, 0, 140, 112);
+    ink.globalCompositeOperation = 'destination-in';
+    ink.scale(70, 56);
+    const edge = ink.createRadialGradient(1, 1, .42, 1, 1, 1);
+    edge.addColorStop(0, '#000'); edge.addColorStop(1, '#0000');
+    ink.fillStyle = edge; ink.fillRect(0, 0, 2, 2);
+  }
+  const impact = mopedImpact(sector);
+  const p = project(view, impact.x, impact.y);
+  ctx.drawImage(scorch, p.x - 83 * view.zoom, p.y - 27 * view.zoom, 166 * view.zoom, 54 * view.zoom);
+}
+
 function blastCel(ctx: CanvasRenderingContext2D, cel: number, width: number,
   alpha: number, x = 0, footY = 0) {
   if (!blastArt?.complete || !blastArt.naturalWidth || alpha <= 0) return;
@@ -295,12 +359,6 @@ function drawBlast(ctx: CanvasRenderingContext2D, view: View, x: number, y: numb
   ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
   ctx.translate(x, y); ctx.scale(view.zoom, view.zoom);
 
-  // This footprint remains after the smoke has cleared and no longer has an intact vehicle.
-  if (!blastArt?.naturalWidth) {
-    ctx.fillStyle = '#20171380';
-    ctx.beginPath(); ctx.ellipse(0, 0, width * .30, width * .085, -.06, 0, Math.PI * 2); ctx.fill();
-  }
-  blastCel(ctx, 3, width * .74, .94, 0, width * .115);
   if (age < 2.75) {
     const light = still ? .36 : Math.max(0, 1 - age / 1.1);
     if (light > 0) {

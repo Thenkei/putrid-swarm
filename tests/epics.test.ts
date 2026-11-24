@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { epicFlag, markEpic, MOPED_BLAST_RADIUS, MOPED_EXIT_SECONDS, MOPED_RUN_SECONDS, unloadMoped } from '../src/core/epics';
 import { THRESHOLDS } from '../src/house-layout';
-import { mopedDoorOpen } from '../src/render/moped';
+import { mopedDoorOpen, mopedStruckPose } from '../src/render/moped';
 import { ENTRIES, LANES } from '../src/core/map';
 import { SECTOR_IDS } from '../src/core/types';
 import { arriveHome, concludeNight, newGame, startNextDay, startNight } from '../src/core/game';
@@ -48,13 +48,18 @@ describe('daily epics', () => {
     for (let i = 0; i < 120; i++) sim.step(1/60);
     expect(inLane!.alive).toBe(false);
     expect(sim.mopedRide!.bladeKills).toBe(1);
+    const contact = sim.mopedRide!.contact!;
+    expect(contact.id).toBe(inLane!.id);
+    expect(mopedStruckPose(inLane!, contact, contact.at + .2).x).not.toBe(inLane!.x);
+    expect(mopedStruckPose(outside!, contact, contact.at + .2)).toBe(outside);
+    expect(sim.drainEvents().filter(e => e.type === 'moped_blade_contact')).toHaveLength(1);
     expect(outside!.alive).toBe(true);
     expect(sim.launchMoped('portail')).toBe(false);
     expect(sim.report().kills[inLane!.type]).toBeGreaterThan(0);
   });
   it.each(SECTOR_IDS)('detonates once at the far end of %s and credits just the victims of the blast', sector => {
     const s = newGame(3);
-    const sim = new NightSim(3, s.yard, s.seed);
+    const sim = new NightSim(3, { ...s.yard, devices: [] }, s.seed);
     while (!sim.enemies.length) sim.step(1/60);
     const template = sim.enemies[0]!;
     const entry = ENTRIES[sector];
@@ -69,7 +74,7 @@ describe('daily epics', () => {
     const crowd = [target(-1, 2.5), target(-2, -2.5), target(-3, MOPED_BLAST_RADIUS)];
     const outside = target(-4, -(MOPED_BLAST_RADIUS + .05));
     const bladeVictim = { ...target(-5, 0), x: (entry.x + .5 + centre.x) / 2, y: (entry.y + .5 + centre.y) / 2 };
-    sim.enemies.splice(0, sim.enemies.length, ...crowd, outside, bladeVictim);
+    sim.enemies.splice(0, sim.enemies.length, ...crowd, outside, bladeVictim, { ...bladeVictim, id: -7 });
     const start = sim.time;
     expect(sim.launchMoped(sector)).toBe(true);
     expect(sim.mopedRide!.impact).toEqual(centre);
@@ -77,13 +82,14 @@ describe('daily epics', () => {
     expect(bladeVictim.alive).toBe(false);
     expect(sim.mopedRide!.blastAt).toBeNull();
     expect(crowd.every(e => e.alive)).toBe(true);
-    sim.drainEvents();
+    expect(sim.mopedRide!.bladeKills).toBe(2);
+    expect(sim.drainEvents().filter(e => e.type === 'moped_blade_contact')).toHaveLength(1);
     sim.step(1/30);
     expect(sim.mopedRide!.blastAt).toBeCloseTo(start + impactSeconds);
     expect(crowd.every(e => !e.alive)).toBe(true);
     expect(outside.hp).toBe(60);
     expect(sim.drainEvents().filter(e => e.type === 'moped_blast')).toEqual([{ type: 'moped_blast', sector, kills: 3 }]);
-    expect(sim.report().kills[template.type]).toBe(4);
+    expect(sim.report().kills[template.type]).toBe(5);
     const late = target(-6, 0);
     sim.enemies.push(late);
     for (let i = 0; i < 180; i++) sim.step(1/60);
@@ -100,6 +106,16 @@ describe('daily epics', () => {
     expect(sim.launchMoped('portail')).toBe(true);
     for (let i = 0; i < 160; i++) sim.step(1 / 60);
     expect(sim.mopedRide!.blastKills).toBeGreaterThanOrEqual(2);
+  });
+
+  it('plays no blade contact on an empty ride', () => {
+    const state = newGame(12);
+    const sim = new NightSim(1, state.yard, state.seed);
+    sim.launchMoped('verger');
+    for (let i = 0; i < 160; i++) sim.step(1 / 60);
+    expect(sim.mopedRide?.blastAt).toBeGreaterThan(0);
+    expect(sim.mopedRide?.contact).toBeUndefined();
+    expect(sim.drainEvents().some(e => e.type === 'moped_blade_contact')).toBe(false);
   });
 
   it('lets the moped reach the hedge and show its impact when launched just before dawn', () => {

@@ -8,8 +8,7 @@ import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlock
 import type { CameraOutage } from './orchard';
 import type { Ally } from './radio';
 import { computeField, nextStep, type Field } from './pathing';
-import { mopedImpact, MOPED_BLAST_RADIUS, MOPED_EXIT_SECONDS, MOPED_RUN_SECONDS } from './epics';
-import { THRESHOLDS } from '../house-layout';
+import { mopedImpact, mopedPath, MOPED_BLAST_RADIUS, MOPED_EXIT_SECONDS, MOPED_RUN_SECONDS } from './epics';
 import { createRng, type Rng } from './rng';
 import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, NeighborId, NightHighlight, NightReport, Result, SectorId, TrapTally, YardState } from './types';
 import { SECTOR_IDS, err, ok } from './types';
@@ -127,6 +126,7 @@ export type SimEvent = (
   | { readonly type: 'rattle'; readonly sector: SectorId }
   | { readonly type: 'moped_blast'; readonly sector: SectorId; readonly kills: number }
   | { readonly type: 'moped_departure' }
+  | { readonly type: 'moped_blade_contact' }
   | { readonly type: 'boss_spawn'; readonly boss: NeighborId; readonly sector: SectorId }
   | { readonly type: 'boss_dead'; readonly boss: NeighborId; readonly x: number; readonly y: number }
   | { readonly type: 'trigger'; readonly deviceId: number; readonly device: DeviceTypeId; readonly x: number; readonly y: number; readonly hits: number; readonly kills: number; readonly auto: boolean }
@@ -1451,6 +1451,7 @@ export class NightSim {
     path: readonly [Cell, Cell];
     impact: Cell;
     hit: Set<number>;
+    contact?: { readonly at: number; readonly id: number; readonly pushX: number; readonly pushY: number; readonly fatal: boolean };
     departed: boolean;
     blastAt: number | null;
     bladeKills: number;
@@ -1475,11 +1476,7 @@ export class NightSim {
 
   launchMoped(sector: SectorId): boolean {
     if (this.awayFromDesk || this.mopedRide || this.outcome !== 'ongoing') return false;
-    const sill = THRESHOLDS[sector];
-    const impact = mopedImpact(sector);
-    const dx = impact.x - sill.gx, dy = impact.y - sill.gy;
-    const clearance = 1.35 / Math.hypot(dx, dy);
-    const origin = { x: sill.gx + clearance * dx, y: sill.gy + clearance * dy };
+    const [origin, impact] = mopedPath(sector);
     this.mopedRide = { sector, start: this.time, path: [origin, impact], impact, hit: new Set(), departed: false, blastAt: null, bladeKills: 0, blastKills: 0 };
     return true;
   }
@@ -1503,9 +1500,15 @@ export class NightSim {
       if (!e.alive || ride.hit.has(e.id)) continue;
       const x = e.x - entry.x, y = e.y - entry.y;
       const along = (x * dx + y * dy) / length;
-      if (along < from - .45 || along > to + .45 || Math.abs(x * dy - y * dx) / length > 1.75) continue;
+      const lateral = (dx * y - dy * x) / length;
+      if (along < from - .45 || along > to + .45 || Math.abs(lateral) > 1.75) continue;
       ride.hit.add(e.id);
       this.damage(e, 95);
+      if (!ride.contact) {
+        const side = lateral < 0 ? -1 : 1;
+        ride.contact = { at: this.time, id: e.id, pushX: -dy / length * side, pushY: dx / length * side, fatal: !e.alive };
+        this.events.push({ type: 'moped_blade_contact' });
+      }
       if (!e.alive) ride.bladeKills++;
     }
     if (age < MOPED_RUN_SECONDS) return;

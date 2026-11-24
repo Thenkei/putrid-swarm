@@ -1,6 +1,7 @@
 // A short beat in the old break between the refuge and the village, and back with the boot full.
 
 import { HOUSE_MAX_HP } from '../core/data/devices';
+import { wreckSector } from '../core/epics';
 import { drivewayImpacts, type DrivewayImpact } from '../core/driveway';
 import { DAY_HOURS } from '../core/data/locations';
 import type { Cost, GameState } from '../core/types';
@@ -308,6 +309,7 @@ export class TravelScene implements Scene {
       drawWorld(ctx, view, {
         time: this.app.time,
         night: false,
+        mopedWreck: this.app.state ? wreckSector(this.app.state) : undefined,
         houseHpRatio,
         carPresent: true,
         secondsSinceCarRoll: this.stills ? -1 : boardingTime - shot.rollAt,

@@ -8,10 +8,10 @@ const recorded: Record<string, unknown> = Object.values(import.meta.glob<Record<
 const MOMENTS = Object.keys(LINES) as Moment[];
 
 it('ships the daily episodes with recorded action cues and both subtitle languages', () => {
-  for (const id of ['epic_flare', 'moped_door', 'epic_mob', 'epic_mob_blast', 'epic_tape', 'epic_pack']) {
+  for (const id of ['epic_flare', 'moped_door', 'moped_blade_contact', 'epic_mob', 'epic_mob_blast', 'epic_tape', 'epic_pack']) {
     expect(recorded[id]).toMatchObject({ kind: 'sfx', file: id + '.mp3' });
   }
-  for (const id of ['vo_epic_stove', 'vo_epic_pack', 'vo_epic_neighbor'] as const) {
+  for (const id of ['vo_epic_stove', 'vo_moped_alibi', 'vo_epic_pack', 'vo_epic_neighbor'] as const) {
     expect(recorded[id]).toMatchObject({ kind: 'voice', file: id + '.mp3' });
     expect(fr.voice[id]).toBeTruthy();
     expect(en.voice[id]).toBeTruthy();

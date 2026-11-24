@@ -6,13 +6,16 @@ import { ENTRIES, GRID_H, GRID_W, HOUSE_CENTER, PROPS, propAt, sectorOf, type Pr
 import type { DeviceRuntimeState, Enemy, LogTarget, NightSim } from '../core/night';
 import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
+import { wreckDrawable } from './moped-wreck';
 import { paintingImage, preparePaintings, sprite, type Sprite } from '../engine/assets';
 import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseMotion, type LogLayer } from './defenses';
 import { drawDecals } from './aftermath';
 import { drawEnemy, drawFallen, FALL_SECONDS, type Fallen } from './infected';
 import { drawGround, prepareGround, setGroundDresser } from './ground';
 import { DOOR_OPENINGS, VISIBLE_DOORS, damagedFacade, doorStance, hingedLeaves, houseDamageStage, outsideSillDepth, paintHouse, type HouseDoor } from './house';
-import { mopedRideDrawable } from './moped';
+import { drawMopedScorch, mopedRideDrawable, mopedStruckPose } from './moped';
+import { drawMopedTracks, mopedParkingSpot, parkedMopedDrawable, trackOpacity, type ParkedMoped } from './parked-moped';
+import { mopedPath } from '../core/epics';
 import { drawHouseDebris, type HouseBreak } from './house-debris';
 import { calmMotion, drawCloudShadows, drawMist, type Light } from './lighting';
 import { hash2, smoothstep } from './noise';
@@ -101,6 +104,8 @@ export interface WorldFrame {
   readonly indoorShot?: { sector: SectorId; age: number };
   readonly houseDoor?: HouseDoor;
   readonly mopedRide?: NonNullable<NightSim['mopedRide']>;
+  readonly mopedWreck?: SectorId | undefined;
+  readonly parkedMoped?: ParkedMoped;
   readonly houseBreaks?: readonly HouseBreak[];
   readonly carPresent: boolean;
   readonly approachingHero?: ApproachingHero;
@@ -510,7 +515,10 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   // Thin foreground foliage where it would conceal a fighting figure or one of this side's
   // doorways. The overlap is measured in the current projection, including painter's depth.
   const sightlines: { x: number; y: number; depth: number; presence: number }[] = [];
-  const actors = frame.enemies.filter(e => e.alive).map(doorStance);
+  const hit = frame.mopedRide?.contact;
+  const contact = hit && frame.time - hit.at < FALL_SECONDS ? hit : undefined;
+  const actors = frame.enemies.filter(e => e.alive).map(e => mopedStruckPose(doorStance(e), contact, frame.time));
+  const bodies = contact ? frame.fallen?.map(body => mopedStruckPose(body, contact, frame.time)) : frame.fallen;
   if (frame.night) {
     for (const sector of VISIBLE_DOORS[view.rot]) {
       const sill = doorSill(view, sector);
@@ -521,7 +529,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       const presence = frame.brushPassage?.presence(enemy, frame.time) ?? 1;
       sightlines.push({ x: p.x, y: p.y - 27 * z * enemy.def.size, depth: depthOf(view.rot, enemy.x, enemy.y), presence });
     }
-    for (const body of frame.fallen ?? []) {
+    for (const body of bodies ?? []) {
       const p = project(view, body.x, body.y);
       const height = 27 - 19 * smoothstep(0, 0.43, body.age);
       const presence = 1 - smoothstep(FALL_SECONDS - 0.62, FALL_SECONDS, body.age);
@@ -529,6 +537,20 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     }
   }
   const onScreen = (p: { x: number; y: number }, reach: number): boolean => p.x > view.x - reach * z && p.x < view.x + view.w + reach * z && p.y > view.y - 40 * z && p.y < view.y + view.h + reach * 1.9 * z;
+  if (frame.parkedMoped && VISIBLE_DOORS[view.rot].includes(frame.parkedMoped.sector)) {
+    const spot = mopedParkingSpot(frame.parkedMoped.sector);
+    const p = project(view, spot.x, spot.y);
+    const depth = depthOf(view.rot, spot.x, spot.y);
+    for (const wheel of [-20, 20]) sightlines.push({ x: p.x + wheel * z, y: p.y - 9 * z, depth, presence: 1 });
+    const presence = trackOpacity(frame.parkedMoped.aimAge);
+    if (presence > 0) {
+      const [start, end] = mopedPath(frame.parkedMoped.sector);
+      for (const t of [.2, .5, .8]) {
+        const gx = start.x + t * (end.x - start.x), gy = start.y + t * (end.y - start.y);
+        sightlines.push({ ...project(view, gx, gy), depth: depthOf(view.rot, gx, gy), presence });
+      }
+    }
+  }
   const canopyOpacity = (x: number, y: number, rx: number, ry: number, depth: number): number => {
     let reveal = 0;
     for (const target of sightlines) {
@@ -760,7 +782,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     drawables.push({ depth, draw: () => drawEnemy(ctx, view, frame, enemy) });
   }
 
-  for (const fallen of frame.fallen ?? []) {
+  for (const fallen of bodies ?? []) {
     let depth = depthOf(view.rot, fallen.x, fallen.y) - 0.05;
     if (fallen.threshold && VISIBLE_DOORS[view.rot].includes(fallen.threshold)) depth = Math.max(depth, outsideWall);
     drawables.push({ depth, draw: () => drawFallen(ctx, view, frame, fallen) });
@@ -795,13 +817,22 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   for (const cast of casts) cast();
 
   drawDecals(ctx, view, frame.decals);
+  if (frame.mopedWreck) drawMopedScorch(ctx, view, frame.mopedWreck);
   if (frame.departingCar) drawHeadlightPools(ctx, view, frame.departingCar);
   drawGroundOverlays(ctx, view, frame);
+  if (frame.parkedMoped) {
+    drawMopedTracks(ctx, view, frame.parkedMoped);
+    drawables.push(parkedMopedDrawable(ctx, view, frame.parkedMoped));
+  }
   if (frame.night) drawGlowworms(ctx, view, frame.enemies, frame.time, calmMotion(), 1 - sunlight(frame.sunriseAge));
 
   if (frame.mopedRide) {
     const bike = mopedRideDrawable(ctx, view, frame.mopedRide, frame.time);
     if (bike) drawables.push(bike);
+  }
+  if (frame.mopedWreck) {
+    const blastAt = frame.mopedRide?.blastAt;
+    drawables.push(wreckDrawable(ctx, view, frame.mopedWreck, blastAt == null ? Infinity : frame.time - blastAt));
   }
   drawables.sort((a, b) => a.depth - b.depth);
   for (const drawable of drawables) drawable.draw();

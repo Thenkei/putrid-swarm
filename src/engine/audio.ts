@@ -6,7 +6,7 @@
 import { Decks } from './deck';
 
 export type Sfx =
-  | 'epic_flare' | 'moped_door' | 'epic_mob' | 'epic_mob_blast' | 'epic_tape' | 'epic_pack'
+  | 'epic_flare' | 'moped_door' | 'moped_blade_contact' | 'epic_mob' | 'epic_mob_blast' | 'epic_tape' | 'epic_pack'
   | 'click'
   | 'deny'
   | 'build'
@@ -834,6 +834,10 @@ class AudioEngine {
         this.noise('bandpass', 840, 630, .052, .052, .048);
         this.noise('bandpass', 510, 910, .35, .045, .105, 9);
         this.tone('triangle', 290, 395, .24, .023, .135);
+        break;
+      case 'moped_blade_contact':
+        this.noise('bandpass', 3100, 800, .17, .10, 0, 2);
+        this.tone('triangle', 420, 135, .065, .055, .12);
         break;
       case 'epic_mob':
         for (let i = 0; i < 13; i++) {

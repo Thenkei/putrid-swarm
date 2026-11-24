@@ -1121,6 +1121,7 @@ export const fr = {
   },
   voice: {
     vo_epic_stove: 'Bon. Ce soir, on mange froid.',
+    vo_moped_alibi: 'Bon. Pour Gérard, on dit qu’on l’a pas trouvée.',
     vo_epic_pack: 'Attends. Y a un petit sous la grille.',
     vo_epic_neighbor: 'Ça y est. Il a rallumé sa cuisine.',
     vo_epic_neighbor_relay: 'Je te reçois. De ma fenêtre, je vois ta porte arrière. Je veille.',

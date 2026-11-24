@@ -1,6 +1,6 @@
 // The morning after: what the night cost, told by the yard itself.
 
-import { epicFlag } from '../core/epics';
+import { epicFlag, wreckSector } from '../core/epics';
 import { BARRICADE, DEVICES, HOUSE_MAX_HP } from '../core/data/devices';
 import { chapterWaiting } from '../core/chapters';
 import { bossOfNight, startNextDay } from '../core/game';
@@ -126,6 +126,7 @@ export class MorningScene implements Scene {
       frame: {
         time: 0,
         night: false,
+        mopedWreck: wreckSector(this.state),
         carPresent: true,
         houseHpRatio: yard.houseHp / HOUSE_MAX_HP,
         barricades: yard.barricades,

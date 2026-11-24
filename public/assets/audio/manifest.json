@@ -35,6 +35,18 @@
     "seconds": 2.038,
     "gain": 0.72
   },
+  "moped_blade_contact": {
+    "file": "moped_blade_contact.mp3",
+    "kind": "sfx",
+    "seconds": 0.522,
+    "gain": 0.86
+  },
+  "vo_moped_alibi": {
+    "file": "vo_moped_alibi.mp3",
+    "kind": "voice",
+    "seconds": 3.056,
+    "gain": 1
+  },
   "vo_epic_stove": {
     "file": "vo_epic_stove.mp3",
     "kind": "voice",

@@ -46,7 +46,7 @@ export class EpicNight {
   private previousFocus: HTMLElement | null = null;
 
   get mopedSector(): SectorId | undefined {
-    return this.launchButton ? SECTOR_IDS[this.lane] : undefined;
+    return this.launchHint ? SECTOR_IDS[this.lane] : undefined;
   }
 
   constructor(private app: App, private sim: NightSim, private desk: HTMLElement,

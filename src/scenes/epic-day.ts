@@ -1,12 +1,12 @@
 import './epic.css';
 import { clearGarageAisle } from './garage-aisle';
 import { epicFlag, markEpic } from '../core/epics';
-import { SECTOR_IDS } from '../core/types';
+import { SECTOR_IDS, type SectorId } from '../core/types';
 import type { App } from '../engine/app';
 import { el } from '../engine/dom';
 import { line, S } from '../engine/i18n';
 
-export function epicObject(app: App, refresh: () => void): HTMLElement | null {
+export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: SectorId, previous?: SectorId) => void): HTMLElement | null {
   const state = app.state;
   if (!state) return null;
   const flag = (key: string) => epicFlag(state, key);
@@ -56,9 +56,18 @@ export function epicObject(app: App, refresh: () => void): HTMLElement | null {
     line('Au dos du tirage : « Clé sous le rideau. Prendre le break. »', 'On the back: “Key under the shutter. Take the wagon.”')));
   if (flag('moped') && !flag('spent')) {
     const lane = flag('lane') % 4;
-    objects.append(item(line('Mob à lames de Gérard', 'Gérard’s bladed moped'),
+    const current = SECTOR_IDS[lane]!;
+    const next = (lane + 1) % SECTOR_IDS.length;
+    const moped = item(line('Mob à lames de Gérard', 'Gérard’s bladed moped'),
       line('Départ vers ', 'Pointed toward ') + S().sector[SECTOR_IDS[lane]!] + line('. Les lames ouvrent le passage. La mob et sa charge explosent au fond du jardin. Un seul départ.', '. The blades cut a path. The charge blows the moped apart at the far end of the yard. One ride.'),
-      line('Orienter vers ', 'Aim at ') + S().sector[SECTOR_IDS[(lane + 1) % 4]!], () => mark('lane', (lane + 1) % 4)));
+      line('Orienter vers ', 'Aim at ') + S().sector[SECTOR_IDS[next]!], () => {
+        mark('lane', next);
+        aimMoped?.(SECTOR_IDS[next]!, current);
+      });
+    moped.querySelector('summary')?.addEventListener('click', () => {
+      if (!moped.open) aimMoped?.(current);
+    });
+    objects.append(moped);
   }
   if (day === 3 && flag('stove')) objects.append(item(line('Rectangle de lino propre', 'Clean patch of lino'), line('Deux raviolis. Froids.', 'Two ravioli. Cold.')));
   for (const detail of objects.querySelectorAll('details')) detail.name = 'refuge-curiosity';
