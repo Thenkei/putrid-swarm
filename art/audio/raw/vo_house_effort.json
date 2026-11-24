@@ -1,0 +1,13 @@
+{
+  "id": "vo_house_effort",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "nz5s7F8g92RMOAGAZeIg",
+  "generatedAt": "2026-11-24T12:21:36.208Z",
+  "prompt": "[angry grunt] Rrrah !",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "bytes": 35977,
+  "sha256": "0d10ec441dc475419827a51961a6b5e2496ddc98fa054dcbc2089670a7705c0e"
+}

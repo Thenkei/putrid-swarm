@@ -49,6 +49,19 @@ const mopedRun = [
   '[abcde][f0]acrossfade=d=0.03',
 ].join(';');
 
+// The floor takes the bass. A short crack carries on small speakers and the latch
+// gives the pump two distinct movements in the gap before the next shot.
+const houseShotgun = [
+  'aformat=channel_layouts=mono,volume=13dB,acompressor=threshold=0.15:ratio=3:attack=6:release=95[boom]',
+  'amovie=art/audio/raw/epic_tape.mp3,atrim=duration=0.14,highpass=f=430,lowpass=f=3500,afade=t=out:st=0.025:d=0.115,volume=0.85[crack]',
+  'amovie=art/audio/raw/ready.mp3,atrim=start=0.09:end=0.27,asetpts=PTS-STARTPTS,asplit[back][forward]',
+  '[back]lowpass=f=1550,volume=2.2,adelay=395[slide]',
+  '[forward]highpass=f=550,volume=2.8,adelay=525[latch]',
+  // A short floor resonance centred around 90 Hz, with a harmonic audible above 160 Hz.
+  "aevalsrc='exp(-13*t)*(0.56*sin(2*PI*(78*t+0.75*(1-exp(-35*t))))+0.25*sin(2*PI*167*t))':d=0.32:s=44100,afade=t=in:d=0.003[floor]",
+  '[boom][floor][crack][slide][latch]amix=inputs=5:duration=first:dropout_transition=0,aformat=channel_layouts=mono,volume=8,alimiter=limit=0.86:attack=2:release=35',
+].join(';');
+
 export const AUDIO = [
   sfx('moped_door', .75, 'One quiet close-miked wooden shed door opening, isolated French rural game Foley. Start immediately with a distinct small iron thumb latch lifting out of its keeper: click-clack. A short worn hinge creaks upward as the timber door swings open. The sound settles cleanly within seven tenths of a second. Intimate, tangible and dry, no slam, closing sound, impact, footsteps, motor, music, or background.', { edit: 'atrim=start=0.12:end=0.74,asetpts=PTS-STARTPTS,volume=16dB,atempo=0.67', peak: -8, gain: .76, maxSeconds: .72, tail: .055 }),
   sfx('epic_flare', 0.65, 'A single 0.65 second burst of stylized fire for a retro French horror videogame, close dry gas ignition fwoomp and a crisp rushing flame tail, isolated sound effect, no ambience or speech.', { peak: -5, gain: 0.78, maxSeconds: 0.68 }),
@@ -364,7 +377,12 @@ export const AUDIO = [
   voice('vo_good_2', 'hero', 'Ça, c’est fait.'),
   voice('vo_good_3', 'hero', '[short laugh] Joli.'),
   voice('vo_breach', 'hero', '[alarmed] La porte a lâché !'),
-  sfx('house_shotgun', 1, 'One isolated cinematic shotgun blast muffled through the walls of an old farmhouse, followed by a short metallic pump clack and a rapidly dying wooden room echo.', { gain: .76 }),
+  sfx('house_shotgun', .85, "Single massive bass-heavy cinematic pump shotgun blast from inside a wooden farmhouse. Immediate sharp dry crack above a chesty low-mid thud, floorboards resonate briefly, then one distinct metallic double pump clack about half a second later. Tight one-shot video game sound, ends in silence before the next shot at 0.85 seconds. No voices, no music.", { edit: houseShotgun, gain: 1, peak: -2, maxSeconds: .82, tail: .04 }),
+  voice('vo_house_effort', 'hero', '[angry grunt] Rrrah !', { gain: .73 }),
+  voice('vo_house_victory_1', 'hero', '[sighs in relief] [satisfied] Ils ont eu leur compte.'),
+  voice('vo_house_victory_2', 'hero', '[exhales] [triumphant] Ça, c’est fait !'),
+  voice('vo_house_victory_3', 'hero', '[relieved sigh] [triumphant] Voilà ! Je vous ai détruits !'),
+  voice('vo_house_victory_4', 'hero', '[exhales] [teasing] Maintenant… c’est qui, le boss ?'),
   voice('vo_house_shotgun_1', 'hero', '[defiant] Allez, venez ! Je vais dégommer du zombie !'),
   voice('vo_house_shotgun_2', 'hero', '[angry] Putain, mais je vais tous vous exploser !'),
   voice('vo_house_shotgun_3', 'hero', '[exasperated] C’est chez moi, ici ! Essuyez-vous les pieds, au moins !'),

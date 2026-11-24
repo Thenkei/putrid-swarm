@@ -562,8 +562,8 @@ class AudioEngine {
 
   // ───────────────────────────── Voices ─────────────────────────────
 
-  /** A resumed scene can request its line before the background audio queue reaches it. */
-  async waitForVoice(id: string): Promise<void> {
+  /** Prepare a scene cue before the background audio queue reaches it. */
+  async prepareSample(id: string): Promise<void> {
     if (!this.enabled) return;
     await this.manifestReady;
     await this.loadSample(id, 'high');
@@ -823,8 +823,10 @@ class AudioEngine {
   private synth(name: Sfx, rate = 1): void {
     switch (name) {
       case 'house_shotgun':
-        this.noise('lowpass', 1800, 190, .25, .42);
-        this.tone('sine', 108, 42, .21, .26);
+        this.noise('lowpass', 3100, 180, .29, .48);
+        this.tone('triangle', 154, 61, .26, .35);
+        this.noise('bandpass', 1400, 680, .09, .10, .40);
+        this.noise('bandpass', 2300, 880, .055, .14, .54);
         break;
       case 'epic_flare': this.noise('lowpass', 2000, 420, .42, .2); break;
       case 'moped_door':

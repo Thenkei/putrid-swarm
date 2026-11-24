@@ -1677,7 +1677,37 @@
     "file": "house_shotgun.mp3",
     "kind": "sfx",
     "seconds": 0.862,
-    "gain": 0.76
+    "gain": 1
+  },
+  "vo_house_effort": {
+    "file": "vo_house_effort.mp3",
+    "kind": "voice",
+    "seconds": 0.862,
+    "gain": 0.73
+  },
+  "vo_house_victory_1": {
+    "file": "vo_house_victory_1.mp3",
+    "kind": "voice",
+    "seconds": 2.142,
+    "gain": 1
+  },
+  "vo_house_victory_2": {
+    "file": "vo_house_victory_2.mp3",
+    "kind": "voice",
+    "seconds": 2.22,
+    "gain": 1
+  },
+  "vo_house_victory_3": {
+    "file": "vo_house_victory_3.mp3",
+    "kind": "voice",
+    "seconds": 2.952,
+    "gain": 1
+  },
+  "vo_house_victory_4": {
+    "file": "vo_house_victory_4.mp3",
+    "kind": "voice",
+    "seconds": 3.239,
+    "gain": 1
   },
   "vo_house_shotgun_1": {
     "file": "vo_house_shotgun_1.mp3",

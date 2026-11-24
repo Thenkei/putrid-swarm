@@ -19,6 +19,7 @@ export const LINES = {
   home: numbered('vo_home', 10),
   nightfall: numbered('vo_nightfall', 4),
   dawn: numbered('vo_dawn', 4),
+  houseVictory: ['vo_house_victory_1', 'vo_house_victory_2', 'vo_house_victory_3', 'vo_house_victory_4'],
   houseDefense: ['vo_house_shotgun_1', 'vo_house_shotgun_2', 'vo_house_shotgun_3'],
   praise: ['vo_good_1', 'vo_good_2', 'vo_good_3'],
   smoke: ['vo_egg_smoke_1', 'vo_egg_smoke_2', 'vo_egg_smoke_3'],
