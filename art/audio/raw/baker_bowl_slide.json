@@ -1,0 +1,11 @@
+{
+  "id": "baker_bowl_slide",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "RtgoKcK2x2XhGNwTgeu3",
+  "generatedAt": "2026-11-24T13:40:28.034Z",
+  "prompt": "One quiet close-miked Foley gesture lasting about one second. An empty chipped enamel soup bowl is gently pushed across the dusty packed-earth floor of an old wooden shed. A gritty low scrape travels a short distance, a few grains tick against thin metal, then a tiny hollow wobble as the bowl settles. Intimate and tentative, softly made by a tired hand. No spoon or water, no falling impact, no voice, no music or ambience.",
+  "bytes": 34305,
+  "sha256": "4f512d5b83a8b76d33f21dcbf029e9178f23cd51fbf5b68bd73ae612f201716d"
+}

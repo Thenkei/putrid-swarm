@@ -2551,6 +2551,7 @@ button:disabled {
   font: 17px/1.3 Georgia, serif;
 }
 .postal-paper summary { cursor: pointer; font-weight: bold; }
+.postal-paper .complaint-hour { text-decoration: underline double #963f30; text-underline-offset: 2px; }
 .postal-paper p, .postal-paper blockquote { margin: 10px 0 4px; }
 .delivery-slip { transform: translate(-50%, -100%); }
 .morning-letter { left: 40px; top: 44px; max-width: 370px; padding: 14px 18px; }
@@ -3985,6 +3986,8 @@ button:disabled {
 .finale-title {
   top: 56px;
 }
+
+.finale-letter { position:absolute; inset:0; pointer-events:none; }
 
 .finale-title h1,
 .finale-swarm h1 {

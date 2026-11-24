@@ -19,7 +19,7 @@ import { SECTOR_IDS, type SectorId } from '../core/types';
 import type { App } from '../engine/app';
 import { assetUrl } from '../engine/assets';
 import { audio } from '../engine/audio';
-import { say } from '../engine/voice';
+import { hush, say } from '../engine/voice';
 import { el } from '../engine/dom';
 import { line as L, S } from '../engine/i18n';
 import { heroArt, oneArmed } from './common';
@@ -200,12 +200,17 @@ export class EpicNight {
   }
 
   private lastWatch() {
+    // Leave any bark from the yard behind when we lean in to listen to the receiver.
+    hush();
     const lamp = Boolean(this.flag('neighbor'));
     const cub = Boolean(this.flag('cub'));
-    const clue = lamp && cub ? L('Trois éclats du voisin calent la fréquence. Au portail, le hurlement du petit te donne la phase.', 'Three flashes from your neighbour set the frequency. At the gate, the cub’s howl gives you the phase.')
-      : lamp ? L('Trois éclats en face. Le voisin tient la fréquence de la porte arrière.', 'Three flashes across the road. Your neighbour holds the back-door frequency.')
-      : cub ? L('Le petit hurle au portail. Son écho te donne la phase.', 'The cub howls by the gate. Its echo gives you the phase.')
-      : L('La tondeuse tousse derrière la cloison. Une trace revient sur le tube.', 'The mower coughs behind the wall. A trace comes back on the tube.');
+    const clue = el('span', { class: 'relay-clue' });
+    clue.setAttribute('role', 'status');
+    const leave = () => {
+      if (cub) audio.fadeOut('epic_pack', .12);
+      if (!lamp && !cub) audio.fadeOut('mower_start', .12);
+      this.close();
+    };
     const target: SectorId = lamp ? 'arriere' : cub ? 'portail' : SECTOR_IDS.reduce((a, b) => this.sim.threat(a).count >= this.sim.threat(b).count ? a : b);
     const connect = button(L('Enclencher le relais', 'Engage relay'), () => {
       if (!receiver.locked()) {
@@ -221,18 +226,17 @@ export class EpicNight {
       if (lamp) say('vo_epic_neighbor_relay', { interrupt:true });
       receiver.confirm(S().sector[target] + ' · ' + L('Relais connecté', 'Relay connected') +
         (recovered ? ' · +' + recovered + ' ' + L('énergie', 'energy') : ''));
-      this.note.textContent = lamp && cub ? L('Derrière la maison, le voisin fait lentement trois nouveaux éclats. Le petit lui répond depuis le portail.', 'Behind the house your neighbour flashes the lamp three more times, slowly. The cub answers from the gate.')
-        : lamp ? L('La caméra reprend. En face, le voisin pose sa lampe sur l’appui de fenêtre et tire une chaise.', 'The feed comes back. Across the road your neighbour sets his lamp on the sill and pulls up a chair.')
-        : cub ? L('Sur le moniteur, la meute attend le petit. Il passe sous le lampadaire et les silhouettes repartent ensemble.', 'On the monitor the pack waits for its cub. It crosses the pool of lamplight and the silhouettes leave together.')
-        : L('Le secteur réapparaît sur le moniteur. Tu distingues enfin ce qui gratte derrière la porte.', 'The sector returns to the monitor. At last you can see what’s scratching at the door.');
-      const resume = button(L('Reprendre la veille', 'Back to the desk'), () => { this.close(); this.tuneCamera(target); });
+      this.note.replaceChildren(clue);
+      const resume = button(L('Reprendre la veille', 'Back to the desk'), () => { leave(); this.tuneCamera(target); });
       resume.setAttribute('aria-describedby', receiver.statusId);
       this.actions.replaceChildren(resume);
       resume.focus();
     });
-    this.page(L('La dernière veille', 'Last watch'), clue + ' ' + L('Aligne le trait orange sur le pointillé pour reconnecter le secteur et récupérer jusqu’à 12 points d’énergie.', 'Match the solid line to the dotted trace to reconnect the feed and recover up to 12 energy.'),
-      connect, button(L('Reprendre la veille', 'Back to the desk'), this.close));
-    const receiver = lastWatchDesk(this.field, this.app.state!.seed, lamp, cub);
+    this.page(L('La dernière veille', 'Last watch'), L('Aligne le trait orange sur le pointillé pour reconnecter le secteur et récupérer jusqu’à 12 points d’énergie.', 'Match the solid line to the dotted trace to reconnect the feed and recover up to 12 energy.'),
+      connect, button(L('Reprendre la veille', 'Back to the desk'), leave));
+    this.note.prepend(clue, document.createTextNode(' '));
+    const receiver = lastWatchDesk(this.field, clue, this.app.state!.seed, lamp, cub);
+    this.clock = receiver.tick;
   }
 
   private kitchen() {

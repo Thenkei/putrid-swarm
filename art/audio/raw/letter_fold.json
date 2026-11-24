@@ -1,0 +1,11 @@
+{
+  "id": "letter_fold",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "5wWDJuRu8seiGNizFJqa",
+  "generatedAt": "2026-11-24T13:40:28.147Z",
+  "prompt": "One short close-miked paper Foley, about three quarters of a second. A careful hand folds a single old sheet of dry airmail paper back along its existing crease. A soft papery sweep followed immediately by the short crisp whisper of a thumb smoothing the fold, then silence. Intimate, understated, warm. No tearing, crumpling, envelope ripping, percussion, voice, music or room ambience.",
+  "bytes": 30961,
+  "sha256": "1d2cbe9fdb08fc81945c410201daf44d4b50e2964629855c52c50b468c544662"
+}

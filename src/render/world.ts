@@ -7,6 +7,7 @@ import type { DeviceRuntimeState, Enemy, LogTarget, NightSim } from '../core/nig
 import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { wreckDrawable } from './moped-wreck';
+import { kindlingDrawable } from './baker-kindling';
 import { paintingImage, preparePaintings, sprite, type Sprite } from '../engine/assets';
 import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseMotion, type LogLayer } from './defenses';
 import { drawDecals } from './aftermath';
@@ -106,6 +107,7 @@ export interface WorldFrame {
   readonly houseDoor?: HouseDoor;
   readonly mopedRide?: NonNullable<NightSim['mopedRide']>;
   readonly mopedWreck?: SectorId | undefined;
+  readonly bakerKindling?: boolean;
   readonly packTrail?: PackTrail | undefined;
   readonly parkedMoped?: ParkedMoped;
   readonly houseBreaks?: readonly HouseBreak[];
@@ -856,6 +858,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const blastAt = frame.mopedRide?.blastAt;
     drawables.push(wreckDrawable(ctx, view, frame.mopedWreck, blastAt == null ? Infinity : frame.time - blastAt));
   }
+  if (frame.bakerKindling) drawables.push(kindlingDrawable(ctx, view));
   drawables.sort((a, b) => a.depth - b.depth);
   for (const drawable of drawables) drawable.draw();
   if (frame.hoverCell && frame.hoverBarrier) drawBarrierFootprint(ctx, view, frame.hoverCell);

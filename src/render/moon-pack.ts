@@ -174,6 +174,22 @@ function waitingAdult(ctx: CanvasRenderingContext2D, time: number, crossing: num
   }
 }
 
+/** On the last watch the already rescued cub crosses the near side of this same gate. */
+export function homewardPack(ctx: CanvasRenderingContext2D, seconds: number, still: boolean) {
+  const approach = still ? Number(seconds >= 1.45) : smoothstep(.28, 2.6, seconds);
+  const adultX = 680, feet = 337;
+  lightPool(ctx, adultX - 22, feet - 6, 104, 23, '#d4bc824e');
+  lightPool(ctx, adultX, feet, 69, 10, '#081214b0');
+  wolf(ctx, adultX, feet, 1.41, -1, still ? 0 : seconds, approach > .78 ? 1 : 0);
+  const pupX = 288 + 312 * approach;
+  const running = !still && approach > 0 && approach < .99;
+  ctx.save();
+  ctx.translate(pupX, feet + 10 - 4 * approach);
+  ctx.scale(.87, .87); ctx.translate(0, -338);
+  cub(ctx, 0, 1, still ? 0 : seconds, running);
+  ctx.restore();
+}
+
 export function moonFeed(canvas: HTMLCanvasElement, camera: number, subject: number, time: number, gate: boolean, lift: number, crossing: number, arrivalTime: number) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;

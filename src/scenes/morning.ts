@@ -1,6 +1,6 @@
 // The morning after: what the night cost, told by the yard itself.
 
-import { epicFlag, packTrail, wreckSector, type PackTrail } from '../core/epics';
+import { epicFlag, markEpic, packTrail, wreckSector, type PackTrail } from '../core/epics';
 import { BARRICADE, DEVICES, HOUSE_MAX_HP } from '../core/data/devices';
 import { chapterWaiting } from '../core/chapters';
 import { bossOfNight, startNextDay } from '../core/game';
@@ -118,11 +118,21 @@ export class MorningScene implements Scene {
       ]));
     }
     if (report?.letterDelivered === true) {
-      letters.append(el('details', { class: 'morning-letter postal-paper' }, [
+      const clock = line('7 h 12', '7:12');
+      const [before, after] = s.registeredLetter.complaint.split(clock);
+      const complaint = el('details', { class: 'morning-letter postal-paper' }, [
         el('summary', { text: s.registeredLetter.open }),
         el('p', { text: s.registeredLetter.postmark }),
-        el('blockquote', { text: s.registeredLetter.complaint }),
-      ]));
+        el('blockquote', {}, after === undefined ? [s.registeredLetter.complaint] : [
+          before, el('u', { class: 'complaint-hour', text: clock }), after,
+        ]),
+      ]);
+      complaint.addEventListener('toggle', () => {
+        if (!complaint.open || !complaint.isConnected || epicFlag(this.state, 'readComplaint')) return;
+        this.app.state = markEpic(this.state, 'readComplaint');
+        this.app.save();
+      });
+      letters.append(complaint);
     }
     if (letters.childElementCount) this.app.ui.append(letters);
     // Reinforced doors badly hit make figures long enough to fold the labels beside them: set tighter, it all fits.

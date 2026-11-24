@@ -1,4 +1,16 @@
 {
+  "baker_bowl_slide": {
+    "file": "baker_bowl_slide.mp3",
+    "kind": "sfx",
+    "seconds": 1.045,
+    "gain": 0.78
+  },
+  "letter_fold": {
+    "file": "letter_fold.mp3",
+    "kind": "sfx",
+    "seconds": 0.836,
+    "gain": 0.8
+  },
   "owl_call": {
     "file": "owl_call.mp3",
     "kind": "sfx",

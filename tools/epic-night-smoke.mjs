@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { newGame } from '../src/core/game.ts';
+import { NightSim } from '../src/core/night.ts';
 import { launch } from './browser.mjs';
 
 const url = process.argv[2] ?? 'http://localhost:4173/';
@@ -52,7 +53,7 @@ try {
     const manifest = await (await fetch('./assets/audio/manifest.json')).json();
     const audio = new AudioContext();
     try {
-      const ids = Object.keys(manifest).filter(id => /^(vo_)?epic_/.test(id) || id === 'vhs_eject');
+      const ids = [...Object.keys(manifest).filter(id => /^(vo_)?epic_/.test(id)), 'vhs_eject', 'baker_bowl_slide', 'letter_fold'];
       return await Promise.all(ids.map(async id => {
         const response = await fetch('./assets/audio/' + manifest[id].file);
         const sample = await audio.decodeAudioData(await response.arrayBuffer());
@@ -82,6 +83,15 @@ try {
     assert.equal(await photo.locator('.stove-soot-print').count(), Number(printed));
     await kitchen.close();
   }
+  const mail = newGame(54);
+  const letter = await openSave({ ...mail, day:5, phase:'morning',
+    lastNight:{ ...new NightSim(5, mail.yard, mail.seed).report(), letterDelivered:true } });
+  const readComplaint = () => JSON.parse(localStorage.getItem('putrid-swarm.save.v1')).flags['epic.readComplaint'];
+  assert.equal(await letter.evaluate(readComplaint), undefined);
+  await letter.locator('summary').filter({hasText:'Open the registered letter'}).click();
+  await letter.waitForFunction(readComplaint);
+  assert.equal(await letter.evaluate(readComplaint), 1);
+  await letter.close();
   assert.deepEqual(errors, []);
   console.log('Passed: portrait print, pause/resume, focus, desk return, refuge discoveries, both stove mornings, ' + decoded.length + ' decoded sound files.');
 } finally {
