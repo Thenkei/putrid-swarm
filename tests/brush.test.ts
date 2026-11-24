@@ -2,6 +2,7 @@ import { expect, it } from 'vitest';
 import { ENEMIES } from '../src/core/data/enemies';
 import { newGame } from '../src/core/game';
 import { NightSim } from '../src/core/night';
+import { GateHedge, GATE_HEDGE } from '../src/render/gate-hedge';
 import { BrushPassage } from '../src/render/brush';
 
 it('opens the entry hedge locally, rebounds after a footfall and stays still for a stopped walker', () => {
@@ -46,4 +47,35 @@ it('scatters the same leaves into the lot once per heavy arrival, then lets them
   expect([...brush.leaves(0.45)]).toEqual(falling);
   brush.update(1.2, [brute]);
   expect([...brush.leaves(1.2)]).toEqual([]);
+});
+
+it('passes pressure inwards along the gate hedge only where a moving enemy brushes it', () => {
+  const sim = new NightSim(1, newGame(42).yard, 42);
+  while (!sim.enemies.length) sim.step(1 / 60);
+  const walker = sim.enemies[0]!;
+  const hedge = new GateHedge();
+  let time = 0;
+  const step = (travel: number) => {
+    walker.travel += travel;
+    hedge.update(time += 1/60, 1/60, [walker]);
+  };
+  walker.fx = 1; walker.fy = -1;
+  const cues = [];
+  for (const [index, plant] of GATE_HEDGE.entries()) {
+    walker.x = plant.x; walker.y = plant.y;
+    for (let i = 0; i < 30; i++) {
+      step(.02);
+      const cue = hedge.takeSound();
+      if (cue) cues.push(cue);
+    }
+    expect(hedge.bend(index)).toBeGreaterThan(.7);
+    if (index === 0) expect(hedge.bend(4)).toBe(0);
+  }
+  expect(cues).toEqual(['hedge_twig', 'hedge_leaves']);
+  for (let i = 0; i < 120; i++) step(0);
+  expect(hedge.disturbed(time)).toBe(false);
+  expect(Math.abs(hedge.bend(4))).toBeLessThan(.002);
+  walker.alive = false;
+  for (let i = 0; i < 30; i++) step(.02);
+  expect(hedge.takeSound()).toBeUndefined();
 });

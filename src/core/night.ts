@@ -4,6 +4,7 @@
 import { BARRICADE, COMBAT, DEVICES, isManual, isTrap } from './data/devices';
 import { BOSS, ENEMIES, type EnemyDef } from './data/enemies';
 import { NIGHT_LEAD_IN, planForNight, type SirenSector } from './data/waves';
+import type { DefenseTake } from './cassette';
 import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlocked, sectorOf } from './map';
 import type { CameraOutage } from './orchard';
 import type { Ally } from './radio';
@@ -291,6 +292,7 @@ export class NightSim {
   get deskReturnIn(): number {
     return this.defense ? Math.max(0, this.defense.started + HOUSE_RETURN_SECONDS - this.time) : 0;
   }
+  firstHouseDefense: DefenseTake | undefined;
   private highlight: NightHighlight | undefined;
   private breaches = 0;
   private houseDamage = 0;
@@ -1087,6 +1089,7 @@ export class NightSim {
     let feed = sector;
     if (feed === this.cameraLost) feed = this.camera === this.cameraLost
       ? SECTOR_IDS.find(other => other !== this.cameraLost)! : this.camera;
+    this.firstHouseDefense ??= { kind: 'defense', sector, feed, started: this.time };
     this.carryOut({ kind: 'look', sector: feed });
     this.events.push({ type: 'house_defense', sector });
   }
@@ -1103,7 +1106,7 @@ export class NightSim {
       this.killCount++;
       this.indoorKills++;
       this.lastHouseShot = { at: this.time, sector: target.sector };
-      this.events.push({ type: 'house_shot', sector: target.sector });
+      this.events.push({ type: 'house_shot', sector: target.sector, showAt: this.time });
     }
     if (age >= HOUSE_RETURN_SECONDS) {
       this.defense = null;

@@ -1,23 +1,26 @@
 import { sprite } from '../engine/assets';
 import { smoothstep } from './noise';
 import { project, depthOf, type View } from './projection';
+import { GATE_HEDGE, type GateHedge } from './gate-hedge';
 
-/** Two plantings by the original south fence. The streak of fur crosses between them. */
-export function foxHedge(ctx: CanvasRenderingContext2D, view: View, age: number | null, still: boolean) {
-  const clumps = [[7.57, 17.39, .22, 'bramble'], [8.02, 16.70, .68, 'hazel']] as const;
+/** The fox slips across the outer two shrubs. The rest of the hedge follows the path to the house. */
+export function foxHedge(ctx: CanvasRenderingContext2D, view: View, age: number | null, still: boolean, passage?: GateHedge) {
   const z = view.zoom;
-  const items = clumps.map(([x, y, at, species]) => ({
+  const items = GATE_HEDGE.map(({ x, y, foxAt, species, height }, index) => ({
     depth: depthOf(view.rot, x, y) + .06,
     draw() {
       const a = sprite('yard_flora_' + (view.rot ? 'back_' : '') + species);
       if (!a) return;
-      const p = project(view, x, y), t = (age ?? -5) - at;
-      const bend = t > 0 && t < 1 ? Math.sin(t * 15) * Math.exp(-3.8 * t) : 0;
+      const p = project(view, x, y);
+      const t = age !== null && foxAt !== null ? age - foxAt : -1;
+      const flick = t > 0 && t < 1 ? Math.sin(t * 15) * Math.exp(-3.8 * t) : 0;
+      const press = passage?.bend(index) ?? 0;
+      const shear = flick * (still ? .04 : .35) - press * (still ? .22 : .68);
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.scale(z, z);
-      ctx.transform(1, 0, (view.rot ? -1 : 1) * bend * (still ? .04 : .35), 1, 0, 0);
-      const h = species === 'hazel' ? 27 : 19, w = h * a.w / a.h;
+      ctx.transform(1, 0, (view.rot ? -1 : 1) * shear, 1, 0, 0);
+      const h = height, w = h * a.w / a.h;
       ctx.drawImage(a.img, -w * (a.footX ?? .5), -h * (a.footY ?? 1), w, h);
       ctx.restore();
     }

@@ -6,6 +6,7 @@ import { chapterWaiting } from '../core/chapters';
 import { bossOfNight, startNextDay } from '../core/game';
 import { ENTRIES, sectorOf } from '../core/map';
 import { silentTraps } from '../core/yard';
+import type { DefenseTake } from '../core/cassette';
 import type { GameState, NightHighlight } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { STAGE_H, type App, type Pointer, type Scene } from '../engine/app';
@@ -138,17 +139,18 @@ export class MorningScene implements Scene {
     // Reinforced doors badly hit make figures long enough to fold the labels beside them: set tighter, it all fits.
     if (card.scrollHeight > card.clientHeight) card.classList.add('tight');
     // On the scene, not in the report: a chapter morning already fills the card to its last line.
-    const headline = report?.highlight ? this.headline(report.highlight) : null;
+    const highlight = state.morningTape?.defense ?? report?.highlight;
+    const headline = highlight ? this.headline(highlight) : null;
     if (headline) this.app.ui.append(headline);
   }
 
-  private headline(highlight: NightHighlight): HTMLElement | null {
+  private headline(highlight: NightHighlight | DefenseTake): HTMLElement | null {
     const s = S();
     const yard = this.state.yard;
-    const device = highlight.kind === 'breach' ? null : yard.devices.find((d) => d.id === highlight.deviceId);
-    const cell = highlight.kind === 'breach' ? ENTRIES[highlight.sector] : device;
+    const device = 'sector' in highlight ? null : yard.devices.find((d) => d.id === highlight.deviceId);
+    const cell = 'sector' in highlight ? ENTRIES[highlight.sector] : device;
     if (!cell) return null;
-    const sector = highlight.kind === 'breach' ? highlight.sector : sectorOf(cell.x, cell.y);
+    const sector = 'sector' in highlight ? highlight.sector : sectorOf(cell.x, cell.y);
     const label = device ? `${s.sector[sector]} · ${s.device[device.type].name}` : s.sector[sector];
     const detail = highlight.kind === 'catch' ? fmt(s.morning.caught, { n: highlight.kills }) : s.morning[highlight.kind];
 
@@ -171,7 +173,7 @@ export class MorningScene implements Scene {
         devices: yard.devices.map((d) => ({
           ...d, state: d.broken ? 'broken' : 'idle', hpRatio: d.hp / DEVICES[d.type].maxHp, highlight: d.id === device?.id,
         })),
-        doorHighlight: highlight.kind === 'breach' ? sector : null,
+        doorHighlight: 'sector' in highlight ? sector : null,
         hoverCell: cell,
       },
     };
@@ -187,7 +189,7 @@ export class MorningScene implements Scene {
     });
     button.setAttribute('aria-expanded', 'false');
     if (this.state.morningTape) {
-      this.cassette = new CassettePlayer(this.state.morningTape, sector, !this.state.flags['birthdayTapeSeen'], () => {
+      this.cassette = new CassettePlayer(this.state.morningTape, highlight.kind === 'defense' ? highlight.feed : sector, !this.state.flags['birthdayTapeSeen'], () => {
         this.app.state = { ...this.state, flags: { ...this.state.flags, birthdayTapeSeen: 1 } };
         this.app.save();
       }, () => {
@@ -218,6 +220,8 @@ export class MorningScene implements Scene {
       ? Math.min(1, this.inspectionProgress + dt / INSPECT_IN)
       : Math.max(0, this.inspectionProgress - dt / INSPECT_OUT);
   }
+
+  exit(): void { this.cassette?.stopSound(); }
 
   private painting(ctx: CanvasRenderingContext2D, still: boolean, alpha = 1): void {
     const plate = { zoom: 1.03 + (still ? 0 : 0.04 * smoothstep(0, 12, this.time)), focusX: 0.1, focusY: 0.5, oneArmed: oneArmed(this.app.state) };

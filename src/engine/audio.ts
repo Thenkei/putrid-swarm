@@ -26,7 +26,7 @@ export type Sfx =
   | 'kill'
   | 'door'
   | 'breach'
-  | 'house_shotgun'
+  | 'house_shotgun' | 'tape_shot'
   | 'inside'
   | 'alert'
   | 'boss'
@@ -507,6 +507,29 @@ class AudioEngine {
       return;
     }
     if (offset === 0) this.synth(name, rate);
+  }
+
+  /** Play the indoor report through the narrow-band microphone on the yard camera. */
+  playTapeShot(): void {
+    if (!this.ctx || !this.enabled || !this.sfxBus) return;
+    const sample = this.samples.get('house_shotgun');
+    const buffer = sample?.buffer ?? this.noiseBuffer;
+    if (!buffer) return;
+    const mic = this.ctx.createBiquadFilter();
+    mic.type = 'lowpass';
+    mic.frequency.value = 950;
+    mic.Q.value = .6;
+    mic.connect(this.sfxBus);
+    const playing = this.playBuffer(buffer, mic, sample?.buffer ? sample.entry.gain * .49 : .18);
+    if (!playing) { mic.disconnect(); return; }
+    if (!sample?.buffer) {
+      const now = this.ctx.currentTime;
+      playing.amp.gain.setValueAtTime(.18, now);
+      playing.amp.gain.exponentialRampToValueAtTime(.001, now + .20);
+      playing.source.stop(now + .21);
+    }
+    this.track('tape_shot', playing);
+    playing.source.addEventListener('ended', () => mic.disconnect(), { once: true });
   }
 
   /** Seconds into the music track that is playing, or null when there is none to go by (sound off, not started). */
