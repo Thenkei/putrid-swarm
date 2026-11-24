@@ -1,13 +1,14 @@
 // A short beat in the old break between the refuge and the village, and back with the boot full.
 
 import { HOUSE_MAX_HP } from '../core/data/devices';
+import { drivewayImpacts, type DrivewayImpact } from '../core/driveway';
 import { DAY_HOURS } from '../core/data/locations';
 import type { Cost, GameState } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S } from '../engine/i18n';
+import { S, fmt } from '../engine/i18n';
 import { carDepartureShot, carManeuver, departingCar } from '../render/car-departure';
 import { approachView, heroApproachShot, sampleApproach, type ApproachShot } from '../render/hero-approach';
 import { applyDayGrade, calmMotion } from '../render/lighting';
@@ -115,12 +116,15 @@ export class TravelScene implements Scene {
   private summary!: HTMLElement;
   private engineStarted = false;
   private plate: string;
+  private readonly impacts: Map<number, DrivewayImpact>;
 
   constructor(
     private readonly app: App,
     private readonly options: TravelOptions,
   ) {
     this.plate = options.plate;
+    const hits = options.departure ? drivewayImpacts(options.departure.yard) : [];
+    this.impacts = new Map(hits.map(hit => [hit.before.id, hit]));
   }
 
   enter(): void {
@@ -160,9 +164,11 @@ export class TravelScene implements Scene {
       bike.src = bikeArt;
       bike.alt = '';
     }
+    const logs = [...this.impacts.values()].filter(hit => hit.before.type === 'log').length;
     const summary = el('div', { class: 'center-col hit', onClick: () => this.finish() }, [
       el('h1', { text: title }),
       sub ? el('p', { text: sub }) : null,
+      this.impacts.size ? el('p', { text: fmt(s.day.drivewayReport, { logs, horns: this.impacts.size - logs }) }) : null,
       mopedDisplaced ? el('p', { class: 'moped-delivery' }, [
         bike,
         s.encounter.arrival.mopedOnBoard,
@@ -229,6 +235,13 @@ export class TravelScene implements Scene {
       if (crossed(this.stills ? STILL_SEATED : boardingStart + shot.latchAt)) audio.play('car_latch');
       if (crossed(this.stills ? STILL_SEATED + .12 : boardingStart + shot.ignitionAt)) this.startEngine();
       if (crossed(this.stills ? STILL_ROAD : boardingStart + shot.forwardAt)) audio.setAmbience('car', 1);
+      if (!this.stills) {
+        for (const hit of this.impacts.values()) {
+          if (crossed(boardingStart + shot.rollAt + hit.at)) {
+            audio.play(hit.before.type === 'log' ? 'broken' : 'horn', hit.before.type === 'log' ? .8 : .42);
+          }
+        }
+      }
       if (crossed(roadStart)) this.summary.hidden = false;
       if (this.time >= roadStart && previous < roadStart + ROAD_FADE_IN) {
         this.summary.style.opacity = String(smoothstep(0, ROAD_FADE_IN, this.time - roadStart));
@@ -275,6 +288,23 @@ export class TravelScene implements Scene {
           particles.push({ kind: 'dust', x: landing.x, y: landing.y, age, life: .23, radius: .22 });
         }
       }
+      const devices = yard.devices.map(device => {
+        const hit = this.impacts.get(device.id);
+        if (!hit || this.stills) return dayDeviceVisual(device);
+        const age = boardingTime - shot.rollAt - hit.at;
+        if (age < 0) return dayDeviceVisual(device);
+        if (age < .4) particles.push({
+          kind: device.type === 'log' ? 'burst' : 'dust',
+          x: device.x + .5, y: device.y + .5, age, life: .4, radius: .62,
+        });
+        const visual = dayDeviceVisual(hit.after);
+        if (device.type === 'horn' && age < .32) {
+          const t = 1 - (1 - age / .32) ** 2;
+          return { ...visual, x: device.x + (visual.x - device.x) * t, y: device.y + (visual.y - device.y) * t,
+            placementLift: 9 * Math.sin(Math.PI * t) };
+        }
+        return visual;
+      });
       drawWorld(ctx, view, {
         time: this.app.time,
         night: false,
@@ -285,7 +315,7 @@ export class TravelScene implements Scene {
         ...(cat && { yardCat: cat }),
         ...(hero ? { approachingHero: hero } : { departingCar: departingCar(shot, boardingTime, dusk) }),
         ...(hero && hero.shot.start !== 'window' && hero.opening > 0 && { houseDoor: { sector: hero.shot.start, open: hero.opening } }),
-        devices: yard.devices.map((d) => dayDeviceVisual(d)),
+        devices,
         barricades: yard.barricades,
         decals: yard.decals,
         enemies: [],

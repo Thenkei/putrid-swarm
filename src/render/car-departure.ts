@@ -1,9 +1,10 @@
-import { GRID_W, PARKED_CAR } from '../core/map';
+import { carManeuver, FORWARD_START, MANEUVER_SECONDS, PARKED } from '../core/car-path';
 import { sprite, type Sprite } from '../engine/assets';
 import { clamp01, smoothstep } from './noise';
 import { PROP_FEET } from './registration';
 import { groundMatrix, type Point, type View } from './projection';
-import { roadCentre } from './terrainfield';
+
+export { carManeuver } from '../core/car-path';
 
 // Seconds spent approaching, opening the door, ducking in, then pulling it shut.
 // With one hand he has to turn, brace and change his grip before the door can close.
@@ -11,59 +12,6 @@ const BOARDING = [0.36, 0.65, 0.98, 1.25] as const;
 const BOARDING_ONE_ARM = [0.53, 1.22, 1.94, 2.37] as const;
 const IGNITION_DELAY = 0.1;
 const ROLL_DELAY = 0.45;
-const REVERSE_SECONDS = 1.12;
-const SHIFT_SECONDS = 0.16;
-const EXIT_SECONDS = 1.9;
-const FORWARD_START = REVERSE_SECONDS + SHIFT_SECONDS;
-const PARKED = { x: PARKED_CAR.x + PARKED_CAR.w / 2, y: PARKED_CAR.y + PARKED_CAR.h / 2 };
-const REVERSE_RADIUS = 1.85;
-const TURN_RADIUS = 3.6;
-const REVERSE_TURN = 65 * Math.PI / 180;
-const ROAD_TURN = Math.PI / 2;
-const ROAD_Y = roadCentre('barn', PARKED.x);
-const BACKED_OUT = {
-  x: PARKED.x - REVERSE_RADIUS * (1 - Math.cos(REVERSE_TURN)),
-  y: ROAD_Y - TURN_RADIUS * (1 - Math.sin(REVERSE_TURN)),
-};
-const STRAIGHT_REVERSE = PARKED.y - BACKED_OUT.y - REVERSE_RADIUS * Math.sin(REVERSE_TURN);
-const REVERSE_DISTANCE = STRAIGHT_REVERSE + REVERSE_RADIUS * REVERSE_TURN;
-const ROAD_ENTRY_X = BACKED_OUT.x + TURN_RADIUS * Math.cos(REVERSE_TURN);
-const EXIT_X = GRID_W + 4.2;
-// The accelerating turn ends at the same speed as the run along the road.
-const TURN_SECONDS = 2 * TURN_RADIUS * (ROAD_TURN - REVERSE_TURN) * EXIT_SECONDS / (EXIT_X - ROAD_ENTRY_X);
-const MANEUVER_SECONDS = FORWARD_START + TURN_SECONDS + EXIT_SECONDS;
-
-export function carManeuver(elapsed: number): { position: Point; yaw: number } {
-  if (elapsed < FORWARD_START) {
-    // Clear the bay first, then swing the rear toward the barn while still in reverse.
-    const distance = REVERSE_DISTANCE * smoothstep(0, REVERSE_SECONDS, elapsed);
-    const turn = Math.max(0, distance - STRAIGHT_REVERSE) / REVERSE_RADIUS;
-    return {
-      position: {
-        x: PARKED.x - REVERSE_RADIUS * (1 - Math.cos(turn)),
-        y: PARKED.y - Math.min(STRAIGHT_REVERSE, distance) - REVERSE_RADIUS * Math.sin(turn),
-      },
-      yaw: -turn,
-    };
-  }
-  if (elapsed < FORWARD_START + TURN_SECONDS) {
-    const progress = (elapsed - FORWARD_START) / TURN_SECONDS;
-    const turn = REVERSE_TURN + (ROAD_TURN - REVERSE_TURN) * progress * progress;
-    return {
-      position: {
-        x: BACKED_OUT.x + TURN_RADIUS * (Math.cos(REVERSE_TURN) - Math.cos(turn)),
-        y: BACKED_OUT.y + TURN_RADIUS * (Math.sin(turn) - Math.sin(REVERSE_TURN)),
-      },
-      yaw: -turn,
-    };
-  }
-  const progress = clamp01((elapsed - FORWARD_START - TURN_SECONDS) / EXIT_SECONDS);
-  const x = ROAD_ENTRY_X + (EXIT_X - ROAD_ENTRY_X) * progress;
-  const y = roadCentre('barn', x);
-  const slope = (roadCentre('barn', x + 0.01) - roadCentre('barn', x - 0.01)) / 0.02;
-  return { position: { x, y }, yaw: Math.atan2(-1, slope) };
-}
-
 // Two patches on the near shoulder. Place each leaf at the rear wheel's actual
 // crossing, so it stays put while the camera follows the walk from the house.
 const LANE_LEAVES = Array.from({ length: 11 }, (_, i) => {

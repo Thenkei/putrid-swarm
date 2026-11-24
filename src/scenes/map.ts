@@ -13,6 +13,7 @@ import { drawPlate, inventoryBar, platePoint } from './common';
 import { drawClockPigeons } from '../render/clock-pigeons';
 import { calmMotion } from '../render/lighting';
 import { shouldPlayCrossing } from '../core/crossing';
+import { driveThroughYard } from '../core/driveway';
 import { goCrossing, goDay, goLocation, goTravel } from './flow';
 
 const MAP_PLATE = 'plate_map';
@@ -152,6 +153,12 @@ export class MapScene implements Scene {
   private drive(id: LocationId): void {
     const departure = this.state;
     if (shouldPlayCrossing(departure, id)) {
+      // The wagon has left the yard even if the herd makes the driver turn back.
+      const yard = driveThroughYard(departure.yard);
+      if (yard !== departure.yard) {
+        this.app.state = { ...departure, yard };
+        this.app.save();
+      }
       this.travel(id, departure, () => goCrossing(this.app, id));
       return;
     }

@@ -21,6 +21,7 @@ import type { Cost, DeviceInstance, GameState, Inventory, LocationId, LocationPr
 import { LOCATION_IDS, RESOURCE_IDS, err, ok } from './types';
 import { DEVICES } from './data/devices';
 import { gain } from './yard';
+import { driveThroughYard } from './driveway';
 
 export type DayError =
   | { readonly code: 'wrong_phase' }
@@ -242,6 +243,7 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
   const visit = { ...progress, visits: progress.visits + 1, lootCheckedDay: progress.lootCheckedDay === null ? null : state.day };
   let next: GameState = {
     ...arrival,
+    yard: driveThroughYard(arrival.yard),
     where: id,
     hoursLeft: state.hoursLeft - location.travelHours,
     outing,
@@ -442,7 +444,7 @@ export function arriveHome(state: GameState): Result<Arrival, DayError> {
   if (state.encounter || state.outing.crossbowStop) return err({ code: 'encounter_pending' });
   const { trunk, parted, state: unloaded } = unloadMoped(state, state.outing.trunk, state.outing.parted);
   return ok({
-    state: { ...unloaded, where: 'home', inventory: gain(state.inventory, trunk), outing: null },
+    state: { ...unloaded, yard: driveThroughYard(unloaded.yard), where: 'home', inventory: gain(state.inventory, trunk), outing: null },
     brought: trunk,
     parted,
     marks: state.outing.marks,

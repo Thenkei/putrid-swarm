@@ -1,19 +1,14 @@
 // Deterministic noise for the scenery. Nothing here touches Math.random: the same coordinates
 // always give the same value, so both sides of the house and every camera show the same ground.
 
+export { smoothstep, clamp01 } from '../core/math';
+
 /** A stable 0..1 number for an integer lattice point. */
 export function hash2(ix: number, iy: number, seed: number): number {
   let h = Math.imul(ix | 0, 374761393) ^ Math.imul(iy | 0, 668265263) ^ Math.imul(seed | 0, 2147483647);
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   h ^= h >>> 16;
   return (h >>> 0) / 4294967296;
-}
-
-export const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
-
-export function smoothstep(edge0: number, edge1: number, x: number): number {
-  const t = clamp01((x - edge0) / (edge1 - edge0));
-  return t * t * (3 - 2 * t);
 }
 
 /** Smooth value noise, 0..1, one feature per unit. */
