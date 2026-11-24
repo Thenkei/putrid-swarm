@@ -8,6 +8,7 @@ import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, SectorId } from
 import { SECTOR_IDS } from '../core/types';
 import { wreckDrawable } from './moped-wreck';
 import { kindlingDrawable } from './baker-kindling';
+import sillCamperUrl from '../assets/camper-sill-figure.webp';
 import { paintingImage, preparePaintings, sprite, type Sprite } from '../engine/assets';
 import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseMotion, type LogLayer } from './defenses';
 import { drawDecals } from './aftermath';
@@ -1105,6 +1106,7 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
   }
 }
 
+let sillCamper: HTMLImageElement | undefined;
 function doorSill(view: View, sector: SectorId): { x: number; y: number } {
   const p = project(view, HOUSE_CENTER.x, HOUSE_CENTER.y);
   const door = DOOR_OPENINGS[sector];
@@ -1157,7 +1159,17 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
           if (!drawn) placeholder(ctx, 0, 0, 30 * z, 50 * z, '#7a5a35', 'door');
         });
         ctx.restore();
-        if (sector === 'arriere' && frame.camperAtRearDoor && barricade.hp > 0) {
+        if (sector === 'arriere' && frame.camperAtRearDoor && barricade.hp <= 0) {
+          if (!sillCamper) { sillCamper = new Image(); sillCamper.src = sillCamperUrl; }
+          if (sillCamper.naturalWidth) {
+            const height = door.h * k * z * .79, width = height * sillCamper.naturalWidth / sillCamper.naturalHeight;
+            ctx.save();
+            // His shoulder is behind the left jamb; the broken leaf and the boots remain on opposite sides of the sill.
+            ctx.beginPath(); ctx.rect(p.x - jambWidth * .43, p.y - height - 6 * z, jambWidth * .85, height + 5 * z); ctx.clip();
+            ctx.drawImage(sillCamper, p.x - jambWidth * .46, p.y - height - 3 * z, width, height);
+            ctx.restore();
+          }
+        } else if (sector === 'arriere' && frame.camperAtRearDoor) {
           const hitAge = frame.time - (frame.defenseMotion?.at(sector)?.hitAt ?? -Infinity);
           const brace = hitAge < .54 ? 1 : 0;
           ctx.save();
