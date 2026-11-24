@@ -13,12 +13,12 @@ export function promptLayer(stopHolding: () => void): HTMLElement {
   return layer;
 }
 
-export function bindPromptPointer(button: HTMLElement, layer: HTMLElement, hold: boolean, press: () => void): void {
+export function bindPromptPointer(button: HTMLElement, layer: HTMLElement, hold: boolean, press: (event: PointerEvent) => void): void {
   button.addEventListener('pointerdown', event => {
     if (!event.isPrimary || event.button !== 0) return;
     event.preventDefault();
     audio.unlock();
     if (hold) layer.setPointerCapture(event.pointerId);
-    press();
+    press(event);
   });
 }

@@ -6,6 +6,7 @@
 // except `settle`, once, at the very end.
 
 import { PauseMenu } from './pause';
+import { bindPromptPointer, promptLayer } from './prompt-pointer';
 import { settleRadio } from '../core/game';
 import { hasLeftArm } from '../core/orchard';
 import { createRng } from '../core/rng';
@@ -293,7 +294,7 @@ export class RadioScene implements Scene {
     this.weakEl = el('div', { class: 'radio-weak', text: s.radio.prompt.weak });
     // The answers sit on a panel of their own, under what was said, while they wait.
     this.answersEl = el('div', { class: 'radio-answers' });
-    this.promptsEl = el('div', { class: 'qte-layer' });
+    this.promptsEl = promptLayer(() => { this.pointerHold = null; });
     this.noteEl = el('div', { class: 'orchard-note' });
     this.overlay = el('div');
     const pauseOverlay = el('div');
@@ -540,10 +541,6 @@ export class RadioScene implements Scene {
     this.keys.clear();
     this.pointerHold = null;
     if (!this.paused) this.togglePause(true);
-  }
-
-  onPointerUp(): void {
-    this.pointerHold = null;
   }
 
   private promptDown(id: PromptId, event: PointerEvent): void {
@@ -801,11 +798,7 @@ export class RadioScene implements Scene {
       },
       [keys.length > 0 ? el('span', { class: 'keys' }, keys) : null, el('span', { class: 'what' }, [label, spec.how ? el('small', { text: s.orchard.how.hold }) : null])],
     );
-    node.addEventListener('pointerdown', (event) => {
-      event.preventDefault();
-      audio.unlock();
-      this.promptDown(prompt.id, event);
-    });
+    bindPromptPointer(node, this.promptsEl, !!spec.hold || prompt.id === 'tune', event => this.promptDown(prompt.id, event));
     this.promptEls.set(prompt.id, node);
     return node;
   }
