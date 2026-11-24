@@ -6,6 +6,9 @@ import { epicFlag, markEpic, packTrail, wreckSector } from '../core/epics';
 import { hitsMopedWreck } from '../render/moped-wreck';
 import { hitsKindling } from '../render/baker-kindling';
 import { bakerMorning } from './baker-morning';
+import { pinnedInvoice } from '../core/mechanic-invoice';
+import { hitsInvoice } from '../render/pinned-invoice';
+import { invoiceDetail } from './mechanic-invoice';
 import { BARRICADE, DEVICES, HOUSE_MAX_HP, HOUSE_REPAIR, facingsOf, isTrap, turned } from '../core/data/devices';
 import { BOSS } from '../core/data/enemies';
 import { DAY_HOURS } from '../core/data/locations';
@@ -144,6 +147,7 @@ export class DayScene implements Scene {
   private hoverDoor: SectorId | null = null;
   private hoverWreck = false;
   private hoverKindling = false;
+  private hoverInvoice = false;
   private panelDoor: SectorId | null = null;
   private previewHp: number | undefined;
   private reinforcementPreview: SectorId | null = null;
@@ -181,6 +185,7 @@ export class DayScene implements Scene {
   private info!: HTMLElement;
   private deliverySlip: HTMLDetailsElement | null = null;
   private bakerVisit: ReturnType<typeof bakerMorning> | null = null;
+  private invoice: ReturnType<typeof invoiceDetail> | null = null;
   private refundTag!: HTMLElement;
   private readonly buildIcons = new Map<DeviceTypeId, HTMLImageElement>();
   private routeCache: { key: string; forecast: Forecast } | null = null;
@@ -443,6 +448,15 @@ export class DayScene implements Scene {
       curiosity ??= el('div', { class: 'refuge-curiosities' });
       curiosity.prepend(this.bakerVisit.detail);
     }
+    const invoice = pinnedInvoice(state);
+    if (invoice) {
+      this.invoice ??= invoiceDetail(invoice, () => {
+        this.zoom = Math.max(1.08, this.zoom);
+        this.showDoor(invoice.sector, false);
+      });
+      curiosity ??= el('div', { class: 'refuge-curiosities' });
+      curiosity.prepend(this.invoice.detail);
+    }
     if (curiosity) frame.append(curiosity);
     // One column: the doors' panel grows a line taller with every door that needs a nail, and the card under it follows.
     const side = el('div', { class: 'day-side' }, [doors, tonight]);
@@ -634,9 +648,9 @@ export class DayScene implements Scene {
     this.updateInfo();
   }
 
-  private showDoor(sector: SectorId): void {
+  private showDoor(sector: SectorId, audible = true): void {
     const view = cameraView(sector, RECT, this.zoom);
-    audio.play('camera');
+    if (audible) audio.play('camera');
     if (this.rot !== view.rot) {
       this.rot = view.rot;
       this.refreshBuildArt();
@@ -687,6 +701,10 @@ export class DayScene implements Scene {
       return;
     }
     const sector = this.inspectedDoor;
+    if (this.hoverInvoice && this.invoice) {
+      this.info.replaceChildren(el('b', { text: this.invoice.label }), line('Cliquer pour lire', 'Click to read'));
+      return;
+    }
     if (this.hoverKindling && this.bakerVisit) {
       this.info.replaceChildren(el('b', { text: this.bakerVisit.label }), line('Cliquer pour examiner', 'Click to examine'));
       return;
@@ -1069,6 +1087,7 @@ export class DayScene implements Scene {
       night: false,
       mopedWreck: wreckSector(state),
       bakerKindling: this.bakerVisit?.freed === true,
+      pinnedInvoice: this.invoice?.sector,
       packTrail: packTrail(state),
       carPresent: true,
       ...(this.options.arrivedByCar && { exhaustAge: this.time }),
@@ -1146,11 +1165,13 @@ export class DayScene implements Scene {
 
   private updateHover(pointer: Pointer, refreshInfo = false, inspected?: SectorId): void {
     const view = this.view;
-    const before = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverWreck},${this.hoverKindling}`;
+    const before = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverWreck},${this.hoverKindling},${this.hoverInvoice}`;
     const inside = pointer.overCanvas && inView(view, pointer.x, pointer.y);
     const wreck = wreckSector(this.state);
     this.hoverWreck = !inspected && inside && this.mode.kind === 'idle' && !!wreck && hitsMopedWreck(view, wreck, pointer.x, pointer.y);
     this.hoverKindling = !inspected && inside && this.mode.kind === 'idle' && this.bakerVisit?.freed === true && hitsKindling(view, pointer.x, pointer.y);
+    this.hoverInvoice = !inspected && inside && this.mode.kind === 'idle' && !!this.invoice
+      && hitsInvoice(view, this.invoice.sector, this.state.yard.barricades[this.invoice.sector].hp <= 0, pointer.x, pointer.y);
     if (inspected) this.panelDoor = inspected;
     else if (inside) this.panelDoor = null;
     if (!inside) {
@@ -1161,7 +1182,7 @@ export class DayScene implements Scene {
       const g = unproject(view, pointer.x, pointer.y);
       const cell = { x: Math.floor(g.gx), y: Math.floor(g.gy) };
       this.hover = cell.x >= 0 && cell.y >= 0 && cell.x < GRID_W && cell.y < GRID_H ? cell : null;
-      if (this.mode.kind === 'build' || this.hoverWreck || this.hoverKindling) {
+      if (this.mode.kind === 'build' || this.hoverWreck || this.hoverKindling || this.hoverInvoice) {
         this.hoverDevice = null;
         this.hoverDoor = null;
       } else {
@@ -1175,10 +1196,10 @@ export class DayScene implements Scene {
     if (inside) {
       if (this.mode.kind === 'repair' || this.mode.kind === 'dismantle') cursor = this.mode.kind;
       else if (this.mode.kind === 'idle' && this.quickRepair) cursor = 'repair';
-      else if (this.hoverKindling || (this.hoverWreck && !epicFlag(this.state, 'wreckSeen'))) cursor = 'inspect';
+      else if (this.hoverInvoice || this.hoverKindling || (this.hoverWreck && !epicFlag(this.state, 'wreckSeen'))) cursor = 'inspect';
     }
     if (this.app.canvas.dataset.yardCursor !== cursor) this.app.canvas.dataset.yardCursor = cursor;
-    const after = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverWreck},${this.hoverKindling}`;
+    const after = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverWreck},${this.hoverKindling},${this.hoverInvoice}`;
     if (refreshInfo || before !== after) this.updateInfo();
   }
 
@@ -1318,6 +1339,11 @@ export class DayScene implements Scene {
           this.dismantling.push({ device: at, age: 0 });
         }
       }
+      return;
+    }
+    if (this.hoverInvoice && this.invoice) {
+      this.invoice.detail.open = true;
+      this.invoice.detail.querySelector('summary')?.focus();
       return;
     }
     if (this.hoverKindling && this.bakerVisit) {

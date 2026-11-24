@@ -1,0 +1,34 @@
+.mechanic-visit { background: rgba(21, 16, 12, .57); }
+#ui .mechanic-card {
+  display: grid;
+  grid-template-columns: 552px 1fr;
+  width: 935px;
+  max-width: 94%;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 0;
+  color: #f2e4c8;
+  background: #25211c;
+  border: 2px solid #b1976f;
+  border-radius: 3px;
+  box-shadow: 0 14px 38px #130e0ac9;
+}
+.mechanic-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: #59412d center / contain no-repeat;
+  border-right: 2px solid #a78a60;
+}
+#ui .mechanic-cels {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.mechanic-copy { padding: 27px 25px 23px; display: flex; flex-direction: column; align-items: flex-start; }
+.mechanic-copy h2 { margin: 0; color: #f7dc9b; font-size: 33px; }
+.mechanic-caption { margin: 18px 0 8px; font-size: 22px; line-height: 1.35; }
+.mechanic-cargo { margin: 0; }
+.mechanic-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 16px; }
+.mechanic-actions .btn { font-size: 17px; }

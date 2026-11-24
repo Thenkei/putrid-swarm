@@ -1,0 +1,11 @@
+{
+  "id": "mechanic_chain",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "eySg1zDSyF3s1cr3VbVK",
+  "generatedAt": "2026-11-24T14:54:38.241Z",
+  "prompt": "One second of close dry game foley. An old garage chain hoist being pulled hand over hand, four irregular sharp metallic link clatters over a pulley, ending in a tiny distinct seating tick as slack runs out. Abruptly completely still. Start immediately. No voice, music, engine, dropped weight, bass impact or reverb.",
+  "bytes": 50187,
+  "sha256": "9805412cc1c5f1e2b1b015ceb9f0050b207ef981ef07353b8cd062e433e732ef"
+}

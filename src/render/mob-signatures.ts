@@ -7,12 +7,14 @@ export interface MobGesture {
 // The hanging load is a separate cutout in the two painted wind-up poses.
 // Source coordinates are divided by the sprite dimensions when drawing.
 const HOIST = {
-  front: { w: 331, h: 269, pivot: [252, 54], load: [[252, 54], [269, 61], [331, 84], [331, 178], [205, 178], [210, 77]] },
-  back: { w: 302, h: 268, pivot: [231, 45], load: [[231, 45], [258, 53], [302, 66], [302, 154], [205, 154], [207, 91], [219, 64]] },
+  front: { w: 331, h: 269, pivot: [252, 54], load: [[252, 54], [269, 61], [331, 84], [331, 178], [205, 178], [210, 77]],
+    grip: [143, 94], sag: 7, mastEnd: 184, boot: [0, 194, 53, 267] },
+  back: { w: 302, h: 268, pivot: [231, 45], load: [[231, 45], [258, 53], [302, 66], [302, 154], [205, 154], [207, 91], [219, 64]],
+    grip: [151, 107], sag: 3, mastEnd: 175, boot: [75, 210, 138, 268] },
 } as const;
 
 export function drawHoist(
-  ctx: CanvasRenderingContext2D, front: boolean, w: number, h: number, force: number, blit: () => void,
+  ctx: CanvasRenderingContext2D, front: boolean, w: number, h: number, gesture: MobGesture, blit: () => void,
 ): void {
   const art = front ? HOIST.front : HOIST.back;
   const x = (u: number) => (u / art.w - 0.5) * w;
@@ -26,18 +28,83 @@ export function drawHoist(
   ctx.rect(-w / 2, -h, w, h);
   cut();
   ctx.clip('evenodd');
+  const pulling = gesture.force >= 0;
+  const [handX, handY] = art.grip;
+  const [pinX, pinY] = art.pivot;
+  const dx = pinX - handX, dy = pinY - handY;
+  const chainY = (t: number, sag: number) => handY + dy * t + 4 * sag * t * (1 - t);
+  const chainCut = () => {
+    for (let i = 0; i <= 8; i++) {
+      const t = i / 8;
+      if (i === 0) ctx.moveTo(x(handX), y(handY - 4));
+      else ctx.lineTo(x(handX + dx * t), y(chainY(t, art.sag) - 4));
+    }
+    for (let i = 8; i >= 0; i--) ctx.lineTo(x(handX + dx * i / 8), y(chainY(i / 8, art.sag) + 4));
+    ctx.closePath();
+  };
+  const [bx, by, ex, ey] = art.boot;
+  const bootRect = () => ctx.rect(x(bx), y(by), x(ex) - x(bx), y(ey) - y(by));
+  ctx.save();
+  if (pulling) {
+    ctx.beginPath();
+    ctx.rect(-w / 2, -h, w, h);
+    chainCut();
+    bootRect();
+    ctx.clip('evenodd');
+  }
   blit();
+  ctx.restore();
+  if (pulling) {
+    // Restore the mast behind the running chain from the adjacent strip of the same painting.
+    ctx.save();
+    ctx.beginPath();
+    chainCut();
+    ctx.clip();
+    ctx.beginPath();
+    ctx.rect(x(handX), -h, x(art.mastEnd) - x(handX), h);
+    ctx.clip();
+    ctx.translate(0, h * 9 / art.h);
+    blit();
+    ctx.restore();
+    // Lift the heel under the trouser cuff, then plant it as the last link seats.
+    ctx.save();
+    ctx.translate(0, y(by));
+    ctx.scale(1, 1 - (1 - gesture.force) * 0.19);
+    ctx.translate(0, -y(by));
+    ctx.beginPath();
+    bootRect();
+    ctx.clip();
+    blit();
+    ctx.restore();
+  }
   ctx.restore();
 
   ctx.save();
   ctx.translate(x(art.pivot[0]), y(art.pivot[1]));
-  ctx.rotate(force * 0.133);
+  ctx.rotate(gesture.force * (pulling ? 0.25 : 0.16));
   ctx.translate(-x(art.pivot[0]), -y(art.pivot[1]));
   ctx.beginPath();
   cut();
   ctx.clip();
   blit();
   ctx.restore();
+
+  if (!pulling) return;
+  const slack = 20 * (1 - gesture.force);
+  const width = w / art.w;
+  const links = front ? 12 : 11;
+  for (let i = 0; i < links; i++) {
+    const t = (i + 0.5) / links;
+    const angle = Math.atan2(dy + 4 * slack * (1 - 2 * t), dx);
+    ctx.beginPath();
+    ctx.ellipse(x(handX + dx * t), y(chainY(t, slack)), width * 5.8, width * (i % 2 ? 1.3 : 2.4), angle, 0, 2 * Math.PI);
+    ctx.strokeStyle = '#39241b';
+    ctx.lineWidth = width * 3.4;
+    ctx.stroke();
+    ctx.strokeStyle = i % 2 ? '#a88961' : '#e1c99a';
+    ctx.lineWidth = width * 1.6;
+    ctx.stroke();
+  }
 }
 
 function mowerDebris(ctx: CanvasRenderingContext2D, front: boolean, height: number, { time, force, kind }: MobGesture): void {

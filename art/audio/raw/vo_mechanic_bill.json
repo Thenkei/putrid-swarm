@@ -1,0 +1,13 @@
+{
+  "id": "vo_mechanic_bill",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "voice": "Rudy",
+  "voiceId": "RVSvUPdGobWOTgnlXLRP",
+  "generationId": "a3lyeoGBBU8wHI0F82Mv",
+  "generatedAt": "2026-11-24T15:03:17.440Z",
+  "prompt": "[matter-of-fact, with a small smile] Je vous mets ça sur la facture.",
+  "bytes": 51441,
+  "sha256": "3ef0202ccf2b1d84698f8517ef6c312fee395b32314fd1b612b1b34de4332a6e"
+}

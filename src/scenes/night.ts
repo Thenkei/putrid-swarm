@@ -9,13 +9,15 @@ import { CassetteRecorder } from '../render/cassette';
 import { TAPE } from '../core/cassette';
 import { cameraPriority, type CameraPriority } from '../core/camera-priority';
 import { BARRICADE, COMBAT, DEVICES, HOUSE_MAX_HP, isAuto, isManual } from '../core/data/devices';
+import { BOSS } from '../core/data/enemies';
+import { BOSS_NIGHT } from '../core/data/locations';
 import { LAST_NIGHT, sirenPackFor, type SirenSector } from '../core/data/waves';
 import { sirenForNight } from '../core/siren';
 import { detectContact, hasDetector, SCAN_RANGE, SCAN_SECONDS } from '../core/dead-channel';
 import { concludeNight } from '../core/game';
 import { MOPED_BLAST_RADIUS, wreckSector } from '../core/epics';
 import { HOUSE, sectorOf } from '../core/map';
-import { HOUSE_RETURN_SECONDS, NightSim, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
+import { HOUSE_RETURN_SECONDS, NightSim, hoistAge, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
 import { deskFor, outageFor } from '../core/orchard';
 import { allyFor } from '../core/radio';
 import type { DeviceTypeId, GameState, NeighborId, SectorId } from '../core/types';
@@ -25,7 +27,7 @@ import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/
 import { assetUrl } from '../engine/assets';
 import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours } from '../engine/i18n';
+import { S, fmt, hours, line } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
 import { BarnMoth } from '../render/house-reactions';
 import { NightWildlife } from './night-wildlife';
@@ -167,6 +169,8 @@ export class NightScene implements Scene {
   private camClock!: HTMLElement;
   private camFrame!: HTMLElement;
   private rattleCaption: HTMLElement | null = null;
+  private readonly hoistCaption = el('span', { class: 'hoist-caption' });
+  private chainPlaying = false;
   private detector!: HTMLElement;
   private scanButton!: HTMLButtonElement;
   private scanReadout!: HTMLElement;
@@ -187,7 +191,7 @@ export class NightScene implements Scene {
   private banners!: HTMLElement;
   private overlay!: HTMLElement;
   private pauseMenu!: PauseMenu;
-  private readonly miniEls = new Map<SectorId, { root: HTMLElement; count: HTMLElement; door: HTMLElement }>();
+  private readonly miniEls = new Map<SectorId, { root: HTMLElement; count: HTMLElement; cue: HTMLElement; door: HTMLElement }>();
   private readonly trapButtons = new Map<number, TrapButton>();
   private trapSignature = '';
 
@@ -282,6 +286,7 @@ export class NightScene implements Scene {
       this.camperDoor = new CamperDoorFeed();
       void audio.prepareSample('camper_inside_knock');
     }
+    if (this.sim.night === BOSS_NIGHT.mechanic) void audio.prepareSample('mechanic_chain');
     if (this.sim.rattleSector) {
       this.rattleCaption = el('span', { class: 'rattle-caption' });
       this.rattleCaption.setAttribute('role', 'status');
@@ -294,6 +299,7 @@ export class NightScene implements Scene {
     const miniPixelRatio = Math.min(1.25, this.app.pixelRatio);
     for (const sector of SECTOR_IDS) {
       const count = el('span', { class: 'count' });
+      const cue = el('span', { class: 'cue-tag', text: s.night.now });
       const door = el('i');
       const root = el(
         'div',
@@ -301,12 +307,12 @@ export class NightScene implements Scene {
         [
           el('span', { class: 'name', text: `${SECTOR_IDS.indexOf(sector) + 1} · ${s.sector[sector]}` }),
           el('span', { class: 'warn', text: '⚠', style: { fontSize: '30px', lineHeight: '30px' } }),
-          el('span', { class: 'cue-tag', text: s.night.now }),
+          cue,
           count,
           el('span', { class: 'door-bar' }, [door]),
         ],
       );
-      this.miniEls.set(sector, { root, count, door });
+      this.miniEls.set(sector, { root, count, cue, door });
       minis.push(root);
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(MINI.w * miniPixelRatio);
@@ -363,6 +369,7 @@ export class NightScene implements Scene {
   }
 
   exit(): void {
+    this.hushChain();
     this.quietWildlife();
     this.trace?.cancel();
     this.recorder.dispose();
@@ -523,8 +530,16 @@ export class NightScene implements Scene {
   }
 
   /** True when a manual trap watched by that camera has enough under it to be worth firing. */
-  private sectorCue(sector: SectorId): boolean {
-    return !this.sim.awayFromDesk && !this.isDark(sector) && this.sim.manualDevicesIn(sector).some((d) => this.sim.opportunity(d.id).now);
+  private sectorCue(sector: SectorId): string {
+    if (this.sim.awayFromDesk || this.isDark(sector)) return '';
+    let group = '';
+    for (const d of this.sim.manualDevicesIn(sector)) {
+      const opportunity = this.sim.opportunity(d.id);
+      if (!opportunity.now) continue;
+      if (!opportunity.group) return S().night.now;
+      group = line('Groupe', 'Group') + ' ×' + opportunity.targets;
+    }
+    return group;
   }
 
   private viewFor(sector: SectorId, rect: { x: number; y: number; w: number; h: number }, zoom: number): View {
@@ -594,6 +609,40 @@ export class NightScene implements Scene {
     this.trace = this.energyTrace.animate([{ opacity: 0.85 }, { opacity: 0 }], { duration: 360, easing: 'ease-out' });
   }
 
+  private hushChain(): void {
+    if (this.chainPlaying) audio.fadeOut('mechanic_chain', 0.035);
+    this.chainPlaying = false;
+  }
+
+  private syncHoist(): void {
+    if (this.sim.night !== BOSS_NIGHT.mechanic) return;
+    const enemy = this.sim.enemies.find(e => hoistAge(e) !== null);
+    const age = enemy && hoistAge(enemy);
+    if (!enemy?.boss || age == null || this.ending) {
+      this.hushChain();
+      this.hoistCaption.remove();
+      return;
+    }
+    const pulling = age < BOSS.mechanic.chainSeconds;
+    if (pulling && this.speed === 1 && !this.paused) {
+      if (!this.chainPlaying) audio.play('mechanic_chain', 1, 1, age);
+      this.chainPlaying = true;
+    } else this.hushChain();
+    const sector = enemy.boss.sector;
+    if (this.isDark(sector)) {
+      this.hoistCaption.remove();
+      return;
+    }
+    const feed = sector === this.cam ? this.camFrame : this.miniEls.get(sector)!.root;
+    if (this.hoistCaption.parentElement !== feed) feed.append(this.hoistCaption);
+    const phase = pulling ? 'pull' : 'set';
+    if (this.hoistCaption.dataset.phase !== phase) {
+      this.hoistCaption.dataset.phase = phase;
+      setText(this.hoistCaption, pulling ? line('La chaîne cliquette.', 'The chain rattles.')
+        : line('Chaîne tendue.', 'Chain taut.'));
+    }
+  }
+
   private syncHud(force = false): void {
     const s = S();
     const sim = this.sim;
@@ -605,6 +654,7 @@ export class NightScene implements Scene {
     const blind = this.isDark(this.cam);
     this.syncClock(blind);
     this.epic.syncMoped();
+    this.syncHoist();
     this.camFrame.classList.toggle('no-link', blind);
     if (this.camperDoor) {
       const monitor = this.cam === 'arriere' ? this.camFrame : this.miniEls.get('arriere')!.root;
@@ -642,12 +692,14 @@ export class NightScene implements Scene {
     const fireAwaited = trapsAwaitingHand(handView, sim);
     const cameras = SECTOR_IDS.map(sector => {
       const barricade = sim.barricades[sector];
+      const cueText = this.sectorCue(sector);
       return {
         sector,
         threat: sim.threat(sector),
         doorRatio: Math.max(0, barricade.hp / BARRICADE.maxHp[barricade.level]),
         dark: this.isDark(sector),
-        cue: this.sectorCue(sector),
+        cue: !!cueText,
+        cueText,
       };
     });
     this.alertTarget = this.coach?.kind === 'switch'
@@ -666,12 +718,13 @@ export class NightScene implements Scene {
       setText(this.doorContactState, s.night.doorContact[contact]);
     }
 
-    for (const { sector, threat, doorRatio: ratio, dark, cue } of cameras) {
+    for (const { sector, threat, doorRatio: ratio, dark, cue, cueText } of cameras) {
       const mini = this.miniEls.get(sector)!;
       mini.root.inert = away;
       const danger = dark ? threat.atDoor > 0 : threat.atDoor > 0 || threat.boss !== null || (threat.breached && threat.count > 0);
       const cls = `mini ${danger ? 'danger' : !dark && threat.count > 0 ? 'alert' : ''}${cue ? ' cue' : ''}${alert?.sector === sector ? ' priority' : ''}${dark ? ' dark' : ''}${lookAwaited === sector ? ' queued' : ''}`;
       if (mini.root.className !== cls) mini.root.className = cls;
+      setText(mini.cue, cueText);
       setText(mini.count, dark ? '' : threat.count > 0 ? `${threat.count}${threat.boss ? ` · ${s.enemy[threat.boss]}` : ''}` : '');
       mini.door.style.width = `${ratio * 100}%`;
       mini.door.style.background = ratio > 0.5 ? '#a3cf5c' : ratio > 0.2 ? '#f2a531' : '#dc4330';
@@ -729,7 +782,8 @@ export class NightScene implements Scene {
       } else {
         const opportunity = sim.opportunity(id);
         cls += opportunity.now ? ' ready now' : ' ready';
-        status = opportunity.now ? s.night.now : opportunity.targets > 0 ? `${s.night.ready} ×${opportunity.targets}` : s.night.ready;
+        if (opportunity.group) status = line('Groupe', 'Group') + ' ×' + opportunity.targets;
+        else status = opportunity.now ? s.night.now : opportunity.targets > 0 ? `${s.night.ready} ×${opportunity.targets}` : s.night.ready;
       }
       if (fireAwaited.has(id)) {
         cls += ' queued';
@@ -806,7 +860,10 @@ export class NightScene implements Scene {
   private togglePause(auto = false): void {
     if (this.ending) return;
     this.paused = !this.paused;
-    if (this.paused) this.fadeWildlife();
+    if (this.paused) {
+      this.fadeWildlife();
+      this.hushChain();
+    }
     if (this.paused) this.pauseMenu.open(() => this.togglePause(), () => goTitle(this.app), auto, S().night.abandon);
     else this.pauseMenu.close();
   }
@@ -1065,6 +1122,11 @@ export class NightScene implements Scene {
           }
           break;
         case 'telegraph':
+          if (event.kind === 'hoist') {
+            // A fence near the spawn can bring the first swing forward. Clear the portrait from the live shot.
+            this.overlay.querySelector('.boss-card')?.remove();
+            break;
+          }
           audio.play(event.kind === 'mower' ? 'mower' : event.kind === 'speech' ? 'megaphone' : event.kind === 'whistle' ? 'whistle' : 'ram');
           if (event.kind === 'mower') this.banner(`${s.night.lane} · ${s.sector[event.sector]}`, 'bad');
           // The mayor is still campaigning; the megaphone carries.
@@ -1176,7 +1238,7 @@ export class NightScene implements Scene {
       this.syncHud();
       return;
     }
-    if (this.epic.update(dt)) { this.quietWildlife(dt); return; }
+    if (this.epic.update(dt)) { this.quietWildlife(dt); this.hushChain(); return; }
     this.murmur();
 
     const previousTime = this.sim.time;

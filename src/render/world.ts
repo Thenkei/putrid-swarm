@@ -8,6 +8,7 @@ import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, SectorId } from
 import { SECTOR_IDS } from '../core/types';
 import { wreckDrawable } from './moped-wreck';
 import { kindlingDrawable } from './baker-kindling';
+import { drawPinnedInvoice } from './pinned-invoice';
 import sillCamperUrl from '../assets/camper-sill-figure.webp';
 import { paintingImage, preparePaintings, sprite, type Sprite } from '../engine/assets';
 import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseMotion, type LogLayer } from './defenses';
@@ -118,6 +119,7 @@ export interface WorldFrame {
   readonly mopedRide?: NonNullable<NightSim['mopedRide']>;
   readonly mopedWreck?: SectorId | undefined;
   readonly bakerKindling?: boolean;
+  readonly pinnedInvoice?: SectorId | undefined;
   readonly packTrail?: PackTrail | undefined;
   readonly parkedMoped?: ParkedMoped;
   readonly houseBreaks?: readonly HouseBreak[];
@@ -1180,6 +1182,7 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
           if (!drawn) placeholder(ctx, 0, 0, 30 * z, 50 * z, '#7a5a35', 'door');
         });
         ctx.restore();
+        if (frame.pinnedInvoice === sector) drawPinnedInvoice(ctx, view, sector, barricade.hp <= 0, frame.time);
         if (sector === 'arriere' && frame.camperAtRearDoor && barricade.hp <= 0) {
           if (!sillCamper) { sillCamper = new Image(); sillCamper.src = sillCamperUrl; }
           if (sillCamper.naturalWidth) {

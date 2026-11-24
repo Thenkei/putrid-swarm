@@ -132,6 +132,8 @@ export interface NightReport {
   readonly autoTriggers: number;
   readonly indoorKills?: number;
   readonly letterDelivered?: true;
+  /** First sector where the log interrupted the mechanic's loaded hoist. */
+  readonly mechanicStoppedAt?: SectorId;
   readonly bossDefeated: NeighborId | null;
   readonly durationSeconds: number;
   /** A camera that stopped sending during the night, and is still dark in the morning. */

@@ -1,0 +1,27 @@
+@font-face {
+  font-family:Kalam; src:url('/assets/fonts/kalam/kalam-latin-regular.woff2') format('woff2');
+  font-style:normal; font-weight:400; font-display:swap;
+}
+.mechanic-invoice { pointer-events:auto; width:fit-content; color:#f3e8ca; font-size:15px; }
+.mechanic-invoice summary { cursor:pointer; width:fit-content; padding:6px 10px; background:#27221ceb; border-left:3px solid #cfa366; }
+.mechanic-invoice summary:focus-visible { outline:2px solid #f2d39b; }
+.mechanic-invoice-sheet {
+  box-sizing:border-box; width:290px; min-height:330px; padding:54px 39px 56px;
+  color:#3e3228; background:#ddbc83 url('../assets/mechanic-invoice.webp') center / 100% 100% no-repeat;
+  box-shadow:2px 5px 14px #130e0ace; font:17px/1.24 Georgia,serif;
+}
+.mechanic-invoice-stamp { font:700 11px/1.3 Georgia,serif; letter-spacing:.12em; text-transform:uppercase; border:1px solid currentColor; display:inline-block; padding:2px 5px; transform:rotate(-3deg); }
+.mechanic-invoice-sheet h3 { color:inherit; margin:10px 0 13px; font:bold 29px/1 Georgia,serif; }
+.mechanic-invoice-sheet table { width:100%; border-collapse:collapse; font:inherit; color:inherit; }
+.mechanic-invoice-sheet th { border-bottom:1px solid #715b459c; font:600 12px/1.5 Georgia,serif; text-align:left; }
+.mechanic-invoice-sheet td { padding:4px 0; border-bottom:1px solid #806b4d66; }
+.mechanic-invoice-sheet td, .mechanic-invoice-sheet .mechanic-callout {
+  color:#483d35; font:400 21px/1.18 Kalam, 'Segoe Print', 'Bradley Hand', cursive;
+}
+.mechanic-invoice-sheet :is(th, td):last-child { text-align:right; }
+.mechanic-invoice-sheet p { margin:8px 0 0; }
+.mechanic-invoice-sheet .mechanic-callout { margin:20px 0 0; }
+@media (prefers-reduced-motion:no-preference) {
+  .mechanic-invoice[open] .mechanic-invoice-sheet { transform-origin:50% 2%; animation:mechanic-paper-settles .35s ease-out; }
+}
+@keyframes mechanic-paper-settles { from { transform:perspective(520px) rotateX(-8deg); } to { transform:perspective(520px) rotateX(0); } }

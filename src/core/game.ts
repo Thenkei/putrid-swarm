@@ -2,6 +2,7 @@
 // Every transition is a pure function; scenes never mutate GameState.
 
 import { BARRICADE, HOUSE_MAX_HP } from './data/devices';
+import { recordMechanicGift } from './mechanic-invoice';
 import { BOSS_NIGHT, CONCEAL_HOURS, COVER_FIND_CHANCE, DAILY_LOOT_CHANCE, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER, type LocationDef } from './data/locations';
 import { shouldStopAtDusk } from './crossbow-road';
 import { GARAGE_WORKBENCH, VICE_ATTEMPT_DAY, hasViceLeftovers, isGarageVice, openViceOnReturn } from './garage-vice';
@@ -278,7 +279,7 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
       switch (neighbor) {
         case 'mechanic':
           gift = rng.chance(0.5) ? { springs: 1 } : { scrap: 2 };
-          next = { ...next, flags: { ...next.flags, bills: (next.flags['bills'] ?? 0) + 1 } };
+          next = { ...next, flags: recordMechanicGift(next.flags, gift) };
           break;
         case 'mail':
           gift = { [rng.pick(RESOURCE_IDS)]: 2 } as Cost;

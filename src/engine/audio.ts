@@ -102,6 +102,7 @@ export type Sfx =
   | 'knead'
   | 'baker_bowl_slide'
   | 'camper_zip'
+  | 'mechanic_chain'
   | 'camper_breath'
   | 'camper_inside_knock'
   | 'letter_fold'
@@ -256,6 +257,7 @@ class AudioEngine {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private noiseBuffer: AudioBuffer | null = null;
+  private hoistFallback: AudioBuffer | null = null;
   private bed: Bed | null = null;
   private ambienceKind: Ambience = 'none';
   private birdTimer: number | null = null;
@@ -485,6 +487,25 @@ class AudioEngine {
 
   // ───────────────────────────── Effects ─────────────────────────────
 
+  /** Four dry links. As a buffer this can stop or resume mid-pull during a slow download. */
+  private hoistLinks(ctx: AudioContext): AudioBuffer {
+    if (this.hoistFallback) return this.hoistFallback;
+    const buffer = ctx.createBuffer(1, Math.ceil(.72 * ctx.sampleRate), ctx.sampleRate);
+    const waveform = buffer.getChannelData(0);
+    for (const [onset, frequency] of [[0, 770], [.17, 880], [.39, 730], [.64, 1260]] as const) {
+      const start = Math.round(onset * ctx.sampleRate);
+      const end = Math.min(waveform.length, start + Math.round(.1 * ctx.sampleRate));
+      for (let i = start; i < end; i++) {
+        const t = (i - start) / ctx.sampleRate;
+        const angle = 2 * Math.PI * frequency * t;
+        const envelope = Math.min(1, t * 900) * Math.exp(-70 * t);
+        waveform[i] = envelope * (.25 * Math.sin(angle) + .17 * Math.sin(2.63 * angle));
+      }
+    }
+    this.hoistFallback = buffer;
+    return buffer;
+  }
+
   /**
    * Plays an effect: the recording when it is loaded, the synthesised version otherwise.
    * `volume` scales it (1 = normal); `rate` replays it faster and higher, for one recording played as several notes.
@@ -499,10 +520,11 @@ class AudioEngine {
     this.lastPlayed.set(name, now);
 
     const sample = this.deal(name, VARIANTS[name] ?? [name]);
-    if (sample?.buffer && this.sfxBus) {
-      if (offset >= sample.buffer.duration) return;
+    const buffer = sample?.buffer ?? (name === 'mechanic_chain' ? this.hoistLinks(this.ctx) : null);
+    if (buffer && this.sfxBus) {
+      if (offset >= buffer.duration) return;
       const drift = PITCH_DRIFT[name] ?? 0;
-      const playing = this.playBuffer(sample.buffer, this.sfxBus, sample.entry.gain * volume, rate * (1 + (Math.random() * 2 - 1) * drift), offset);
+      const playing = this.playBuffer(buffer, this.sfxBus, (sample?.entry.gain ?? 1) * volume, rate * (1 + (Math.random() * 2 - 1) * drift), offset);
       if (playing) this.track(name, playing);
       return;
     }

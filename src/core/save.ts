@@ -8,7 +8,7 @@ import { CALLERS, ENDINGS as RADIO_ENDINGS, QUIET_RADIO, optionOf, rollCall, typ
 import { createRng } from './rng';
 import { facingsOf } from './data/devices';
 import { ENCOUNTER } from './data/rivals';
-import { HARDWARE_SPRING_BIN, LOCATIONS } from './data/locations';
+import { BOSS_NIGHT, HARDWARE_SPRING_BIN, LOCATIONS } from './data/locations';
 import { GROUP_IDS, INTEL_IDS, LOCATION_IDS, RESOURCE_IDS, RIVAL_IDS, SECTOR_IDS } from './types';
 
 export const SAVE_VERSION = 1;
@@ -303,6 +303,7 @@ export function deserialize(raw: string): GameState | null {
     traps: parseTallies((parsed.lastNight as { traps?: unknown }).traps),
   };
   if (lastNight && !isNightHighlight(lastNight.highlight)) delete lastNight.highlight;
+  if (lastNight && (lastNight.night !== BOSS_NIGHT.mechanic || !SECTOR_IDS.includes(lastNight.mechanicStoppedAt as SectorId))) delete lastNight.mechanicStoppedAt;
   const shed = parseShed(data);
   const radio = parseRadio(data, parsePeople(data['people']), shed.shed, data['seed'] as number);
   const chaptered: GameState = { ...parsed, lastNight, ...parseOrchard(data), ...shed, ...radio, fate: null };

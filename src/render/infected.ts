@@ -3,7 +3,7 @@
 
 import { BOSS } from '../core/data/enemies';
 import { ENTRIES } from '../core/map';
-import { BLOW_RECOVERY_SECONDS, HIT_REACTION_SECONDS, type Enemy, type LogTarget } from '../core/night';
+import { BLOW_RECOVERY_SECONDS, HIT_REACTION_SECONDS, hoistAge, type Enemy, type LogTarget } from '../core/night';
 import type { EnemyTypeId, SectorId } from '../core/types';
 import { sprite, type Sprite } from '../engine/assets';
 import { calmMotion } from './lighting';
@@ -305,7 +305,18 @@ function locomotion(e: Enemy, art: CharacterArt, m: Movement, reduced: boolean):
   m.lean *= profile.lean;
 }
 
-function windup(e: Enemy, m: Movement, enhanced: boolean): void {
+function windup(e: Enemy, m: Movement, enhanced: boolean, reduced: boolean): void {
+  const age = hoistAge(e);
+  if (age !== null) {
+    const pull = Math.min(1, age / BOSS.mechanic.chainSeconds);
+    // He gathers the loose chain standing close to the upright, then steps back into the pull.
+    m.pose = pull < (reduced ? 1 : 0.44) ? 'p' : 'x';
+    if (m.pose === 'x') {
+      // The wheels stay on the dirt. Only the boot, chain and suspended engine take the load.
+      m.signature = { kind: 'hoist', time: pull, force: smoothstep(0.44, 1, pull) };
+    }
+    return;
+  }
   const t = Math.min(1, e.actionSeconds / e.def.windupSeconds);
   if (!enhanced) {
     m.pose = 'x';
@@ -326,8 +337,6 @@ function windup(e: Enemy, m: Movement, enhanced: boolean): void {
   } else if (e.action === 'rev') {
     m.lean -= 0.025 * Math.sin(e.actionSeconds * 36) * load;
     m.signature = { kind: 'rev', time: e.actionSeconds, force: load };
-  } else if (e.type === 'mechanic' && m.pose === 'x') {
-    m.signature = { kind: 'hoist', time: t, force: load };
   } else if (e.action === 'speech') {
     const declaim = Math.sin(Math.PI * 3 * t) ** 2 * load;
     m.forward = 0.016 + 0.044 * declaim;
@@ -398,7 +407,7 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
       m.signature = { kind: 'hoist', time: t, force: -2.5 * reach };
     }
   } else if (e.action === 'windup' || e.action === 'rev' || e.action === 'speech') {
-    windup(e, m, enhanced);
+    windup(e, m, enhanced, reduced);
   } else if (e.type === 'chief' && e.boss && e.boss.ability > BOSS.chief.whistleEvery - 0.42) {
     m.pose = 'x';
   } else if (e.action === 'jam') {
@@ -424,7 +433,7 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
     if (enhanced) m.squash = 1;
     m.forward *= 0.35;
     m.flash = 0;
-    if (m.signature?.kind !== 'registered') delete m.signature;
+    if (m.signature?.kind !== 'registered' && !(m.signature?.kind === 'hoist' && e.windup > 0)) delete m.signature;
   }
   return m;
 }
@@ -531,7 +540,7 @@ function drawFigure(
   if (f.reverse) ctx.scale(-1, 1);
   const baked = night ? cameraCel(f, exposure) : undefined;
   if (signature?.kind === 'hoist' && f.sw === (front ? 331 : 302) && f.sh === (front ? 269 : 268)) {
-    drawHoist(ctx, front, w, h, signature.force, () => {
+    drawHoist(ctx, front, w, h, signature, () => {
       if (baked) ctx.drawImage(baked, -w / 2, -h, w, h);
       else paintCel(ctx, f, -w / 2, -h, w, h);
     });

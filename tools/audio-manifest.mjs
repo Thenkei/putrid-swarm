@@ -89,6 +89,18 @@ const quietNightBed = [
 ].join(';');
 
 export const AUDIO = [
+  sfx('mechanic_chain', 1, 'One second of close dry game foley. An old garage chain hoist being pulled hand over hand, four irregular sharp metallic link clatters over a pulley, ending in a tiny distinct seating tick as slack runs out. Abruptly completely still. Start immediately. No voice, music, engine, dropped weight, bass impact or reverb.', {
+    // Spaces between four real link sounds let the final seating tick fall into silence.
+    edit: [
+      'asplit=4[a][b][c][d]',
+      '[a]atrim=start=0.27:end=0.44,asetpts=PTS-STARTPTS,afade=t=out:st=0.15:d=0.02,apad,atrim=end=0.23[first]',
+      '[b]atrim=start=0.69:end=0.89,asetpts=PTS-STARTPTS,afade=t=out:st=0.18:d=0.02,apad,atrim=end=0.30[second]',
+      '[c]atrim=start=1.36:end=1.51,asetpts=PTS-STARTPTS,afade=t=out:st=0.13:d=0.02,apad,atrim=end=0.33[third]',
+      '[d]atrim=start=1.675:end=1.80,asetpts=PTS-STARTPTS[seat]',
+      '[first][second][third][seat]concat=n=4:v=0:a=1,atempo=1.36',
+    ].join(';'),
+    gain: .95, peak: -4, maxSeconds: .72, tail: .018,
+  }),
   sfx('baker_bowl_slide', 1, 'One quiet close-miked Foley gesture lasting about one second. An empty chipped enamel soup bowl is gently pushed across the dusty packed-earth floor of an old wooden shed. A gritty low scrape travels a short distance, a few grains tick against thin metal, then a tiny hollow wobble as the bowl settles. Intimate and tentative, softly made by a tired hand. No spoon or water, no falling impact, no voice, no music or ambience.', { peak: -8, gain: .78, maxSeconds: 1, tail: .07 }),
   sfx('camper_zip', 1.45, 'Isolated close Foley, one old metal zipper on a rust-orange fleece jacket chest pocket, a distinctive double pull lasting 1.2 seconds in total. First a short raspy zrrt which catches abruptly, a short still hesitation, then a longer descending zrrrrip and a delicate little brass tab tick. Two clearly separate pulls, the second releases. Dry soft fabric under it. Start immediately. No speech, footsteps, ambience, music or other objects.', {
     // The tight teeth hold between pulls. Keep the hesitation audible even through the CB filter.
@@ -435,6 +447,7 @@ export const AUDIO = [
   voice('vo_trap_broken', 'hero', 'Ils m’ont cassé un piège.'),
   voice('vo_boss_mower', 'hero', '[incredulous] C’est… le voisin ? Il tond. À cette heure-ci.'),
   voice('vo_boss_mechanic', 'hero', 'Le dépanneur. Avec son palan. Et sa facture.'),
+  voice('vo_mechanic_bill', 'mechanic', '[matter-of-fact, with a small smile] Je vous mets ça sur la facture.'),
   voice('vo_boss_mail', 'hero', 'La factrice. Elle finit sa tournée.'),
   voice('vo_boss_chief', 'hero', 'Le chef. Il fait encore la circulation.'),
   voice('vo_boss_mayor', 'hero', '[weary] Madame le maire. Toujours en campagne.'),

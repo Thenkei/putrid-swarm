@@ -1,4 +1,10 @@
 {
+  "mechanic_chain": {
+    "file": "mechanic_chain.mp3",
+    "kind": "sfx",
+    "seconds": 0.758,
+    "gain": 0.95
+  },
   "baker_bowl_slide": {
     "file": "baker_bowl_slide.mp3",
     "kind": "sfx",
@@ -1839,6 +1845,12 @@
     "file": "vo_boss_mechanic.mp3",
     "kind": "voice",
     "seconds": 3.344,
+    "gain": 1
+  },
+  "vo_mechanic_bill": {
+    "file": "vo_mechanic_bill.mp3",
+    "kind": "voice",
+    "seconds": 1.724,
     "gain": 1
   },
   "vo_boss_mail": {
