@@ -1,8 +1,17 @@
 type YardSound = 'owl_call' | 'hedge_leaves' | 'hedge_twig';
 
+export interface NightOwl {
+  age: number;
+  opacity: number;
+  /** Seconds since the bird started pushing off the mailbox. */
+  flightAge: number | null;
+}
+
+const FLIGHT_SECONDS = 2.85;
+
 /** Runs on the watch clock. All cameras share one bird and one sound schedule. */
 export class NightWildlife {
-  owl: { age: number; opacity: number } | null = null;
+  owl: NightOwl | null = null;
   private clock = 0;
   private clearFor = 0;
   private nextVisit = 0;
@@ -16,11 +25,17 @@ export class NightWildlife {
     this.twigNext = random() < .35;
   }
 
-  hush(): boolean {
+  private fly(dt: number): void {
+    if (!this.owl) return;
+    this.owl.flightAge = (this.owl.flightAge ?? 0) + dt;
+    if (this.owl.flightAge >= FLIGHT_SECONDS) this.owl = null;
+  }
+
+  hush(dt = 0): boolean {
     const active = this.active;
     this.active = false;
     this.clearFor = 0;
-    this.owl = null;
+    this.fly(dt);
     return active;
   }
 
@@ -29,15 +44,15 @@ export class NightWildlife {
     this.clock += dt;
     this.clearFor = outside ? 0 : this.clearFor + dt;
     const room = nextSpawn ?? Infinity;
-    if (outside) this.owl = null;
-    else if (!this.owl && this.clearFor >= .30 && this.clock >= this.nextVisit && room > 1.55) {
-      this.owl = { age: 0, opacity: 0 };
+    if (this.owl && (outside || room <= .45 || this.owl.flightAge !== null)) this.fly(dt);
+    else if (!outside && !this.owl && this.clearFor >= .30 && this.clock >= this.nextVisit && room > 1.55) {
+      this.owl = { age: 0, opacity: 0, flightAge: null };
       this.called = false;
       this.nextVisit = this.clock + 14 + this.random() * 12;
     }
-    if (this.owl) {
+    if (this.owl?.flightAge === null) {
       this.owl.age += dt;
-      this.owl.opacity = Math.min(1, this.owl.age / .18, Math.max(0, room / .30));
+      this.owl.opacity = Math.min(1, this.owl.age / .18);
       if (!this.called && this.owl.age >= .16 && room > 1.32) {
         this.called = true;
         this.nextTexture = Math.max(this.nextTexture, this.clock + 2.2);

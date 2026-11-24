@@ -2241,5 +2241,10 @@
     "file": "sprites/night_owl.webp",
     "w": 128,
     "h": 192
+  },
+  "night_owl_flight": {
+    "file": "sprites/night_owl_flight.webp",
+    "w": 512,
+    "h": 468
   }
 }
