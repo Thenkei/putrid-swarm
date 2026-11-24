@@ -8,11 +8,11 @@ import { resolveKeyLabels } from './engine/keys';
 import { WarningScene, keyboardGate, warningSeen } from './scenes/notice';
 import { TitleScene } from './scenes/title';
 
-/** Shown while the art loads; replaced by the title as soon as everything is in. */
+/** Used at boot and when a player leaves the desk before the campaign art is ready. */
 class LoadingScene implements Scene {
   private readonly bar = el('i');
 
-  constructor(private readonly app: App) {}
+  constructor(private readonly app: App, private readonly advance: () => void) {}
 
   enter(): void {
     this.app.ui.append(el('div', { class: 'loading' }, [S().title.loading, el('div', { class: 'meter' }, [this.bar])]));
@@ -22,7 +22,7 @@ class LoadingScene implements Scene {
     this.bar.style.width = `${total > 0 ? (done / total) * 100 : 100}%`;
   }
 
-  update(): void {}
+  update(): void { this.advance(); }
 
   render(ctx: CanvasRenderingContext2D): void {
     ctx.fillStyle = '#0d0b09';
@@ -35,16 +35,31 @@ async function boot(): Promise<void> {
   // Said before anything heavy is fetched: on a phone there is no point in loading the game to find out.
   if (touchOnly(readPointers())) await keyboardGate();
   const app = new App();
-  const loading = new LoadingScene(app);
+  let campaignReady = false;
+  let queued: (() => void) | null = null;
+  const loading = new LoadingScene(app, () => {
+    if (campaignReady && queued) {
+      const launch = queued;
+      queued = null;
+      launch();
+    }
+  });
+  const whenReady = (launch: () => void): void => {
+    if (campaignReady) launch();
+    else {
+      queued = launch;
+      app.go(() => loading);
+    }
+  };
+  const title = (): Scene => new TitleScene(app, whenReady);
+  const openDesk = (): void => app.go(warningSeen() ? title : () => new WarningScene(app, title));
   app.start(loading);
 
   // Sound loads alongside the art but never holds the game back: a failure only means synthesised effects.
   void audio.preload().catch(error => console.warn('[audio] preload failed; using available audio', error));
-  const [report] = await Promise.all([loadAssets((done, total) => loading.progress(done, total)), resolveKeyLabels()]);
+  const [report] = await Promise.all([loadAssets((done, total) => loading.progress(done, total), openDesk), resolveKeyLabels()]);
+  campaignReady = true;
   if (report.failed.length > 0) console.warn(`[assets] ${report.failed.length} asset(s) missing, using placeholders:`, report.failed);
-
-  const title = (): Scene => new TitleScene(app);
-  app.go(warningSeen() ? title : () => new WarningScene(app, title));
 
   // Handy in development: `__app.state` in the console.
   if (import.meta.env.DEV) (window as unknown as { __app: App }).__app = app;
