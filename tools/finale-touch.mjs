@@ -20,6 +20,10 @@ try {
     await page.goto(process.argv[2] ?? 'http://localhost:5173/');
     await page.locator('.gate button').tap();
     for (const name of ['Continue', 'Play the song again']) await page.getByRole('button', { name, exact: true }).tap();
+    const mode = page.locator('.jam-mode').nth(hard ? 1 : 0);
+    await mode.tap();
+    assert.equal(await mode.getAttribute('aria-pressed'), 'true');
+    assert.ok(await page.getByText('Tap a mode. The song starts in a few seconds.').isVisible());
     const pads = page.getByRole('button', { name: /^Play chord / });
     await pads.first().waitFor();
     assert.equal(await pads.count(), hard ? 6 : 3);
@@ -34,6 +38,21 @@ try {
     assert.equal(jam.strums, 4);
     assert.equal(jam.good + jam.perfect, 4);
     assert.ok(jam.mown >= 8);
+    for (const selector of ['.jam-swap', '.jam-pause']) {
+      const box = await page.locator(selector).boundingBox();
+      assert.ok(box && box.width >= 43.9 && box.height >= 43.9);
+    }
+    await page.locator('.jam-swap').tap();
+    assert.equal(await pads.count(), hard ? 3 : 6);
+    if (hard) {
+      const exit = page.locator('.jam-out');
+      assert.ok(await exit.isDisabled());
+      await page.locator('.jam-out.on').waitFor({ timeout: 45000 });
+      const box = await exit.boundingBox();
+      assert.ok(box && box.width >= 43.9 && box.height >= 43.9);
+      await exit.tap();
+      await page.locator('.finale-swarm').waitFor();
+    }
     console.log(hard ? 'Hard / one arm' : 'Soft', jam);
     await page.close();
   }

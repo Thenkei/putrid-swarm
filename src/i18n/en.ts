@@ -1088,6 +1088,7 @@ export const en: Strings = {
     skip: 'Space · skip',
     pick: '← → to choose',
     start: 'Space · start',
+    touchStart: 'Tap a mode. The song starts in a few seconds.',
     swap: 'Switch to {mode}',
     mode: {
       soft: { name: 'Easy', note: 'Three keys, notes that take their time' },

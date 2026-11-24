@@ -69,6 +69,7 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Radio | hold `↓` | switch the set off; once answered, hang up |
 | The end | hold one of `A Z E R T Y`, hit `Space` | a chord, and the strings; `Enter` leaves once it is offered |
 | The end | `←` `→` at the shed, `Tab` during the song | choose how it is played: easy (three keys, slower notes, the default) or furious (six keys) |
+| The end | tap a difficulty, then tap the matching chord as its note reaches the box | play the song with one finger. Pause with the on-screen button or `Esc`. |
 | End screen | "Rejouer le morceau" | after the mower: the song again from the shed, for the record; the run stays where it ended |
 | Title | click the monitor's power button, the joint, the mug, the speaker (wheel for fine volume) | nothing useful |
 | Title | leave the desk alone for forty seconds; or type the code everyone knows | nothing useful either: a screensaver that does, once, land in the corner; a test card |
