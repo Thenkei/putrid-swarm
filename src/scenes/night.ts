@@ -15,7 +15,7 @@ import { detectContact, hasDetector, SCAN_RANGE, SCAN_SECONDS } from '../core/de
 import { concludeNight } from '../core/game';
 import { MOPED_BLAST_RADIUS, wreckSector } from '../core/epics';
 import { HOUSE, sectorOf } from '../core/map';
-import { NightSim, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
+import { HOUSE_RETURN_SECONDS, NightSim, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
 import { deskFor, outageFor } from '../core/orchard';
 import { allyFor } from '../core/radio';
 import type { DeviceTypeId, GameState, NeighborId, SectorId } from '../core/types';
@@ -27,6 +27,7 @@ import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
+import { BarnMoth } from '../render/house-reactions';
 import { NightWildlife } from './night-wildlife';
 import { CamperDoorFeed } from './camper-door';
 import { BrushPassage } from '../render/brush';
@@ -197,6 +198,7 @@ export class NightScene implements Scene {
   private coachEl!: HTMLElement;
   private coachNoteUntil = 0;
   private bossAlive: NeighborId | null = null;
+  private readonly barnMoth = new BarnMoth(5);
   private readonly wildlife = new NightWildlife();
   private nextGroan = 5;
   private nextBark = 9;
@@ -1025,10 +1027,12 @@ export class NightScene implements Scene {
           break;
         }
         case 'barricade_hit':
+          if (event.sector === 'grange') this.barnMoth.knock(this.sim.time);
           if (!this.insideKnockRinging(event.sector)) audio.play('door');
           this.particles.push({ kind: 'dust', x: THRESHOLDS[event.sector].gx, y: THRESHOLDS[event.sector].gy, age: 0, life: 0.4, radius: 0.8 });
           break;
         case 'breach':
+          if (event.sector === 'grange') this.barnMoth.knock(this.sim.time);
           if (!this.insideKnockRinging(event.sector)) {
             audio.play('breach');
             this.remark('vo_breach', 8, true);
@@ -1194,6 +1198,8 @@ export class NightScene implements Scene {
     this.consume(this.sim.drainEvents());
     // Let Hugo finish his threat, then grunt in the gap after a real shot.
     const shot = this.sim.lastHouseShot;
+    if (this.barnMoth.step(this.sim.time) && (this.cam === 'grange' || this.cam === 'portail') && !this.isDark(this.cam)
+      && !audio.speaking && !this.sim.awayFromDesk && !this.ending && this.speed === 1) audio.play('moth_tick');
     if (this.houseEffortPending && shot && this.sim.deskReturnIn > 0.8
       && this.sim.time - shot.at >= 0.22 && !audio.speaking) {
       this.houseEffortPending = false;
@@ -1278,6 +1284,10 @@ export class NightScene implements Scene {
       ...(ride && open > 0 && { houseDoor: { sector: ride.sector, open } }),
       night: true,
       camperAtRearDoor: this.sim.heldDoor === 'arriere',
+      barnMoth: this.barnMoth,
+      foxAge: this.wildlife.foxAge,
+      ...(this.sim.awayFromDesk && { indoorPassage: { age: HOUSE_RETURN_SECONDS - this.sim.deskReturnIn,
+        remaining: this.sim.deskReturnIn, oneArm: oneArmed(this.state) } }),
       ...(this.wildlife.owl && { nightOwl: this.wildlife.owl }),
       ...(this.sunriseAge !== undefined && { sunriseAge: this.sunriseAge }),
       carPresent: true,

@@ -14,6 +14,8 @@ import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, t
 import { drawDecals } from './aftermath';
 import { drawEnemy, drawFallen, FALL_SECONDS, type Fallen } from './infected';
 import { drawGround, prepareGround, setGroundDresser } from './ground';
+import { barnLamp, curtainShadow, type IndoorPassage, type BarnMoth } from './house-reactions';
+import { foxHedge } from './fox-passage';
 import { DOOR_OPENINGS, VISIBLE_DOORS, damagedFacade, doorStance, hingedLeaves, houseDamageStage, outsideSillDepth, paintHouse, type HouseDoor } from './house';
 import { drawMopedScorch, mopedRideDrawable, mopedStruckPose } from './moped';
 import { drawMopedTracks, mopedParkingSpot, parkedMopedDrawable, trackOpacity, type ParkedMoped } from './parked-moped';
@@ -103,6 +105,9 @@ export interface SceneryAction {
 }
 
 export interface WorldFrame {
+  readonly indoorPassage?: IndoorPassage;
+  readonly barnMoth?: BarnMoth;
+  readonly foxAge?: number | null;
   readonly time: number;
   readonly night: boolean;
   readonly houseHpRatio: number;
@@ -585,6 +590,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     drawables.push({ depth, draw: () => drawStand(ctx, stand, lean, opacity, part) });
   }
 
+  drawables.push(...foxHedge(ctx, view, frame.foxAge ?? null, calmMotion()));
+
   // House.
   {
     const side = HOUSE_ART[view.rot];
@@ -603,6 +610,18 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           if (frame.indoorShot && VISIBLE_DOORS[view.rot].includes(frame.indoorShot.sector)) {
             drawLitDoorway(ctx, frame.indoorShot.sector, frame.indoorShot.age, left, top, w / art.w);
           }
+          if (frame.indoorPassage || (view.rot === 0 && frame.barnMoth)) {
+            ctx.save();
+            ctx.translate(left, top);
+            ctx.scale(w / art.w, w / art.w);
+            if (frame.indoorPassage) {
+              const flash = frame.indoorShot ? shotEnvelope(frame.indoorShot.age, calmMotion()) : 0;
+              curtainShadow(ctx, view.rot, frame.indoorPassage,
+                houseDamageStage(frame.houseHpRatio) < 5, flash, calmMotion());
+            }
+            if (view.rot === 0 && frame.barnMoth) barnLamp(ctx, art.img, frame.time, frame.barnMoth, calmMotion());
+            ctx.restore();
+          }
           if (frame.approachingHero && view.rot === 0) drawApproachWindow(ctx, frame.approachingHero, root, z);
           if (frame.houseBreaks?.length) drawHouseDebris(ctx, frame.houseBreaks, view.rot, side.key, art, left, top, w);
           const chimney = houseOffset(view.rot, side.chimney.x, side.chimney.y);
@@ -611,7 +630,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
             for (const lamp of side.lamps) {
               if (!lamp.barnLantern) continue;
               const point = houseOffset(view.rot, lamp.x, lamp.y);
-              drawLanternMoths(ctx, root.x + point.dx * z, root.y - point.lift * z, z, frame.time);
+              drawLanternMoths(ctx, root.x + point.dx * z, root.y - point.lift * z, z, frame.time, frame.barnMoth);
             }
           }
         } else {
@@ -933,18 +952,20 @@ function drawChimneySmoke(ctx: CanvasRenderingContext2D, x: number, y: number, v
 }
 
 /** Three moths circle the painted lantern, sampled at the same instant on every live feed. */
-function drawLanternMoths(ctx: CanvasRenderingContext2D, x: number, y: number, zoom: number, time: number): void {
+function drawLanternMoths(ctx: CanvasRenderingContext2D, x: number, y: number, zoom: number, time: number, visitor?: BarnMoth): void {
+  const flight = visitor?.flight != null ? time - visitor.flight : 0;
+  if (flight >= 1.1) return;
   ctx.save();
   ctx.translate(x, y);
   ctx.scale(zoom, zoom);
   ctx.fillStyle = '#fff0ca';
-  for (let i = 0; i < 3; i++) {
-    const orbit = time * (1.18 + i * 0.16) + i * 2.15;
+  for (let i = visitor ? 1 : 0; i < 3; i++) {
+    const orbit = (time - flight) * (1.18 + i * 0.16) + i * 2.15;
     const radius = 16 + i * 7;
-    const dx = Math.cos(orbit) * radius + Math.sin(orbit * 2.1) * 5;
-    const dy = Math.sin(orbit) * radius * 0.68 - 4 + Math.cos(orbit * 1.7) * 4;
+    const dx = (i === 1 ? -39 : 54) * flight + Math.cos(orbit) * radius + Math.sin(orbit * 2.1) * 5;
+    const dy = -41 * flight + Math.sin(orbit) * radius * 0.68 - 4 + Math.cos(orbit * 1.7) * 4;
     const wing = 1.18 + 0.54 * Math.sin(time * (24 + i * 5) + i);
-    ctx.globalAlpha = 0.76 + 0.16 * Math.cos(orbit);
+    ctx.globalAlpha = (0.76 + 0.16 * Math.cos(orbit)) * (1 - smoothstep(.65,1.1,flight));
     ctx.beginPath();
     ctx.ellipse(dx - 0.5, dy, wing, 0.88, -0.55, 0, Math.PI * 2);
     ctx.ellipse(dx + 0.5, dy, wing, 0.88, 0.55, 0, Math.PI * 2);
