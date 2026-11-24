@@ -3,13 +3,14 @@
 
 import { epicFlag, mopedCargo } from '../core/epics';
 import type { ChapterId } from '../core/chapters';
+import { LOCATIONS } from '../core/data/locations';
 import { LAST_NIGHT } from '../core/data/waves';
 import { affordableDevices } from '../core/yard';
 import { units } from '../core/encounters';
 import { arriveHome, type NeighborMeeting } from '../core/game';
 import type { GameState, LocationId } from '../core/types';
 import type { App, Scene } from '../engine/app';
-import { S, fmt } from '../engine/i18n';
+import { S, fmt, hours } from '../engine/i18n';
 import { tripLine } from './common';
 import { DayScene, type DayOptions } from './day';
 import { EndScene, type EndOptions } from './end';
@@ -86,7 +87,7 @@ export function goHomeStretch(app: App, sub = ''): void {
   goTravel(app, {
     plate: !moped && units(cargo) > 0 ? 'plate_trunk' : 'plate_return',
     title: s.location.home,
-    sub,
+    sub: sub || (moped ? fmt(s.loc.leaveCost, { h: hours(LOCATIONS[outing.to].travelHours) }) : ''),
     loot: cargo,
     lost: outing.parted,
     ...(moped && { mopedDisplaced: moped.displaced }),
@@ -101,10 +102,10 @@ export function resumeGame(app: App, state: GameState): void {
   switch (state.phase) {
     case 'day':
       if (state.where === 'home') goDay(app);
-      // A save made on the road: whoever barred it is still there; otherwise the drive is simply over.
+      // Resume unfinished road encounters and show the load before delivering the moped.
       else if (state.where === 'road') {
         if (state.encounter) goAmbush(app);
-        else if (state.outing?.crossbowStop) goHomeStretch(app);
+        else if (state.outing?.crossbowStop || epicFlag(state, 'loaded')) goHomeStretch(app);
         else unload(app);
       }
       else goLocation(app, state.where, null);

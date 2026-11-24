@@ -176,6 +176,18 @@ async function mopedCargo(profile, packed, loaded = true) {
       if (loss) assert.equal(await chip.textContent(), '−'+loss);
     }
   }
+  if (loaded) {
+    const beforeReload = await summary.innerText();
+    await page.reload();
+    if (profile.startsWith('phone')) await click(page.locator('.gate button'));
+    await click(page.getByRole('button',{name:'Continuer',exact:true}));
+    await summary.waitFor();
+    const resumed = await page.evaluate(() => JSON.parse(localStorage.getItem('putrid-swarm.save.v1')));
+    assert.equal(resumed.where,'road');
+    assert.deepEqual(resumed.inventory,base.inventory);
+    assert.equal(resumed.flags['epic.loaded'],1);
+    assert.equal(await summary.innerText(),beforeReload);
+  }
   await click(summary);
   await page.waitForFunction(() => JSON.parse(localStorage.getItem('putrid-swarm.save.v1')).where==='home');
   const read = () => page.evaluate(() => JSON.parse(localStorage.getItem('putrid-swarm.save.v1')));
