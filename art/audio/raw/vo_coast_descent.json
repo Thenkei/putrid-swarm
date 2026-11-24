@@ -1,0 +1,13 @@
+{
+  "id": "vo_coast_descent",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "fIw5gGcxCyJ0vFDIdBbu",
+  "generatedAt": "2026-11-24T16:19:03.003Z",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "prompt": "[whispering] Si ça pouvait descendre encore quinze mètres…",
+  "bytes": 65652,
+  "sha256": "d4e452d21cdd00a1496852cb26e940cb4e4c9f22a7d48520873689de5a0befc8"
+}

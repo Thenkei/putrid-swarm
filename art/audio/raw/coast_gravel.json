@@ -1,0 +1,11 @@
+{
+  "id": "coast_gravel",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "M6PPsp2h40TVkpVCot40",
+  "generatedAt": "2026-11-24T16:19:18.932Z",
+  "prompt": "Close field recording from inside a car with its engine OFF: two tyres slowly rolling across loose French farmyard gravel. Crunch of small stones shifting and a few sharp pops beneath rubber, a single",
+  "bytes": 34305,
+  "sha256": "65903066fe0ee250b8d816c60108017f314252a60362d38a28ce7236a30752e1"
+}

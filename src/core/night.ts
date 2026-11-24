@@ -5,6 +5,7 @@ import { BARRICADE, COMBAT, DEVICES, isManual, isTrap } from './data/devices';
 import { BOSS, ENEMIES, type EnemyDef } from './data/enemies';
 import { BOSS_NIGHT } from './data/locations';
 import { NIGHT_LEAD_IN, planForNight, type SirenSector } from './data/waves';
+import type { CoastOutcome } from './coast-home';
 import type { DefenseTake } from './cassette';
 import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlocked, sectorOf } from './map';
 import type { CameraOutage } from './orchard';
@@ -216,6 +217,7 @@ export interface Opportunity {
 export type Outcome = 'ongoing' | 'survived' | 'overrun';
 
 interface PendingSpawn {
+  gateSlot?: number;
   time: number;
   readonly wave: number;
   readonly sector: SectorId;
@@ -337,6 +339,7 @@ export class NightSim {
     private readonly ally: Ally | null = null,
     siren: SirenSector | null = null,
     readonly rattleSector: SectorId | null = null,
+    private readonly coast: CoastOutcome | null = null,
   ) {
     this.hand = oneHand ? { row: null, at: -Infinity, queue: [] } : null;
     this.heldDoor = ally?.sector ?? null;
@@ -381,6 +384,14 @@ export class NightSim {
         }
       }
     });
+    if (coast) {
+      const pair = this.pending.filter(p => p.wave === 1 && p.type === 'shambler')
+        .sort((a, b) => Number(b.sector === 'portail') - Number(a.sector === 'portail') || a.time - b.time).slice(0, 2);
+      for (const [slot, p] of pair.entries()) {
+        if (coast === 'quiet') p.time = Math.max(p.time, NIGHT_LEAD_IN + 6 + slot * 1.4);
+        else this.pending[this.pending.indexOf(p)] = { ...p, time: NIGHT_LEAD_IN + slot * 1.1, sector: 'portail', gateSlot: slot };
+      }
+    }
     this.pending.sort((a, b) => a.time - b.time);
     this.dawnAt = (this.pending.at(-1)?.time ?? 0) + DAWN_MARGIN;
     this.nightLength = this.dawnAt;
@@ -728,7 +739,9 @@ export class NightSim {
     // If the lot is clear, do not make the player wait out the rest of the gap.
     const alive = this.enemies.some((e) => e.alive);
     const next = this.pending[0];
-    if (!alive && next && next.time - this.time > FAST_FORWARD_GAP) {
+    // Keep the approach the driver earned until the first enemies actually appear.
+    const waitingForCoast = this.coast !== null && this.waveIndex === 0;
+    if (!waitingForCoast && !alive && next && next.time - this.time > FAST_FORWARD_GAP) {
       const skip = next.time - this.time - FAST_FORWARD_GAP;
       for (const p of this.pending) p.time -= skip;
       this.dawnAt -= skip;
@@ -741,13 +754,17 @@ export class NightSim {
         if (this.outage && spawn.wave === this.outage.wave && this.cameraLost === null) this.outageAt = this.time + this.outage.delay;
         if (this.ally && this.heldDoor !== null && spawn.wave === this.ally.turnsAtWave) this.allyTurns(this.ally);
       }
-      this.spawn(spawn.type, spawn.sector);
+      this.spawn(spawn.type, spawn.sector, true, spawn.gateSlot);
     }
   }
 
-  private spawn(type: EnemyTypeId, sector: SectorId, announce = true): Enemy {
+  private spawn(type: EnemyTypeId, sector: SectorId, announce = true, gateSlot?: number): Enemy {
     const def = ENEMIES[type];
-    const cell = type === 'mower' ? (LANES[sector][0] as Cell) : this.rng.pick(SPAWN_CELLS[sector]);
+    let cell = type === 'mower' ? (LANES[sector][0] as Cell) : this.rng.pick(SPAWN_CELLS[sector]);
+    if (gateSlot !== undefined) {
+      // Enter at the gate mouth. Every trap on the approach stays in their path.
+      cell = { x: 10 + gateSlot, y: GRID_H - 1 };
+    }
     const enemy: Enemy = {
       id: this.nextEnemyId++,
       type,

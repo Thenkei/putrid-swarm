@@ -47,6 +47,18 @@
     "seconds": 1.045,
     "gain": 0.66
   },
+  "coast_jars": {
+    "file": "coast_jars.mp3",
+    "kind": "sfx",
+    "seconds": 1.384,
+    "gain": 0.73
+  },
+  "coast_gravel": {
+    "file": "coast_gravel.mp3",
+    "kind": "sfx",
+    "seconds": 1.045,
+    "gain": 0.66
+  },
   "hedge_twig": {
     "file": "hedge_twig.mp3",
     "kind": "sfx",
@@ -1575,6 +1587,12 @@
     "file": "vo_home_4.mp3",
     "kind": "voice",
     "seconds": 3.291,
+    "gain": 1
+  },
+  "vo_coast_descent": {
+    "file": "vo_coast_descent.mp3",
+    "kind": "voice",
+    "seconds": 2.482,
     "gain": 1
   },
   "vo_home_5": {

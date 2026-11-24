@@ -1167,6 +1167,7 @@ export const fr = {
     vo_home_2: 'La maison est toujours debout. Bon début.',
     vo_home_3: 'Entier. Le break aussi.',
     vo_home_4: 'Pas un chat sur la route. Pas un vivant, en tout cas.',
+    vo_coast_descent: 'Si ça pouvait descendre encore quinze mètres…',
     vo_home_5: 'On vide le coffre, et on s’y met.',
     vo_home_6: 'Le portail a tenu sans moi. Brave portail.',
     vo_home_7: 'Bon. Qu’est-ce qu’on peut clouer avec tout ça ?',

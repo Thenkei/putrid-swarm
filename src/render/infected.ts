@@ -558,10 +558,10 @@ function drawFigure(
   ctx.restore();
 }
 
-/** The finale walks the same painted cels along a side-scrolling lane. */
-export function drawMobStride(ctx: CanvasRenderingContext2D, type: EnemyTypeId, phase: number, height: number): boolean {
+/** Draw a walking character at the current foot anchor in a staged scene. */
+export function drawMobStride(ctx: CanvasRenderingContext2D, type: EnemyTypeId, phase: number, height: number, front = true): boolean {
   const reduced = calmMotion();
-  const f = gaitFigure(type, ART[type], true, reduced ? 0 : phase);
+  const f = gaitFigure(type, ART[type], front, reduced ? 0 : phase);
   if (!f) return false;
   ctx.save();
   const airborne = type === 'runner' || type === 'dog';

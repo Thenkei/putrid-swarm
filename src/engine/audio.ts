@@ -47,7 +47,7 @@ export type Sfx =
   | 'broken'
   | 'car_door'
   | 'car_latch'
-  | 'groan' | 'owl_call' | 'hedge_leaves' | 'hedge_twig' | 'moth_tick'
+  | 'groan' | 'owl_call' | 'hedge_leaves' | 'hedge_twig' | 'moth_tick' | 'coast_jars' | 'coast_gravel'
   | 'engine_stop'
   | 'loot_wood'
   | 'loot_scrap'
@@ -1185,6 +1185,13 @@ class AudioEngine {
       case 'hedge_leaves':
         this.noise('bandpass', 1300, 2000, .24, .035);
         this.noise('bandpass', 1800, 920, .27, .025, .20);
+        break;
+      case 'coast_jars':
+        this.tone('sine', 1010, 878, .12, .07);
+        this.tone('sine', 1480, 1320, .14, .05, .18);
+        break;
+      case 'coast_gravel':
+        this.noise('bandpass', 1640, 740, .37, .09);
         break;
       case 'hedge_twig':
         this.noise('bandpass', 2350, 750, .035, .075);

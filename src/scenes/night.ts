@@ -34,6 +34,7 @@ import { GateHedge } from '../render/gate-hedge';
 import { NightWildlife } from './night-wildlife';
 import { CamperDoorFeed } from './camper-door';
 import { BrushPassage } from '../render/brush';
+import { coastForNight } from '../core/coast-home';
 import { rattleForNight } from '../core/rattle';
 import { DefenseMotion, deviceArt, floodlightEmitter } from '../render/defenses';
 import { THRESHOLDS, doorStance, houseDamageStage } from '../render/house';
@@ -216,7 +217,7 @@ export class NightScene implements Scene {
     const state = this.state;
     this.siren = sirenForNight(state);
     this.detectorFound = hasDetector(state);
-    this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state), deskFor(state), allyFor(state), this.siren, rattleForNight(state));
+    this.sim = new NightSim(state.day, state.yard, state.seed, outageFor(state), deskFor(state), allyFor(state), this.siren, rattleForNight(state), coastForNight(state));
     this.defenseMotion.update(this.sim);
     try {
       // The evening as it stood, so a lost night can be replayed with the same yard.
