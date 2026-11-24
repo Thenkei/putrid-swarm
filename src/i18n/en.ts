@@ -2,6 +2,10 @@ import { scavengeEn } from './scavenge-en';
 import type { Strings } from './fr';
 
 export const en: Strings = {
+  saveStatus: {
+    tab: 'Game saved in this tab only.',
+    page: 'Progress is in memory. Keep this page open.',
+  },
   lang: 'English',
   title: {
     mire: 'End of programmes',
