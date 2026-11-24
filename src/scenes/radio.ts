@@ -214,6 +214,7 @@ export class RadioScene implements Scene {
   private time = 0;
   private phaseTime = 0;
   private paused = false;
+  private pausedCallerAt: number | null = null;
   private left = false;
   private readonly oneArm: boolean;
 
@@ -559,8 +560,13 @@ export class RadioScene implements Scene {
     this.pointerHold = null;
     if (!this.paused) {
       this.pauseMenu.close();
+      if (this.radio.on && this.pausedCallerAt !== null) {
+        audio.sayOn('caller', this.radio.on.line, this.voiceLevel(), this.pausedCallerAt);
+      }
+      this.pausedCallerAt = null;
       return;
     }
+    this.pausedCallerAt = audio.positionOn('caller');
     hush();
     this.silence();
     this.pauseMenu.open(() => this.togglePause(), () => goTitle(this.app), auto);
