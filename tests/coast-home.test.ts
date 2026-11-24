@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { CoastDrive, coastForNight, finishCoastHome, shouldCoastHome } from '../src/core/coast-home';
 import { arriveHome, leaveLocation, newGame, travelTo } from '../src/core/game';
+import { alleyPosition, coastCamera, GATE_AT, roadPoint } from '../src/render/coast-road';
+import { PARKED } from '../src/core/car-path';
+import { GRID_W, HOUSE_CENTER, roadCentre } from '../src/core/map';
 import { NightSim } from '../src/core/night';
 import { deserialize, serialize } from '../src/core/save';
 import type { Result } from '../src/core/types';
@@ -53,6 +56,48 @@ describe('the last fifteen metres', () => {
     for (let i = 0; i < 1200; i++) d.update(1 / 60, 0, true);
     expect(d.phase).toBe('arrived');
     expect(d.heard).toBe(true);
+  });
+
+  it('moves the gateposts past opposite windows while distant sightlines stay steady', () => {
+    const d = new CoastDrive();
+    const outset = coastCamera(d, false);
+    const gate = roadPoint(outset, 3.45, GATE_AT);
+    const house = roadPoint(outset, 12, 110);
+    d.metres = GATE_AT - 2;
+    d.lane = .3;
+    const approach = coastCamera(d, false);
+    expect(roadPoint(approach, 3.45, GATE_AT).x).toBeGreaterThan(640);
+    expect(roadPoint(approach, -3.15, GATE_AT).x).toBeLessThan(0);
+    expect(gate.x).toBeLessThan(640);
+    expect(Math.abs(roadPoint(approach, 12, 110).x - house.x)).toBeLessThan(5);
+    d.jolt = .5;
+    expect(coastCamera(d, true).horizon).toBe(outset.horizon);
+  });
+
+  it('follows the barn drive through the tree line to the mouth of the existing parking bay', () => {
+    const entrance = alleyPosition(GRID_W, roadCentre('barn', GRID_W));
+    const aisle = alleyPosition(PARKED.x, roadCentre('barn', PARKED.x));
+    const bay = alleyPosition(PARKED.x, PARKED.y);
+    const house = alleyPosition(HOUSE_CENTER.x, HOUSE_CENTER.y);
+    expect(entrance).toEqual({ x: 0, z: GATE_AT });
+    expect(aisle).toEqual({ x: 0, z: 15 });
+    expect(bay.x).toBeLessThan(aisle.x);
+    expect(house.x).toBeGreaterThan(aisle.x);
+    expect(house.z).toBeGreaterThan(bay.z);
+  });
+
+  it('rattles the jars once on the exposed root and lets the driver ease across it', () => {
+    for (const speed of [.70, .99]) {
+      const d = new CoastDrive();
+      d.ignition();
+      d.lane = .8; d.speed = speed; d.metres = 7.39;
+      d.update(1 / 30, 0, false);
+      expect(d.bumped).toBe(speed > .8);
+      expect(d.jolt).toBe(speed > .8 ? 1 : 0);
+      const first = d.jolt;
+      d.update(1 / 30, 0, false);
+      expect(d.jolt).toBeLessThanOrEqual(first);
+    }
   });
 
   it('keeps the load for normal arrival and remembers the pair only on their own night', () => {

@@ -1,5 +1,6 @@
 // A short beat in the old break between the refuge and the village, and back with the boot full.
 
+import { PARKED } from '../core/car-path';
 import { HOUSE_MAX_HP } from '../core/data/devices';
 import { packTrail, wreckSector } from '../core/epics';
 import { drivewayImpacts, type DrivewayImpact } from '../core/driveway';
@@ -19,6 +20,7 @@ import { applyDaylight, dayDeviceVisual, drawWorld, houseLights, prepareWorld, t
 import { costLine, drawPlate, oneArmed, platePoint, tripLine } from './common';
 
 const HOLD_SECONDS = 3.2;
+const BAY_ROLL = 1.75;
 const OUTBOUND_ROAD_SECONDS = 1.95;
 const DEPARTURE_FADE_OUT = 0.28;
 const ROAD_FADE_IN = 0.3;
@@ -49,6 +51,7 @@ function drawRadioNeedle(ctx: CanvasRenderingContext2D, seconds: number): void {
 
 // Start on the door, then widen toward the gravel road beside the barn.
 const BOARDING_VIEW: View = { ...STAGE, rot: 0, zoom: 2.5, cx: 16.6, cy: 13.1 };
+const BAY_VIEW: View = { ...STAGE, rot: 0, zoom: 1.28, cx: PARKED.x - 1.35, cy: PARKED.y - 1.72 };
 const STILL_VIEW: View = { ...STAGE, rot: 0, zoom: 1.65, cx: 13.5, cy: 13.2 };
 const STILL_BOARD = .98;
 const STILL_SEATED = 1.61;
@@ -181,7 +184,8 @@ export class TravelScene implements Scene {
       note ? el('p', { class: 'muted', text: note }) : null,
     ]);
     this.summary = el('div', { class: 'travel-summary' }, [summary]);
-    this.summary.hidden = this.shot !== null;
+    this.summary.hidden = this.shot !== null || this.options.parked === true;
+    if (this.options.parked) prepareWorld(BAY_VIEW);
     this.app.ui.append(this.summary);
     if (departure) this.app.ui.append(el('button', { class: 'btn skip', text: s.map.skipTravel, onClick: () => this.finish() }));
   }
@@ -253,14 +257,36 @@ export class TravelScene implements Scene {
       if (crossed(roadStart + RADIO_STOPS[0])) audio.play('radio_squelch', 0.24, 1.22);
       if (crossed(roadStart + RADIO_STOPS[1])) audio.play('radio_squelch', 0.16, 1.3);
     }
+    if (this.options.parked && crossed(BAY_ROLL)) {
+      this.summary.hidden = false;
+      audio.play('car_latch', .42);
+    }
     const duration = this.options.mopedDisplaced ? 6 : this.stills || !shot ? HOLD_SECONDS : roadStart + OUTBOUND_ROAD_SECONDS;
-    if (this.time >= duration) this.finish();
+    if (this.time >= duration + (this.options.parked ? BAY_ROLL : 0)) this.finish();
   }
 
   render(ctx: CanvasRenderingContext2D): void {
     const { departure } = this.options;
     const shot = this.shot;
     const approach = this.approach;
+    if (this.options.parked && this.app.state) {
+      const state = this.app.state, yard = state.yard;
+      const progress = calmMotion() ? 1 : smoothstep(0, BAY_ROLL, this.time);
+      const driver = sprite('car_driver'), turn = sprite('car_turn_road');
+      const health = yard.houseHp / HOUSE_MAX_HP;
+      drawWorld(ctx, BAY_VIEW, {
+        time: this.app.time, night: false, carPresent: true, houseHpRatio: health,
+        ...(progress < 1 && driver && turn && { departingCar: {
+          kind: 'driving' as const, driver, turn, yaw: 0, headlights: 0, shake: 0,
+          position: { x: PARKED.x, y: PARKED.y - (1 - progress) * 1.86 },
+        } }),
+        mopedWreck: wreckSector(state), packTrail: packTrail(state),
+        devices: yard.devices.map(device => dayDeviceVisual(device)), barricades: yard.barricades,
+        decals: yard.decals, particles: [], enemies: [],
+      });
+      applyDaylight(ctx, BAY_VIEW, 1 - state.hoursLeft / DAY_HOURS, houseLights(BAY_VIEW.rot, yard.barricades, health), this.app.time);
+      return;
+    }
     if (departure && shot && this.time < this.roadStart) {
       const boardingTime = this.stills
         ? (this.time < STILL_SEATED ? shot.poseEnds[1]! : shot.latchAt)

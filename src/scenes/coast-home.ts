@@ -1,5 +1,13 @@
-import gateUrl from '../assets/coast-gate.webp';
-import { COAST_METRES, CoastDrive, finishCoastHome } from '../core/coast-home';
+import thornUrl from '../assets/coast-thorn.webp';
+import hedgeUrl from '../assets/coast-gate.webp';
+import cottageUrl from '../assets/coast-refuge.webp';
+import woodsUrl from '../assets/coast-woods.webp';
+import { HOUSE_MAX_HP } from '../core/data/devices';
+import laneUrl from '../assets/coast-lane.webp';
+import postsUrl from '../assets/coast-posts.webp';
+import listenerUrl from '../assets/coast-listener.webp';
+import type { CoastArt } from '../render/coast-road';
+import { COAST_METRES, COAST_RUT, CoastDrive, finishCoastHome } from '../core/coast-home';
 import type { App, Scene } from '../engine/app';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
@@ -13,7 +21,7 @@ import './coast-home.css';
 
 export class CoastHomeScene implements Scene {
   private readonly drive = new CoastDrive();
-  private readonly gate = new Image();
+  private readonly art: CoastArt = { cottage: new Image(), thorn: new Image(), hedge: new Image(), woods: new Image(), lane: new Image(), posts: new Image(), listener: new Image() };
   private readonly keys = new Set<string>();
   private readonly dash = el('section', { class: 'coast-dash' });
   private readonly title = el('h1');
@@ -37,9 +45,12 @@ export class CoastHomeScene implements Scene {
   constructor(private readonly app: App, private readonly next: () => void) {}
 
   enter(): void {
-    this.gate.src = gateUrl;
-    // The existing cabin plate also works as a fallback if the gate art cannot load.
-    void this.gate.decode().catch(() => undefined).then(() => { this.ready = true; this.action.disabled = false; });
+    const urls = { cottage: cottageUrl, thorn: thornUrl, hedge: hedgeUrl, woods: woodsUrl, lane: laneUrl, posts: postsUrl, listener: listenerUrl };
+    const loaded = (Object.keys(urls) as (keyof CoastArt)[]).map(key => {
+      this.art[key].src = urls[key];
+      return this.art[key].decode();
+    });
+    void Promise.allSettled(loaded).then(() => { this.ready = true; this.action.disabled = false; });
     this.action.disabled = true;
     this.distance.setAttribute('aria-live', 'off');
     this.hint.setAttribute('role', 'status');
@@ -63,7 +74,7 @@ export class CoastHomeScene implements Scene {
     this.app.ui.append(this.dash, el('button', { class: 'road-pause', text: S().crossbowRoad.pause, onClick: () => this.togglePause() }), this.overlay);
     audio.setMusic('none');
     audio.setAmbience('car', .45);
-    for (const id of ['vo_coast_descent', 'coast_jars', 'coast_gravel', 'hedge_leaves', 'groan']) void audio.prepareSample(id);
+    for (const id of ['vo_coast_descent', 'coast_jars', 'coast_gravel', 'hedge_leaves', 'hedge_twig', 'groan']) void audio.prepareSample(id);
     this.sync();
   }
 
@@ -104,15 +115,16 @@ export class CoastHomeScene implements Scene {
       phase === 'stopped' ? L('Plus un centimètre.', 'Dead stop.') :
       phase === 'arrived' ? (heard ? L('Ils ont retenu le chemin.', 'They know the way now.') : L('Ils continuent tout droit.', 'They walk on.')) :
       grass ? L('Herbe mouillée', 'Wet grass') : L('Gravier', 'Loose gravel');
-    const hint = phase === 'ready' ? L('Deux silhouettes devant le portail. L’herbe à droite étouffera les pneus.', 'Two figures by the gate. The grass on the right will muffle the tyres.') :
+    const hint = phase === 'ready' ? L('Deux silhouettes dans l’allée de la grange. Prends le bas-côté en herbe à droite.', 'Two figures on the barn drive. Take the grassy verge on the right.') :
       phase === 'stopped' ? L('Le break s’est arrêté dans la pente. Un tour de clé et ils nous entendront.', 'The wagon has stopped on the slope. Turn the key and they’ll hear us.') :
       phase === 'arrived' ? (heard ? L('Ces deux-là seront au portail dès la première vague, ce soir.', 'These two will be at the gate when the first wave starts tonight.') : L('Ce soir, ces deux-là arriveront plus tard, avec la vague.', 'Tonight these two will arrive later, with the wave.')) :
       heard ? (metres < 6 ? L('Les deux têtes se retournent.', 'Both heads turn.') : L('Dans le rétro, deux visages tournés vers nous.', 'In the mirror, two faces turn our way.')) :
-      noise > .59 ? L('Une tête se lève. Doucement…', 'One lifts its head. Easy…') :
+      noise > .52 ? L('Il s’arrête pour écouter.', 'He stops to listen.') :
+      grass && metres >= COAST_RUT - 3.5 && metres < COAST_RUT ? L('Une racine dans l’ornière. Un peu de frein…', 'A root in the rut. Ease onto the brake…') :
       grass ? L('Les pneus chuchotent. Garde ton élan.', 'A whisper from the tyres. Keep rolling.') : L('Les pierres craquent sous les roues.', 'Stones crunch under the wheels.');
     if (this.title.textContent !== title) this.title.textContent = title;
     if (this.hint.textContent !== hint) this.hint.textContent = hint;
-    if (!active) this.action.textContent = phase === 'ready' ? L('Couper le contact', 'Cut the ignition') : phase === 'stopped' ? L('Redémarrer', 'Restart the engine') : L('Rentrer le break', 'Park the wagon');
+    if (!active) this.action.textContent = phase === 'ready' ? L('Couper le contact', 'Cut the ignition') : phase === 'stopped' ? L('Redémarrer', 'Restart the engine') : L('Se garer près de la maison', 'Park beside the house');
   }
 
   update(dt: number): void {
@@ -126,6 +138,7 @@ export class CoastHomeScene implements Scene {
     }
     const before = d.phase;
     const heard = d.heard;
+    const bumped = d.bumped;
     const elapsed = this.rollingTime;
     this.rollingTime += dt;
     if (elapsed < .6 && this.rollingTime >= .6) say('vo_coast_descent', { interrupt: true });
@@ -134,7 +147,11 @@ export class CoastHomeScene implements Scene {
       audio.play(d.grass ? 'hedge_leaves' : 'coast_gravel', d.grass ? .22 : .33 + .25 * d.speed, .87 + .11 * d.speed);
       this.nextTyre = d.metres + (d.grass ? 1.8 : 1.32);
     }
-    const bumps = [2.7, 8.3];
+    if (!bumped && d.bumped) {
+      audio.play('hedge_twig', .64);
+      audio.play('coast_jars', .87, .91);
+    }
+    const bumps = [2.7, 10.8];
     if (this.jarAt < bumps.length && d.metres >= bumps[this.jarAt]!) {
       audio.play('coast_jars', d.grass ? .42 : .76, this.jarAt ? .92 : 1);
       this.jarAt++;
@@ -172,7 +189,7 @@ export class CoastHomeScene implements Scene {
     if (this.paused) this.pause.open(() => this.togglePause(), () => goTitle(this.app), auto);
     else this.pause.close();
   }
-  render(ctx: CanvasRenderingContext2D): void { drawCoast(ctx, this.gate, this.drive, this.age, this.alertAge, this.reduced); }
+  render(ctx: CanvasRenderingContext2D): void { drawCoast(ctx, this.art, this.drive, this.age, this.alertAge, this.reduced, (this.app.state?.yard.houseHp ?? HOUSE_MAX_HP) / HOUSE_MAX_HP); }
   exit(): void {
     this.keys.clear();
     audio.setAmbience('none');
