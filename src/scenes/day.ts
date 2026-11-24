@@ -48,6 +48,7 @@ import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { sayAny, sayOnce } from '../engine/voice';
+import { onDriveway } from '../core/driveway';
 import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
 import { deviceArt } from '../render/defenses';
 import { FROG_RETURNS_AT, FROG_SPLASH_AT } from '../render/homestead-life';
@@ -699,7 +700,9 @@ export class DayScene implements Scene {
         const idle = this.ghostIdle();
         this.info.append(el('div', { style: { color: idle ? '#ffc24a' : '#c8f08a', marginTop: '4px' }, text: idle ? s.day.offRoute : s.day.onRoute }));
       } else if (DEVICES[this.mode.type].blocks) this.info.append(el('div', { class: 'muted', style: { marginTop: '4px' }, text: s.day.dragHint }));
-      this.info.append(el('div', { class: 'muted', style: { marginTop: '4px' }, text: s.day.turnHint }));
+      const carHints: Partial<Record<DeviceTypeId, string>> = { log: s.day.drivewayLog, horn: s.day.drivewayHorn, spikes: s.day.drivewaySpikes };
+      const carHint = ghost && !problem && onDriveway(ghost.x, ghost.y) ? carHints[ghost.type] : undefined;
+      this.info.append(el('div', { class: 'muted', style: { marginTop: '4px' }, text: carHint ?? s.day.turnHint }));
       return;
     }
     const device = this.hoverDevice;

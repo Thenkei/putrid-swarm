@@ -6,8 +6,10 @@
 // Everything is computed in grid coordinates and without a canvas: both sides of the house and all
 // four cameras paint from the same field, and it can be checked without a browser.
 
-import { GRID_H, GRID_W, LANES, inGrid, terrainAt, type Terrain } from '../core/map';
+import { GRID_H, GRID_W, LANES, roadCentre, inGrid, terrainAt, type Terrain } from '../core/map';
 import { clamp01, fbm, smoothstep } from './noise';
+
+export { TRACKS, roadCentre } from '../core/map';
 
 export type GroundTerrain = Exclude<Terrain, 'house'>;
 
@@ -34,14 +36,6 @@ export interface TerrainField {
   readonly blend: Float32Array;
 }
 
-/** The two ways out of the lot run on past the tree line: the drive to the gate and the track to the barn road. */
-export const TRACKS = {
-  /** The allée: cells x 10..11, leaving through the gate side (+y). */
-  gate: { x0: 10, x1: 12 },
-  /** The gravel track: cells y 11..12, leaving on the barn side (+x). */
-  barn: { y0: 11, y1: 13 },
-} as const;
-
 // A narrow trampled strip continues through the lawn where the orchard and kitchen lanes
 // have no paved surface. Both standing plants and loose leaves thin out at its shoulders.
 const laneBounds = Object.values(LANES).map(cells => {
@@ -61,16 +55,6 @@ export function vergeCover(gx: number, gy: number): number {
     nearest = Math.min(nearest, dx * dx + dy * dy);
   }
   return smoothstep(0.52, 1.55, Math.sqrt(nearest));
-}
-
-/** The gateways stay straight across the lot; deeper in the woods their tracks find a way between stands. */
-export function roadCentre(road: keyof typeof TRACKS, along: number): number {
-  const gate = road === 'gate';
-  const distance = Math.max(0, along - (gate ? GRID_H : GRID_W) - 1.8);
-  const turn = smoothstep(0, 7, distance);
-  const bend = gate ? 2.3 * Math.sin(distance * 0.23) + 1.2 * Math.sin(distance * 0.11) :
-    -2.0 * Math.sin(distance * 0.26) - 1.65 * Math.sin(distance * 0.08);
-  return (gate ? (TRACKS.gate.x0 + TRACKS.gate.x1) : (TRACKS.barn.y0 + TRACKS.barn.y1)) / 2 + turn * bend;
 }
 
 /** True on a way out beyond the lot, or within `clearance` cells of one: nothing grows there. */
