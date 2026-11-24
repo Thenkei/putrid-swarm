@@ -2246,5 +2246,10 @@
     "file": "sprites/night_owl_flight.webp",
     "w": 512,
     "h": 468
+  },
+  "moon_laundry": {
+    "file": "sprites/moon_laundry.webp",
+    "w": 160,
+    "h": 213
   }
 }

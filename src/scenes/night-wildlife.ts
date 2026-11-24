@@ -12,6 +12,8 @@ const FLIGHT_SECONDS = 2.85;
 /** Runs on the watch clock. All cameras share one bird and one sound schedule. */
 export class NightWildlife {
   owl: NightOwl | null = null;
+  foxAge: number | null = null;
+  private nextFox = 0;
   private clock = 0;
   private clearFor = 0;
   private nextVisit = 0;
@@ -34,13 +36,21 @@ export class NightWildlife {
   hush(dt = 0): boolean {
     const active = this.active;
     this.active = false;
+    this.advanceFox(dt);
     this.clearFor = 0;
     this.fly(dt);
     return active;
   }
 
+  private advanceFox(dt: number): void {
+    if (this.foxAge === null) return;
+    this.foxAge += dt;
+    if (this.foxAge >= 2) this.foxAge = null;
+  }
+
   step(dt: number, outside: number, nextSpawn: number | null, speaking: boolean): YardSound | undefined {
     this.active = true;
+    this.advanceFox(dt);
     this.clock += dt;
     this.clearFor = outside ? 0 : this.clearFor + dt;
     const room = nextSpawn ?? Infinity;
@@ -68,6 +78,10 @@ export class NightWildlife {
     const twig = this.twigNext;
     this.twigNext = !twig && this.random() < .72;
     this.nextTexture = this.clock + 6 + this.random() * 9;
+    if (twig && outside <= 1 && this.clock >= this.nextFox && this.random() < .35) {
+      this.foxAge = 0;
+      this.nextFox = this.clock + 45;
+    }
     return twig ? 'hedge_twig' : 'hedge_leaves';
   }
 }

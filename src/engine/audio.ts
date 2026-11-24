@@ -47,7 +47,7 @@ export type Sfx =
   | 'broken'
   | 'car_door'
   | 'car_latch'
-  | 'groan' | 'owl_call' | 'hedge_leaves' | 'hedge_twig'
+  | 'groan' | 'owl_call' | 'hedge_leaves' | 'hedge_twig' | 'moth_tick'
   | 'engine_stop'
   | 'loot_wood'
   | 'loot_scrap'
@@ -861,6 +861,10 @@ class AudioEngine {
         this.noise('highpass', 1500, 1500, .026, .13);
         this.tone('sine', 105, 105, .062, .095);
         this.noise('bandpass', 2300, 2300, .023, .07, .026, 1.6);
+        break;
+      case 'moth_tick':
+        this.tone('sine', 2700, 2300, .027, .024);
+        this.tone('triangle', 3800, 3500, .012, .008);
         break;
       case 'epic_pack': this.tone('sine', 430, 575, .55, .045); break;
       case 'click':
