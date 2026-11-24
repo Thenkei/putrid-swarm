@@ -134,7 +134,7 @@ export function drawPropLife(ctx: CanvasRenderingContext2D, prop: Prop, rect: { 
 const GLOWWORMS = [[3.55, 10.7], [3.80, 10.97], [4.68, 11.8], [4.48, 12.02], [4.72, 12.13],
   [5.19, 13.95], [5.47, 14.17], [5.68, 14.11], [6.05, 13.35]] as const;
 
-export function drawGlowworms(ctx: CanvasRenderingContext2D, view: View, enemies: readonly Enemy[], time: number, still: boolean): void {
+export function drawGlowworms(ctx: CanvasRenderingContext2D, view: View, enemies: readonly Enemy[], time: number, still: boolean, darkness = 1): void {
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   for (const [i, [x, y]] of GLOWWORMS.entries()) {
@@ -143,10 +143,10 @@ export function drawGlowworms(ctx: CanvasRenderingContext2D, view: View, enemies
     let clear = 1;
     for (const e of enemies) if (e.alive) clear = Math.min(clear, smoothstep(.65, 2.4, Math.hypot(x - e.x, y - e.y)));
     const pulse = still ? .72 : .28 + .72 * (.5 + .5 * Math.sin(time * 1.8 + i * 2.3)) ** 2;
-    if (clear * pulse < .06) continue;
+    if (clear * pulse * darkness < .06) continue;
     const g = ctx.createRadialGradient(p.x, py, 0, p.x, py, 5.5 * z);
     g.addColorStop(0, '#e2ec82'); g.addColorStop(.20, '#bed558'); g.addColorStop(1, 'rgba(165,183,78,0)');
-    ctx.globalAlpha = clear * pulse; ctx.fillStyle = g;
+    ctx.globalAlpha = clear * pulse * darkness; ctx.fillStyle = g;
     ctx.fillRect(p.x - 5.5 * z, py - 5.5 * z, 11 * z, 11 * z);
     ctx.fillStyle = '#f2ffbb';
     ctx.beginPath(); ctx.ellipse(p.x, py, 1.65 * z, .88 * z, i * .7, 0, Math.PI * 2); ctx.fill();

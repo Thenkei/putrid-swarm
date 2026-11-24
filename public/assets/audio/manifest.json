@@ -1145,6 +1145,12 @@
     "seconds": 4.493,
     "gain": 0.9
   },
+  "dawn_swallows": {
+    "file": "dawn_swallows.mp3",
+    "kind": "sfx",
+    "seconds": 2.952,
+    "gain": 0.74
+  },
   "lost": {
     "file": "lost.mp3",
     "kind": "sfx",

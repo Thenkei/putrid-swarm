@@ -2207,6 +2207,11 @@
     "w": 768,
     "h": 256
   },
+  "dawn_wildlife": {
+    "file": "sprites/dawn_wildlife.webp",
+    "w": 896,
+    "h": 784
+  },
   "village_wildlife": {
     "file": "sprites/village_wildlife.webp",
     "w": 768,

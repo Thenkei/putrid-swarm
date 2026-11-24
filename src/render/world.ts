@@ -27,6 +27,7 @@ import { drawDepartingCar, drawHeadlightPools, wagonLeaves, type DepartingCar } 
 import { drawApproachWindow, drawApproachingHero, type ApproachingHero } from './hero-approach';
 import { drawYardCat, type YardCatPose } from './yard-cat';
 import { drawGlowworms, drawPropLife, type HomesteadLife } from './homestead-life';
+import { dawnCel, firstSwallows, flowerPose, gateHare, sunlight } from './sunrise';
 import { drawRattle, rattlePoint, type RattleVisual } from './rattle';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
@@ -104,6 +105,7 @@ export interface WorldFrame {
   readonly approachingHero?: ApproachingHero;
   readonly yardCat?: YardCatPose;
   readonly homesteadLife?: HomesteadLife;
+  readonly sunriseAge?: number;
   readonly departingCar?: DepartingCar;
   readonly secondsSinceCarRoll?: number;
   /** Seconds since the car shut off after returning from an outing. */
@@ -578,6 +580,39 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const cat = frame.yardCat;
     drawables.push({ depth: depthOf(view.rot, cat.x, cat.y) + .42, draw: () => drawYardCat(ctx, view, cat) });
   }
+  // The same daisies stand at the mailbox through the night, the inspection and the playable day.
+  for (const [gx, gy, width] of [[12.85, 19.78, 27], [12.62, 19.94, 20]] as const) {
+    const p = project(view, gx, gy);
+    if (!onScreen(p, width)) continue;
+    const pose = !frame.night ? 3 : frame.sunriseAge === undefined ? 0 : flowerPose(frame.sunriseAge, calmMotion());
+    drawables.push({ depth: depthOf(view.rot, gx, gy) + .54, draw: () => dawnCel(ctx, 'daisies', pose, p.x, p.y, width * z) });
+  }
+  if (frame.sunriseAge !== undefined) {
+    const hare = gateHare(frame.sunriseAge, calmMotion());
+    if (hare && hare.cover > 0) {
+      const gx = 7.6 + (hare.x - 124) * .031, gy = 18.1 + (hare.y - 332) * .021;
+      const clear = !frame.enemies.some(e => e.alive && Math.hypot(e.x - gx, e.y - gy) < 3.2);
+      const p = project(view, gx, gy);
+      if (clear && onScreen(p, 50)) {
+        contacts.push({ gx, gy, rx: .23, ry: .105, alpha: .3 * hare.cover });
+        drawables.push({ depth: depthOf(view.rot, gx, gy), draw: () => {
+          ctx.save(); ctx.globalAlpha *= hare.cover;
+          dawnCel(ctx, 'hare', hare.pose, p.x, p.y - hare.lift * .6 * z, 48 * z, view.rot === 1); ctx.restore();
+        } });
+      }
+    }
+    for (const bird of firstSwallows(frame.sunriseAge, calmMotion())) {
+      const p = project(view, bird.x, bird.y);
+      const up = { x: p.x, y: p.y - bird.height * z };
+      if (!onScreen(up, 32)) continue;
+      contacts.push({ gx: bird.x - .35, gy: bird.y + .35, rx: .24, ry: .10, alpha: .20 * bird.alpha });
+      drawables.push({ depth: depthOf(view.rot, bird.x, bird.y), draw: () => {
+        ctx.save(); ctx.globalAlpha *= bird.alpha;
+        dawnCel(ctx, 'swallow', bird.pose, up.x, up.y, 42 * z, view.rot === 1);
+        ctx.restore();
+      } });
+    }
+  }
   if (frame.approachingHero) {
     const hero = frame.approachingHero;
     const { x, y } = hero.position;
@@ -700,7 +735,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   drawDecals(ctx, view, frame.decals);
   if (frame.departingCar) drawHeadlightPools(ctx, view, frame.departingCar);
   drawGroundOverlays(ctx, view, frame);
-  if (frame.night) drawGlowworms(ctx, view, frame.enemies, frame.time, calmMotion());
+  if (frame.night) drawGlowworms(ctx, view, frame.enemies, frame.time, calmMotion(), 1 - sunlight(frame.sunriseAge));
 
   if (frame.mopedRide) {
     const bike = mopedRideDrawable(ctx, view, frame.mopedRide, frame.time);
@@ -711,7 +746,10 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   if (frame.hoverCell && frame.hoverBarrier) drawBarrierFootprint(ctx, view, frame.hoverCell);
 
   // What is in the air over all of it.
-  if (frame.night) drawMist(ctx, view, frame.time);
+  if (frame.night) {
+    ctx.save(); ctx.globalAlpha *= 1 - .74 * sunlight(frame.sunriseAge);
+    drawMist(ctx, view, frame.time); ctx.restore();
+  }
   else {
     drawCloudShadows(ctx, view, frame.time);
     drawLeaves(ctx, view, frame.time);

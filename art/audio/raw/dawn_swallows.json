@@ -1,0 +1,10 @@
+{
+  "id": "dawn_swallows",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "y9OqydGdu92k1iQa8Ulf",
+  "prompt": "One natural close barn swallow makes two liquid, cheerful twittering calls in the morning, answered by one softer more distant swallow a moment later. A two-second field recording in a rural French garden with clean silence at both ends. Only the small birds, no continuous ambience, no other animals, music or voices.",
+  "bytes": 66070,
+  "sha256": "e6257dd33652eda561080ea1d0e92e2c77a54dcc4ba6f63b19a40e8854bb2cab"
+}

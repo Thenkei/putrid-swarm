@@ -34,6 +34,7 @@ import { THRESHOLDS, doorStance, houseDamageStage } from '../render/house';
 import { HOUSE_BREAK_SECONDS, type HouseBreak } from '../render/house-debris';
 import { calmMotion, drawRetune } from '../render/lighting';
 import { smoothstep } from '../render/noise';
+import { SUNRISE_SECONDS, SWALLOW_CALL_AT, sunlight } from '../render/sunrise';
 import { LogReactions } from '../render/log-sweep';
 import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
 import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
@@ -445,12 +446,21 @@ export class NightScene implements Scene {
 
   /** The night spans 21:00 to 06:00 on the desk. */
   private deskClock(): string {
-    const minutes = Math.round(21 * 60 + this.sim.progress() * 9 * 60) % (24 * 60);
+    const night = this.sim.progress();
+    const progress = night + (1 - night) * sunlight(this.sunriseAge);
+    const minutes = Math.round(21 * 60 + progress * 9 * 60) % (24 * 60);
     return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
   }
 
   private cameraTimestamp(clock: string): string {
-    return `${clock}:${String(Math.floor((this.time * 7) % 60)).padStart(2, '0')}`;
+    const seconds = clock === '06:00' ? 0 : Math.floor((this.time * 7) % 60);
+    return `${clock}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  private syncClock(blind: boolean): void {
+    const clock = this.deskClock();
+    setText(this.clockEl, `${clock} → ${S().night.dawn}`);
+    setText(this.camClock, blind ? this.lastSignalClock ?? '––:––:––' : this.cameraTimestamp(clock));
   }
 
   private otherSectors(): SectorId[] {
@@ -567,10 +577,8 @@ export class NightScene implements Scene {
     setText(this.energyEl, fmt(s.night.energy, { p: Math.round(sim.energy) }));
     this.syncPower(sim.energy);
 
-    const clock = this.deskClock();
     const blind = this.isDark(this.cam);
-    setText(this.clockEl, `${clock} → ${s.night.dawn}`);
-    setText(this.camClock, blind ? this.lastSignalClock ?? '––:––:––' : this.cameraTimestamp(clock));
+    this.syncClock(blind);
     this.camFrame.classList.toggle('no-link', blind);
     this.syncDetector(blind);
     if (this.rattleCaption && sim.rattleSector) {
@@ -788,6 +796,11 @@ export class NightScene implements Scene {
       return;
     }
     if (this.paused) return;
+    if (this.sunriseAge !== undefined && (code === 'Enter' || code === 'Space')) {
+      event.preventDefault();
+      this.finish();
+      return;
+    }
     if (code === 'KeyG' && this.detectorFound && this.isDark(this.cam)) {
       event.preventDefault();
       this.scan();
@@ -1017,6 +1030,7 @@ export class NightScene implements Scene {
           this.coach = null;
           this.coachEl.className = 'coach';
           audio.setMusic('none');
+          if (this.sunriseAge !== undefined) audio.setAmbience('day', SUNRISE_SECONDS);
           audio.play(event.survived ? 'dawn' : 'lost');
           if (event.survived) sayAny('dawn', { interrupt: true, oneArmed: oneArmed(this.state) });
           else say('vo_lost', { interrupt: true });
@@ -1070,10 +1084,14 @@ export class NightScene implements Scene {
     if (this.paused) return;
     this.time += dt;
     if (this.ending) {
+      const previous = this.ending.t;
       this.advanceEffects(dt);
       this.ending.t += dt;
       this.advanceImpacts();
-      if (this.ending.t >= END_HOLD_SECONDS) this.finish();
+      const dawn = this.sunriseAge;
+      if (dawn !== undefined) this.syncClock(this.isDark(this.cam));
+      if (dawn !== undefined && previous < SWALLOW_CALL_AT && dawn >= SWALLOW_CALL_AT) audio.play('dawn_swallows', .76);
+      if (this.ending.t >= (dawn === undefined ? END_HOLD_SECONDS : SUNRISE_SECONDS)) this.finish();
       return;
     }
     if (this.coachNoteUntil > 0 && this.time >= this.coachNoteUntil && !this.coach) {
@@ -1141,6 +1159,11 @@ export class NightScene implements Scene {
     else goFinale(this.app);
   }
 
+  private get sunriseAge(): number | undefined {
+    if (this.ending?.survived && this.sim.night < LAST_NIGHT) return this.ending.t;
+    return undefined;
+  }
+
   private frame(sector: SectorId, main: boolean): WorldFrame {
     const hovered = main && this.hoverDevice !== null ? this.sim.device(this.hoverDevice) : undefined;
     const inspected = hovered ?? (main ? this.focusedBarrier : null);
@@ -1154,6 +1177,7 @@ export class NightScene implements Scene {
       ...(ride && ride.blastAt === null && { mopedRide: ride }),
       ...(ride && open > 0 && { houseDoor: { sector: ride.sector, open } }),
       night: true,
+      ...(this.sunriseAge !== undefined && { sunriseAge: this.sunriseAge }),
       carPresent: true,
       houseHpRatio: this.sim.houseHp / HOUSE_MAX_HP,
       houseBreaks: this.houseBreaks,
@@ -1230,7 +1254,7 @@ export class NightScene implements Scene {
     const frame = this.frame(sector, false);
     drawWorld(mctx, view, frame);
     drawMopedBlast(mctx, view, this.sim.mopedRide, frame.time);
-    applyNight(mctx, view, this.lights(view.rot), frame.time);
+    applyNight(mctx, view, this.lights(view.rot), frame.time, sunlight(frame.sunriseAge));
     applyCctv(mctx, view, frame.time + SECTOR_IDS.indexOf(sector) * 1.7, 1);
   }
 
@@ -1249,7 +1273,7 @@ export class NightScene implements Scene {
       const frame = this.frame(this.cam, true);
       drawWorld(ctx, view, frame);
       drawMopedBlast(ctx, view, this.sim.mopedRide, frame.time);
-      applyNight(ctx, view, this.lights(view.rot), frame.time);
+      applyNight(ctx, view, this.lights(view.rot), frame.time, sunlight(frame.sunriseAge));
       applyCctv(ctx, view, frame.time, 0.85);
       drawRetune(ctx, view, this.time - this.retuneAt);
     }
@@ -1265,7 +1289,7 @@ export class NightScene implements Scene {
       ctx.fillRect(-1, -1, 2, 2);
       ctx.restore();
     }
-    if (this.ending) {
+    if (this.ending && this.sunriseAge === undefined) {
       const t = Math.min(1, this.ending.t / END_HOLD_SECONDS);
       ctx.fillStyle = this.ending.survived ? `rgba(255, 190, 110, ${t * 0.5})` : `rgba(10, 0, 0, ${t * 0.8})`;
       ctx.fillRect(MAIN.x, MAIN.y, MAIN.w, MAIN.h);

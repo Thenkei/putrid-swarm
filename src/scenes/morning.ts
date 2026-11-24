@@ -8,11 +8,12 @@ import { ENTRIES, sectorOf } from '../core/map';
 import { silentTraps } from '../core/yard';
 import type { GameState, NightHighlight } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
-import { STAGE_H, type App, type Scene } from '../engine/app';
+import { STAGE_H, type App, type Pointer, type Scene } from '../engine/app';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, line } from '../engine/i18n';
 import { calmMotion } from '../render/lighting';
+import { MorningGarden } from '../render/morning-garden';
 import { smoothstep } from '../render/noise';
 import { cameraView, drawWorld, type View, type WorldFrame } from '../render/world';
 import { drawPlate, oneArmed } from './common';
@@ -26,6 +27,7 @@ const INSPECT_OUT = 0.46;
 
 export class MorningScene implements Scene {
   private time = 0;
+  private garden!: MorningGarden;
   private cassette: CassettePlayer | null = null;
   private inspecting = false;
   private inspectionProgress = 0;
@@ -45,6 +47,7 @@ export class MorningScene implements Scene {
     const state = this.state;
     const report = state.lastNight;
     const night = report?.night ?? state.day;
+    this.garden = new MorningGarden(night);
     const kills = report ? Object.values(report.kills).reduce((sum, n) => sum + (n ?? 0), 0) : 0;
 
     // The neighbour of the night: beaten, or gone home at first light.
@@ -179,10 +182,19 @@ export class MorningScene implements Scene {
       : Math.max(0, this.inspectionProgress - dt / INSPECT_OUT);
   }
 
+  private painting(ctx: CanvasRenderingContext2D, still: boolean, alpha = 1): void {
+    const plate = { zoom: 1.03 + (still ? 0 : 0.04 * smoothstep(0, 12, this.time)), focusX: 0.1, focusY: 0.5, oneArmed: oneArmed(this.app.state) };
+    const bounds = drawPlate(ctx, 'plate_morning', { ...plate, alpha });
+    if (bounds) {
+      ctx.save(); ctx.globalAlpha = alpha;
+      this.garden.draw(ctx, bounds, this.time, still);
+      ctx.restore();
+    }
+  }
+
   render(ctx: CanvasRenderingContext2D): void {
     const still = calmMotion();
-    const plate = { zoom: 1.03 + (still ? 0 : 0.04 * smoothstep(0, 12, this.time)), focusX: 0.1, focusY: 0.5, oneArmed: oneArmed(this.app.state) };
-    drawPlate(ctx, 'plate_morning', plate);
+    this.painting(ctx, still);
     const progress = still ? Number(this.inspecting) : this.inspectionProgress;
     if (!this.inspection || progress <= 0) return;
     const { view, overview, frame } = this.inspection;
@@ -203,10 +215,14 @@ export class MorningScene implements Scene {
       ctx.beginPath();
       ctx.rect(view.x, view.y, view.w, view.h);
       ctx.clip();
-      ctx.globalAlpha = 1 - visibility;
-      drawPlate(ctx, 'plate_morning', { ...plate, alpha: 1 - visibility });
+      this.painting(ctx, still, 1 - visibility);
       ctx.restore();
     }
+  }
+
+  onPointerMove(pointer: Pointer): void {
+    if (pointer.overCanvas && !this.inspecting && this.inspectionProgress === 0 && !calmMotion() && (!this.cassette || this.cassette.root.hidden))
+      this.garden.disturb(pointer.x, pointer.y, this.time);
   }
 
   onKeyDown(code: string, event: KeyboardEvent): void {

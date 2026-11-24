@@ -666,6 +666,10 @@ export const ART = [
   },
   // Shared walk cycles and the four poses used on the upper-window route.
   {
+    id: 'dawn_wildlife', kind: 'atlas', w: 896, source: { concept: 'art/raw/dawn_wildlife.png' },
+    prompt: 'Four registered poses each of a russet European hare, fork-tailed barn swallow, red admiral butterfly and clump of opening oxeye daisies. Ink and gouache, transparent four by four sheet.',
+  },
+  {
     id: 'village_wildlife', kind: 'atlas', w: 768, source: { concept: 'art/raw/village_wildlife.png' },
     prompt: 'Isometric painted rural wildlife. Five rows: European robin, red squirrel, common frog, field mouse, rock pigeon. Four poses per row, individually registered at the feet.',
   },

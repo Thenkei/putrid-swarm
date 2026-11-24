@@ -70,7 +70,7 @@ export type Sfx =
   | 'step_gravel'
   | 'yard_cat'
   | 'cat_bonnet'
-  | 'village_bell' | 'shop_keys' | 'well_plop'
+  | 'village_bell' | 'shop_keys' | 'well_plop' | 'dawn_swallows'
   | 'chew'
   | 'clap'
   | 'rabbit_bolt'
@@ -1132,6 +1132,11 @@ class AudioEngine {
       case 'shop_keys':
         this.tone('triangle', 2580, 2350, .08, .022);
         this.tone('sine', 1620, 1580, .12, .015, .08);
+        break;
+      case 'dawn_swallows':
+        this.tone('sine', 2450, 3300, .105, .028);
+        this.tone('sine', 3000, 2600, .09, .024, .16);
+        this.tone('sine', 2340, 2890, .13, .015, .88);
         break;
       case 'village_bell':
         this.tone('sine', 348, 345, 1.4, .04);

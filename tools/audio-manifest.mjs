@@ -260,6 +260,7 @@ export const AUDIO = [
   sfx('news', 2.6, 'A regional TV news channel breaking-news jingle: short urgent synth brass and timpani sting, 1990s broadcast sound.', { gain: 0.8 }),
   sfx('exhale', 3.2, 'A man takes one long slow drag on a hand-rolled cigarette, paper crackling, then exhales slowly. Very close microphone.'),
   sfx('dawn', 4.5, 'Dawn in a French village: a rooster crows once, a distant church bell rings twice, first birds waking. Calm, relieved.', { gain: 0.9 }),
+  sfx('dawn_swallows', 3, 'One natural close barn swallow makes two liquid, cheerful twittering calls in the morning, answered by one softer more distant swallow a moment later. A two-second field recording in a rural French garden with clean silence at both ends. Only the small birds, no continuous ambience, no other animals, music or voices.', { gain: .74, peak: -5, tail: .18 }),
   sfx('lost', 3.2, 'A dark defeat sting: a deep impact, then a low drone sinking in pitch into silence. Horror, no melody.'),
 
   // ───────────── Beds (seamless loops) ─────────────
