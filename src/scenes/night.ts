@@ -2,7 +2,7 @@
 // The simulation runs on its own clock; this scene only chooses which part of it to look at.
 
 import { porchLights } from '../render/porch-flame';
-import { drawMopedBlast, mopedDoorOpen } from '../render/moped';
+import { drawMopedBlast, drawMopedTarget, mopedDoorOpen } from '../render/moped';
 import { project } from '../render/projection';
 import { EpicNight } from './epic-night';
 import { CassetteRecorder } from '../render/cassette';
@@ -583,6 +583,7 @@ export class NightScene implements Scene {
 
     const blind = this.isDark(this.cam);
     this.syncClock(blind);
+    this.epic.syncMoped();
     this.camFrame.classList.toggle('no-link', blind);
     this.syncDetector(blind);
     if (this.rattleCaption && sim.rattleSector) {
@@ -1303,6 +1304,7 @@ export class NightScene implements Scene {
       drawMopedBlast(ctx, view, this.sim.mopedRide, frame.time);
       applyNight(ctx, view, this.lights(view.rot), frame.time, sunlight(frame.sunriseAge));
       applyCctv(ctx, view, frame.time, 0.85);
+      if (this.epic.mopedSector === this.cam) drawMopedTarget(ctx, view, this.cam, this.epic.mopedGroup);
       drawRetune(ctx, view, this.time - this.retuneAt);
     }
 

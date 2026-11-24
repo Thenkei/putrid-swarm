@@ -188,7 +188,6 @@ export class LocationScene implements Scene {
       shouldStopAtDusk(state, hoursOnReturn - SEARCH_HOURS) &&
       spots.some((spot, index) => spot !== null && index !== dispute?.spot && !progress.searched.includes(index) && !hasViceLeftovers(state, this.id, index));
     const title = el('div', { class: 'panel loc-title' }, [
-      el('h3', { text: s.location[this.id].name }),
       el('p', {
         text: this.concealing ? s.stashCover.choose : dispute
           ? fmt(s.encounter.spotted, { spot: claimedSpot })

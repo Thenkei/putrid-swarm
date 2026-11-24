@@ -39,15 +39,22 @@ export class EpicNight {
   private readonly lane: number;
 
   private outside = false;
-  private mopedButton: HTMLButtonElement | null = null;
-  private launched: HTMLButtonElement | null = null;
+  private launchButton: HTMLButtonElement | null = null;
+  private launchHint: HTMLElement | null = null;
+  private nextMopedCheck = 0;
+  mopedGroup = false;
   private previousFocus: HTMLElement | null = null;
+
+  get mopedSector(): SectorId | undefined {
+    return this.launchButton ? SECTOR_IDS[this.lane] : undefined;
+  }
+
   constructor(private app: App, private sim: NightSim, private desk: HTMLElement,
     private paintYard: (canvas: HTMLCanvasElement, sector: SectorId, burst?: PorchBurst) => { id: number; x: number; y: number }[] | undefined,
     private tuneCamera: (sector: SectorId) => void, private pause: () => void) {
     this.lane = this.flag('lane') % 4;
     if (this.flag('moped') && !this.flag('spent')) {
-      const launch = button(L('🛵 Lâcher la mob → ', '🛵 Release moped → ') + sector(this.lane), () => {
+      const launch = button(L('Lâcher la mob → ', 'Release moped → ') + sector(this.lane), () => {
         if (this.active || this.sim.outcome !== 'ongoing' || this.desk.inert) return;
         if (!this.sim.launchMoped(SECTOR_IDS[this.lane]!)) return;
         this.tuneCamera(SECTOR_IDS[this.lane]!);
@@ -57,12 +64,19 @@ export class EpicNight {
         launch.disabled = true;
         launch.dataset.stage = 'run';
         launch.textContent = L('Mob lancée…', 'Moped away…');
-        this.launched = launch;
+        this.launchHint = null;
         launch.classList.add('epic-launched');
       });
-      this.mopedButton = launch;
       launch.classList.add('epic-launch');
-      launch.title = L('Un seul départ. Les lames frappent sur le trajet. La mob explose au fond du jardin.', 'One ride. The blades strike on the way out. The moped explodes at the far end of the yard.');
+      const art = assetUrl('epic_moped_art');
+      if (art) {
+        launch.style.setProperty('--moped-art', 'url("' + art + '")');
+        launch.classList.add('moped-illustrated');
+      }
+      launch.title = L('Un seul départ. Regarde la zone pointillée sur la caméra. La mob y arrive en deux secondes et demie.', 'One ride. Watch the dashed area on the feed. The moped reaches it in two and a half seconds.');
+      this.launchButton = launch;
+      this.launchHint = el('small');
+      launch.append(this.launchHint);
       launch.setAttribute('aria-live', 'polite');
       this.desk.append(launch);
     }
@@ -74,11 +88,29 @@ export class EpicNight {
   get holdsDesk() { return this.active && !this.outside; }
 
   finishMoped(kills: number): void {
-    if (!this.launched) return;
-    const tally = kills + L(kills > 1 ? ' éliminés au souffle' : ' éliminé au souffle', kills === 1 ? ' blast kill' : ' blast kills');
-    this.launched.textContent = L('Mob détruite', 'Moped wrecked') + ' · ' + tally;
-    this.launched.dataset.stage = 'spent';
-    this.launched = null;
+    if (!this.launchButton) return;
+    this.launchButton.textContent = L('Mob détruite', 'Moped wrecked');
+    const blades = this.sim.mopedRide?.bladeKills ?? 0;
+    this.launchButton.append(el('small', { text: L('Lames ', 'Blades ') + blades + L(' · Souffle ', ' · Blast ') + kills }));
+    this.launchButton.dataset.stage = 'spent';
+    this.launchButton = null;
+  }
+
+  syncMoped(): void {
+    const sector = this.mopedSector;
+    if (!sector || !this.launchHint || !this.launchButton || this.sim.time < this.nextMopedCheck) return;
+    this.nextMopedCheck = this.sim.time + 0.15;
+    const blind = this.sim.cameraLost === sector;
+    const targets = blind ? 0 : this.sim.mopedTargets(sector);
+    this.mopedGroup = targets >= 3;
+    const cue = blind ? L('Caméra coupée · Tir à l’aveugle', 'No signal · Blind release')
+      : this.mopedGroup ? L('Groupe en approche · Lâche !', 'Group incoming · Release!')
+      : targets ? L('Peu de monde · Attends le groupe', 'Few targets · Wait for more')
+      : L('Haie dégagée · Attends', 'Hedge clear · Wait');
+    if (this.launchHint.textContent !== cue) {
+      this.launchHint.textContent = cue;
+      this.launchButton.dataset.stage = this.mopedGroup ? 'crowd' : 'armed';
+    }
   }
 
   update(dt: number): boolean {
@@ -88,7 +120,7 @@ export class EpicNight {
       this.clock?.(dt);
       return !this.outside;
     }
-    if (this.mopedButton && !this.flag('spent')) this.mopedButton.disabled = this.sim.awayFromDesk;
+    if (this.launchButton && this.launchHint) this.launchButton.disabled = this.sim.awayFromDesk;
     if (this.sim.awayFromDesk) return false;
     const day = this.sim.night;
     if (this.shown || day < 2 || day > LAST_NIGHT || (day === LAST_NIGHT ? this.sim.progress() < 0.72 : day !== 4 && this.sim.time < 9)) return false;
@@ -150,7 +182,7 @@ export class EpicNight {
     if (this.flag('moped')) {
       this.page(title, this.flag('spent')
         ? L('La caméra se rallume. Une roue tourne encore près de la haie. Gérard va demander où est passée sa mob.', 'The feed comes back. A wheel is still spinning by the hedge. Gérard is going to ask about his moped.')
-        : L('Les lames de la roue avant brillent dans le phare. Attends que ça se tasse contre la haie pour lâcher la mob depuis le bureau. Elle explose là-bas. Gérard peut rentrer à pied.', 'The blades on the front wheel catch the headlamp. Wait for a crowd at the hedge, then release the moped from the desk. It blows up out there. Gérard can walk home.'));
+        : L('Les pointillés sur la caméra marquent la haie où la mob va exploser. Lâche-la quand le groupe approche, le temps qu’elle traverse le jardin. Gérard peut rentrer à pied.', 'The dashed ring on the feed marks where the moped will blow. Release it as a group approaches so it has time to cross the yard. Gérard can walk home.'));
       return;
     }
     const develop = () => {
