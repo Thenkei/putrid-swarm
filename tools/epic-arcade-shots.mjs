@@ -89,7 +89,27 @@ async function garage(profile) {
   await move('trolley','ArrowLeft');
   await move('toolbox','ArrowDown'); await move('toolbox','ArrowDown');
   await move('bench','ArrowDown');
-  for(let i=0;i<3;i++) await move('moped','ArrowRight');
+  if (phone) {
+    for(let i=0;i<3;i++) await move('moped','ArrowRight');
+  } else {
+    await click(piece('moped'));
+    await page.keyboard.press('ArrowRight');
+    // Sample the second real key at a known point in the previous slide.
+    await piece('moped').evaluate(token => {
+      const slide = token.getAnimations()[0];
+      slide.pause();
+      slide.currentTime = 35;
+      const left = token.getBoundingClientRect().left;
+      token.closest('dialog').addEventListener('keydown', () => {
+        const next = document.querySelector('[data-piece="moped"]');
+        window.mopedSlideJump = next.getBoundingClientRect().left - left;
+      }, {once:true});
+    });
+    await page.keyboard.press('ArrowRight');
+    const jump = await page.evaluate(() => window.mopedSlideJump);
+    assert.ok(Math.abs(jump) < 1, 'repeated moped slide jumped '+jump+' pixels');
+    await page.keyboard.press('ArrowRight');
+  }
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('putrid-swarm.save.v1')).flags['epic.loaded']===1);
   await page.reload(); await resume();
   assert.match(await summary.textContent(), /break/);

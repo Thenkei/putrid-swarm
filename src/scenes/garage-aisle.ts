@@ -47,17 +47,18 @@ export function clearGarageAisle(host: HTMLElement, loaded: () => void) {
     }
     audio.play(selected === 0 ? 'chain' : 'crate', 0.36);
     const before = board.querySelector<HTMLButtonElement>('[data-index="' + selected + '"]');
-    const left = before?.offsetLeft;
-    const top = before?.offsetTop;
+    // A second arrow can arrive while the previous slide is still on screen.
+    const from = before?.getBoundingClientRect();
     offsets = next;
     loading = offsets[0] === 3;
     draw();
     const moving = board.querySelector<HTMLButtonElement>('[aria-pressed="true"]');
     moving?.focus();
     let travel: Animation | undefined;
-    if (moving && left !== undefined && top !== undefined && !calmMotion()) {
+    if (moving && from && !calmMotion()) {
+      const to = moving.getBoundingClientRect();
       travel = moving.animate([
-        { transform: 'translate(' + (left - moving.offsetLeft) + 'px,' + (top - moving.offsetTop) + 'px)' },
+        { transform: 'translate(' + (from.left - to.left) + 'px,' + (from.top - to.top) + 'px)' },
         { transform: 'translate(0,0)' },
       ], { duration: 175, easing: 'cubic-bezier(.18,.6,.28,1)' });
     }
