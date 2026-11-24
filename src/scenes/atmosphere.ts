@@ -218,7 +218,7 @@ export function drawArm(
   ctx: CanvasRenderingContext2D,
   art: { img: CanvasImageSource; w: number; h: number } | undefined,
   tip: { x: number; y: number },
-  options: { height: number; lean?: number; reach?: number; mirror?: boolean; travel?: number; alpha?: number },
+  options: { height: number; lean?: number; reach?: number; mirror?: boolean; travel?: number; alpha?: number; contact?: { x: number; y: number } },
 ): void {
   if (!art) return;
   const { height, lean = 0, reach = 1, mirror = false, travel = 760, alpha = 1 } = options;
@@ -231,6 +231,6 @@ export function drawArm(
   // Pulled back along its own length when not reaching: it leaves the frame the way it came in.
   ctx.translate(0, (1 - reach) * travel);
   if (mirror) ctx.scale(-1, 1);
-  ctx.drawImage(art.img, -width / 2, -height * 0.04, width, height);
+  ctx.drawImage(art.img, -width * (options.contact?.x ?? .5), -height * (options.contact?.y ?? .04), width, height);
   ctx.restore();
 }

@@ -1171,6 +1171,14 @@ export const ART = [
       `${KEY} ${STYLE}`,
   },
   {
+    id: 'orchard_cable_repair', kind: 'atlas', w: 1728, source: { concept: 'art/raw/orchard_cable_repair.png' },
+    prompt: 'Thirty registered close-up poses of the gnawed orange camera cable on the wet orchard floor. The tips meet and dark tape winds over the joint, in the light of the original painted plate.',
+  },
+  {
+    id: 'orchard_tape_hand', kind: 'sprite', h: 640,
+    prompt: 'First-person right hand pinching a short tongue of charcoal tape from a roll, with the same ochre jacket and brown cuff as the other orchard hands.',
+  },
+  {
     id: 'orchard_clap',
     kind: 'sprite',
     h: 640,

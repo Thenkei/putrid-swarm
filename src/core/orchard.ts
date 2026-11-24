@@ -20,6 +20,8 @@ export const ORCHARD = {
   walkInSeconds: 3,
   /** The last steps to the rabbit; letting go steps back. */
   approachSeconds: 1.9,
+  /** Time watching the rabbit from the pole before the idea of clapping occurs. */
+  clapWaitSeconds: 3.5,
   /** How fast a step is taken back when a held move is let go, against walking pace. */
   retreat: 1.7,
   /** It stops chewing, it turns round. Nothing can be done yet. */
@@ -114,6 +116,8 @@ export interface Orchard {
   readonly walk: number;
   /** 0..1 of whatever is being held: the approach, the knot, the splice. */
   readonly hold: number;
+  /** Quiet time at the pole. Null until the forward key used to walk in has been released. */
+  readonly clapWait: number | null;
   /** 0 at the bite, 1 at the shoulder. */
   readonly infection: number;
   readonly tugs: number;
@@ -133,6 +137,7 @@ export const startOrchard = (): Orchard => ({
   heading: null,
   walk: 0,
   hold: 0,
+  clapWait: null,
   infection: 0,
   tugs: 0,
   rope: false,
@@ -218,6 +223,21 @@ function stride(orchard: Orchard, held: Held, dt: number): Turn {
 /** Something held fills up; let go, it runs back down. */
 const fill = (value: number, holding: boolean, seconds: number, dt: number): number => clamp01(value + (holding ? dt : -dt * ORCHARD.retreat) / seconds);
 
+function watchRabbit(o: Orchard, held: Held, dt: number): number | null {
+  const ready = ORCHARD.clapWaitSeconds;
+  if (o.clapWait === ready) return ready;
+  if (o.place !== 'pole' || o.heading !== null || held.left !== held.right) return 0;
+  if (held.forward) return o.clapWait === null ? null : 0;
+  if (o.hold > 0) {
+    // A few frames of the walk-in key spilling across the cut do not count as a second approach.
+    return o.clapWait !== null || o.hold * ORCHARD.approachSeconds >= .16 ? ready : null;
+  }
+  return Math.min(ready, (o.clapWait ?? 0) + dt);
+}
+
+const canClap = (o: Orchard): boolean => o.beat === 'watch' && o.clapWait === ORCHARD.clapWaitSeconds
+  && o.place === 'pole' && o.walk < .3 && o.hold < 1;
+
 /** Time passing, with whatever is held down. */
 export function tick(orchard: Orchard, dt: number, held: Held = NOTHING_HELD): Turn {
   if (orchard.beat === 'over' || dt <= 0) return same(orchard);
@@ -233,6 +253,7 @@ export function tick(orchard: Orchard, dt: number, held: Held = NOTHING_HELD): T
       return { orchard: { ...next, beat: 'watch', clock: 0, walk: 0 }, cues: [{ type: 'arrived', place: 'pole' }] };
     }
     case 'watch': {
+      next = { ...next, clapWait: watchRabbit(next, held, dt) };
       // Going closer is done facing it, from the pole, and not while wandering off.
       const approaching = next.place === 'pole' && next.heading === null && held.forward;
       if (approaching || next.hold > 0) {
@@ -284,7 +305,7 @@ export function press(orchard: Orchard, key: Press): Turn {
   switch (orchard.beat) {
     case 'watch':
     case 'mend': {
-      if (key === 'clap' && orchard.beat === 'watch' && orchard.place === 'pole' && orchard.walk < 0.3 && orchard.hold < 1) {
+      if (key === 'clap' && canClap(orchard)) {
         // Both hands: it is gone before the echo. What is left is a cable in two pieces.
         return { orchard: { ...orchard, beat: 'mend', clock: 0, heading: null, walk: 0, hold: 0, trail: [...orchard.trail, 'clapped'] }, cues: [{ type: 'clapped' }] };
       }
@@ -379,7 +400,7 @@ export function promptsOf(orchard: Orchard): Prompt[] {
     case 'watch':
       if (orchard.place === 'pole' && still) {
         prompts.push({ id: 'approach', progress: orchard.hold });
-        if (orchard.hold < 1) prompts.push({ id: 'clap' });
+        if (canClap(orchard)) prompts.push({ id: 'clap' });
       }
       if (still && orchard.place === 'tree') prompts.push({ id: 'look_saw' });
       if (still && orchard.place === 'fence') prompts.push({ id: 'look_rope' });

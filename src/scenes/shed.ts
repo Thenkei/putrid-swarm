@@ -4,7 +4,9 @@
 // a bare wall to look at while the current runs), makes it heard, and puts the keys on screen. Nothing
 // here changes the campaign except `settle`, once, at the very end.
 
+import { PLATE, OVER, pointOnShot, shotTransform, type Cam, type Shot, type ShotLayer } from './shot-camera';
 import { PauseMenu } from './pause';
+import { bindPromptPointer, promptLayer } from './prompt-pointer';
 import { BOSS_NIGHT } from '../core/data/locations';
 import { settleShed } from '../core/game';
 import { hasLeftArm } from '../core/orchard';
@@ -47,16 +49,9 @@ import { goDay, goEnd, goTitle } from './flow';
 
 // ───────────────────────────── Framing ─────────────────────────────
 
-const PLATE = { w: 1280, h: 853 } as const;
-const OVER = PLATE.h - STAGE_H;
 const BAR = 54;
 const CX = STAGE_W / 2;
 const CY = STAGE_H / 2;
-
-interface Shot {
-  readonly plate: string;
-  readonly focusY: number;
-}
 
 const WIDE: Shot = { plate: 'plate_shed', focusY: 0.5 };
 const WALL: Shot = { plate: 'plate_shed_wall', focusY: 0.5 };
@@ -135,13 +130,6 @@ const SPOT = {
 
 /** How tall he is drawn at the post, sitting. */
 const SEATED = 400;
-
-interface Cam {
-  zoom: number;
-  x: number;
-  y: number;
-  roll?: number;
-}
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 const clamp01 = (v: number): number => clamp(v, 0, 1);
@@ -362,7 +350,7 @@ export class ShedScene implements Scene {
     audio.setMusic('shed');
     const s = S();
     this.titleEl = el('div', { class: 'orchard-title' }, [el('h1', { text: s.shed.title }), el('p', { text: fmt(s.shed.when, { n: this.state.day + 1 }) })]);
-    this.promptsEl = el('div', { class: 'qte-layer' });
+    this.promptsEl = promptLayer(() => { this.pointerHold = null; });
     this.needleEl = el('i', { class: 'needle' });
     this.zoneEl = el('b');
     const bands = el('span', { class: 'bands' }, [
@@ -672,10 +660,6 @@ export class ShedScene implements Scene {
     if (!this.paused) this.togglePause(true);
   }
 
-  onPointerUp(): void {
-    this.pointerHold = null;
-  }
-
   private promptDown(id: PromptId): void {
     const spec = SPEC[id];
     if (spec.hold) this.pointerHold = spec.hold;
@@ -732,8 +716,8 @@ export class ShedScene implements Scene {
     }
 
     this.updatePose();
-    this.reach(dt);
     this.follow(dt);
+    this.reach(dt);
     this.syncHud();
   }
 
@@ -835,7 +819,9 @@ export class ShedScene implements Scene {
 
   /** Where a point of the current shot lands on screen, through the camera. */
   private onScreen(point: Point): Point {
-    return { x: (point.x - this.cam.x) * this.cam.zoom + CX, y: (point.y - this.cam.y) * this.cam.zoom + CY };
+    const shots = this.groundShots();
+    const active = shots.find(layer => layer.place === this.shed.place) ?? shots[0]!;
+    return pointOnShot(active.shot, active.cam, point);
   }
 
   /** His mouth and his lap, in the post shot. */
@@ -1002,11 +988,7 @@ export class ShedScene implements Scene {
       },
       [el('span', { class: 'keys' }, keys), el('span', { class: 'what' }, [label, spec.how ? el('small', { text: s.orchard.how[spec.how] }) : null])],
     );
-    node.addEventListener('pointerdown', (event) => {
-      event.preventDefault();
-      audio.unlock();
-      this.promptDown(prompt.id);
-    });
+    bindPromptPointer(node, this.promptsEl, !!spec.hold, () => this.promptDown(prompt.id));
     this.promptEls.set(prompt.id, node);
     return node;
   }
@@ -1028,16 +1010,10 @@ export class ShedScene implements Scene {
 
   private drawShot(ctx: CanvasRenderingContext2D, shot: Shot, cam: Cam, alpha: number, props?: () => void): void {
     if (alpha <= 0) return;
-    const zoom = Math.max(1, cam.zoom);
     const top = -OVER * shot.focusY;
-    const x = clamp(cam.x, CX / zoom, PLATE.w - CX / zoom);
-    const y = clamp(cam.y, top + CY / zoom, top + PLATE.h - CY / zoom);
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.translate(CX, CY);
-    if (cam.roll) ctx.rotate(cam.roll);
-    ctx.scale(zoom, zoom);
-    ctx.translate(-x, -y);
+    ctx.transform(...shotTransform(shot, cam));
     const art = sprite(shot.plate);
     if (art) ctx.drawImage(art.img, 0, top, PLATE.w, PLATE.h);
     else {
@@ -1085,25 +1061,53 @@ export class ShedScene implements Scene {
     ctx.restore();
   }
 
-  /** The jump leads, red and black, from the loose end of the chain off the left of the picture. */
-  private drawLeads(ctx: CanvasRenderingContext2D, from: Point, to: Point, live: boolean): void {
+  /** Traced on the 1280 × 853 paintings. The tabletop leads curl over the timber lip. */
+  private readonly leadPaths = {
+    bench: [
+      new Path2D('M 378 532 C 407 537 395 574 462 581 S 568 565 591 588 C 619 615 574 619 590 633 C 604 645 604 641 608 664 C 622 751 650 808 714 893'),
+      new Path2D('M 379 547 C 421 550 405 590 479 599 S 565 582 574 599 C 583 617 550 621 553 636 C 553 652 568 647 570 678 C 570 743 601 827 641 886'),
+    ],
+    post: [
+      new Path2D('M 104 511 C 87 524 97 540 67 543 S 20 531 -8 544 L -50 560'),
+      new Path2D('M 101 520 C 82 523 84 552 58 554 S 19 544 -6 551 L -50 568'),
+    ],
+  };
+
+  private drawLeads(ctx: CanvasRenderingContext2D, place: 'bench' | 'post', live: boolean): void {
+    const bench = place === 'bench';
     ctx.save();
+    ctx.translate(0, -OVER * SHOT[place].focusY);
     ctx.lineCap = 'round';
-    for (const [color, dy] of [
-      ['#9c1c14', 0],
-      ['#1c1a18', 14],
-    ] as const) {
-      ctx.strokeStyle = '#140c08';
+    for (const [index, lead] of this.leadPaths[place].entries()) {
+      const red = index === 0;
+      ctx.save();
+      ctx.translate(-2, 4);
+      ctx.strokeStyle = '#301d1180';
+      ctx.lineWidth = 11;
+      ctx.stroke(lead);
+      ctx.restore();
+      ctx.strokeStyle = red ? '#48261d' : '#28231d';
       ctx.lineWidth = 9;
-      ctx.beginPath();
-      ctx.moveTo(from.x, from.y + dy);
-      ctx.quadraticCurveTo((from.x + to.x) / 2, Math.max(from.y, to.y) + 60 + dy, to.x, to.y + dy);
-      ctx.stroke();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 6;
-      ctx.stroke();
+      ctx.stroke(lead);
+      const sleeve = ctx.createLinearGradient(0, bench ? 530 : 505, 0, bench ? 760 : 573);
+      sleeve.addColorStop(0, red ? '#985139' : '#574f41');
+      sleeve.addColorStop(.45, red ? '#aa5537' : '#61594b');
+      sleeve.addColorStop(.56, red ? '#713a2b' : '#403c34');
+      sleeve.addColorStop(1, red ? '#593428' : '#38352f');
+      ctx.strokeStyle = sleeve;
+      ctx.lineWidth = 6.3;
+      ctx.stroke(lead);
+      ctx.save();
+      ctx.translate(.5, -1.5);
+      ctx.strokeStyle = red ? '#e6986594' : '#b0a38c80';
+      ctx.setLineDash([12, 8, 3, 7, 34, 21]);
+      ctx.lineWidth = 1.2;
+      ctx.stroke(lead);
+      ctx.restore();
     }
     if (live && Math.random() < 0.5) {
+      const from = bench ? { x: SPOT.battery.x, y: SPOT.battery.y + OVER * SHOT.bench.focusY }
+        : { x: SPOT.coil.x, y: SPOT.coil.y + OVER * SHOT.post.focusY };
       ctx.fillStyle = '#fff1b0';
       for (let i = 0; i < 4; i++) ctx.fillRect(from.x + (Math.random() - 0.5) * 30, from.y + (Math.random() - 0.5) * 20, 3, 3);
     }
@@ -1161,14 +1165,14 @@ export class ShedScene implements Scene {
       const ctx = this.app.ctx;
       const o = this.shed;
       if (place === 'post') {
-        if (o.wired) this.drawLeads(ctx, SPOT.coil, { x: -60, y: SPOT.coil.y + 40 }, this.lastDoing === 'current');
+        if (o.wired) this.drawLeads(ctx, 'post', this.lastDoing === 'current');
         this.drawBaker(ctx, SPOT.seat, SEATED, SPOT.postFoot);
       }
       if (place === 'bench') {
         // The picture has the leads and the hammer lying on the bench: not once they have been taken.
         if (o.holding === 'leads' || o.wired) this.drawBenchGap(ctx, 'leads');
         if (o.holding === 'hammer') this.drawBenchGap(ctx, 'hammer');
-        if (o.wired) this.drawLeads(ctx, SPOT.battery, { x: PLATE.w + 60, y: SPOT.battery.y + 80 }, this.lastDoing === 'current');
+        if (o.wired) this.drawLeads(ctx, 'bench', this.lastDoing === 'current');
       }
     };
   }
@@ -1188,7 +1192,7 @@ export class ShedScene implements Scene {
     ctx.drawImage(patch, box.x, box.y - OVER * SHOT.bench.focusY, box.w, box.h);
   }
 
-  private drawGround(ctx: CanvasRenderingContext2D): void {
+  private groundShots(): ShotLayer<Place>[] {
     const o = this.shed;
     const bob = this.walking ? Math.sin(this.stride * Math.PI) * 6 : 0;
 
@@ -1197,10 +1201,10 @@ export class ShedScene implements Scene {
       const w = smooth(o.walk);
       const zoom = 1.04 + this.time * 0.005 + w * 0.9;
       const cam: Cam = { zoom, x: lerp(CX, SPOT.far.x, w), y: lerp(CY, SPOT.far.y - 60, w) + bob };
-      this.drawShot(ctx, WIDE, cam, 1, () => this.drawBaker(ctx, SPOT.far, 150, null));
       const arriving = clamp01((o.walk - 0.74) / 0.26);
-      if (arriving > 0) this.drawShot(ctx, SHOT.post, { zoom: 1.22 - 0.17 * arriving, x: CX, y: CY + bob }, arriving, this.propsOf('post'));
-      return;
+      const shots: ShotLayer<Place>[] = [{ shot: WIDE, cam, alpha: 1 }];
+      if (arriving > 0) shots.push({ shot: SHOT.post, place: 'post', cam: { zoom: 1.22 - 0.17 * arriving, x: CX, y: CY + bob }, alpha: arriving });
+      return shots;
     }
 
     const roll = this.walking ? Math.sin(this.stride * Math.PI) * 0.006 : this.lastDoing === 'current' ? Math.sin(this.time * 23) * 0.004 : 0;
@@ -1209,11 +1213,19 @@ export class ShedScene implements Scene {
       const direction = Math.sign(PLACES.indexOf(o.heading) - PLACES.indexOf(o.place));
       const e = smooth(o.walk);
       const incoming = clamp01((e - 0.4) / 0.45);
-      this.drawShot(ctx, SHOT[o.place], { zoom: cam.zoom + 0.1 * e, x: cam.x + direction * e * 240, y: cam.y, roll }, 1, this.propsOf(o.place));
-      this.drawShot(ctx, SHOT[o.heading], { zoom: cam.zoom + 0.1 * (1 - e), x: CX - direction * (1 - e) * 240, y: CY + bob, roll }, incoming, this.propsOf(o.heading));
-      return;
+      return [
+        { shot: SHOT[o.place], place: o.place, cam: { zoom: cam.zoom + 0.1 * e, x: cam.x + direction * e * 240, y: cam.y, roll }, alpha: 1 },
+        { shot: SHOT[o.heading], place: o.heading, cam: { zoom: cam.zoom + 0.1 * (1 - e), x: CX - direction * (1 - e) * 240, y: CY + bob, roll }, alpha: incoming },
+      ];
     }
-    this.drawShot(ctx, SHOT[o.place], cam, 1, this.propsOf(o.place));
+    return [{ shot: SHOT[o.place], place: o.place, cam, alpha: 1 }];
+  }
+
+  private drawGround(ctx: CanvasRenderingContext2D): void {
+    for (const layer of this.groundShots()) {
+      const props = layer.place ? this.propsOf(layer.place) : () => this.drawBaker(ctx, SPOT.far, 150, null);
+      this.drawShot(ctx, layer.shot, layer.cam, layer.alpha, props);
+    }
   }
 
   /** The bare wall, and his shadow on it: what is seen of the current, and of the hammer. */

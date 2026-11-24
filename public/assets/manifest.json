@@ -2221,5 +2221,15 @@
     "file": "sprites/village_keepsakes.webp",
     "w": 384,
     "h": 384
+  },
+  "orchard_cable_repair": {
+    "file": "sprites/orchard_cable_repair.webp",
+    "w": 1728,
+    "h": 720
+  },
+  "orchard_tape_hand": {
+    "file": "sprites/orchard_tape_hand.webp",
+    "w": 173,
+    "h": 640
   }
 }

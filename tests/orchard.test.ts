@@ -111,9 +111,9 @@ describe('the orchard: walking in on it', () => {
     expect(player.cues).toContainEqual({ type: 'arrived', place: 'pole' });
   });
 
-  it('offers to go closer or to clap, and the way to the tree and the fence', () => {
+  it('first offers the rabbit and the two side paths', () => {
     const ids = promptsOf(new Player().walkIn().orchard).map((p) => p.id);
-    expect(ids).toEqual(['approach', 'clap', 'go_left', 'go_right']);
+    expect(ids).toEqual(['approach', 'go_left', 'go_right']);
   });
 
   it('lets the saw and the rope be looked at before anything happens, and not taken', () => {
@@ -141,8 +141,52 @@ describe('the orchard: walking in on it', () => {
 });
 
 describe('the orchard: clapping', () => {
+  const offered = (p: Player) => promptsOf(p.orchard).some(prompt => prompt.id === 'clap');
+
+  it('starts the idle wait when the walk-in control is released at the pole', () => {
+    const p = new Player().walkIn().hold(ORCHARD.clapWaitSeconds - .1).press('clap');
+    expect(p.orchard.beat).toBe('watch');
+    expect(offered(p)).toBe(false);
+    p.hold(.11);
+    expect(offered(p)).toBe(true);
+  });
+
+  it('recognises the walk-in key as an approach if it carries the player toward the rabbit', () => {
+    const p = new Player().walkIn().hold(.45, { forward: true }).press('clap');
+    expect(p.orchard.beat).toBe('watch');
+    expect(offered(p)).toBe(false);
+    p.hold(STEP);
+    expect(offered(p)).toBe(true);
+  });
+
+  it('ignores an early clap and lets the player discover it after a quiet 3.5 seconds', () => {
+    const player = new Player().walkIn().hold(.05, {forward: true}).hold(.15);
+    player.press('clap').hold(3.25).press('clap');
+    expect(player.orchard.beat).toBe('watch');
+    expect(offered(player)).toBe(false);
+    player.hold(.3);
+    expect(offered(player)).toBe(true);
+    expect(player.press('clap').said('clapped')).toBe(true);
+  });
+
+  it('offers the clap on letting go after a deliberate step, and remembers it on returning to the pole', () => {
+    const player = new Player().walkIn().hold(.1).hold(.1, { forward: true });
+    expect(offered(player)).toBe(false);
+    player.hold(STEP);
+    expect(offered(player)).toBe(true);
+    player.hold(.3).walkTo('tree');
+    expect(offered(player)).toBe(false);
+    player.walkTo('pole');
+    expect(offered(player)).toBe(true);
+  });
+
+  it('does not count time spent watching another part of the orchard', () => {
+    const p = new Player().walkIn().walkTo('fence').hold(5).walkTo('pole');
+    expect(offered(p)).toBe(false);
+  });
+
   it('sends it off, and the cable can be mended with both arms', () => {
-    const player = new Player().walkIn().press('clap');
+    const player = new Player().walkIn().hold(3.6).press('clap');
     expect(player.orchard.beat).toBe('mend');
     expect(player.said('clapped')).toBe(true);
     expect(promptsOf(player.orchard).map((p) => p.id)).toContain('splice');
@@ -158,7 +202,7 @@ describe('the orchard: clapping', () => {
   });
 
   it('needs the splice held to the end', () => {
-    const player = new Player().walkIn().press('clap').hold(ORCHARD.spliceSeconds * 0.7, { act: true }).hold(3);
+    const player = new Player().walkIn().hold(3.6).press('clap').hold(ORCHARD.spliceSeconds * 0.7, { act: true }).hold(3);
     expect(player.orchard).toMatchObject({ beat: 'mend', hold: 0, ending: null });
   });
 });

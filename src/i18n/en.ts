@@ -828,7 +828,7 @@ export const en: Strings = {
     ending: {
       spared: {
         title: 'A rabbit',
-        text: 'Two claps, and it was gone into the mist without looking back. You never saw its face. The cable is spliced: camera 4 is sending a picture again.',
+        text: 'One clap, and it was gone into the mist without looking back. You never saw its face. The cable is spliced: camera 4 is sending a picture again.',
         cost: 'Nothing lost. Twelve hours of daylight ahead.',
       },
       maimed: {

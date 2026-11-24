@@ -835,7 +835,7 @@ export const fr = {
     ending: {
       spared: {
         title: 'Un lapin',
-        text: 'Deux claques, et il a filé dans la brume sans se retourner. Tu n’as jamais vu sa tête. Le câble est raccordé : la caméra 4 renvoie une image.',
+        text: 'Tu as tapé une fois dans tes mains et il a filé dans la brume sans se retourner. Tu n’as jamais vu sa tête. Le câble est raccordé : la caméra 4 renvoie une image.',
         cost: 'Rien perdu. Douze heures de jour devant toi.',
       },
       maimed: {

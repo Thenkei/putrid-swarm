@@ -15,7 +15,7 @@ const URL = process.argv[4] ?? process.env.PS_URL ?? 'http://localhost:5173/';
 const LANG = process.env.PS_LANG ?? 'fr';
 mkdirSync(OUT, { recursive: true });
 
-const saves = JSON.parse(execFileSync('npx', ['tsx', 'tools/orchard-saves.ts'], { cwd: ROOT, encoding: 'utf8' }));
+const saves = JSON.parse(execFileSync(process.execPath, ['--import', 'tsx', 'tools/orchard-saves.ts'], { cwd: ROOT, encoding: 'utf8' }));
 const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1, locale: LANG === 'fr' ? 'fr-FR' : 'en-GB' });
 // The content warning is said once per browser: these tours are not here to read it.
@@ -140,11 +140,13 @@ for (const branch of BRANCHES) {
     await wait(500);
     await shot('a-07-fence');
     await holdUntil('ArrowLeft', 'approach');
+    await waitFor('clap');
     await page.keyboard.down('ArrowLeft');
     await page.keyboard.down('ArrowRight');
     await wait(60);
     await page.keyboard.up('ArrowLeft');
     await page.keyboard.up('ArrowRight');
+    await waitFor('splice');
     await wait(300);
     await shot('a-08-clapped');
     await wait(1200);
