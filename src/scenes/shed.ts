@@ -7,6 +7,8 @@
 import { PLATE, OVER, pointOnShot, shotTransform, type Cam, type Shot, type ShotLayer } from './shot-camera';
 import { PauseMenu } from './pause';
 import leadSleeves from '../render/shed-lead-sleeves.webp';
+import bakerHands from '../assets/baker-hands.webp';
+import { calmMotion } from '../render/lighting';
 import { bindPromptPointer, promptLayer } from './prompt-pointer';
 import { BOSS_NIGHT } from '../core/data/locations';
 import { settleShed } from '../core/game';
@@ -43,7 +45,7 @@ import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours } from '../engine/i18n';
+import { S, fmt, hours, line } from '../engine/i18n';
 import { hush, pickLine, say, sayAny, type VoiceId } from '../engine/voice';
 import { Atmosphere, drawArm } from './atmosphere';
 import { goDay, goEnd, goTitle } from './flow';
@@ -227,7 +229,7 @@ const FIRST: readonly VoiceId[] = ['vo_baker_first_1', 'vo_baker_first_2', 'vo_b
 
 const INTRO_SECONDS = 2.8;
 const TAKE_SECONDS = 0.5;
-const KNEAD_SECONDS = 4.5;
+const FLOUR_INSERT = 2.65;
 const POSE_FADE = 0.22;
 const OUTRO: Readonly<Record<Ending, number>> = { freed: 6.2, finished: 4.2, chained: 3.4, emptied: 5.6, bitten: 2.6 };
 const rememberEnding = (ending: Ending): boolean => remember(endingId('shed', ending));
@@ -295,7 +297,8 @@ export class ShedScene implements Scene {
   private prevPose: Pose = 'feral';
   private poseAt = -10;
   /** Seconds since flour went into his hands; null before. */
-  private kneading: number | null = null;
+  private flourInsert: number | null = null;
+  private readonly bakerHands = new Image();
   /** Seconds since he went for us; null otherwise. */
   private lunging: number | null = null;
   private lastDoing: ReturnType<typeof doing> = null;
@@ -332,6 +335,7 @@ export class ShedScene implements Scene {
   private remnantFill!: HTMLElement;
   private windowEl!: HTMLElement;
   private noteEl!: HTMLElement;
+  private gestureStatus!: HTMLElement;
   private overlay!: HTMLElement;
   private pauseMenu!: PauseMenu;
   private promptSignature = '';
@@ -348,6 +352,7 @@ export class ShedScene implements Scene {
 
   enter(): void {
     this.leadPainting.src = leadSleeves;
+    this.bakerHands.src = bakerHands;
     audio.setAmbience('day');
     audio.setMusic('shed');
     const s = S();
@@ -367,10 +372,12 @@ export class ShedScene implements Scene {
     this.gaugeEl = el('div', { class: 'shed-gauge' }, [el('div', { class: 'row' }, [bands, this.zoneEl]), this.remnantEl]);
     this.windowEl = el('div', { class: 'shed-window', text: s.shed.window });
     this.noteEl = el('div', { class: 'orchard-note' });
+    this.gestureStatus = el('span', { style: { position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clipPath: 'inset(50%)' } });
+    this.gestureStatus.setAttribute('role', 'status');
     this.overlay = el('div');
     const pauseOverlay = el('div');
     this.pauseMenu = new PauseMenu(pauseOverlay);
-    this.root = el('div', { class: 'orchard shed' }, [this.titleEl, this.gaugeEl, this.windowEl, this.promptsEl, this.noteEl, this.overlay, pauseOverlay]);
+    this.root = el('div', { class: 'orchard shed' }, [this.titleEl, this.gaugeEl, this.windowEl, this.promptsEl, this.noteEl, this.gestureStatus, this.overlay, pauseOverlay]);
     this.app.ui.append(this.root);
     this.after(1, () => this.line('vo_shed_arrive'));
   }
@@ -410,7 +417,7 @@ export class ShedScene implements Scene {
 
   /** Presses a key in the scene; true when it did something. */
   private send(key: Press): boolean {
-    if (this.phase !== 'play' || this.paused) return false;
+    if (this.phase !== 'play' || this.paused || this.flourInsert !== null) return false;
     const turn = press(this.shed, key);
     const changed = turn.shed !== this.shed;
     this.apply(turn);
@@ -462,11 +469,17 @@ export class ShedScene implements Scene {
         audio.play('gulp', 0.6);
         break;
       case 'floured':
+        hush();
         audio.play('flour');
-        this.kneading = 0;
+        this.flourInsert = 0;
+        this.gestureStatus.textContent = line('Du pouce, il essuie la farine sur son annulaire. Ses mains replient une pâte invisible.', 'His thumb wipes flour off his ring finger. His hands fold an invisible piece of dough.');
         this.atmo.spray(this.onScreen(this.lap()).x, this.onScreen(this.lap()).y, 22, '#f6efe0', { angle: -Math.PI / 2, spread: 2.6, speed: 160, size: 3, gravity: 120, life: 1.4 });
-        this.after(0.3, () => audio.play('knead'));
-        this.after(0.9, () => this.once('vo_baker_kneaded', true));
+        this.after(1.58, () => audio.play('knead', .48));
+        this.after(2.18, () => {
+          // His first lucid line about his wife follows immediately after the
+          // insert if the flour brought him back. Give that line the room.
+          if (this.shed.named || this.shed.presence < SHED.lucid) this.once('vo_baker_kneaded', true);
+        });
         break;
       case 'flash':
         hush();
@@ -700,10 +713,6 @@ export class ShedScene implements Scene {
     this.red = Math.max(0, this.red - dt * 2.2);
     this.flicker = Math.max(0, this.flicker - dt * 3);
     if (this.take && (this.take.t += dt) >= TAKE_SECONDS) this.take = null;
-    if (this.kneading !== null && (this.kneading += dt) >= KNEAD_SECONDS) {
-      this.kneading = null;
-      audio.fadeOut('knead', 0.5);
-    }
     if (this.lunging !== null) this.lunging += dt;
     this.atmo.update(dt);
 
@@ -711,7 +720,13 @@ export class ShedScene implements Scene {
       this.phase = 'play';
       this.phaseTime = 0;
     }
-    if (this.phase === 'play') this.play(dt);
+    if (this.flourInsert !== null) {
+      this.flourInsert += dt;
+      if (this.flourInsert >= FLOUR_INSERT) {
+        this.flourInsert = null;
+        audio.fadeOut('knead', 0.5);
+      }
+    } else if (this.phase === 'play') this.play(dt);
     if (this.phase === 'outro' && this.ending && this.phaseTime >= OUTRO[this.ending]) {
       if (isShedFate(this.ending)) this.settle();
       else this.showCard();
@@ -808,7 +823,7 @@ export class ShedScene implements Scene {
     let next: Pose = zone === 'feral' ? 'feral' : zone === 'drift' ? 'drift' : 'lucid';
     if (o.remnant < 0.35 && zone !== 'lucid') next = 'slump';
     if (this.lastDoing === 'drinking') next = 'drink';
-    if (this.kneading !== null && zone !== 'feral') next = 'knead';
+    if (this.flourInsert !== null && zone !== 'feral') next = 'knead';
     if (o.beat === 'lunge' || this.ending === 'bitten') next = 'lunge';
     if (this.ending === 'emptied') next = 'slump';
     if (this.ending === 'freed') next = this.phaseTime > 1.4 ? 'stand' : 'lucid';
@@ -931,7 +946,8 @@ export class ShedScene implements Scene {
     const titleOn = this.phase === 'intro' && this.phaseTime > 0.3 && this.phaseTime < INTRO_SECONDS - 0.5;
     this.titleEl.classList.toggle('on', titleOn);
 
-    const prompts = this.phase === 'play' && !this.paused ? promptsOf(o) : [];
+    const inPlay = this.phase === 'play' && this.flourInsert === null;
+    const prompts = inPlay && !this.paused ? promptsOf(o) : [];
     const signature = prompts.map((p) => `${p.id}:${p.to ?? ''}:${p.id === 'silence' ? o.named : ''}`).join('|');
     if (signature !== this.promptSignature) {
       this.promptSignature = signature;
@@ -948,7 +964,7 @@ export class ShedScene implements Scene {
     }
 
     // The gauge: where he is, between the virus and the man.
-    const gaugeOn = this.phase === 'play' && o.beat !== 'arrive';
+    const gaugeOn = inPlay && o.beat !== 'arrive';
     const zone = zoneOf(o.presence);
     this.gaugeEl.classList.toggle('on', gaugeOn);
     this.gaugeEl.dataset['zone'] = zone;
@@ -957,7 +973,7 @@ export class ShedScene implements Scene {
     this.remnantEl.classList.toggle('on', o.hurt);
     this.remnantEl.classList.toggle('low', o.remnant < 0.35);
     this.remnantFill.style.width = `${o.remnant * 100}%`;
-    this.windowEl.classList.toggle('on', this.phase === 'play' && canAsk(o));
+    this.windowEl.classList.toggle('on', inPlay && canAsk(o));
 
     const note = this.phase === 'outro' && this.ending === 'chained' && this.phaseTime > 1.8 ? s.shed.later : '';
     if (this.noteEl.textContent !== note) this.noteEl.textContent = note;
@@ -1393,6 +1409,19 @@ export class ShedScene implements Scene {
     ctx.restore();
     if (this.phase !== 'card') this.drawBody(ctx);
     this.drawVeil(ctx);
+    if (this.flourInsert !== null && this.bakerHands.complete && this.bakerHands.naturalWidth) {
+      const t = this.flourInsert;
+      const still = calmMotion();
+      const pose = t < .48 ? 0 : t < 1.14 ? 1 : t < 1.83 ? 2 : 3;
+      const sw = this.bakerHands.naturalWidth / 2, sh = this.bakerHands.naturalHeight / 2;
+      const push = still ? 1 : 1 + .045 * smooth(t / FLOUR_INSERT);
+      const dw = STAGE_W * push, dh = dw * sh / sw;
+      ctx.save();
+      ctx.globalAlpha = still ? 1 : Math.min(smooth(t / .14), smooth((FLOUR_INSERT - t) / .18));
+      ctx.drawImage(this.bakerHands, (pose % 2) * sw, Math.floor(pose / 2) * sh, sw, sh,
+        (STAGE_W - dw) / 2, CY - dh * .54, dw, dh);
+      ctx.restore();
+    }
 
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, STAGE_W, BAR);

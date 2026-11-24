@@ -9,16 +9,18 @@
 
 import { endingsOf, FINAL_CHORD, FINALE, JAM, JAM_MODES, SONG, chartOf, chordRate, chordsOf, finaleOf, recordMode, sectionAt, settle, startJam, strum, type FinaleKind, type Jam, type JamMode, type Note, type Verdict } from '../core/finale';
 import { hasLeftArm } from '../core/orchard';
+import { epicFlag } from '../core/epics';
 import { guestOf } from '../core/radio';
 import type { GameState } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt } from '../engine/i18n';
+import { S, fmt, line } from '../engine/i18n';
 import { keepJam, rememberEnding } from '../engine/progress';
 import { hush, say } from '../engine/voice';
 import { drawMobStride } from '../render/infected';
+import { drawFinaleLetter, LETTER, prepareFinaleLetter } from '../render/finale-letter';
 import { Atmosphere, drawArm } from './atmosphere';
 import { TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
 import { drawPlate } from './common';
@@ -26,10 +28,10 @@ import type { EndOptions } from './end';
 import { goEnd } from './flow';
 import { PauseMenu } from './pause';
 
-type Stage = 'dawn' | 'fall' | 'devoured' | 'shed' | 'jam' | 'swarm';
+type Stage = 'dawn' | 'fall' | 'devoured' | 'letter' | 'shed' | 'jam' | 'swarm';
 type JamCue = 'vo_finale_shed_dawn' | 'vo_finale_shed' | 'vo_finale_one_arm' | 'vo_finale_go';
 
-const SECONDS: Readonly<Record<Exclude<Stage, 'jam'>, number>> = { dawn: 10.4, fall: 3, devoured: 5.6, shed: 9, swarm: 9 };
+const SECONDS: Readonly<Record<Exclude<Stage, 'jam'>, number>> = { dawn: 10.4, fall: 3, devoured: 5.6, letter: LETTER.end, shed: 9, swarm: 9 };
 /** The seventh dawn: the quiet picture, then the same picture with everyone in it. */
 const DAWN = { reveal: 4.4, dissolve: 1.8, line: 6.4 } as const;
 
@@ -109,6 +111,7 @@ const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 export class FinaleScene implements Scene {
   private readonly kind: FinaleKind;
   private readonly oneArmed: boolean;
+  private readonly carriesLetter: boolean;
   private stage: Stage = 'fall';
   private time = 0;
   private stageTime = 0;
@@ -170,6 +173,7 @@ export class FinaleScene implements Scene {
     // A run that is not over has no business here; it is shown the short way out.
     this.kind = finaleOf(state) ?? 'desk';
     this.oneArmed = !hasLeftArm(state);
+    this.carriesLetter = this.kind !== 'desk' && !options.encore && Boolean(epicFlag(state, 'readComplaint'));
   }
 
   private get dawn(): boolean {
@@ -192,6 +196,11 @@ export class FinaleScene implements Scene {
   enter(): void {
     audio.setAmbience(this.dawn ? 'day' : 'night');
     audio.setMusic('none');
+    if (this.carriesLetter) {
+      prepareFinaleLetter();
+      void audio.prepareSample('letter_fold');
+      void audio.prepareSample('mower_start');
+    }
     this.root = el('div', { class: 'finale' });
     this.root.tabIndex = -1;
     this.pauseMenu = new PauseMenu(this.overlay, this.root);
@@ -260,13 +269,27 @@ export class FinaleScene implements Scene {
         this.skipNote();
         this.ending = { firstTime: this.remember() };
         break;
-      case 'shed':
+      case 'letter': {
+        hush();
         audio.setMusic('none');
         audio.play('shed_door');
+        this.after(LETTER.fold, () => audio.play('letter_fold', .62));
+        this.after(LETTER.turn, () => audio.play('mower_start'));
+        this.skipNote();
+        const insert = el('div', { class: 'finale-letter' });
+        insert.setAttribute('role', 'img');
+        insert.setAttribute('aria-label', line('Hugo relit « dimanche à 7 h 12 », glisse le recommandé sous la sangle et tourne la clé.', 'Hugo rereads “Sunday at 7:12”, slips the letter under the strap and turns the key.'));
+        this.root.prepend(insert);
+        if (document.hidden || !document.hasFocus()) this.pause(true);
+        break;
+      }
+      case 'shed':
+        audio.setMusic('none');
+        if (!this.carriesLetter) audio.play('shed_door');
         this.shake = 10;
         this.after(0.9, () => this.speakCue(this.dawn ? 'vo_finale_shed_dawn' : 'vo_finale_shed'));
         this.after(1.6, () => audio.play('amp_on'));
-        this.after(3.4, () => audio.play('mower_start'));
+        if (!this.carriesLetter) this.after(3.4, () => audio.play('mower_start'));
         if (this.oneArmed) this.after(3.6, () => this.speakCue('vo_finale_one_arm'));
         this.modeEls.clear();
         this.root.replaceChildren(
@@ -375,10 +398,14 @@ export class FinaleScene implements Scene {
     if (this.left) return;
     switch (this.stage) {
       case 'dawn':
-        this.go('shed');
+        this.go(this.carriesLetter ? 'letter' : 'shed');
         break;
       case 'fall':
-        this.go(this.kind === 'desk' ? 'devoured' : 'shed');
+        this.go(this.kind === 'desk' ? 'devoured' : this.carriesLetter ? 'letter' : 'shed');
+        break;
+      case 'letter':
+        if (this.stageTime < LETTER.turn) audio.play('mower_start');
+        this.go('shed');
         break;
       case 'shed':
         this.go('jam');
@@ -602,6 +629,11 @@ export class FinaleScene implements Scene {
       }
       return;
     }
+    if (this.stage === 'letter' && (code === 'Escape' || code === 'KeyP')) {
+      event.preventDefault();
+      this.pause(false);
+      return;
+    }
     if (this.stage === 'jam') {
       if (code === 'Escape') {
         event.preventDefault();
@@ -643,7 +675,7 @@ export class FinaleScene implements Scene {
   }
 
   onBlur(): void {
-    if (this.stage === 'jam' || this.stage === 'shed') this.pause(true);
+    if (this.stage === 'jam' || this.stage === 'shed' || this.stage === 'letter') this.pause(true);
   }
 
   private pause(auto: boolean): void {
@@ -722,7 +754,7 @@ export class FinaleScene implements Scene {
         }
       }
     }
-    if (this.stage === 'shed' && this.stageTime > 3.5) {
+    if (this.stage === 'shed' && (this.carriesLetter || this.stageTime > 3.5)) {
       // The engine has caught: the whole shed shakes with it, and it smokes.
       this.shake = Math.max(this.shake, 2.5);
       if ((this.smokeDue -= dt) <= 0) {
@@ -993,8 +1025,12 @@ export class FinaleScene implements Scene {
         }
         break;
       }
+      case 'letter':
+        if (!drawFinaleLetter(ctx, t)) drawPlate(ctx, 'plate_finale_shed');
+        if (this.dawn) this.daybreak(ctx, .22);
+        break;
       case 'shed': {
-        const start = clamp01((t - 3.5) / 0.6);
+        const start = this.carriesLetter ? 1 : clamp01((t - 3.5) / 0.6);
         smeared(() => drawPlate(ctx, 'plate_finale_shed', { zoom: 1.2 - Math.min(1, t / 5) * 0.16, focusX: 0.55, focusY: 0.55 }));
         if (this.dawn) this.daybreak(ctx, 0.6);
         // The headlights come up with the engine.
@@ -1002,7 +1038,7 @@ export class FinaleScene implements Scene {
         this.atmo.drawFront(ctx);
         // The two doors, thrown open from the middle.
         const open = 1 - Math.pow(1 - clamp01((t - 0.15) / 0.55), 3);
-        if (open < 1) {
+        if (!this.carriesLetter && open < 1) {
           ctx.fillStyle = '#060403';
           ctx.fillRect(0, 0, CENTRE.x * (1 - open), STAGE_H);
           ctx.fillRect(STAGE_W - CENTRE.x * (1 - open), 0, CENTRE.x * (1 - open), STAGE_H);

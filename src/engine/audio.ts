@@ -100,6 +100,8 @@ export type Sfx =
   | 'gulp'
   | 'flour'
   | 'knead'
+  | 'baker_bowl_slide'
+  | 'letter_fold'
   | 'clamp'
   | 'unlock'
   | 'thud'
@@ -1241,6 +1243,14 @@ class AudioEngine {
         break;
       case 'gulp':
         for (let i = 0; i < 3; i++) this.tone('sine', 220, 120, 0.12, 0.18, i * 0.38);
+        break;
+      case 'baker_bowl_slide':
+        this.noise('bandpass', 760, 410, .35, .056, 0, 2);
+        this.tone('triangle', 340, 240, .075, .025, .32);
+        break;
+      case 'letter_fold':
+        this.noise('highpass', 2300, 4000, .16, .044);
+        this.noise('bandpass', 2800, 900, .24, .049, .16, 2);
         break;
       case 'flour':
       case 'knead':

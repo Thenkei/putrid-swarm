@@ -85,6 +85,8 @@ Each night from the second to the seventh has one special scene. Daytime clues c
 
 [Watch the stove return, the VHS ejection, the wolf at the gate and the neighbour crossing the gardens](docs/previews/epic-story-details.mp4).
 
+[Watch the baker’s hands, the last watch and the neighbour’s letter on the mower, with the in-game sound](docs/previews/night-watch-echoes.mp4).
+
 | Night | At the desk |
 | --- | --- |
 | 2 | Brace the kitchen door under pressure. A sketch found in town unlocks a trip outside with the stove. Catch the swinging key to get back inside. If you used the flame, your fingerprints are still on the lock when you find the cold ravioli the next day. |
@@ -92,7 +94,7 @@ Each night from the second to the seventh has one special scene. Daytime clues c
 | 4 | Follow the tape from the market hall past the cinema, under the tracks and on to the garage. Sweep three lanes with the belt-fed machine gun and dodge the armoured carts. The sleeve from the post office doubles the cycling postman’s bonus. At the red gate the tape catches. Eject it and listen to the door beside the TV. |
 | 5 | Follow a cub across three camera feeds. An adult lets an infected pass as it watches the cub. Work the gate, then look for pawprints or disturbed earth in the morning report and around the gate the next day. |
 | 6 | Guide a neighbour through three gardens. He looks for your window and raises a hand when he sees the signal. Preparing the lamp shortens his reaction time. A striped sheet marks his route from the hedge to the washing line and the greenhouse glass. |
-| 7 | Match frequency and phase on the relay scope. Earlier rescues can supply either setting. Reconnecting tunes the desk to a sector and restores up to twelve energy. |
+| 7 | Match frequency and phase on the relay scope. If you helped the neighbour, watch the reflection of his window for three flashes. If the cub made it through, listen for its call and watch the gate feed. Each ally gives you one setting. Reconnecting tunes the desk to a sector and restores up to twelve energy. |
 
 ## The loop as built
 
@@ -122,6 +124,7 @@ Each night from the second to the seventh has one special scene. Daytime clues c
 
 5. **The shed, once.** At the end of night 4 one of them has got itself shut in the shed at the bottom of the garden, and at dawn the protagonist chained it to the post: it is the baker. The day does not start before someone has been in. Under a tarpaulin in the corner, strapped down, something big that nobody explains.
    - **Between the man and the virus.** A gauge shows where he is: the beast, in between, *him*, and past that, breaking. Left alone, the virus pulls him down; sitting in silence out of reach brings him halfway, water or a handful of flour from the shelf (crouched within his reach) brings him back. The first time he comes back he says who is waiting for him, and from then on talking about her takes him further. Questions (`1`–`4`) can only be asked while he is there: where his van is, who comes tonight, what the chief does, and who the first one was. Each answer costs him: the virus comes back at once, harder each time, and goes for whoever is still crouched by him (a step back in under a second, or it is the end of the run). Asked too low, he is cut off mid-sentence. The first one, he never gets to the end of.
+   - When you give the baker flour, he rubs his ring finger and folds an imaginary piece of dough. Look for his bakery stamp on the first bundle of wood the morning after his release. If you left him chained, he pushes his empty enamel bowl towards you when you bring him water.
    - **The current.** The jump leads clipped to his chain and the battery on the bench bring him up fast, from out of reach, while the protagonist looks at the wall. It costs what is left of him (shown once it has been used), and held too long nothing is left: he is finished off there and then. Whoever used it cannot let him go.
    - **How it ends.** Let go (only by someone who never hurt him, while he is there): every morning after, a bundle of oven wood at the gate, +2 planks. Left chained (the way out, any time): every morning after, a quarter of an hour taking him water. The hammer, or the current until nothing was left: half an hour digging, that day. The shed takes three quarters of an hour and two minutes per second inside, to the quarter hour, at most four and a half hours, plus half an hour to fetch his van if he said where it is (+6 planks, +2 batteries). What he said about tonight shows on the day's "tonight" card door by door, from the wave table itself; what he said about the chief shows on day 6's, in the chief's own numbers. Five endings, counted on the recap card; a bite retries that morning.
 
@@ -171,7 +174,7 @@ The house falls when its integrity reaches zero; infected only get in through a 
 | 2 | Le Tondeur | mows a straight lane from door to door; flattens palisades in it |
 | 3 | prowlers, rams, jumpers | flanking, breaching, clearing obstacles |
 | 4 | Le Dépanneur | winds up, then rams with his hoist |
-| 5 | La Dernière Tournée | two knocks per door, exploits any breach. On her first stop at the gate she waits for a signature. A wet slip in the yard mailbox on the fourth afternoon announces her visit. Leave her undisturbed and a registered letter can be opened in the morning |
+| 5 | La Dernière Tournée | two knocks per door, exploits any breach. On her first stop at the gate she waits for a signature. A wet slip in the yard mailbox on the fourth afternoon announces her visit. Leave her undisturbed and a registered letter can be opened in the morning. If you read the complaint, the same letter comes out of your pocket when you start the mower. |
 | 6 | Le Chef de la Police | shields the queue around him, makes it ignore the horn |
 | 7 | Le Maire | every speech brings reinforcements to another sector |
 
