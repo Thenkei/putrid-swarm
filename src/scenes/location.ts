@@ -364,7 +364,7 @@ export class LocationScene implements Scene {
       this.hud.querySelector<HTMLButtonElement>(`[data-spot="${index}"]`)?.focus();
     };
     const attempt = result.value;
-    // Noise the panel reports rides on whichever outcome the attempt settles into.
+    // Outcomes were prepared before the attempt. Carry the noise already saved into them.
     let heard = 0;
     const withNoise = (state: GameState): GameState => {
       const next = makeNoise(state, heard);
@@ -379,10 +379,7 @@ export class LocationScene implements Scene {
         this.noticeLostSearch(attempt.paid);
       },
       () => {
-        // Walking away from a started attempt does not unmake what the street already heard.
         if (heard > 0) {
-          this.app.state = withNoise(this.state);
-          this.app.save();
           this.refresh();
           this.noticeLostSearch(attempt.paid);
         }
@@ -416,7 +413,10 @@ export class LocationScene implements Scene {
         }
       },
       amount => {
+        if (amount <= 0) return;
         heard += amount;
+        this.app.state = makeNoise(this.state, amount);
+        this.app.save();
       },
     );
     this.hud.inert = true;
