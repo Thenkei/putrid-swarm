@@ -6,12 +6,12 @@ import { ENTRIES, GRID_H, GRID_W, HOUSE_CENTER, PROPS, propAt, sectorOf, type Pr
 import type { DeviceRuntimeState, Enemy, LogTarget, NightSim } from '../core/night';
 import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
-import { sprite } from '../engine/assets';
+import { paintingImage, preparePaintings, sprite, type Sprite } from '../engine/assets';
 import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseMotion, type LogLayer } from './defenses';
 import { drawDecals } from './aftermath';
 import { drawEnemy, drawFallen, FALL_SECONDS, type Fallen } from './infected';
 import { drawGround, prepareGround, setGroundDresser } from './ground';
-import { DOOR_OPENINGS, VISIBLE_DOORS, doorStance, hingedLeaves, houseDamageStage, outsideSillDepth, paintHouse, type HouseDoor } from './house';
+import { DOOR_OPENINGS, VISIBLE_DOORS, damagedFacade, doorStance, hingedLeaves, houseDamageStage, outsideSillDepth, paintHouse, type HouseDoor } from './house';
 import { mopedRideDrawable } from './moped';
 import { drawHouseDebris, type HouseBreak } from './house-debris';
 import { calmMotion, drawCloudShadows, drawMist, type Light } from './lighting';
@@ -263,7 +263,7 @@ interface Picture {
 }
 
 /** `lean` shears the picture about its foot (the wind in a tree): its top moves by `lean` times its height. */
-function drawPicture(ctx: CanvasRenderingContext2D, art: Picture, x: number, y: number, height: number, flip: boolean, alpha: number, lean: number, foot: Foot) {
+function drawPicture(ctx: CanvasRenderingContext2D, art: Picture, x: number, y: number, height: number, flip: boolean, alpha: number, lean: number, foot: Foot, image = art.img) {
   const h = height;
   const w = (art.w / art.h) * h;
   ctx.save();
@@ -271,14 +271,14 @@ function drawPicture(ctx: CanvasRenderingContext2D, art: Picture, x: number, y: 
   if (lean !== 0) ctx.transform(1, 0, -lean, 1, x, y);
   else ctx.translate(x, y);
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(art.img, -w * foot[0], -h * foot[1], w, h);
+  ctx.drawImage(image, -w * foot[0], -h * foot[1], w, h);
   ctx.restore();
   return spriteRect({ x, y }, w, h, foot, flip);
 }
 
 function drawSprite(ctx: CanvasRenderingContext2D, key: string, x: number, y: number, height: number, flip = false, alpha = 1, lean = 0, foot: Foot = BOTTOM_CENTRE) {
   const art = sprite(key);
-  return art ? drawPicture(ctx, art, x, y, height, flip, alpha, lean, foot) : null;
+  return art ? drawPicture(ctx, art, x, y, height, flip, alpha, lean, foot, paintingImage(art)) : null;
 }
 
 /** Coordinates are relative to the top left of the painted prop, before camera zoom. */
@@ -428,7 +428,20 @@ export function prepareWorld(...views: View[]): void {
   for (const view of views) prepareForest(view);
 }
 
+let preparedHouseStage = -1;
+
+/** The first monitor faces the gate. Prepare the reverse paintings while that side is on screen. */
+function prepareRearPaintings(health: number): void {
+  const stage = houseDamageStage(health);
+  if (stage === preparedHouseStage) return;
+  preparedHouseStage = stage;
+  const rear = HOUSE_ART[1].key;
+  const art = [damagedFacade(rear, stage) ?? sprite(rear), ...PROPS.map(prop => sprite(propSpriteKey(prop.kind, 1)))];
+  void preparePaintings(new Set(art.filter((item): item is Sprite => item !== undefined)));
+}
+
 export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): void {
+  prepareRearPaintings(frame.houseHpRatio);
   const z = view.zoom;
   ctx.save();
   ctx.beginPath();

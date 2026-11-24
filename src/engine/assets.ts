@@ -80,3 +80,39 @@ export async function loadAssets(onProgress: (done: number, total: number) => vo
 
 export const sprite = (key: string): Sprite | undefined => sprites.get(key);
 export const assetUrl = (key: string): string | undefined => sprites.get(key)?.img.src;
+
+// A thumbnail can be decoded at a smaller scale than the same painting on the
+// main monitor. Hold the pixels for the selected paintings across zoom changes.
+const paintings = new Map<Sprite, { bitmap?: ImageBitmap }>();
+
+export function paintingImage(art: Sprite): HTMLImageElement | ImageBitmap {
+  return paintings.get(art)?.bitmap ?? art.img;
+}
+
+export async function preparePaintings(selection: ReadonlySet<Sprite>): Promise<void> {
+  if (typeof createImageBitmap !== 'function') return;
+  for (const [art, entry] of paintings) {
+    if (selection.has(art)) continue;
+    entry.bitmap?.close();
+    paintings.delete(art);
+  }
+  const pending = [];
+  for (const art of selection) {
+    if (paintings.has(art)) continue;
+    const entry: { bitmap?: ImageBitmap } = {};
+    paintings.set(art, entry);
+    pending.push({ art, entry });
+  }
+  for (const { art, entry } of pending) {
+    await new Promise<void>(resume => requestAnimationFrame(() => resume()));
+    if (paintings.get(art) !== entry) continue;
+    try {
+      await art.img.decode();
+      const bitmap = await createImageBitmap(art.img);
+      if (paintings.get(art) === entry) entry.bitmap = bitmap;
+      else bitmap.close();
+    } catch {
+      // The loaded image remains drawable when the browser cannot retain a bitmap.
+    }
+  }
+}
