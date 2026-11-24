@@ -15,6 +15,8 @@ export class GardenEscort {
   strikes = 0;
   advance = false;
   walking = false;
+  signalTime = -Infinity;
+  signalPosition = 0;
   outcome: 'playing' | 'home' | 'fled' = 'playing';
   private delay = 0;
   private checkpoint = 0;
@@ -44,6 +46,8 @@ export class GardenEscort {
   signal() {
     if (this.outcome !== 'playing') return;
     this.advance = !this.advance;
+    this.signalTime = this.time;
+    this.signalPosition = this.position;
     this.delay = this.lamp ? 0 : 0.4;
   }
 
@@ -60,12 +64,14 @@ export class GardenEscort {
       this.position = this.checkpoint;
       this.alert = 0;
       this.walking = this.advance = false;
+      this.signalTime = -Infinity;
       if (this.strikes === 2) return this.outcome = 'fled';
       return 'caught';
     }
     if (this.position < this.layout.length) return 'moving';
     this.position = this.layout.length;
     this.walking = this.advance = false;
+    this.signalTime = -Infinity;
     if (this.garden === GARDENS.length - 1) return this.outcome = 'home';
     this.garden++;
     this.position = this.checkpoint = this.time = this.alert = 0;

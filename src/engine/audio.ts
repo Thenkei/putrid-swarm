@@ -7,7 +7,7 @@ import { Decks } from './deck';
 
 export type Sfx =
   | 'epic_flare' | 'moped_door' | 'moped_blade_contact' | 'epic_mob' | 'epic_mob_blast' | 'epic_tape' | 'epic_pack'
-  | 'bolt_slide' | 'bolt_seat' | 'photo_dip' | 'photo_lift' | 'vhs_play' | 'vhs_eject'
+  | 'bolt_slide' | 'bolt_seat' | 'photo_dip' | 'photo_lift' | 'vhs_play' | 'vhs_eject' | 'vhs_knock'
   | 'click'
   | 'deny'
   | 'build'
@@ -161,6 +161,7 @@ const VARIANTS: Partial<Record<Sfx, readonly string[]>> = {
   hit: numbered('hit', 3),
   kill: numbered('kill', 3),
   door: numbered('door', 3),
+  vhs_knock: ['door'],
   build: numbered('build', 3),
   rummage: numbered('rummage', 4),
   loot: numbered('loot', 3),
@@ -929,6 +930,12 @@ class AudioEngine {
       case 'kill':
         this.tone('sawtooth', 130, 45, 0.3, 0.16);
         this.noise('lowpass', 500, 100, 0.25, 0.25, 0.04);
+        break;
+      case 'vhs_knock':
+        for (const delay of [0, .32, .62]) {
+          this.noise('lowpass', 620, 110, .12, .19, delay / rate);
+          this.tone('triangle', 104, 51, .13, .17, delay / rate);
+        }
         break;
       case 'door':
         this.tone('sine', 85, 45, 0.16, 0.5);

@@ -44,7 +44,7 @@ function wolf(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number
 
 function infected(ctx: CanvasRenderingContext2D, x: number, time: number) {
   lightPool(ctx,x,295,29,6,'#050b10bb');
-  if (patrolCel(ctx,x,295,88,1,time)) return;
+  if (patrolCel(ctx,x,295,88,-1,time)) return;
   const stride = Math.sin(time * 7);
   ctx.save();
   ctx.translate(x, 295);
@@ -139,13 +139,32 @@ function portcullis(ctx: CanvasRenderingContext2D, lift: number, time: number) {
   ctx.restore();
 }
 
+/** The last straggler passes behind the adult's lowered muzzle and out the far
+ * side of the lamp. Its feet and the cub's route are on different ground planes. */
+function passingStraggler(ctx: CanvasRenderingContext2D, phase: number, still: boolean) {
+  if (phase >= PACK_GAP && phase < PACK_RETURN) return;
+  const x = still ? 561 : phase >= PACK_RETURN
+    ? -75 + (phase - PACK_RETURN) * 494 : 419 + phase * 178;
+  const y = 286 + (x - 419) * .045;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(.94, .96);
+  lightPool(ctx, 9, -1, 32, 7, '#0f171eb0');
+  if (!patrolCel(ctx, 0, 0, 105, -1, still ? .22 : phase)) {
+    ctx.translate(0, -295);
+    infected(ctx, 0, still ? 0 : phase);
+  }
+  ctx.restore();
+}
+
 function waitingAdult(ctx: CanvasRenderingContext2D, time: number, crossing: number) {
   const settled = calmMotion() ? 1 : smoothstep(0, 2.2, time);
   const x = 782 - settled * 129 - smoothstep(.55, 1, crossing) * 19;
   const y = 311 + settled * 26;
   const stride = settled < 1 ? Math.sin(time * 9) * (1 - settled) * 3 : 0;
-  const pose = crossing > .55 ? 2 : settled < .75 ? 0 : 1;
+  const pose = crossing > .55 ? 2 : settled < .17 ? 0 : 1;
   lightPool(ctx,x,y-4,83,22,'#b4c7d831');
+  lightPool(ctx,x+16,y,58,10,'#e5b87827');
   lightPool(ctx,x,y,55,10,'#071018c0');
   wolf(ctx, x, y + stride, 1.04 + settled *.51, -1, calmMotion()?0:time, pose);
   if(!calmMotion()){
@@ -180,9 +199,10 @@ export function moonFeed(canvas: HTMLCanvasElement, camera: number, subject: num
       ctx.translate(119, 29);
       ctx.scale(.82, .73);
       ctx.globalAlpha = .84;
-      for (let i = 0; i < 3; i++) infected(ctx, 145 + movement * 116 + i * 72, air + i);
+      for (let i = 0; i < 2; i++) infected(ctx, 145 + movement * 116 + i * 72, air + i);
       ctx.restore();
     }
+    passingStraggler(ctx, phase, still);
     waitingAdult(ctx,arrivalTime,crossing);
     // The cub starts beyond the ironwork, passes through the opening towards the camera,
     // then turns across the lane towards the adult on the near side.
@@ -213,6 +233,7 @@ export function moonFeed(canvas: HTMLCanvasElement, camera: number, subject: num
       cub(ctx,0,1,air,false);ctx.restore();
     }
     portcullis(ctx,0,air);
+    passingStraggler(ctx, still ? 1 : packPhase(arrivalTime + .65), still);
     waitingAdult(ctx,arrivalTime,0);
     // A second member hangs back in the orchard. Its silhouette supplies a sense of scale.
     ctx.save();ctx.globalAlpha=.65;wolf(ctx,188,266,.57,1,air,0);ctx.restore();

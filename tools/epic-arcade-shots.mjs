@@ -306,7 +306,14 @@ async function arcade(profile, motion, armless = false) {
       writeFileSync(join(OUT,'vhs-'+filename),Buffer.from(captures[row+'-'+pose].split(',')[1],'base64'));
     }
   }
-  await click(btn('Éjecter'));
+  if (profile === 'desktop' && motion === 'no-preference' && !armless) {
+    await page.locator('.vhs-room').waitFor({timeout:40000});
+    await page.getByRole('status').filter({hasText:'porte du refuge'}).waitFor();
+    await shot('vhs-door');
+  } else {
+    await click(btn('Éjecter'));
+    await page.locator('.vhs-room').waitFor();
+  }
   assert.ok(await page.evaluate(()=>Number(localStorage.getItem('putrid-swarm.vhs-best'))>0));
   await click(btn('Reprendre la veille'));
   await page.locator('.epic-night').waitFor({state:'detached'});

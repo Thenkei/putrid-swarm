@@ -1,6 +1,6 @@
 // The morning after: what the night cost, told by the yard itself.
 
-import { epicFlag, wreckSector } from '../core/epics';
+import { epicFlag, packTrail, wreckSector, type PackTrail } from '../core/epics';
 import { BARRICADE, DEVICES, HOUSE_MAX_HP } from '../core/data/devices';
 import { chapterWaiting } from '../core/chapters';
 import { bossOfNight, startNextDay } from '../core/game';
@@ -10,13 +10,15 @@ import type { GameState, NightHighlight } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { STAGE_H, type App, type Pointer, type Scene } from '../engine/app';
 import { audio } from '../engine/audio';
+import { sprite } from '../engine/assets';
 import { el } from '../engine/dom';
 import { S, fmt, line } from '../engine/i18n';
 import { calmMotion } from '../render/lighting';
 import { MorningGarden } from '../render/morning-garden';
+import { paintedPackTrail } from '../render/pack-tracks';
 import { smoothstep } from '../render/noise';
 import { cameraView, drawWorld, type View, type WorldFrame } from '../render/world';
-import { drawPlate, oneArmed } from './common';
+import { drawPlate, heroArt, oneArmed } from './common';
 import { CassettePlayer } from './cassette';
 import { goChapter, goDay } from './flow';
 
@@ -24,6 +26,22 @@ import { goChapter, goDay } from './flow';
 const SPOT_RADIUS = 1.2;
 const INSPECT_IN = 0.64;
 const INSPECT_OUT = 0.46;
+
+/** The scrap in the morning letter is an enlargement of the actual muddy
+ * gateway, including the tracks still visible behind the report. */
+function trackDetail(trail: PackTrail, armless: boolean): HTMLCanvasElement | null {
+  const plate = sprite(heroArt('plate_morning', armless));
+  if (!plate) return null;
+  const detail = el('canvas', { class: 'morning-track-detail' });
+  detail.width = 552; detail.height = 210;
+  detail.setAttribute('aria-hidden', 'true');
+  const ctx = detail.getContext('2d');
+  if (!ctx) return null;
+  ctx.scale(3, 3); ctx.translate(-48, -309);
+  ctx.drawImage(plate.img, 0, 0, 690, 460);
+  paintedPackTrail(ctx, trail);
+  return detail;
+}
 
 export class MorningScene implements Scene {
   private time = 0;
@@ -47,7 +65,8 @@ export class MorningScene implements Scene {
     const state = this.state;
     const report = state.lastNight;
     const night = report?.night ?? state.day;
-    this.garden = new MorningGarden(night);
+    const trail = packTrail(state);
+    this.garden = new MorningGarden(night, trail);
     const kills = report ? Object.values(report.kills).reduce((sum, n) => sum + (n ?? 0), 0) : 0;
 
     // The neighbour of the night: beaten, or gone home at first light.
@@ -87,10 +106,15 @@ export class MorningScene implements Scene {
     ]);
     this.app.ui.append(card);
     const letters = el('div', { class: 'morning-mail' });
-    if (night === 5 || (night === 6 && epicFlag(state, 'neighbor'))) {
+    if (trail || (night === 6 && epicFlag(state, 'neighbor'))) {
+      const account = trail === 'together' ? line('Deux grandes pistes et une petite ressortent ensemble par le portail.', 'Two large sets of prints and a small one lead out through the gate together.')
+        : trail === 'digging' ? line('Devant le portail fermé, deux pistes longent la clôture. Au pied d’un poteau, la terre fraîche est striée de griffes.', 'Two trails follow the fence beside the closed gate. Fresh claw marks score the loose earth at the foot of a post.')
+        : trail === 'ditch' ? line('Les petites empreintes bifurquent vers le fossé. Deux grandes pistes les suivent le long de la clôture.', 'The small prints veer towards the ditch. Two larger sets follow them along the fence.')
+        : line('Deux grandes pistes longent la clôture.', 'Two large sets of tracks run along the fence.');
       letters.append(el('details', { class: 'morning-letter postal-paper' }, [
         el('summary', { text: night === 5 ? line('Traces dans la boue', 'Tracks in the mud') : line('La fenêtre d’en face', 'Across the street') }),
-        el('p', { text: night === 6 ? line('Un cendrier sur le rebord. « Bien reçu, ducon. »', 'An ashtray on the sill. “Got it, asshole.”') : epicFlag(state, 'cub') ? line('Deux grandes pistes et une petite ressortent ensemble par le portail.', 'Two large sets of prints and a small one lead out through the gate together.') : line('Deux pistes longent la clôture. Sous le portail, de toutes petites griffes ont creusé la terre.', 'Two trails follow the fence. Tiny claws have dug into the dirt under the gate.') }),
+        trail ? trackDetail(trail, oneArmed(state)) : null,
+        el('p', { text: night === 6 ? line('Un cendrier sur le rebord. « Bien reçu, ducon. »', 'An ashtray on the sill. “Got it, asshole.”') : account }),
       ]));
     }
     if (report?.letterDelivered === true) {
@@ -127,6 +151,7 @@ export class MorningScene implements Scene {
         time: 0,
         night: false,
         mopedWreck: wreckSector(this.state),
+        packTrail: packTrail(this.state),
         carPresent: true,
         houseHpRatio: yard.houseHp / HOUSE_MAX_HP,
         barricades: yard.barricades,

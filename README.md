@@ -83,13 +83,15 @@ Each night from the second to the seventh has one special scene. Daytime clues c
 
 [Watch gameplay from all six nights with in-game audio (35 seconds)](docs/previews/epic-nights.mp4) · [View the six scenes](docs/previews/epic-nights.webp) · [Watch Gérard’s moped from the yard to the morning after](docs/previews/epic-moped.mp4).
 
+[Watch the stove return, the VHS ejection, the wolf at the gate and the neighbour crossing the gardens](docs/previews/epic-story-details.mp4).
+
 | Night | At the desk |
 | --- | --- |
-| 2 | Brace the kitchen door under pressure. A sketch found in town unlocks a trip outside with the stove, followed by a timed return. |
+| 2 | Brace the kitchen door under pressure. A sketch found in town unlocks a trip outside with the stove. Catch the swinging key to get back inside. If you used the flame, your fingerprints are still on the lock when you find the cold ravioli the next day. |
 | 3 | Develop a garage photograph, clear the aisle and bring Gérard’s moped home in the wagon. Aim it at a door during the day. The headlamp turns and a tyre track shows its route. At night, release it from the desk when a crowd approaches the hedge. The door swings open, the fork jolts at the first blade contact, and the moped explodes at the far end. You get one ride per run. The wreck is still there to inspect the next morning. |
-| 4 | Follow the tape from the market hall past the cinema, under the tracks and on to the garage. Sweep three lanes with the belt-fed machine gun and dodge the armoured carts. The sleeve from the post office doubles the cycling postman’s bonus. Ejecting the tape returns you to the watch. |
-| 5 | Follow a cub across three camera feeds, then work the gate while the infected pass. |
-| 6 | Guide a neighbour through three gardens. Signal when to walk and when to duck. Preparing the window lamp shortens his reaction time. |
+| 4 | Follow the tape from the market hall past the cinema, under the tracks and on to the garage. Sweep three lanes with the belt-fed machine gun and dodge the armoured carts. The sleeve from the post office doubles the cycling postman’s bonus. At the red gate the tape catches. Eject it and listen to the door beside the TV. |
+| 5 | Follow a cub across three camera feeds. An adult lets an infected pass as it watches the cub. Work the gate, then look for pawprints or disturbed earth in the morning report and around the gate the next day. |
+| 6 | Guide a neighbour through three gardens. He looks for your window and raises a hand when he sees the signal. Preparing the lamp shortens his reaction time. A striped sheet marks his route from the hedge to the washing line and the greenhouse glass. |
 | 7 | Match frequency and phase on the relay scope. Earlier rescues can supply either setting. Reconnecting tunes the desk to a sector and restores up to twelve energy. |
 
 ## The loop as built

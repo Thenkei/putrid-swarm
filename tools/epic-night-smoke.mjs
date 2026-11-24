@@ -52,7 +52,7 @@ try {
     const manifest = await (await fetch('./assets/audio/manifest.json')).json();
     const audio = new AudioContext();
     try {
-      const ids = Object.keys(manifest).filter(id => /^(vo_)?epic_/.test(id));
+      const ids = Object.keys(manifest).filter(id => /^(vo_)?epic_/.test(id) || id === 'vhs_eject');
       return await Promise.all(ids.map(async id => {
         const response = await fetch('./assets/audio/' + manifest[id].file);
         const sample = await audio.decodeAudioData(await response.arrayBuffer());
@@ -71,8 +71,19 @@ try {
   const flags = await refuge.evaluate(() => JSON.parse(localStorage.getItem('putrid-swarm.save.v1')).flags);
   assert.equal(flags['epic.lamp'], 1);
   assert.equal(flags['epic.lane'], 1);
+  await refuge.close();
+  // A sacrificed stove predates the lock print in existing saves. Both mornings
+  // have the meal, while only a completed, sooty key return leaves a mark.
+  for (const printed of [false, true]) {
+    const kitchen = await openSave({ ...newGame(54), day: 3, flags: { 'epic.stove': 1, ...(printed && { 'epic.sootyLock': 1 }) } });
+    await kitchen.locator('summary').filter({ hasText: 'Clean patch of lino' }).click();
+    const photo = kitchen.locator('.stove-morning-photo');
+    await photo.locator('img').evaluate(img => img.decode());
+    assert.equal(await photo.locator('.stove-soot-print').count(), Number(printed));
+    await kitchen.close();
+  }
   assert.deepEqual(errors, []);
-  console.log('Passed: portrait print, pause/resume, focus, desk return, two concurrent refuge discoveries, ' + decoded.length + ' decoded sound files.');
+  console.log('Passed: portrait print, pause/resume, focus, desk return, refuge discoveries, both stove mornings, ' + decoded.length + ' decoded sound files.');
 } finally {
   await browser.close();
 }

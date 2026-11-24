@@ -1,6 +1,6 @@
 import type { GardenEscort } from '../core/garden-escort';
 import { lightPool, patrolCel } from './epic-night-light';
-import { paintGardenPlate } from './garden-scenery';
+import { drawGardenGesture, gardenLaundry, paintGardenPlate, sheetContact, signalWindow, windowIsRight } from './garden-scenery';
 import { applyCctv, calmMotion, drawRetune } from './lighting';
 import neighbourArt from './epic-neighbour.webp';
 
@@ -13,7 +13,7 @@ const escortPose = new WeakMap<GardenEscort, { walking: boolean; garden: number;
 const walkFrames = [0, 1, 2, 1] as const;
 
 /** All six painted poses share the same scale, but the kneeling boots sit higher in the sheet. */
-function paintedNeighbour(ctx: CanvasRenderingContext2D, x: number, game: GardenEscort, still: boolean): number | null {
+function paintedNeighbour(ctx: CanvasRenderingContext2D, x: number, game: GardenEscort, still: boolean, lifting: boolean, acknowledging: boolean): number | null {
   if (!neighbourSheet) {
     neighbourSheet = new Image();
     neighbourSheet.decoding = 'async';
@@ -38,6 +38,11 @@ function paintedNeighbour(ctx: CanvasRenderingContext2D, x: number, game: Garden
   const sway = game.walking && !still ? Math.sin(game.position * 8) * .8 : 0;
   lightPool(ctx, x, TRACK + 1, game.walking ? 22 : 24, 5, '#0a1316cf');
   lightPool(ctx, x, TRACK - (game.walking ? 45 : 28), 33, 34, '#e0d1a42b');
+  const looking = !game.walking && !game.watched && !settling;
+  const gesture = acknowledging ? 1 : lifting ? 2 : looking ? 0 : -1;
+  if (gesture >= 0 && drawGardenGesture(ctx, gesture, x, TRACK, windowIsRight(game.garden, x), still ? 0 : game.position * 4.25)) {
+    return TRACK - (gesture === 2 ? 87 : 75);
+  }
   ctx.drawImage(neighbourSheet, frame % 3 * 256, Math.floor(frame / 3) * 256, 256, 256,
     x - anchorX * scale, TRACK - anchorY * scale + sway, 256 * scale, 256 * scale);
   return TRACK - (settling ? 74 : game.walking ? 89 : 66);
@@ -92,6 +97,17 @@ export function drawGarden(canvas: HTMLCanvasElement, game: GardenEscort, camera
   ctx.fillStyle = '#131713';
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
   paintGardenPlate(ctx, game.garden);
+  const elapsed = game.time - game.signalTime;
+  // He understands a lamp at once. His back foot stays planted for the raised palm,
+  // then catches up during the first stride. The progress strip always uses real metres.
+  const pushOff = game.lamp && game.advance ? Math.max(0, Math.min(1, (elapsed - .13) / .15)) : 1;
+  const cx = x(pushOff === 1 ? game.position : game.signalPosition + (game.position - game.signalPosition) * pushOff);
+  const coverDepth = Math.max(0, Math.min(1, game.position - shelter[0], shelter[1] - game.position));
+  const handX = cx + 39;
+  const acknowledging = game.advance && (game.lamp ? elapsed < .23 : elapsed >= .10 && elapsed < .40);
+  const lifting = !acknowledging && game.garden === 1 && game.walking && sheetContact(handX) > 0;
+  if (game.advance) signalWindow(ctx, game.garden, game.lamp);
+  gardenLaundry(ctx, game.garden, handX, TRACK - coverDepth * 16 - 81, lifting, time);
   // Match the cool exposure of the main yard cameras before drawing lit subjects.
   ctx.fillStyle = 'rgba(12, 27, 40, .22)';
   ctx.fillRect(0, 16, WIDTH, 328);
@@ -131,7 +147,6 @@ export function drawGarden(canvas: HTMLCanvasElement, game: GardenEscort, camera
     line(ctx, [left, TRACK, left, TRACK + 5, right, TRACK + 5, right, TRACK], '#efba7f', 1.4);
   }
 
-  const cx = x(game.position);
   const shelterLeft = x(shelter[0]), shelterRight = x(shelter[1]);
   ctx.save();
   ctx.setLineDash([5, 4]);
@@ -144,10 +159,9 @@ export function drawGarden(canvas: HTMLCanvasElement, game: GardenEscort, camera
     ctx.fill();
   }
   // The safe part of the trail bends in towards the hedge, clothesline or greenhouse.
-  const coverDepth = Math.max(0, Math.min(1, game.position - shelter[0], shelter[1] - game.position));
   ctx.save();
   ctx.translate(0, -coverDepth * 16);
-  const headY = paintedNeighbour(ctx, cx, game, still);
+  const headY = paintedNeighbour(ctx, cx, game, still, lifting, acknowledging);
   if (headY === null) neighbour(ctx, cx, game.walking, time);
   const marker = headY ?? TRACK - 72;
   line(ctx, [cx - 4, marker, cx, marker + 3, cx + 4, marker], '#21251f', 4);

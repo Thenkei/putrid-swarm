@@ -1,4 +1,5 @@
 import './epic.css';
+import { stoveMorning } from './stove-return';
 import { clearGarageAisle } from './garage-aisle';
 import { epicFlag, markEpic } from '../core/epics';
 import { SECTOR_IDS, type SectorId } from '../core/types';
@@ -69,7 +70,7 @@ export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: Se
     });
     objects.append(moped);
   }
-  if (day === 3 && flag('stove')) objects.append(item(line('Rectangle de lino propre', 'Clean patch of lino'), line('Deux raviolis. Froids.', 'Two ravioli. Cold.')));
+  if (day === 3 && flag('stove')) objects.append(stoveMorning(!!flag('sootyLock')));
   for (const detail of objects.querySelectorAll('details')) detail.name = 'refuge-curiosity';
   return objects.childElementCount ? objects : null;
 }

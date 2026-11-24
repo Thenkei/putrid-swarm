@@ -1,5 +1,5 @@
 import { porchContact, porchFlame, type PorchBurst } from '../render/porch-flame';
-import { calmMotion } from '../render/lighting';
+import { stoveReturn } from './stove-return';
 import { kitchenBolts } from './kitchen-bolts';
 import kitchenPlate from '../assets/epic-kitchen.webp';
 import neighbourPlate from '../assets/epic-neighbour.webp';
@@ -8,6 +8,7 @@ import { BARRICADE, COMBAT } from '../core/data/devices';
 import { escortFeed } from './garden-escort';
 import { warmGardenArt } from '../render/garden-scenery';
 import { playVhs } from './vhs-arcade';
+import { ejectVhs, warmVhsRoom } from './vhs-ejection';
 import { moonWatch } from './moon-pack';
 import { developGaragePrint } from './garage-print';
 import { epicFlag, markEpic } from '../core/epics';
@@ -261,7 +262,8 @@ export class EpicNight {
       };
       const burners = SECTOR_IDS.map(s => button(S().sector[s], () => { facing = s; yard.focus(); }));
       const hints = L('Vise et clique dans la cour. Au clavier, ← → puis Espace. 1–4 change de secteur.', 'Aim and click in the yard. Keyboard: ← → then Space. 1–4 changes sector.');
-      this.page(title, hints, ...burners, button(L('Rentrer', 'Head back'), () => this.keys()));
+      const headBack = () => this.keys(fuel < 8);
+      this.page(title, hints, ...burners, button(L('Rentrer', 'Head back'), headBack));
       this.field.append(yard);
       yard.setAttribute('aria-label', hints);
       yard.style.cursor = 'crosshair';
@@ -285,7 +287,7 @@ export class EpicNight {
       yard.focus();
       this.outside = true;
       this.clock = () => {
-        if ((fuel === 0 || this.elapsed >= 18 || this.sim.waveIndex > startWave) && this.elapsed >= flameUntil) { this.keys(); return; }
+        if ((fuel === 0 || this.elapsed >= 18 || this.sim.waveIndex > startWave) && this.elapsed >= flameUntil) { headBack(); return; }
         const age = facing === firedSector ? this.elapsed - flameUntil + .45 : -1;
         this.paintYard(yard, facing, age >= 0 && age < 1.05 ? { age, aim: firedAim, contacts } : undefined);
         const ctx = yard.getContext('2d');
@@ -316,42 +318,28 @@ export class EpicNight {
       button(L('Tirer les verrous', 'Slide the bolts'), bolt), button(L('Reprendre la veille', 'Back to the desk'), this.close));
   }
 
-  private keys() {
-    const reduced = calmMotion();
-    const tolerance = reduced ? .46 : .34;
-    const swingAt = () => Math.sin(this.elapsed * (reduced ? 1.7 : 3) - Math.PI / 2);
-    const aligned = () => Math.abs(swingAt()) < tolerance;
-    const tap = () => {
+  private keys(blackened: boolean) {
+    const hit = () => {
       const door = this.sim.barricades.portail;
-      if (aligned()) { audio.play('door'); this.close(); }
-      else {
-        door.hp = Math.max(0, door.hp - 2);
-        this.note.textContent = L('Raté. La porte encaisse. Vise le centre ou passe par la fenêtre.', 'Missed. The door takes a hit. Aim for the middle or use the window.');
-      }
+      door.hp = Math.max(0, door.hp - 2);
     };
-    this.page(L('La porte a claqué', 'Locked out'), L('Tape quand la clé traverse la fente au centre.', 'Tap when the key crosses the slot in the middle.'),
-      button(L('Taper', 'Tap'), tap), button(L('Passer par la fenêtre (−2 porte)', 'Climb through the window (−2 door)'), () => { const d = this.sim.barricades.portail; d.hp = Math.max(0, d.hp - 2); this.close(); }));
-    const key = el('span', { class: 'epic-key' }, [el('i'), el('b')]);
-    const slot = el('div', { class: 'epic-slot' });
-    slot.style.width = (2 * 39 * tolerance) + '%';
-    const door = el('div', { class: 'epic-key-door' }, [slot, key]);
-    door.setAttribute('aria-hidden', 'true');
-    this.field.append(door);
-    let previouslyAligned = false;
-    this.clock = () => {
-      const swing = swingAt();
-      key.style.left = (50 + 39 * swing) + '%';
-      key.style.setProperty('--tilt', (swing * 12) + 'deg');
-      const ready = aligned();
-      if (ready && !previouslyAligned) audio.play('tin', .25, 1.35);
-      previouslyAligned = ready;
-      slot.dataset.aligned = String(ready);
-    };
+    const tap = el('button', { class: 'btn', text: L('Taper', 'Tap') });
+    const windowExit = button(L('Passer par la fenêtre (−2 porte)', 'Climb through the window (−2 door)'), () => {
+      hit();
+      this.close();
+    });
+    this.page(L('La porte a claqué', 'Locked out'), L('La clé te file entre les doigts. Tape à son passage au centre.', 'The key slips through your fingers. Tap as it swings through the middle.'), tap, windowExit);
+    this.clock = stoveReturn(this.field, this.note, tap, windowExit, blackened, hit, () => {
+      this.mark('sootyLock');
+      this.app.save();
+    }, this.close);
   }
 
   private arcadeIntro() {
+    warmVhsRoom();
     void audio.prepareSample('vhs_play');
     void audio.prepareSample('vhs_eject');
+    void audio.prepareSample('door');
     this.field.style.backgroundImage = 'url("' + vhsSleeve + '")';
     this.field.style.backgroundPosition = 'center 22%';
     const rules = L('Au feutre sur la cassette : « Rembobiner au portail rouge. » ← → pour changer de voie, Espace pour tirer. Au doigt ou à la souris, appuie et glisse. Contourne les chariots blindés.', 'Scrawled on the tape: “Rewind at the red gate.” Change lanes with ← → and hold Space to fire. With touch or mouse, hold and drag. Dodge the armoured carts.');
@@ -363,31 +351,17 @@ export class EpicNight {
   private arcade() {
     audio.play('vhs_play');
     this.page(L('NUIT IV · Tir en rafale', 'NIGHT IV · Burst fire'), '');
-    this.clock = playVhs(this.field, this.actions, this.note, !!this.flag('vhs'), oneArmed(this.app.state), (score, complete) => {
+    const rightHandOnly = oneArmed(this.app.state);
+    this.clock = playVhs(this.field, this.actions, this.note, !!this.flag('vhs'), rightHandOnly, (score, complete, fired, frame) => {
       let best = score;
       try {
         best = Math.max(score, Number(localStorage.getItem('putrid-swarm.vhs-best')) || 0);
         localStorage.setItem('putrid-swarm.vhs-best', String(best));
       } catch { /* Storage is optional for a tape played in private browsing. */ }
-      const lastFrame = complete ? this.field.querySelector('canvas') : null;
-      const cut = complete ? L('Le portail rouge se fige. Fin de bande.', 'The red gate freezes on screen. The tape runs out.')
-        : L('La cassette ressort encore tiède.', 'The cassette slides out, still warm.');
       audio.fadeOut('vhs_play', .04);
-      audio.play('vhs_eject');
-      this.page(L('REMBOBINEZ S’IL VOUS PLAÎT', 'BE KIND, REWIND'),
-        score + ' pts · Record ' + best + ' · ' + cut + L(' On cogne à ta porte. Cette fois, c’est la vraie nuit.', ' Someone pounds on your door. This time the night is real.'));
-      // Hear the visitor outside after the cassette clears the carriage.
-      this.clock = () => {
-        if (this.elapsed < .85) return;
-        audio.play('door', .48);
-        this.clock = null;
-      };
-      if (lastFrame) {
-        lastFrame.removeAttribute('tabindex');
-        lastFrame.setAttribute('aria-label', L('Dernière image de la cassette, devant le portail du garage.', 'Final frame of the tape, outside the garage gate.'));
-        this.field.append(lastFrame);
-      }
-      this.actions.querySelector('button')?.focus();
+      this.page(L('REMBOBINEZ S’IL VOUS PLAÎT', 'BE KIND, REWIND'), '');
+      this.clock = ejectVhs(this.field, this.note, frame, complete, fired, rightHandOnly,
+        score + ' pts · ' + L('Record ', 'Best ') + best);
     });
   }
 
@@ -401,7 +375,7 @@ export class EpicNight {
       if (rescued) {
         this.mark('cub');
         this.sim.epicStrike('portail', 'pack');
-      }
+      } else this.mark('packExit', damage > 0 ? 2 : 1);
       this.page(title, message);
       this.actions.querySelector('button')?.focus();
     });

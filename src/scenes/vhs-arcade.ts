@@ -37,7 +37,8 @@ const ROUND_INTERVAL = .115;
 const SHOT_PITCH = [1, .97, 1.035, 1.015, .985] as const;
 const ROAD_STRIKES = [.41, .31, .48, .36, .44] as const;
 
-export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElement, sleeve: boolean, armless: boolean, finish: (score: number, complete: boolean) => void) {
+export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElement, sleeve: boolean, armless: boolean,
+  finish: (score: number, complete: boolean, fired: boolean, frame: HTMLCanvasElement) => void) {
   const canvas = el('canvas');
   canvas.className = 'vhs-track';
   canvas.width = W;
@@ -78,15 +79,7 @@ export function playVhs(field: HTMLElement, actions: HTMLElement, note: HTMLElem
     if (done) return;
     done = true;
     listeners.abort();
-    if (elapsed >= DURATION) {
-      ctx.fillStyle = '#16131d';
-      ctx.fillRect(13, 13, 168, 32);
-      ctx.font = 'bold 15px monospace';
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#f7d990';
-      ctx.fillText('■ ' + L('FIN DE BANDE', 'END OF TAPE'), 25, 35);
-    }
-    finish(score, elapsed >= DURATION);
+    finish(score, elapsed >= DURATION, round > 0, canvas);
   };
   actions.replaceChildren(left, right, autoFire, btn(L('Éjecter', 'Eject'), end));
   const dialog = field.parentElement!;

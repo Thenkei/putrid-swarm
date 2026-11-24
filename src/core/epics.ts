@@ -35,6 +35,20 @@ export function wreckSector(state: GameState): SectorId | undefined {
   return epicFlag(state, 'spent') ? SECTOR_IDS[epicFlag(state, 'lane') % SECTOR_IDS.length] : undefined;
 }
 
+export type PackTrail = 'together' | 'digging' | 'ditch' | 'fence';
+
+/** Fresh tracks stay visible from the fifth dawn until the next nightfall. */
+export function packTrail(state: GameState): PackTrail | undefined {
+  if (!(state.day === 5 && state.phase === 'morning' || state.day === 6 && state.phase === 'day')) return;
+  if (epicFlag(state, 'cub')) return 'together';
+  const exit = epicFlag(state, 'packExit');
+  if (exit === 1) return 'digging';
+  if (exit === 2) return 'ditch';
+  // Older saves recorded only a rescue. On a completed fifth night the adult
+  // prints are known, but a closed gate and a mistimed lift cannot be distinguished.
+  if (state.lastNight?.night === 5) return 'fence';
+}
+
 /** Preview the load that fits beside the moped without changing any goods on the road. */
 export function mopedCargo(trunk: Inventory) {
   const kept = { ...trunk };

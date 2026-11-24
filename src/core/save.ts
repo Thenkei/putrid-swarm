@@ -16,8 +16,9 @@ const PHASES: readonly Phase[] = ['day', 'night', 'morning', 'lost', 'held'];
 /** Saved when holding the seventh night still counted as winning: the same run, under its new name. */
 const LEGACY_PHASES: Readonly<Record<string, Phase>> = { won: 'held' };
 /** Awarded during that night's playable scene, settled with the rest of its report at dawn. */
-const NIGHT_OUTCOMES: Readonly<Partial<Record<number, string>>> = {
-  3: 'epic.garagePrint', 5: 'epic.cub', 6: 'epic.neighbor',
+const NIGHT_OUTCOMES: Readonly<Partial<Record<number, readonly string[]>>> = {
+  2: ['epic.sootyLock'],
+  3: ['epic.garagePrint'], 5: ['epic.cub', 'epic.packExit'], 6: ['epic.neighbor'],
 };
 
 export const serialize = (state: GameState): string => JSON.stringify(state);
@@ -313,7 +314,6 @@ export function deserialize(raw: string): GameState | null {
   // The desk saves immediately when the single-use moped leaves. Rewind the night's
   // unfinished encounter alongside its simulation, preserving the spent moped and earlier nights.
   const flags = { ...state.flags };
-  const outcome = NIGHT_OUTCOMES[state.day];
-  if (outcome) delete flags[outcome];
+  for (const outcome of NIGHT_OUTCOMES[state.day] ?? []) delete flags[outcome];
   return { ...state, flags, phase: 'day', where: 'home', hoursLeft: 0 };
 }

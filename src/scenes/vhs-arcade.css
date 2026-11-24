@@ -1,4 +1,6 @@
 /* Keep the art in its recorded aspect ratio and physical controls large enough for touch. */
+.epic-field:has(.vhs-room) { background:#151612 !important; }
+.epic-field canvas.vhs-room { display:block; object-fit:contain; }
 @media (pointer: coarse) {
   .epic-night:has(.vhs-track) .epic-actions { gap:5px; }
   .epic-night:has(.vhs-track) .btn { flex:1 1 auto; min-height:44px; padding:6px 10px; font-size:15px; }
