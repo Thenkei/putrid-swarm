@@ -131,6 +131,35 @@ describe('daily epics', () => {
     expect(epicFlag(nextNight.value, 'spent')).toBe(1);
     expect(epicFlag(newGame(3), 'spent')).toBe(0);
   });
+  it.each([[5, 'cub'], [6, 'neighbor']] as const)('replays night %i without banking its abandoned rescue', (day, outcome) => {
+    const dusk = { ...newGame(54), day, flags: {
+      'epic.moped': 1, 'epic.lane': 2, 'epic.garagePrint': 1, ...(day === 6 ? { 'epic.cub': 1 } : {}),
+    } };
+    const night = startNight(dusk);
+    if (!night.ok) throw Error('night');
+    // Launching from the desk after a rescue saves the campaign before the night report exists.
+    const abandoned = markEpic(markEpic(night.value, outcome), 'spent');
+    const retry = deserialize(serialize(abandoned))!;
+    expect(retry).toMatchObject({ phase: 'day', day, hoursLeft: 0 });
+    expect(retry.flags).toEqual({ ...dusk.flags, 'epic.spent': 1 });
+    const replay = startNight(retry);
+    if (!replay.ok) throw Error('replay');
+    const sim = new NightSim(day, retry.yard, retry.seed);
+    sim.dawnAt = 0;
+    sim.step(1/60);
+    // Declining on the replay grants no ally. Rescuing again and reaching dawn grants one.
+    for (const rescued of [false, true]) {
+      const result = rescued ? markEpic(replay.value, outcome) : replay.value;
+      const morning = deserialize(serialize(concludeNight(result, sim)))!;
+      expect(epicFlag(morning, outcome)).toBe(Number(rescued));
+      expect(epicFlag(morning, 'spent')).toBe(1);
+    }
+  });
+  it('restores the garage print only after its darkroom night is concluded', () => {
+    const state = markEpic({ ...newGame(17), day: 3, phase: 'night' }, 'garagePrint');
+    expect(epicFlag(deserialize(serialize(state))!, 'garagePrint')).toBe(0);
+    expect(epicFlag(deserialize(serialize({ ...state, phase: 'morning' }))!, 'garagePrint')).toBe(1);
+  });
   it.each(SECTOR_IDS)('waits for the wheel to clear the %s sill before enabling the blades', sector => {
     const state = newGame(12);
     const sim = new NightSim(3, state.yard, state.seed);
