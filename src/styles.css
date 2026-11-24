@@ -198,6 +198,19 @@ button:disabled {
   z-index: 50;
 }
 
+.save-status:not(:empty) {
+  position: absolute;
+  bottom: 5px;
+  right: 10px;
+  z-index: 51;
+  padding: 3px 8px;
+  color: #f7e1ae;
+  background: #211b13;
+  border-radius: 3px;
+  font-size: 14px;
+  pointer-events: none;
+}
+
 .toast {
   max-width: 760px;
   padding: 9px 20px 7px;

@@ -2,6 +2,10 @@ import { scavengeFr } from './scavenge-fr';
 // French is the source language of Putrid Swarm; en.ts must mirror this shape exactly.
 
 export const fr = {
+  saveStatus: {
+    tab: 'Partie sauvegardée dans cet onglet uniquement.',
+    page: 'Progression en mémoire. Gardez cette page ouverte.',
+  },
   lang: 'Français',
   title: {
     mire: 'Fin des programmes',

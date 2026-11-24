@@ -1,6 +1,7 @@
 // Application shell: one canvas, one HUD layer, one active scene, one fixed-step loop.
 
-import { deserialize, serialize } from '../core/save';
+import { CampaignStorage } from './campaign-storage';
+import { S } from './i18n';
 import type { GameState } from '../core/types';
 import { audio } from './audio';
 import { el } from './dom';
@@ -8,7 +9,6 @@ import { hearKey } from './keys';
 
 export const STAGE_W = 1280;
 export const STAGE_H = 720;
-const SAVE_KEY = 'putrid-swarm.save.v1';
 const MAX_FRAME = 0.1;
 
 export interface Pointer {
@@ -49,6 +49,8 @@ export class App {
   private scene: Scene | null = null;
   private readonly stage: HTMLElement;
   private readonly toastHost: HTMLElement;
+  private readonly saves = new CampaignStorage();
+  private readonly saveStatus = el('div', { class: 'save-status' });
   private scale = 1;
   private dpr = 1;
   private last = 0;
@@ -65,6 +67,8 @@ export class App {
     this.ui = document.getElementById('ui') as HTMLElement;
     this.stage = document.getElementById('stage') as HTMLElement;
     this.toastHost = document.getElementById('toast') as HTMLElement;
+    this.saveStatus.setAttribute('role', 'status');
+    this.stage.append(this.saveStatus);
 
     window.addEventListener('resize', () => this.resize());
     this.resize();
@@ -229,43 +233,24 @@ export class App {
 
   save(): void {
     if (!this.state) return;
-    try {
-      localStorage.setItem(SAVE_KEY, serialize(this.state));
-    } catch (error) {
-      if (this.state.morningTape) {
-        // Storage can be almost full. The campaign must outlive an optional recording.
-        const { morningTape: _tape, ...campaign } = this.state;
-        try {
-          localStorage.setItem(SAVE_KEY, serialize(campaign));
-          console.warn('[save] saved the morning without its cassette', error);
-          return;
-        } catch (retryError) {
-          console.warn('[save] could not write the campaign', retryError);
-          return;
-        }
-      }
-      console.warn('[save] could not write the save', error);
-    }
+    this.saves.save(this.state);
+    this.updateSaveStatus();
   }
 
   loadSave(): GameState | null {
-    try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return null;
-      const state = deserialize(raw);
-      if (!state) console.warn('[save] ignoring an unreadable save');
-      return state;
-    } catch (error) {
-      console.warn('[save] could not read the save', error);
-      return null;
-    }
+    const state = this.saves.load();
+    this.updateSaveStatus();
+    return state;
   }
 
   clearSave(): void {
-    try {
-      localStorage.removeItem(SAVE_KEY);
-    } catch {
-      // Non-fatal.
-    }
+    this.saves.clear();
+    this.updateSaveStatus();
+  }
+
+  private updateSaveStatus(): void {
+    const scope = this.saves.scope;
+    const message = scope === 'device' ? '' : S().saveStatus[scope];
+    if (this.saveStatus.textContent !== message) this.saveStatus.textContent = message;
   }
 }
