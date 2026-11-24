@@ -15,6 +15,7 @@ import { drawPlate } from './common';
 import { CreditsScene } from './credits';
 import { JOINT, MUG, POWER, SPEAKER, VOLUME_STEP_CLICK, VOLUME_STEP_WHEEL, desk, inside } from './desk';
 import { goDay, goTitle, resumeGame } from './flow';
+import { calmMotion } from '../render/lighting';
 
 const SAVER_TINTS = ['#d8f2e8', '#f2a531', '#9fd8e3', '#e0725c', '#c8f08a', '#d9a8e6'] as const;
 const MIRE_SECONDS = 7;
@@ -345,6 +346,7 @@ class TaranjaDeathScene implements Scene {
 type IntroPhase = 'news' | 'smoke' | 'later';
 
 interface Puff {
+  born: number;
   x: number;
   y: number;
   vx: number;
@@ -353,7 +355,6 @@ interface Puff {
   grow: number;
   rotation: number;
   spin: number;
-  alpha: number;
 }
 
 /** Reading speed of the broadcast caption when there is no recording to follow. */
@@ -361,6 +362,12 @@ const CAPTION_CHARS_PER_SECOND = 17;
 const NEWS_TAIL_SECONDS = 1.4;
 const SMOKE_SECONDS = 5;
 const LATER_SECONDS = 5.2;
+const SMOKE_CLEAR_SECONDS = .75;
+
+function smokeVeil(elapsed: number): number {
+  const t = Math.min(1, Math.max(0, (elapsed / SMOKE_SECONDS - .45) / .55));
+  return t * t;
+}
 
 export class IntroScene implements Scene {
   private phase: IntroPhase = 'news';
@@ -369,6 +376,8 @@ export class IntroScene implements Scene {
   private root!: HTMLElement;
   private caption!: HTMLElement;
   private readonly puffs: Puff[] = [];
+  private emitted = 0;
+  private cutAt = 0;
   private done = false;
   /** How long the anchor speaks: the caption is paced on it. */
   private newsSeconds = 0;
@@ -414,6 +423,8 @@ export class IntroScene implements Scene {
       hush();
       audio.play('exhale');
     } else if (this.phase === 'smoke') {
+      this.cutAt = Math.min(this.phaseTime, SMOKE_SECONDS);
+      if (smokeVeil(this.cutAt) === 1) this.puffs.length = 0;
       this.phase = 'later';
       this.phaseTime = 0;
       const s = S();
@@ -445,9 +456,17 @@ export class IntroScene implements Scene {
       if (this.phaseTime > this.newsSeconds + NEWS_TAIL_SECONDS) this.next();
     } else if (this.phase === 'smoke') {
       // The drag: smoke rolls in from the right until nothing else is left.
-      const rate = 10 + this.phaseTime * 14;
-      for (let i = 0; i < rate * dt; i++) {
+      const t = Math.min(this.phaseTime, SMOKE_SECONDS);
+      // Integrate the rate 10 + 14t. Each cloud has the same birth time on every display.
+      const count = Math.floor(10 * t + 7 * t * t + 1e-9);
+      if (calmMotion()) {
+        this.puffs.length = 0;
+        this.emitted = count;
+      }
+      while (this.emitted < count) {
+        this.emitted++;
         this.puffs.push({
+          born: (Math.sqrt(100 + 28 * this.emitted) - 10) / 14,
           x: STAGE_W * (0.55 + Math.random() * 0.55),
           y: STAGE_H * (0.25 + Math.random() * 0.75),
           vx: -(40 + Math.random() * 120),
@@ -456,22 +475,13 @@ export class IntroScene implements Scene {
           grow: 60 + Math.random() * 90,
           rotation: Math.random() * Math.PI * 2,
           spin: (Math.random() - 0.5) * 0.5,
-          alpha: 0,
         });
       }
       if (this.phaseTime > SMOKE_SECONDS) this.next();
-    } else if (this.phaseTime > LATER_SECONDS) {
-      this.next();
+    } else {
+      if (this.phaseTime >= SMOKE_CLEAR_SECONDS || calmMotion()) this.puffs.length = 0;
+      if (this.phaseTime > LATER_SECONDS) this.next();
     }
-
-    for (const puff of this.puffs) {
-      puff.x += puff.vx * dt;
-      puff.y += puff.vy * dt;
-      puff.size += puff.grow * dt;
-      puff.rotation += puff.spin * dt;
-      puff.alpha = Math.min(0.5, puff.alpha + dt * 0.5);
-    }
-    if (this.puffs.length > 260) this.puffs.splice(0, this.puffs.length - 260);
   }
 
   render(ctx: CanvasRenderingContext2D): void {
@@ -481,31 +491,36 @@ export class IntroScene implements Scene {
     }
     if (this.phase === 'smoke') {
       // Cut from the screen to the man in front of it.
-      drawPlate(ctx, 'plate_smoke', { zoom: 1 + this.phaseTime * 0.012, focusY: 0.35 });
+      drawPlate(ctx, 'plate_smoke', { zoom: calmMotion() ? 1 : 1 + this.phaseTime * 0.012, focusY: 0.35 });
     } else {
       ctx.fillStyle = '#cfc7b8';
       ctx.fillRect(0, 0, STAGE_W, STAGE_H);
     }
 
     const smoke = sprite('fx_smoke');
+    const onCard = this.phase === 'later';
+    const elapsed = this.phaseTime + (onCard ? this.cutAt : 0);
+    // Skipping early can carry a little haze into the card. A fully veiled cut stays clear.
+    const opacity = onCard ? .22 * (1 - smokeVeil(this.cutAt)) * Math.max(0, 1 - this.phaseTime / SMOKE_CLEAR_SECONDS) : 1;
     for (const puff of this.puffs) {
+      const age = Math.max(0, elapsed - puff.born);
+      const size = puff.size + puff.grow * age;
       ctx.save();
-      ctx.translate(puff.x, puff.y);
-      ctx.rotate(puff.rotation);
-      ctx.globalAlpha = this.phase === 'later' ? puff.alpha * 0.5 : puff.alpha;
-      if (smoke) ctx.drawImage(smoke.img, -puff.size / 2, -puff.size / 2, puff.size, puff.size);
+      ctx.translate(puff.x + puff.vx * age, puff.y + puff.vy * age);
+      ctx.rotate(puff.rotation + puff.spin * age);
+      ctx.globalAlpha = opacity * Math.min(.5, age * .5);
+      if (smoke) ctx.drawImage(smoke.img, -size / 2, -size / 2, size, size);
       else {
         ctx.fillStyle = '#d8d2c6';
         ctx.beginPath();
-        ctx.arc(0, 0, puff.size / 2, 0, Math.PI * 2);
+        ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.restore();
     }
     ctx.globalAlpha = 1;
     if (this.phase === 'smoke') {
-      const veil = Math.max(0, (this.phaseTime - SMOKE_SECONDS * 0.45) / (SMOKE_SECONDS * 0.55));
-      ctx.fillStyle = `rgba(207, 199, 184, ${Math.min(1, veil * veil)})`;
+      ctx.fillStyle = `rgba(207, 199, 184, ${smokeVeil(this.phaseTime)})`;
       ctx.fillRect(0, 0, STAGE_W, STAGE_H);
     }
   }
