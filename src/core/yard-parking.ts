@@ -1,51 +1,109 @@
 import { PARKED } from './car-path';
-import { GRID_W, roadCentre } from './map';
-import { smoothstep } from './math';
+import type { CoastArrival } from './coast-home';
+import { GRID_H, GRID_W, HOUSE, PROPS, roadCentre, terrainAt } from './map';
 
-const TRACK_Y = roadCentre('barn', PARKED.x);
-const START_X = GRID_W - .15;
-const STOP_SECONDS = .52;
-const clamp = (value: number, low: number, high: number) => Math.min(high, Math.max(low, value));
+const TRACK_Y = roadCentre('barn', GRID_W);
+const CELL_METRES = 1.55;
+const STOP_SECONDS = .26;
+const WHEELBASE = 1.72;
+const TYRE_RADIUS = .49;
+const TAU = 2 * Math.PI;
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+const approach = (from: number, to: number, step: number) => from + clamp(to - from, -step, step);
+const angleError = (target: number, angle: number) => Math.atan2(Math.sin(target - angle), Math.cos(target - angle));
 
-/** The break comes from the barn side facing -x. A left turn points the nose toward +y. */
+const obstacles = [
+  { x: HOUSE.x0, y: HOUSE.y0, w: HOUSE.x1 - HOUSE.x0 + 1, h: HOUSE.y1 - HOUSE.y0 + 1 },
+  ...PROPS.filter(p => p.kind !== 'car'),
+];
+
+/** Two broad tyre tracks and the middle of the chassis sweep the solid scenery. */
+function canOccupy(x: number, y: number, heading: number): boolean {
+  const dx = -Math.cos(heading), dy = Math.sin(heading);
+  for (const length of [-.97, 0, 1.03]) {
+    const px = x + dx * length, py = y + dy * length;
+    // The entrance also admits an angled wagon on either grass verge.
+    const barnRoad = Math.abs(py - TRACK_Y) <= 2.65 && px > GRID_W - 2;
+    if (px < 1.35 || py < 1.35 || py > GRID_H - 1.35 || px > (barnRoad ? GRID_W + 1.25 : GRID_W - 1.35)) return false;
+    for (const p of obstacles) {
+      const ox = px - clamp(px, p.x, p.x + p.w), oy = py - clamp(py, p.y, p.y + p.h);
+      if (ox * ox + oy * oy < TYRE_RADIUS ** 2) return false;
+    }
+  }
+  return true;
+}
+
+/** The centre is between the axles. A positive heading turns the nose from -x toward +y. */
 export class YardParking {
-  x = START_X;
-  y = TRACK_Y;
-  heading = 0;
-  speed = 0;
+  x = GRID_W - .15;
+  y: number;
+  heading: number;
+  wheel: number;
+  speed: number;
   distance = 0;
+  wheelRoll = 0;
   phase: 'driving' | 'settling' | 'parked' = 'driving';
   private settleProgress = 0;
-  private approach = { x: 0, y: 0, heading: 0 };
 
-  get atTurn(): boolean { return this.x <= PARKED.x + 2.35; }
+  constructor(entry?: CoastArrival) {
+    this.y = TRACK_Y - clamp(entry?.offset ?? 0, -1.3, 1.3) / CELL_METRES;
+    this.heading = -(entry?.heading ?? 0);
+    this.wheel = -(entry?.wheel ?? 0);
+    this.speed = (entry?.speed ?? 0) / CELL_METRES;
+  }
 
-  update(dt: number, throttle: number, steer: number): void {
-    if (this.phase === 'parked') return;
-    if (this.phase === 'settling') {
-      this.settleProgress = Math.min(1, this.settleProgress + dt / STOP_SECONDS);
-      const rest = (1 - this.settleProgress) ** 2;
-      this.x = PARKED.x + (this.approach.x - PARKED.x) * rest;
-      this.y = PARKED.y + (this.approach.y - PARKED.y) * rest;
-      this.heading = Math.PI / 2 + (this.approach.heading - Math.PI / 2) * rest;
-      if (this.settleProgress === 1) this.phase = 'parked';
-      return;
+  get atTurn(): boolean { return this.x < PARKED.x + 2.15; }
+  get bayBehind(): boolean {
+    return -(PARKED.x - this.x) * Math.cos(this.heading) + (PARKED.y - this.y) * Math.sin(this.heading) < -.7;
+  }
+  get bayToLeft(): boolean {
+    return (PARKED.x - this.x) * Math.sin(this.heading) + (PARKED.y - this.y) * Math.cos(this.heading) > 0;
+  }
+  get onGrass(): boolean { return terrainAt(Math.floor(this.x), Math.floor(this.y)) === 'grass'; }
+  get inBay(): boolean {
+    return Math.abs(this.x - PARKED.x) < .64 && Math.abs(this.y - PARKED.y) < .83
+      && Math.abs(angleError(Math.PI / 2, this.heading)) < .46;
+  }
+
+  update(dt: number, throttle: number, steer: number, brake = false): void {
+    while (dt > .000001 && this.phase !== 'parked') {
+      const step = Math.min(dt, 1 / 100);
+      dt -= step;
+      if (this.phase === 'settling') {
+        this.settleProgress = Math.min(1, this.settleProgress + step / STOP_SECONDS);
+        if (this.settleProgress === 1) this.phase = 'parked';
+        continue;
+      }
+      this.drive(step, throttle, steer, brake);
     }
+  }
 
-    const target = throttle * (throttle < 0 ? 1.55 : 2.55);
-    const acceleration = throttle && this.speed * throttle >= 0 ? 3.7 : 8.5;
-    this.speed += clamp(target - this.speed, -acceleration * dt, acceleration * dt);
-    // The verge guides the wheels until the gravel apron opens beside the house.
-    const apron = smoothstep(PARKED.x + 2.7, PARKED.x + .9, this.x);
-    const steeringLimit = .10 + (Math.PI / 2 - .10) * smoothstep(PARKED.x + 2.4, PARKED.x + .12, this.x);
-    this.heading = clamp(this.heading + steer * this.speed * dt * .98, 0, steeringLimit);
-    const x = clamp(this.x - Math.cos(this.heading) * this.speed * dt, PARKED.x - .46, START_X);
-    const y = clamp(this.y + Math.sin(this.heading) * this.speed * dt, TRACK_Y - .30, TRACK_Y + .30 + 2.84 * apron);
-    this.distance += Math.hypot(x - this.x, y - this.y);
-    this.x = x;
-    this.y = y;
-    if (this.heading > .79 && Math.hypot(x - PARKED.x, y - PARKED.y) <= .62) {
-      this.approach = { x, y, heading: this.heading };
+  private drive(dt: number, throttle: number, steer: number, brake: boolean): void {
+    // Rack travel and caster return have separate rates. The rolling rear tyres
+    // turn about the instantaneous centre of the front wheels, including in reverse.
+    this.wheel = approach(this.wheel, steer, dt * (steer ? 3.7 : 4.3));
+    const grass = this.onGrass;
+    const limit = throttle < 0 ? 1.6 : grass ? 2.0 : 3.15;
+    const drag = (grass ? 1.28 : .72) + .12 * this.speed ** 2;
+    const stopping = brake || throttle * this.speed < -.015;
+    const previousSpeed = this.speed;
+    if (stopping) this.speed = approach(this.speed, 0, dt * (brake ? 6.1 : 4.7));
+    else if (!throttle) this.speed = approach(this.speed, 0, dt * drag);
+    else this.speed += (throttle * (throttle > 0 ? 3.1 : 2.3) - this.speed * (throttle > 0 ? 3.1 : 2.3) / limit) * dt;
+    const travel = (previousSpeed + this.speed) * .5 * dt;
+    const lock = .75 - .07 * Math.min(1, Math.abs(this.speed) / 3);
+    const tangent = Math.tan(this.wheel * lock), slip = Math.atan(.47 * tangent);
+    const yaw = travel * Math.cos(slip) * tangent / WHEELBASE;
+    const nextX = this.x - Math.cos(this.heading + .5 * yaw + slip) * travel;
+    const nextY = this.y + Math.sin(this.heading + .5 * yaw + slip) * travel;
+    if (travel && canOccupy(nextX, nextY, this.heading + yaw)) {
+      this.x = nextX; this.y = nextY;
+      this.heading = (this.heading + yaw) % TAU;
+      this.distance += Math.abs(travel);
+      this.wheelRoll = (this.wheelRoll - travel / .29) % TAU;
+    } else if (travel) this.speed = 0;
+
+    if (this.inBay && Math.abs(this.speed) < .32 && (brake || !throttle)) {
       this.speed = 0;
       this.phase = 'settling';
     }

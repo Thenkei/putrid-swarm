@@ -31,13 +31,10 @@ const focusX = 320;
 
 export function coastCamera(drive: CoastDrive, reduced: boolean) {
   const z = drive.metres;
-  const intoBay = smoothstep(COAST_METRES - 3.2, COAST_METRES, z);
-  const x = coastLaneCentre(z) + drive.lane * 1.64 * (1 - intoBay) - intoBay * .55 * metresPerCell;
+  const x = drive.worldX;
   const jolt = reduced ? 0 : Math.sin(drive.jolt * Math.PI * 3) * drive.jolt * 2.4;
   const horizon = HORIZON + jolt + (reduced ? 0 : .38 * drive.speed * Math.sin(z * 7));
-  const turning = drive.wheel * drive.lane > 0 ? 1 - smoothstep(.65, 1, Math.abs(drive.lane)) : 1;
-  const look = (coastLaneCentre(z + 3.1) - coastLaneCentre(z)) / 3.1;
-  const centre = focusX - FOCAL * look * .64 + intoBay * (reduced ? 12 : 40) - (reduced ? 0 : drive.wheel * turning * 11);
+  const centre = focusX - FOCAL * Math.tan(drive.heading);
   return { x, z, horizon, centre };
 }
 
@@ -88,19 +85,24 @@ function gatepost(ctx: CanvasRenderingContext2D, art: CoastArt, camera: Camera, 
 }
 
 // Eye-level woodland cutouts share the distant clearing's ink, bark and dusk light.
-const grove = [
-  { oak: false, x: -8.9, z: 29, h: 7.6 }, { oak: true, x: 10.1, z: 25.4, h: 8.8 },
+const grove: readonly { oak: boolean; x: number; z: number; h: number; flip?: true }[] = [
+  { oak: false, x: -8.9, z: 29, h: 7.6 }, { oak: true, x: 10.1, z: 25.4, h: 8.8, flip: true },
   { oak: true, x: -5.8, z: 22.4, h: 7.3 }, { oak: false, x: 7.4, z: 20, h: 7.7 },
-  { oak: true, x: -4.8, z: 17.7, h: 8.7 }, { oak: false, x: 5.9, z: 16.9, h: 6.4 },
-  { oak: false, x: -2.65, z: 14.6, h: 7.4 }, { oak: true, x: 6.3, z: 13.8, h: 8.4 },
-  { oak: false, x: -2.4, z: 12.4, h: 6.1 }, { oak: true, x: 2.14, z: 9.05, h: 7.9 },
-  { oak: false, x: -6.9, z: 8.3, h: 6.8 }, { oak: false, x: 2.6, z: 6.8, h: 7.2 },
+  { oak: true, x: -4.8, z: 17.7, h: 8.7, flip: true }, { oak: false, x: 5.9, z: 16.9, h: 6.4 },
+  { oak: false, x: -3.6, z: 14.6, h: 7.4 }, { oak: true, x: 6.3, z: 13.8, h: 8.4, flip: true },
+  { oak: false, x: -2.55, z: 12.4, h: 6.1 }, { oak: true, x: 2.14, z: 9.05, h: 7.9 },
+  { oak: false, x: -6.9, z: 8.3, h: 6.8, flip: true }, { oak: false, x: 2.6, z: 6.8, h: 7.2 },
   { oak: true, x: -5.55, z: 5.8, h: 8.2 },
-] as const;
+  // Two stems on the inside of the first bend break up the distant roof.
+  // The last low oak lets the windows emerge as the driver clears its crown.
+  { oak: true, x: .40, z: 7.52, h: 5.2 }, { oak: false, x: 1.84, z: 8.60, h: 6.8 },
+  { oak: true, x: -1.65, z: 12.56, h: 4.3 },
+  { oak: false, x: -2.3, z: 16.2, h: 6.1, flip: true },
+];
 
 function tree(ctx: CanvasRenderingContext2D, image: HTMLImageElement, c: Camera, n: number, age: number, reduced: boolean) {
   const t = grove[n]!;
-  if (!available(image) || t.z < c.z + .6) return;
+  if (!available(image) || t.z <= c.z + .12) return;
   const p = roadPoint(c, t.x, t.z);
   const half = image.naturalWidth / 2;
   const h = t.h * p.scale, w = h * half / image.naturalHeight;
@@ -108,25 +110,26 @@ function tree(ctx: CanvasRenderingContext2D, image: HTMLImageElement, c: Camera,
   shadow(ctx, p.x, p.y, w * .28, .47);
   ctx.save(); ctx.translate(p.x, p.y);
   const wind = reduced ? 0 : .0038 * Math.sin(age * .61 + n * 1.7);
-  ctx.transform(n % 3 === 1 ? -1 : 1, 0, wind, 1, 0, 0);
+  ctx.transform(t.flip ? -1 : 1, 0, wind, 1, 0, 0);
   ctx.drawImage(image, t.oak ? 0 : half, 0, half, image.naturalHeight,
     -w * (t.oak ? .335 : .47), -h * .972, w, h);
   ctx.restore();
 }
 
-const hedgerow = [
+const hedgerow: readonly { x: number; z: number; height: number; spread?: number }[] = [
   { x: -6.3, z: 23, height: 1.85 }, { x: 6.8, z: 20.2, height: 1.42 },
-  { x: -4.5, z: 17.4, height: 1.44 }, { x: -3.05, z: 12.85, height: 2.26 },
+  { x: -4.5, z: 17.4, height: 1.44 }, { x: -3.56, z: 12.85, height: 2.26 },
   { x: 3.55, z: 9.05, height: 1.86 }, { x: -6.3, z: 6.4, height: 1.61 },
   { x: -3.4, z: 4.3, height: .98 },
-] as const;
+  { x: 3.6, z: 16.65, height: 1.85, spread: .68 },
+];
 
 function bush(ctx: CanvasRenderingContext2D, art: CoastArt, camera: Camera, index: number) {
   const prop = hedgerow[index]!;
-  if (prop.z <= camera.z + .5 || !available(art.thorn)) return;
+  if (prop.z <= camera.z + .12 || !available(art.thorn)) return;
   const p = roadPoint(camera, prop.x, prop.z);
   const h = prop.height * p.scale;
-  const w = h * art.thorn.naturalWidth / art.thorn.naturalHeight * (.72 + (index % 3) * .10);
+  const w = h * art.thorn.naturalWidth / art.thorn.naturalHeight * (prop.spread ?? .72 + (index % 3) * .10);
   if (p.x - w / 2 > 640 || p.x + w / 2 < 0) return;
   shadow(ctx, p.x, p.y, w * .43, .36);
   ctx.save(); ctx.translate(p.x, p.y); ctx.scale(index % 2 ? -1 : 1, 1);
@@ -246,9 +249,6 @@ function fence(ctx: CanvasRenderingContext2D, c: Camera, side: number, posts: HT
 }
 
 function refuge(ctx: CanvasRenderingContext2D, assets: CoastArt, c: Camera, health: number) {
-  // The far courtyard emerges through the last band of canopy as the break rounds the bend.
-  const clearing = smoothstep(COAST_METRES - 4.1, COAST_METRES - 2.9, c.z);
-  if (!clearing) return;
   const intact = sprite('obj_house_front');
   if (!intact) return;
   const anchor = alleyPosition(HOUSE_CENTER.x, HOUSE_CENTER.y);
@@ -256,17 +256,6 @@ function refuge(ctx: CanvasRenderingContext2D, assets: CoastArt, c: Camera, heal
   const stage = houseDamageStage(health);
   const eyeLevel = stage === 0 && available(assets.cottage);
   const h = 5.05 * p.scale, w = h * (eyeLevel ? assets.cottage.naturalWidth / assets.cottage.naturalHeight : intact.w / intact.h);
-  ctx.save();
-  if (clearing < 1) {
-    // The last thicket parts across the sightline. Keep the cottage and its windows opaque.
-    const rim = p.x + w * (1.34 - 2.85 * clearing);
-    ctx.beginPath(); ctx.moveTo(640, 0); ctx.lineTo(640, 293);
-    for (let y = 293; y >= -4; y -= 3) {
-      const fringe = Math.sin(y * .15) * 4.5 + Math.cos(y * .37) * 3 + Math.sin(y * .53) * 1.75;
-      ctx.lineTo(rim + (y - p.y) * .29 + fringe, y);
-    }
-    ctx.closePath(); ctx.clip();
-  }
   shadow(ctx, p.x, p.y, w * .46);
   const facade = eyeLevel ? assets.cottage : facadeForStage(0, 'obj_house_front', intact, stage);
   ctx.drawImage(facade, p.x - w * .50, p.y - h, w, h);
@@ -280,7 +269,6 @@ function refuge(ctx: CanvasRenderingContext2D, assets: CoastArt, c: Camera, heal
     shadow(ctx, ground.x, ground.y, width * .53, .55);
     ctx.drawImage(art.img, ground.x - width / 2, ground.y - height, width, height);
   }
-  ctx.restore();
 }
 
 const forestLayers = [
@@ -290,13 +278,23 @@ const forestLayers = [
   { z: GATE_AT, kind: 'gate' as const, i: 0 },
 ].sort((a, b) => b.z - a.z);
 
+/** Continue the forest across the glass when a turn brings the painted edge into view. */
+export function drawWoodline(ctx: CanvasRenderingContext2D, image: HTMLImageElement,
+  x: number, y: number, w: number, h: number, left: number, right: number) {
+  ctx.drawImage(image, x, y, w, h);
+  if (x <= left && x + w >= right) return;
+  const edge = x > left ? x : x + w;
+  ctx.save(); ctx.translate(2 * edge, 0); ctx.scale(-1, 1);
+  ctx.drawImage(image, x, y, w, h); ctx.restore();
+}
+
 export function paintRoad(ctx: CanvasRenderingContext2D, art: CoastArt, d: CoastDrive, age: number, alertAge: number, reduced: boolean, health: number): void {
   const c = coastCamera(d, reduced);
   if (available(art.woods)) {
     // Forest beyond the clearing. The house and parking apron have their actual yard coordinates.
     const far = roadPoint(c, 0, 110);
     const w = 1050 * 110 / (110 - c.z), h = w * art.woods.naturalHeight / art.woods.naturalWidth;
-    ctx.drawImage(art.woods, far.x - .53 * w, far.y - .49 * h, w, h);
+    drawWoodline(ctx, art.woods, far.x - .53 * w, far.y - .49 * h, w, h, 0, 640);
   } else if (available(art.hedge)) ctx.drawImage(art.hedge, 0, -46, 640, 360);
   drawCoastGround(ctx, art.lane, c, FOCAL, EYE, 293, 1);
   refuge(ctx, art, c, health);

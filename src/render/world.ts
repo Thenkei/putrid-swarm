@@ -537,6 +537,11 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   // Thin foreground foliage where it would conceal a fighting figure or one of this side's
   // doorways. The overlap is measured in the current projection, including painter's depth.
   const sightlines: { x: number; y: number; depth: number; presence: number }[] = [];
+  if (frame.departingCar?.kind === 'returning') {
+    const car = frame.departingCar.position;
+    const p = project(view, car.x, car.y);
+    sightlines.push({ x: p.x, y: p.y - 36 * z, depth: depthOf(view.rot, car.x, car.y), presence: 1 });
+  }
   const hit = frame.mopedRide?.contact;
   const contact = hit && frame.time - hit.at < FALL_SECONDS ? hit : undefined;
   const actors = frame.enemies.filter(e => e.alive).map(e => mopedStruckPose(doorStance(e), contact, frame.time));

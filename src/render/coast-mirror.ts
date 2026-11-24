@@ -1,7 +1,7 @@
 import type { CoastDrive } from '../core/coast-home';
 import { smoothstep } from '../core/math';
 import { drawCoastGround } from './coast-ground';
-import { coastCamera, coastGatePosts, coastWalkerPosition, GATE_AT, type CoastArt } from './coast-road';
+import { coastCamera, coastGatePosts, coastWalkerPosition, drawWoodline, GATE_AT, type CoastArt } from './coast-road';
 import { drawMobStride } from './infected';
 
 const focal = 47;
@@ -64,8 +64,9 @@ export function reflection(ctx: CanvasRenderingContext2D, art: CoastArt, d: Coas
   if (art.woods.complete && art.woods.naturalWidth) {
     const scale = focal / (85 + d.metres);
     const w = 340 * scale, h = w * art.woods.naturalHeight / art.woods.naturalWidth;
-    ctx.save(); ctx.translate(camera.centre - camera.x * scale, camera.horizon + eye * scale);
-    ctx.scale(-1, 1); ctx.drawImage(art.woods, -w / 2, -.48 * h, w, h); ctx.restore();
+    const centre = camera.centre - camera.x * scale;
+    ctx.save(); ctx.translate(centre, camera.horizon + eye * scale); ctx.scale(-1, 1);
+    drawWoodline(ctx, art.woods, -w / 2, -.48 * h, w, h, centre - 439, centre - 310); ctx.restore();
   }
   drawCoastGround(ctx, art.lane, camera, focal, eye, 62, -1);
   const gateDepth = d.metres - GATE_AT;

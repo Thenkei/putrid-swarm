@@ -1,12 +1,9 @@
-import { coastVerge } from '../core/coast-home';
+import { coastLaneCentre, coastVerge } from '../core/coast-home';
 import { smoothstep } from '../core/math';
 
 interface GroundCamera { x: number; z: number; centre: number; horizon: number }
 
-/** The path first bends around the oaks, then straightens as it joins the barn entrance. */
-export function coastLaneCentre(z: number): number {
-  return -2.4 * smoothstep(3, 7.5, z) + 4 * smoothstep(7.5, 12, z) - 1.6 * smoothstep(12, 16, z);
-}
+export { coastLaneCentre };
 
 /** Both panes look at the same strip of gravel. The mirror samples metres behind the car. */
 export function drawCoastGround(

@@ -1,5 +1,6 @@
 import type { CoastDrive } from '../core/coast-home';
 import { sprite } from '../engine/assets';
+import { drawCoastWheel } from './coast-wheel';
 import { reflection } from './coast-mirror';
 import { paintRoad, type CoastArt } from './coast-road';
 
@@ -8,10 +9,17 @@ const mirrorOutline = 'M354 0H395V14L383 17L382 26L435 27Q446 29 446 42L445 55Q4
 const glassOutline = 'M312 36Q313 31 321 31L433 32Q439 32 439 40L439 55Q439 60 432 60H317Q310 60 310 53Z';
 let mask: { cabin: Path2D; mirror: Path2D; glass: Path2D } | undefined;
 
-export function drawCoast(ctx: CanvasRenderingContext2D, art: CoastArt, drive: CoastDrive, age: number, alertAge: number, reduced: boolean, health: number): void {
+export function drawCoast(ctx: CanvasRenderingContext2D, art: CoastArt, drive: CoastDrive, age: number, alertAge: number, reduced: boolean, health: number, oneArmed = false): void {
   const cabin = sprite('plate_drive_cabin');
   ctx.save(); ctx.scale(2, 2);
   ctx.fillStyle = '#202938'; ctx.fillRect(0, 0, 640, 360);
+  ctx.save();
+  if (!reduced) {
+    const rolling = Math.min(1, drive.speed);
+    const pitch = Math.max(-1.8, Math.min(1.3, drive.acceleration * 1.25)) * rolling;
+    const roll = drive.wheel * Math.min(2.6, drive.speed * drive.speed) * .0026;
+    ctx.translate(320, 146 + pitch); ctx.rotate(-roll); ctx.translate(-320, -146);
+  }
   paintRoad(ctx, art, drive, age, alertAge, reduced, health);
   const beam = drive.phase === 'ready' || drive.phase === 'powered' ? .28 : .28 * Math.max(0, 1 - drive.metres * 3.8);
   if (beam > 0) {
@@ -20,23 +28,14 @@ export function drawCoast(ctx: CanvasRenderingContext2D, art: CoastArt, drive: C
     glow.addColorStop(0, 'rgba(255,215,145,' + beam + ')'); glow.addColorStop(1, 'rgba(255,210,140,0)');
     ctx.fillStyle = glow; ctx.fillRect(-230, -230, 460, 460); ctx.restore();
   }
+  ctx.restore();
   if (cabin) {
     mask ??= { cabin: new Path2D(cabinOutline), mirror: new Path2D(mirrorOutline), glass: new Path2D(glassOutline) };
     ctx.save(); ctx.clip(mask.cabin, 'evenodd');
     ctx.drawImage(cabin.img, 0, 0, 640, 360);
     ctx.fillStyle = 'rgba(12,22,41,.48)'; ctx.fillRect(0, 0, 640, 360);
     ctx.restore();
-    // A fraying leather wrap makes steering legible against the painted wheel rim.
-    ctx.save();
-    ctx.translate(164, 423); ctx.rotate(drive.wheel * .68);
-    ctx.strokeStyle = '#443d33'; ctx.lineWidth = 9;
-    ctx.beginPath(); ctx.arc(0, 0, 120, -1.63, -1.52); ctx.stroke();
-    for (const edge of [-1.625, -1.59, -1.555, -1.525]) {
-      ctx.strokeStyle = '#94836a'; ctx.lineWidth = .85;
-      ctx.beginPath(); ctx.moveTo(115.8 * Math.cos(edge), 115.8 * Math.sin(edge));
-      ctx.lineTo(124 * Math.cos(edge + .014), 124 * Math.sin(edge + .014)); ctx.stroke();
-    }
-    ctx.restore();
+    drawCoastWheel(ctx, cabin.img, drive, oneArmed);
     ctx.save();
     ctx.translate(376, 7); ctx.scale(1.24, 1.30); ctx.translate(-376, -7);
     ctx.save(); ctx.clip(mask.mirror);

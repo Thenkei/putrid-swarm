@@ -53,7 +53,9 @@ describe('the last fifteen metres', () => {
     expect(d.phase).toBe('stopped');
     expect(d.heard).toBe(false);
     d.ignition();
-    for (let i = 0; i < 1200; i++) d.update(1 / 60, 0, true);
+    for (let i = 0; i < 120; i++) d.update(1 / 60, 0, true);
+    expect(d.speed).toBeCloseTo(0);
+    for (let i = 0; i < 1200; i++) d.update(1 / 60, 0, false, true);
     expect(d.phase).toBe('arrived');
     expect(d.heard).toBe(true);
   });

@@ -1,7 +1,7 @@
 // Scene navigation in one place. Scenes call these instead of constructing each other,
 // which keeps the phase order (day → night → morning → …) readable and avoids import knots.
 
-import { coastForNight, finishCoastHome, finishCoastParking, shouldCoastHome } from '../core/coast-home';
+import { coastForNight, finishCoastHome, finishCoastParking, shouldCoastHome, type CoastArrival } from '../core/coast-home';
 import { CoastHomeScene } from './coast-home';
 import { epicFlag, mopedCargo } from '../core/epics';
 import type { ChapterId } from '../core/chapters';
@@ -36,7 +36,7 @@ export const goMap = (app: App): void => app.go(() => new MapScene(app));
 export const goCrossing = (app: App, id: LocationId): void => app.go(() => new CrossingScene(app, id));
 export const goLocation = (app: App, id: LocationId, meeting: NeighborMeeting | null): void => app.go(() => new LocationScene(app, id, meeting));
 export const goAmbush = (app: App): void => app.go(() => new AmbushScene(app));
-export const goTravel = (app: App, options: TravelOptions): void => app.go(() => new TravelScene(app, options));
+export const goTravel = (app: App, options: TravelOptions): void => app.go(() => new TravelScene(app, options), options.parkingEntry ? 'cut' : 'fade');
 export const goNightfall = (app: App): void => app.go(() => new NightfallScene(app));
 export const goNight = (app: App): void => app.go(() => new NightScene(app));
 export const goMorning = (app: App): void => app.go(() => new MorningScene(app));
@@ -71,7 +71,7 @@ function unload(app: App): void {
  * The last stretch of the road: shows what is still in the boot and what was left on the way,
  * then unloads. Nothing is counted as brought home before this.
  */
-export function goHomeStretch(app: App, sub = '', ignitionAt?: number): void {
+export function goHomeStretch(app: App, sub = '', ignitionAt?: number, parkingEntry?: CoastArrival): void {
   const state = app.state;
   const outing = state?.outing;
   if (!state || !outing) {
@@ -83,11 +83,14 @@ export function goHomeStretch(app: App, sub = '', ignitionAt?: number): void {
     return;
   }
   if (shouldCoastHome(state)) {
-    app.go(() => new CoastHomeScene(app, outcome => {
-      app.state = finishCoastHome(state, outcome);
-      app.save();
-      goHomeStretch(app, sub);
-    }));
+    app.go(() => {
+      TravelScene.prepareParking();
+      return new CoastHomeScene(app, (outcome, entry) => {
+        app.state = finishCoastHome(state, outcome);
+        app.save();
+        goHomeStretch(app, sub, undefined, entry);
+      });
+    });
     return;
   }
   const s = S();
@@ -106,6 +109,7 @@ export function goHomeStretch(app: App, sub = '', ignitionAt?: number): void {
     ...(ignitionAt !== undefined && { ignitionAt }),
     parked: outing.coastParked === true,
     parking: outing.coastParking === true,
+    ...(parkingEntry && { parkingEntry }),
     onParked: () => {
       if (!app.state?.outing?.coastParking) return;
       app.state = finishCoastParking(app.state);

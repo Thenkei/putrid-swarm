@@ -1,6 +1,7 @@
 // A short beat in the old break between the refuge and the village, and back with the boot full.
 
 import { PARKED } from '../core/car-path';
+import type { CoastArrival } from '../core/coast-home';
 import { HOUSE_MAX_HP } from '../core/data/devices';
 import { epicFlag, packTrail, wreckSector } from '../core/epics';
 import { rattleForNight } from '../core/rattle';
@@ -16,6 +17,8 @@ import { el } from '../engine/dom';
 import { S, fmt, line as L } from '../engine/i18n';
 import { carDepartureShot, carManeuver, departingCar, type DepartingCar } from '../render/car-departure';
 import { approachView, heroApproachShot, sampleApproach, type ApproachShot } from '../render/hero-approach';
+import { drawParkingBearing, prepareParkingCar } from '../render/yard-parking';
+import { project, unproject } from '../render/projection';
 import { applyDayGrade, calmMotion } from '../render/lighting';
 import { smoothstep } from '../render/noise';
 import { CAT_BONNET_AT, CAT_LANDS_AT, CAT_SETTLES_AT, catWakeTime, sampleYardCat } from '../render/yard-cat';
@@ -117,6 +120,7 @@ export interface TravelOptions {
   /** App clock when the return starter follows the door slam at the location. */
   readonly ignitionAt?: number;
   readonly parking?: boolean;
+  readonly parkingEntry?: CoastArrival;
   readonly parked?: boolean;
   readonly onParked?: () => void;
   /** What is in the boot, when driving home. */
@@ -130,12 +134,17 @@ export interface TravelOptions {
 }
 
 export class TravelScene implements Scene {
+  static prepareParking(): void {
+    prepareWorld(BAY_VIEW);
+    prepareParkingCar();
+  }
   private time = 0;
   private done = false;
   private shot: ReturnType<typeof carDepartureShot> = null;
   private bayShot: ReturnType<typeof carDepartureShot> = null;
   private baySummaryAt = 0;
   private parking: YardParking | null = null;
+  private readonly parkingView = { ...BAY_VIEW };
   private parkedAt = 0;
   private gravelAt = .15;
   private parkingHud: HTMLElement | null = null;
@@ -223,12 +232,12 @@ export class TravelScene implements Scene {
       if (!this.stills && this.bayShot) {
         this.baySummaryAt = BAY_DOOR_AT + this.bayShot.latchAt - this.bayShot.poseEnds[0]! + .28;
       }
-      prepareWorld(BAY_VIEW);
-      audio.setAmbience('day', 1.25);
+      TravelScene.prepareParking();
+      audio.setAmbience(this.options.parkingEntry?.powered ? 'car' : 'day', 1.25);
       if (!this.options.parked) {
-        this.parking = new YardParking();
-        for (const code of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) {
-          if (this.app.isArrowHeld(code)) this.keys.add(code);
+        this.parking = new YardParking(this.options.parkingEntry);
+        for (const code of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space']) {
+          if (this.app.isDriveKeyHeld(code)) this.keys.add(code);
         }
         this.showParkingControls();
       }
@@ -248,6 +257,7 @@ export class TravelScene implements Scene {
     for (const [code, icon, title] of [
       ['ArrowUp', '↑', L('Avancer', 'Forward')], ['ArrowDown', '↓', L('Reculer', 'Reverse')],
       ['ArrowLeft', '←', L('Gauche', 'Left')], ['ArrowRight', '→', L('Droite', 'Right')],
+      ['Space', L('Espace', 'Space'), L('Freiner', 'Brake')],
     ] as const) {
       const button = el('button', { class: 'coast-pedal', data: { key: code } }, [el('kbd', { text: icon }), title]);
       button.addEventListener('pointerdown', event => {
@@ -263,7 +273,7 @@ export class TravelScene implements Scene {
       this.pedals.push(button);
       buttons.append(button);
     }
-    this.parkingHint = el('p', { text: L('Avance dans l’allée jusqu’à la place tracée.', 'Drive up the lane to the marked bay.') });
+    this.parkingHint = el('p', { text: L('La place est à gauche, près de la maison.', 'Your bay is on the left, beside the house.') });
     this.parkingHint.setAttribute('role', 'status');
     this.parkingHud = el('section', { class: 'travel-parking' }, [this.parkingHint, buttons]);
     const overlay = el('div');
@@ -278,8 +288,12 @@ export class TravelScene implements Scene {
     this.paused = !this.paused;
     if (this.paused) {
       audio.fadeOut('coast_gravel', .1);
+      if (this.options.parkingEntry?.powered) audio.setAmbience('none', .15);
       this.parkingPause.open(() => this.pauseParking(), () => goTitle(this.app), auto);
-    } else this.parkingPause.close();
+    } else {
+      this.parkingPause.close();
+      if (this.options.parkingEntry?.powered) audio.setAmbience('car', .25);
+    }
   }
 
   private finish(): void {
@@ -306,7 +320,6 @@ export class TravelScene implements Scene {
     this.time += dt;
     if (this.parking && this.parking.phase !== 'parked') {
       const drive = this.parking;
-      const atTurn = drive.atTurn;
       const held = (key: string) => this.keys.has(key) || this.pedalKeys.has(key);
       for (const pedal of this.pedals) {
         const pressed = String(held(pedal.dataset.key!));
@@ -315,17 +328,31 @@ export class TravelScene implements Scene {
       // A single pointer can feather the throttle with either steering pedal.
       const creep = this.pedalKeys.has('ArrowLeft') || this.pedalKeys.has('ArrowRight') ? .65 : 0;
       const throttle = held('ArrowUp') || held('ArrowDown') ? Number(held('ArrowUp')) - Number(held('ArrowDown')) : creep;
-      drive.update(dt, throttle, Number(held('ArrowLeft')) - Number(held('ArrowRight')));
-      if (this.parkingHint && atTurn !== drive.atTurn) {
-        this.parkingHint.textContent = drive.atTurn
-          ? L('Braque à gauche en avançant dans la place.', 'Keep moving and steer left into the bay.')
-          : L('Avance dans l’allée jusqu’à la place tracée.', 'Drive up the lane to the marked bay.');
-      }
+      drive.update(dt, throttle, Number(held('ArrowLeft')) - Number(held('ArrowRight')), held('Space'));
+      const root = project(BAY_VIEW, drive.x, drive.y);
+      const dx = root.x - Math.max(190, Math.min(STAGE_W - 165, root.x));
+      const dy = root.y - Math.max(185, Math.min(STAGE_H - 152, root.y));
+      const centre = unproject(BAY_VIEW, STAGE_W / 2 + dx, STAGE_H / 2 + dy);
+      const follow = 1 - Math.exp(-4.5 * dt);
+      this.parkingView.cx += (centre.gx - this.parkingView.cx) * follow;
+      this.parkingView.cy += (centre.gy - this.parkingView.cy) * follow;
+      const cue = drive.inBay ? L('Ici. Freine pour te garer.', 'Right here. Brake to park.')
+        : drive.bayBehind ? L('La place est derrière toi. Reprends-la en marche arrière.', 'The bay is behind you. Reverse for another run.')
+        : Math.hypot(drive.x-PARKED.x,drive.y-PARKED.y) < 1.5
+          ? L('Oriente le capot vers la clôture, puis freine.', 'Point the bonnet toward the fence, then brake.')
+        : drive.atTurn ? (drive.bayToLeft ? L('La place est sur ta gauche.', 'The bay is on your left.') : L('La place est sur ta droite.', 'The bay is on your right.'))
+        : L('Suis les traces vers la place près de la maison.', 'Follow the tyre tracks to the bay beside the house.');
+      if (this.parkingHint && this.parkingHint.textContent !== cue) this.parkingHint.textContent = cue;
       if (drive.distance >= this.gravelAt) {
-        audio.play('coast_gravel', .23 + .045 * Math.abs(drive.speed), .87 + .035 * Math.abs(drive.speed));
-        this.gravelAt = drive.distance + 2.0;
+        audio.play(drive.onGrass ? 'hedge_leaves' : 'coast_gravel', .10 + .075 * Math.abs(drive.speed), .79 + .075 * Math.abs(drive.speed));
+        this.gravelAt = drive.distance + 1.25;
       }
       if (drive.phase === 'parked') {
+        if (this.options.parkingEntry?.powered) {
+          audio.fadeOut('engine', .16);
+          audio.play('engine_stop', .6);
+          audio.setAmbience('day', .6);
+        }
         this.parkedAt = this.time;
         this.keys.clear();
         this.pedalKeys.clear();
@@ -395,10 +422,15 @@ export class TravelScene implements Scene {
       const health = yard.houseHp / HOUSE_MAX_HP;
       const rattle = rattleForNight(state);
       const drive = this.parking?.phase === 'parked' ? null : this.parking;
-      const car: DepartingCar | null = drive
-        ? { kind: 'returning', position: drive, heading: drive.heading }
+      let car: DepartingCar | null = drive
+        ? { kind: 'returning', position: drive, heading: drive.heading, wheelRoll: this.stills ? 0 : drive.wheelRoll,
+            headlights: this.options.parkingEntry?.powered ? .8 : 0 }
         : this.bayShot && parkingCar(this.bayShot, this.time - this.parkedAt, this.stills);
-      drawWorld(ctx, BAY_VIEW, {
+      if (car && !drive && this.parking) {
+        car = { ...car, position: this.parking, parkedHeading: this.parking.heading };
+      }
+      const view = this.parkingView;
+      drawWorld(ctx, view, {
         time: this.app.time, night: false, carPresent: true, houseHpRatio: health,
         ...(car && { departingCar: car }), parkingBay: !!drive,
         homesteadLife: { day: state.day },
@@ -415,7 +447,8 @@ export class TravelScene implements Scene {
       const hour = 1 - state.hoursLeft / DAY_HOURS;
       const blueHour = Math.max(hour, .988);
       const unloaded = drive ? 0 : smoothstep(.2, HOLD_SECONDS - .18, this.time - this.parkedAt - this.baySummaryAt);
-      applyDaylight(ctx, BAY_VIEW, blueHour + (hour - blueHour) * unloaded, houseLights(BAY_VIEW.rot, yard.barricades, health), this.app.time);
+      applyDaylight(ctx, view, blueHour + (hour - blueHour) * unloaded, houseLights(view.rot, yard.barricades, health), this.app.time);
+      if (drive) drawParkingBearing(ctx, view, drive);
       return;
     }
     if (departure && shot && this.time < this.roadStart) {
@@ -506,13 +539,20 @@ export class TravelScene implements Scene {
   onKeyDown(code: string, event?: KeyboardEvent): void {
     if (this.parking && this.parking.phase !== 'parked') {
       if (code === 'Escape') this.pauseParking();
-      if (!this.paused && code.startsWith('Arrow')) { event?.preventDefault(); this.keys.add(code); }
+      if (!this.paused && (code.startsWith('Arrow') || code === 'Space')) { event?.preventDefault(); this.keys.add(code); }
       return;
     }
     if (code === 'Space' || code === 'Enter' || code === 'Escape') this.finish();
   }
 
   onKeyUp(code: string): void { this.keys.delete(code); }
+  exit(): void {
+    if (this.options.parkingEntry?.powered && this.parking?.phase !== 'parked') {
+      audio.fadeOut('engine', .15);
+      audio.setAmbience('none', .15);
+    }
+  }
+
   onBlur(): void {
     this.keys.clear();
     this.pedalKeys.clear();

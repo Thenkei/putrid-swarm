@@ -63,8 +63,8 @@ interface DepartureShot {
   readonly duration: number;
 }
 
-export type DepartingCar = { readonly position: Point } & (
-  | { readonly kind: 'returning'; readonly heading: number }
+export type DepartingCar = { readonly position: Point; readonly parkedHeading?: number } & (
+  | { readonly kind: 'returning'; readonly heading: number; readonly wheelRoll: number; readonly headlights: number }
   | { readonly kind: 'boarding'; readonly picture: CarArt; readonly pose: number }
   | { readonly kind: 'driving'; readonly driver: Sprite; readonly turn: Sprite; readonly yaw: number; readonly shake: number; readonly headlights: number }
 );
@@ -105,9 +105,10 @@ export function departingCar(shot: DepartureShot, time: number, dusk: number): D
 
 /** Paint the two low beams on the ground before the props and the wagon are drawn. */
 export function drawHeadlightPools(ctx: CanvasRenderingContext2D, view: View, car: DepartingCar): void {
-  if (car.kind !== 'driving' || car.headlights <= 0) return;
-  const s = Math.sin(car.yaw);
-  const c = Math.cos(car.yaw);
+  if (car.kind === 'boarding' || car.headlights <= 0) return;
+  const yaw = car.kind === 'returning' ? Math.PI / 2 - car.heading : car.yaw;
+  const s = Math.sin(yaw);
+  const c = Math.cos(yaw);
   ctx.save();
   ctx.transform(...groundMatrix(view));
   ctx.transform(c, s, -s, c, car.position.x, car.position.y);
@@ -130,8 +131,24 @@ export function drawHeadlightPools(ctx: CanvasRenderingContext2D, view: View, ca
 
 /** The rack and wheelbase are registered to the same point as the parked yard sprite. */
 export function drawDepartingCar(ctx: CanvasRenderingContext2D, car: DepartingCar, root: Point, height: number): void {
+  if (car.parkedHeading !== undefined) {
+    // The actor's door poses share the parked front quarter. Keep their tyres on
+    // the bearing and at the position where the player actually stopped.
+    const angle = car.parkedHeading - Math.PI / 4;
+    const lateral = Math.cos(angle) / Math.SQRT1_2;
+    ctx.save();
+    ctx.translate(root.x, root.y);
+    ctx.transform(lateral, .5 * (lateral - Math.sin(angle)/Math.SQRT1_2), 0, 1, 0, 0);
+    drawCarPose(ctx, car, {x:0,y:0}, height);
+    ctx.restore();
+    return;
+  }
+  drawCarPose(ctx, car, root, height);
+}
+
+function drawCarPose(ctx: CanvasRenderingContext2D, car: DepartingCar, root: Point, height: number): void {
   if (car.kind === 'returning') {
-    drawReturningCar(ctx, root, height, car.heading);
+    drawReturningCar(ctx, root, height, car.heading, car.wheelRoll);
     return;
   }
   if (car.kind === 'driving') {

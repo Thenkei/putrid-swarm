@@ -8,6 +8,7 @@
 .coast-dash h1 { font: 700 28px/1.05 var(--slab-font); margin: 0 0 4px; color: #f6e5bd; }
 .coast-dash p { font: 18px/1.22 var(--slab-font); margin: 0 0 7px; }
 .coast-distance { position: absolute; right: 16px; top: 15px; padding: 5px 7px 3px; border: 1px solid #665e46; background: #191d19; color: #d4bf85; font: 18px/1.1 monospace; }
+.coast-speed { position: absolute; right: 17px; top: 51px; color: #cfc7a9; font: 15px/1.1 monospace; }
 .coast-controls { display: flex; gap: 15px; }
 .coast-controls[hidden], .coast-key[hidden] { display: none; }
 .coast-dash button { font: bold 15px/1.1 var(--slab-font); color: #eddfc8; }
