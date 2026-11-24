@@ -3193,6 +3193,12 @@ button:disabled {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .orchard .qte,
+  .orchard .qte kbd,
+  .orchard .qte.how-both kbd { animation: none; }
+}
+
 .qte-go_left .what,
 .qte-go_right .what {
   font-size: 21px;
