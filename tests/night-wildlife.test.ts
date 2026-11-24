@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { BarnMoth, MOTH_CONTACT } from '../src/render/house-reactions';
 import { NightWildlife } from '../src/scenes/night-wildlife';
 
 describe('the night watch wildlife', () => {
@@ -40,5 +41,40 @@ describe('the night watch wildlife', () => {
     expect(heard.length).toBeLessThanOrEqual(5);
     expect(yard.hush()).toBe(true);
     expect(yard.hush()).toBe(false);
+  });
+
+  it('times the rare fox to a twig snap and spaces out visits', () => {
+    const yard = new NightWildlife(() => 0);
+    expect(yard.step(4, 1, null, false)).toBe('hedge_twig');
+    expect(yard.foxAge).toBe(0);
+    yard.hush(.5);
+    expect(yard.foxAge).toBe(.5);
+    yard.hush(1.5);
+    expect(yard.foxAge).toBeNull();
+    for (let i = 0; i < 44; i++) {
+      yard.step(1, 1, null, false);
+      expect(yard.foxAge).toBeNull();
+    }
+    const busy = new NightWildlife(() => 0);
+    expect(busy.step(4, 2, null, false)).toBe('hedge_twig');
+    expect(busy.foxAge).toBeNull();
+  });
+
+  it('taps the glass once per visit and waits for the door to settle before returning', () => {
+    const moth = new BarnMoth();
+    expect(moth.step(MOTH_CONTACT - .01)).toBe(false);
+    expect(moth.step(MOTH_CONTACT)).toBe(true);
+    expect(moth.step(4)).toBe(false);
+    moth.knock(5);
+    moth.knock(6);
+    expect(moth.flight).toBe(5);
+    expect(moth.step(21)).toBe(false);
+    expect(moth.flight).toBe(5);
+    expect(moth.step(21.1)).toBe(false);
+    expect(moth.flight).toBeNull();
+    expect(moth.step(24)).toBe(true);
+    const startled = new BarnMoth();
+    startled.knock(.4);
+    expect(startled.step(MOTH_CONTACT)).toBe(false);
   });
 });

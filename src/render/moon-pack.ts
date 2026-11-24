@@ -2,6 +2,7 @@ import { PACK_GAP, PACK_RETURN, packPhase } from '../core/moon-pack';
 import { lightPool, patrolCel } from './epic-night-light';
 import { calmMotion } from './lighting';
 import { hash2, smoothstep } from './noise';
+import { drawBarnLaundry } from './moon-laundry';
 import { sprite } from '../engine/assets';
 
 // Outlines stay in the cache between frames, including when the operator switches cameras.
@@ -265,6 +266,11 @@ export function moonFeed(canvas: HTMLCanvasElement, camera: number, subject: num
     wolf(ctx, 478, 337, 1.35, -1, air);
   } else {
     infected(ctx, 360 + Math.sin(air * .6) * 63, air);
+  }
+  if (camera === 1) {
+    const trackingCub = subject === camera;
+    const direction = Math.cos(air * .57) >= 0 ? 1 : -1;
+    drawBarnLaundry(ctx, trackingCub ? trailCubX(time) : null, trailCubX(time - .18) - 23 * direction, air);
   }
 }
 

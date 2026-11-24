@@ -664,6 +664,10 @@ export const ART = [
       'transparent RGBA, no text, no frame, no guides or marks. The nose faces the viewer in every view, DO NOT draw any rear ' +
       'view.',
   },
+  {
+    id: 'moon_laundry', kind: 'atlas', w: 160, source: { concept: 'art/raw/moon_laundry.png' },
+    prompt: "Single environment sprite for a hand-painted rural French survival game. One modest rectangular, hanging linen sheet pinned by two small wooden pegs, top edge gently sagging, weighty vertical folds, a small repaired patch, faded narrow twin woven stripes at the hem. Front elevation. Quiet midnight moonlight, muted slate blue-grey and warm grey shadow, gouache brush texture. Entire cloth visible from pegs to undulating lower hem. Rectangular portrait silhouette roughly 3:4. No pole, line, background, floor or drop shadow. Genuine transparent background.",
+  },
   // Shared walk cycles and the four poses used on the upper-window route.
   {
     id: 'night_owl', kind: 'atlas', w: 128, source: { concept: 'art/raw/night_owl.png' },
