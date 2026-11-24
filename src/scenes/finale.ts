@@ -157,7 +157,7 @@ export class FinaleScene implements Scene {
   private pauseMenu!: PauseMenu;
   private countEl!: HTMLElement;
   private comboEl!: HTMLElement;
-  private outEl!: HTMLElement;
+  private outEl!: HTMLButtonElement;
   private hintEl!: HTMLElement;
   private readonly keyEls: HTMLElement[] = [];
   private spaceEl!: HTMLElement;
@@ -285,7 +285,10 @@ export class FinaleScene implements Scene {
               return node;
             }),
           ]),
-          el('div', { class: 'finale-skip', text: s.finale.start }),
+          el('div', { class: 'finale-skip jam-start' }, [
+            el('span', { class: 'jam-key-hint', text: s.finale.start }),
+            el('span', { class: 'jam-touch-hint', text: s.finale.touchStart }),
+          ]),
         );
         this.pickMode(this.mode);
         if (document.hidden || !document.hasFocus()) this.pause(true);
@@ -328,7 +331,10 @@ export class FinaleScene implements Scene {
 
   private pickMode(mode: JamMode): void {
     this.mode = mode;
-    for (const [id, node] of this.modeEls) node.classList.toggle('on', id === mode);
+    for (const [id, node] of this.modeEls) {
+      node.classList.toggle('on', id === mode);
+      node.setAttribute('aria-pressed', String(id === mode));
+    }
     try {
       localStorage.setItem(MODE_KEY, mode);
     } catch {
@@ -433,10 +439,12 @@ export class FinaleScene implements Scene {
     ]);
     const other = s.finale.mode[this.mode === 'soft' ? 'hard' : 'soft'].name;
     const swap = el('button', { class: 'jam-swap', onClick: () => this.switchMode() }, [el('kbd', { text: 'TAB' }), el('span', { text: fmt(s.finale.swap, { mode: other }) })]);
-    this.outEl = el('button', { class: 'jam-out', onClick: () => this.bowOut() }, [el('kbd', { text: s.finale.enter }), el('span', {}, [s.finale.out, el('small', { text: s.finale.outNote })])]);
-    this.root.replaceChildren(
-      el('div', { class: 'jam' }, [el('div', { class: 'jam-count' }, [this.countEl, el('span', { text: s.finale.mown })]), this.comboEl, el('div', { class: 'jam-keys' }, [...keys, this.spaceEl]), this.hintEl, swap, this.outEl]),
+    this.outEl = el('button', { class: 'jam-out', disabled: this.now < FINALE.skipAfter, onClick: () => this.bowOut() }, [el('kbd', { text: s.finale.enter }), el('span', {}, [s.finale.out, el('small', { text: s.finale.outNote })])]);
+    const actions = el('div', { class: 'jam-actions' }, [swap, this.outEl,
       el('button', { class: 'jam-pause', text: s.finale.pause, onClick: () => this.pause(false) }),
+    ]);
+    this.root.replaceChildren(
+      el('div', { class: 'jam' }, [el('div', { class: 'jam-count' }, [this.countEl, el('span', { text: s.finale.mown })]), this.comboEl, el('div', { class: 'jam-keys' }, [...keys, this.spaceEl]), this.hintEl, actions]),
     );
   }
 
@@ -554,6 +562,7 @@ export class FinaleScene implements Scene {
     const sounding = this.chords.at(-1);
     this.keyEls.forEach((key, i) => key.classList.toggle('held', i === sounding));
     this.outEl.classList.toggle('on', now >= FINALE.skipAfter);
+    if (this.outEl.disabled && now >= FINALE.skipAfter) this.outEl.disabled = false;
     this.hintEl.classList.toggle('on', now < 14);
     this.markTheSong(now);
 

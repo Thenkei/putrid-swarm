@@ -4201,23 +4201,6 @@ button:disabled {
   cursor: pointer;
 }
 
-@media (pointer: coarse) {
-  .jam-pause {
-    top: auto;
-    bottom: 176px;
-    min-width: 90px;
-    min-height: 90px;
-    font-size: 30px;
-  }
-  .finale-overlay .pause .btn { min-height: 88px; font-size: 32px; }
-}
-
-@media (pointer: coarse) and (orientation: portrait) {
-  .jam-pause { min-width: 150px; min-height: 150px; font-size: 40px; }
-  .finale-overlay .pause .btn { min-height: 150px; width: 640px; font-size: 42px; }
-  .finale-overlay .pause-reason { max-width: 920px; font-size: 36px; }
-}
-
 .jam-swap {
   position: absolute;
   right: 26px;
@@ -4247,6 +4230,71 @@ button:disabled {
   background: rgba(14, 12, 9, 0.82);
   border: 2px solid rgba(255, 246, 224, 0.7);
   border-radius: 6px;
+}
+
+@media (pointer: coarse) {
+  .finale { --jam-target: calc(46px / var(--stage-scale, .5)); }
+  .finale-overlay .pause .btn { min-height: calc(46px / var(--stage-scale, .5)); font-size: 32px; }
+  .jam-actions {
+    position: absolute;
+    right: 24px;
+    top: 166px;
+    display: flex;
+    gap: 12px;
+  }
+  .jam-actions button, .jam-mode {
+    min-height: var(--jam-target);
+  }
+  .jam-actions button {
+    position: static;
+    justify-content: center;
+    min-width: var(--jam-target);
+    padding: 4px 16px;
+    border: 1px solid #fff6e077;
+    border-radius: 5px;
+    background: #100e0ddd;
+    color: #fff6e0;
+    font: 26px var(--hud-font);
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  .jam-actions .jam-out:not(.on) { visibility: hidden; }
+  .jam-actions kbd, .jam-actions small, .jam-modes .pick { display: none; }
+  .jam-start { left: 20px; text-align: center; }
+}
+
+@media (pointer: coarse) and (orientation: portrait) {
+  /* The stage is letterboxed. Put the controls in the two margins so the garden remains visible. */
+  #stage:has(.jam, .jam-modes) { overflow: visible; }
+  .finale { --jam-target: calc(46px / var(--stage-scale, .25)); }
+  .finale-overlay .pause .btn { min-height: calc(46px / var(--stage-scale, .25)); width: 640px; font-size: 42px; }
+  .finale-overlay .pause-reason { max-width: 920px; font-size: 36px; }
+  .jam-actions {
+    left: 10px;
+    right: 10px;
+    top: auto;
+    bottom: calc(100% + 24px);
+    justify-content: center;
+    gap: 18px;
+  }
+  .jam-actions button, .jam-mode, .jam-keys button {
+    min-height: var(--jam-target);
+    min-width: var(--jam-target);
+  }
+  .jam-actions button { font-size: 38px; padding-inline: 25px; }
+  .jam-keys, .jam-modes { top: calc(100% + 24px); bottom: auto; }
+  .jam-modes { animation: none; }
+  .jam-mode { width: 46%; padding: 12px 24px; }
+  .jam-mode b { font-size: 45px; }
+  .jam-mode small { font-size: max(32px, calc(12px / var(--stage-scale, .3))); }
+  .jam-start {
+    top: auto;
+    bottom: calc(100% + 24px);
+    font-size: 36px;
+    letter-spacing: normal;
+    color: var(--cream);
+  }
+  .finale[inert] :is(.jam-actions, .jam-keys, .jam-modes, .jam-start) { visibility: hidden; }
 }
 
 /* The seventh dawn: the cards sit on a bright picture. */

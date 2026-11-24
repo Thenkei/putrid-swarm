@@ -1096,6 +1096,7 @@ export const fr = {
     skip: 'Espace · passer',
     pick: '← → pour choisir',
     start: 'Espace · démarrer',
+    touchStart: 'Touchez un mode. Le morceau démarre dans quelques secondes.',
     swap: 'Passer en {mode}',
     mode: {
       soft: { name: 'Tranquille', note: 'Trois touches, des notes qui prennent leur temps' },
