@@ -21,7 +21,7 @@ import { S, fmt, hours } from '../engine/i18n';
 import { hush, say } from '../engine/voice';
 import { calmMotion } from '../render/lighting';
 import { smoothstep } from '../render/noise';
-import { carDeparture, heroArt, costLine, drawPlate, inventoryBar, lootSfx, oneArmed, platePoint, returnCargoBar } from './common';
+import { heroArt, costLine, drawPlate, inventoryBar, lootSfx, oneArmed, platePoint, returnCargoBar } from './common';
 import { EncounterPanel, memoryLine, nameOf, roadPlate } from './encounter';
 import { goAmbush, goEnd, goHomeStretch, goTravel } from './flow';
 import { ScavengePanel } from './scavenge';
@@ -519,9 +519,8 @@ export class LocationScene implements Scene {
     const result = leaveLocation(this.state);
     if (!result.ok) return;
     const { state, forfeit } = result.value;
-    // The dusk scene opens on the engine dying. Leave its ignition to the player.
-    if (state.outing?.crossbowStop && !state.encounter) audio.play('car_door');
-    else carDeparture();
+    audio.play('car_door');
+    const ignitionAt = this.app.time + 0.35;
     const s = S();
     this.app.state = state;
     this.app.save();
@@ -531,8 +530,8 @@ export class LocationScene implements Scene {
     const sub = memory ? `${drive} · ${memory}` : drive;
     if (state.encounter) {
       // Seen from the wheel before anything is said: there is time to take it in.
-      goTravel(this.app, { plate: roadPlate(state), title: s.encounter.road.title, sub: s.encounter.road.ahead, next: () => goAmbush(this.app) });
-    } else goHomeStretch(this.app, sub);
+      goTravel(this.app, { plate: roadPlate(state), title: s.encounter.road.title, sub: s.encounter.road.ahead, ignitionAt, next: () => goAmbush(this.app) });
+    } else goHomeStretch(this.app, sub, ignitionAt);
   }
 
   update(dt: number): void {

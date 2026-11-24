@@ -91,6 +91,8 @@ export interface TravelOptions {
   readonly sub: string;
   /** Refuge state before the drive uses any daylight. */
   readonly departure?: GameState;
+  /** App clock when the return starter follows the door slam at the location. */
+  readonly ignitionAt?: number;
   /** What is in the boot, when driving home. */
   readonly loot?: Cost;
   readonly mopedDisplaced?: Cost;
@@ -190,8 +192,8 @@ export class TravelScene implements Scene {
       audio.fadeOut('car_latch', 0.18);
     }
     if (this.plate === RADIO_PLATE) audio.fadeOut('radio_squelch', 0.15);
-    // A skip during boarding takes us straight to the destination before the starter has played.
-    if (!this.options.departure || this.engineStarted) {
+    // A skipped ignition has no engine to wind down. Other road scenes may already be driving.
+    if (this.engineStarted || (!this.options.departure && this.options.ignitionAt === undefined)) {
       audio.fadeOut(this.options.departure ? 'engine_depart' : 'engine', 0.5);
       audio.play('engine_stop');
     }
@@ -202,6 +204,10 @@ export class TravelScene implements Scene {
     if (this.done) return;
     const previous = this.time;
     this.time += dt;
+    if (!this.engineStarted && this.options.ignitionAt !== undefined && this.app.time >= this.options.ignitionAt) {
+      audio.play('engine');
+      this.engineStarted = true;
+    }
     const shot = this.shot;
     const approach = this.approach;
     const { boardingStart, roadStart } = this;

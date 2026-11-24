@@ -69,7 +69,7 @@ function unload(app: App): void {
  * The last stretch of the road: shows what is still in the boot and what was left on the way,
  * then unloads. Nothing is counted as brought home before this.
  */
-export function goHomeStretch(app: App, sub = ''): void {
+export function goHomeStretch(app: App, sub = '', ignitionAt?: number): void {
   const state = app.state;
   const outing = state?.outing;
   if (!state || !outing) {
@@ -88,6 +88,7 @@ export function goHomeStretch(app: App, sub = ''): void {
     plate: !moped && units(cargo) > 0 ? 'plate_trunk' : 'plate_return',
     title: s.location.home,
     sub: sub || (moped ? fmt(s.loc.leaveCost, { h: hours(LOCATIONS[outing.to].travelHours) }) : ''),
+    ...(ignitionAt !== undefined && { ignitionAt }),
     loot: cargo,
     lost: outing.parted,
     ...(moped && { mopedDisplaced: moped.displaced }),
