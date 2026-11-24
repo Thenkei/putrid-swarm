@@ -3,7 +3,7 @@
 import { CampaignStorage } from './campaign-storage';
 import { S } from './i18n';
 import type { GameState } from '../core/types';
-import { audio } from './audio';
+import { audio, type Sfx } from './audio';
 import { el } from './dom';
 import { hearKey } from './keys';
 
@@ -163,6 +163,14 @@ export class App {
       requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
+  }
+
+  /** Play a delayed cue only while the scene that requested it is still active. */
+  playSceneCue(effect: Sfx, delayMs: number): void {
+    const owner = this.scene;
+    window.setTimeout(() => {
+      if (owner === this.scene && !this.pendingScene) audio.play(effect);
+    }, delayMs);
   }
 
   /** Switches scene behind a short fade to black. */

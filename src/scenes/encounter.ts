@@ -175,8 +175,8 @@ export class EncounterPanel {
     if (!resolution) return;
     const found = lootSfx(resolution.gained);
     if (found) {
-      window.setTimeout(() => audio.play(exchange ? 'crate' : 'rummage'), exchange ? 200 : 0);
-      window.setTimeout(() => audio.play(found), 420);
+      this.app.playSceneCue(exchange ? 'crate' : 'rummage', exchange ? 200 : 0);
+      this.app.playSceneCue(found, 420);
     } else if (units(resolution.lost) > 0) audio.play('rummage');
   }
 
