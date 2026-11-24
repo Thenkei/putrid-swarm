@@ -173,8 +173,7 @@ export class EpicNight {
     const connect = button(L('Enclencher le relais', 'Engage relay'), () => {
       if (!receiver.locked()) {
         audio.play('deny');
-        this.note.textContent = L('Le relais décroche. Corrige le réglage indiqué sur le poste, puis réessaie.', 'The relay drops out. Follow the receiver’s tuning cue and try again.');
-        receiver.focusDial();
+        receiver.retry();
         return;
       }
       const before = this.sim.energy;
@@ -190,6 +189,7 @@ export class EpicNight {
         : cub ? L('Sur le moniteur, la meute attend le petit. Il passe sous le lampadaire et les silhouettes repartent ensemble.', 'On the monitor the pack waits for its cub. It crosses the pool of lamplight and the silhouettes leave together.')
         : L('Le secteur réapparaît sur le moniteur. Tu distingues enfin ce qui gratte derrière la porte.', 'The sector returns to the monitor. At last you can see what’s scratching at the door.');
       const resume = button(L('Reprendre la veille', 'Back to the desk'), () => { this.close(); this.tuneCamera(target); });
+      resume.setAttribute('aria-describedby', receiver.statusId);
       this.actions.replaceChildren(resume);
       resume.focus();
     });

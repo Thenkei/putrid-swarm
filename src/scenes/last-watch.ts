@@ -27,9 +27,11 @@ export function lastWatchDesk(field: HTMLElement, seed: number, lamp: boolean, c
   const freq = makeDial(fr ? 'Fréquence' : 'Frequency', 1, 9, lamp ? cycles : 1, cycles);
   const shift = makeDial(fr ? 'Phase' : 'Phase', 0, 9, cub ? phase : 0, phase);
   const status = el('div', { class: 'last-watch-state' });
+  status.id = 'last-watch-status';
   status.setAttribute('aria-live', 'polite');
+  for (const dial of [freq, shift]) dial.input.setAttribute('aria-describedby', status.id);
   const locked = () => +freq.input.value === cycles && +shift.input.value === phase;
-  const redraw = () => {
+  const redraw = (retry = false) => {
     const higher = +freq.input.value < cycles;
     const later = +shift.input.value < phase;
     freq.root.dataset.matched = String(+freq.input.value === cycles);
@@ -39,7 +41,8 @@ export function lastWatchDesk(field: HTMLElement, seed: number, lamp: boolean, c
     const cue = locked() ? (fr ? 'Signal stable. Le relais peut être enclenché.' : 'Signal steady. The relay is ready.')
       : +freq.input.value !== cycles ? (fr ? (higher ? 'Augmente la fréquence.' : 'Réduis la fréquence.') : (higher ? 'Raise the frequency.' : 'Lower the frequency.'))
       : (fr ? (later ? 'Fréquence calée. Augmente la phase.' : 'Fréquence calée. Réduis la phase.') : (later ? 'Frequency matched. Raise the phase.' : 'Frequency matched. Lower the phase.'));
-    if (status.textContent !== cue) status.textContent = cue;
+    const message = retry ? (fr ? 'Le relais décroche. ' : 'The relay drops out. ') + cue : cue;
+    if (status.textContent !== message) status.textContent = message;
     const ctx = scope.getContext('2d');
     if (!ctx) return;
     const glass = ctx.createRadialGradient(358, 94, 12, 360, 100, 395);
@@ -72,7 +75,10 @@ export function lastWatchDesk(field: HTMLElement, seed: number, lamp: boolean, c
   redraw();
   const focusDial = () => (+freq.input.value === cycles ? shift.input : freq.input).focus();
   if (!locked()) focusDial();
-  return { locked, focusDial, confirm(text: string) {
+  return { locked, statusId: status.id, retry() {
+    redraw(true);
+    focusDial();
+  }, confirm(text: string) {
     freq.input.disabled = shift.input.disabled = true;
     status.textContent = text;
   } };
