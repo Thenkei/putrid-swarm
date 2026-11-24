@@ -3988,6 +3988,7 @@ button:disabled {
   gap: 8px;
 }
 
+.jam-keys button,
 .jam-keys kbd,
 .jam-out kbd {
   display: flex;
@@ -4006,7 +4007,13 @@ button:disabled {
   transition: transform 0.05s;
 }
 
-.jam-keys kbd.held {
+.jam-keys button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.jam-keys button.held,
+.jam-keys button:active {
   color: #17130d;
   background: #fff6e0;
   transform: translateY(3px);
@@ -4042,6 +4049,40 @@ button:disabled {
 
 .jam-hint.on {
   opacity: 1;
+}
+
+.jam-touch-hint {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .jam-keys {
+    top: auto;
+    bottom: 16px;
+  }
+
+  .jam-keys button {
+    width: 90px;
+    height: 90px;
+    font-size: 46px;
+  }
+
+  .jam-keys .space, .jam-key-hint { display: none; }
+  .jam-touch-hint { display: inline; }
+  .jam-hint { top: 20px; }
+}
+
+@media (pointer: coarse) and (orientation: portrait) {
+  .jam-keys button {
+    width: 156px;
+    height: 152px;
+    font-size: 60px;
+  }
+
+  .jam-hint {
+    font-size: 35px;
+    letter-spacing: normal;
+  }
 }
 
 .jam-out {

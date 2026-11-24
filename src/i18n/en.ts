@@ -1074,6 +1074,8 @@ export const en: Strings = {
     shedGuest: 'In a corner, the camper, holding the lamp. His eyes are very round.',
     shedGuestTurned: 'In a corner, the camper. He doesn’t talk any more. He watches you climb on.',
     hint: 'A key {keys} for the chord · {space} to strum',
+    tapHint: 'Tap the matching letter as the note reaches the box',
+    playChord: 'Play chord {key}',
     space: 'SPACE',
     enter: 'ENTER',
     mown: 'mown',

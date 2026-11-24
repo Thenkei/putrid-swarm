@@ -401,14 +401,26 @@ export class FinaleScene implements Scene {
     const labels = trapKeyLabels();
     this.keyEls.length = 0;
     const keys = Array.from({ length: this.chordCount }, (_, i) => {
-      const key = el('kbd', { text: labels[i] ?? '', style: { borderColor: CHORD_COLORS[i] ?? '#fff' } });
+      const label = labels[i] ?? '';
+      const key = el('button', { text: label, style: { borderColor: CHORD_COLORS[i] ?? '#fff' } });
+      key.setAttribute('aria-label', fmt(s.finale.playChord, { key: label }));
+      // Strike on contact so the note lands on the beat even if the finger lingers.
+      key.addEventListener('pointerdown', event => {
+        if (event.button === 0) this.hitStrings(i);
+      });
+      key.addEventListener('click', event => {
+        if (event.detail === 0) this.hitStrings(i);
+      });
       this.keyEls.push(key);
       return key;
     });
     this.spaceEl = el('kbd', { class: 'space', text: s.finale.space });
     this.countEl = el('b', { text: '0' });
     this.comboEl = el('div', { class: 'jam-combo' });
-    this.hintEl = el('div', { class: 'jam-hint', text: fmt(s.finale.hint, { keys: labels.slice(0, this.chordCount).join(' '), space: s.finale.space }) });
+    this.hintEl = el('div', { class: 'jam-hint' }, [
+      el('span', { class: 'jam-key-hint', text: fmt(s.finale.hint, { keys: labels.slice(0, this.chordCount).join(' '), space: s.finale.space }) }),
+      el('span', { class: 'jam-touch-hint', text: s.finale.tapHint }),
+    ]);
     const other = s.finale.mode[this.mode === 'soft' ? 'hard' : 'soft'].name;
     const swap = el('button', { class: 'jam-swap', onClick: () => this.switchMode() }, [el('kbd', { text: 'TAB' }), el('span', { text: fmt(s.finale.swap, { mode: other }) })]);
     this.outEl = el('button', { class: 'jam-out', onClick: () => this.bowOut() }, [el('kbd', { text: s.finale.enter }), el('span', {}, [s.finale.out, el('small', { text: s.finale.outNote })])]);
@@ -433,8 +445,7 @@ export class FinaleScene implements Scene {
     walker.thrown = { y: walker.groundY, vx: 160 + Math.random() * 420 * power, vy: -(420 + Math.random() * 520) * power, spin: (Math.random() * 2 - 1) * 14, angle: 0 };
   }
 
-  private hitStrings(): void {
-    const chord = this.chords.at(-1) ?? null;
+  private hitStrings(chord = this.chords.at(-1) ?? null): void {
     const result = strum(this.jam, this.chart, this.now, chord, this.mode);
     this.jam = result.jam;
     const verdict: Verdict = result.verdict;

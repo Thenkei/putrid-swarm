@@ -1082,6 +1082,8 @@ export const fr = {
     shedGuest: 'Dans un coin, le campeur, la lampe à la main. Il a les yeux ronds.',
     shedGuestTurned: 'Dans un coin, le campeur. Il ne parle plus. Il te regarde monter.',
     hint: 'Une touche {keys} pour l’accord · {space} pour gratter',
+    tapHint: 'Touche la bonne lettre quand la note entre dans le cadre',
+    playChord: 'Jouer l’accord {key}',
     space: 'ESPACE',
     enter: 'ENTRÉE',
     mown: 'tondus',
