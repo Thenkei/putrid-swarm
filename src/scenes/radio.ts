@@ -44,7 +44,7 @@ import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours } from '../engine/i18n';
+import { S, fmt, hours, line } from '../engine/i18n';
 import { endingsTally, rememberEnding as remember } from '../engine/progress';
 import { hush, say, sayAny, type VoiceId } from '../engine/voice';
 import { Atmosphere, drawArm } from './atmosphere';
@@ -215,6 +215,8 @@ export class RadioScene implements Scene {
   private phaseTime = 0;
   private paused = false;
   private pausedCallerAt: number | null = null;
+  private pausedFoleyAt: number | null = null;
+  private foley: { sound: 'camper_zip' | 'camper_breath'; until: number; caption: string } | null = null;
   private left = false;
   private readonly oneArm: boolean;
 
@@ -257,6 +259,7 @@ export class RadioScene implements Scene {
   private logPrev!: HTMLElement;
   private logWho!: HTMLElement;
   private logLine!: HTMLElement;
+  private logFoley!: HTMLElement;
   private waitEl!: HTMLElement;
   private waitFill!: HTMLElement;
   private weakEl!: HTMLElement;
@@ -289,7 +292,9 @@ export class RadioScene implements Scene {
     this.logPrev = el('p', { class: 'prev' });
     this.logWho = el('b');
     this.logLine = el('p', { class: 'line' });
-    this.logEl = el('div', { class: 'radio-log' }, [this.logPrev, this.logWho, this.logLine]);
+    this.logFoley = el('p', { class: 'radio-foley' });
+    this.logFoley.setAttribute('role', 'status');
+    this.logEl = el('div', { class: 'radio-log' }, [this.logPrev, this.logWho, this.logLine, this.logFoley]);
     this.waitFill = el('i');
     this.waitEl = el('div', { class: 'radio-wait' }, [el('span', { text: s.radio.waiting }), el('span', { class: 'bar' }, [this.waitFill])]);
     this.weakEl = el('div', { class: 'radio-weak', text: s.radio.prompt.weak });
@@ -302,6 +307,10 @@ export class RadioScene implements Scene {
     this.pauseMenu = new PauseMenu(pauseOverlay);
     this.root = el('div', { class: 'orchard radio' }, [this.titleEl, this.logEl, this.answersEl, this.waitEl, this.weakEl, this.promptsEl, this.noteEl, this.overlay, pauseOverlay]);
     this.app.ui.append(this.root);
+    if (rivalOf(this.radio.call.caller) === 'camper') {
+      void audio.prepareSample('camper_zip');
+      if (this.radio.call.caller === 'camper_owes' && this.radio.call.secret) void audio.prepareSample('camper_breath');
+    }
     this.after(1.2, () => this.once('vo_radio_arrive'));
   }
 
@@ -316,6 +325,7 @@ export class RadioScene implements Scene {
     audio.hum('radio_static', 0);
     audio.hum('radio_whistle', 0);
     for (const channel of ['caller', 'news', 'baker']) audio.hushOn(channel, 0.3);
+    audio.hushOn('radio-foley', .06);
   }
 
   // ───────────────────────────── Small machinery ─────────────────────────────
@@ -357,13 +367,23 @@ export class RadioScene implements Scene {
   private onCue(cue: Cue): void {
     const o = this.radio;
     switch (cue.type) {
+      case 'foley':
+        // At the speaker Hugo stops talking to listen, even if he just crossed the news band.
+        hush();
+        this.foley = {
+          sound: cue.sound, until: this.time + 2.1,
+          caption: cue.sound === 'camper_zip'
+            ? line('Une fermeture accroche. Au deuxième coup, elle cède.', 'A zip catches. The second pull frees it.')
+            : line('Une manche frotte le micro. Son souffle se coupe.', 'A sleeve brushes the mic. His breath catches.'),
+        };
+        audio.receiveFoley(cue.sound, this.voiceLevel());
+        break;
       case 'leaned':
         audio.play('radio_knob', 0.5);
         break;
       case 'found':
         this.flicker = 0.5;
-        // With one hand, the first thing that comes to mind is what the set asks for.
-        this.after(0.4, () => this.once(this.oneArm ? 'vo_radio_one_hand' : 'vo_radio_found'));
+        if (rivalOf(o.call.caller) !== 'camper') this.after(0.4, () => this.once(this.oneArm ? 'vo_radio_one_hand' : 'vo_radio_found'));
         break;
       case 'line': {
         const known = o.trail.includes('hailed') || o.beat === 'answer' || o.beat === 'response';
@@ -375,9 +395,14 @@ export class RadioScene implements Scene {
       case 'line_end':
         audio.hushOn('caller', cue.cut ? 0.08 : 0.3);
         if (!cue.cut) audio.play('radio_squelch', 0.25 + 0.5 * clarity(o));
+        if (!cue.cut && o.beat === 'hail' && rivalOf(o.call.caller) === 'camper') {
+          this.once(this.oneArm ? 'vo_radio_one_hand' : 'vo_radio_found');
+        }
         break;
       case 'tuned':
-        this.after(0.7, () => this.once(cue.station === 'news' ? 'vo_radio_news' : 'vo_radio_baker'));
+        this.after(0.7, () => {
+          if (!this.foley) this.once(cue.station === 'news' ? 'vo_radio_news' : 'vo_radio_baker');
+        });
         break;
       case 'losing':
         if (this.time >= this.nextLost && !audio.speaking) {
@@ -389,6 +414,8 @@ export class RadioScene implements Scene {
         audio.play('hand', 0.6);
         break;
       case 'keyed':
+        this.foley = null;
+        audio.hushOn('radio-foley', .06);
         audio.play('radio_ptt');
         audio.hushOn('caller', 0.08);
         this.after(0.15, () => say(cue.line as VoiceId, { interrupt: true }));
@@ -404,6 +431,8 @@ export class RadioScene implements Scene {
   }
 
   private finish(ending: Ending): void {
+    this.foley = null;
+    audio.hushOn('radio-foley', .06);
     this.ending = ending;
     this.phase = 'outro';
     this.phaseTime = 0;
@@ -564,9 +593,12 @@ export class RadioScene implements Scene {
         audio.sayOn('caller', this.radio.on.line, this.voiceLevel(), this.pausedCallerAt);
       }
       this.pausedCallerAt = null;
+      if (this.foley && this.pausedFoleyAt !== null) audio.receiveFoley(this.foley.sound, this.voiceLevel(), this.pausedFoleyAt);
+      this.pausedFoleyAt = null;
       return;
     }
     this.pausedCallerAt = audio.positionOn('caller');
+    this.pausedFoleyAt = audio.positionOn('radio-foley');
     hush();
     this.silence();
     this.pauseMenu.open(() => this.togglePause(), () => goTitle(this.app), auto);
@@ -644,6 +676,7 @@ export class RadioScene implements Scene {
     if (Math.random() < dt * (1 - signal) * 2.5) this.crackle = 0.6 + Math.random() * 0.4;
 
     audio.levelOn('caller', this.voiceLevel());
+    if (this.foley) audio.levelOn('radio-foley', this.voiceLevel());
     for (const station of ['news', 'baker'] as const) {
       const level = strength(o, station);
       if (station === 'baker' && o.call.baker === null) continue;
@@ -736,8 +769,16 @@ export class RadioScene implements Scene {
     // Whose voice is on the set, and what of it comes through.
     this.updateShown();
     const shown = this.shown;
-    const on = shown !== null && this.phase !== 'card' && !this.dead;
+    if (this.foley && this.time >= this.foley.until) this.foley = null;
+    const caption = this.foley && clarity(o) >= RADIO.hearFloor ? this.foley.caption : '';
+    if (this.logFoley.textContent !== caption) this.logFoley.textContent = caption;
+    const on = (shown !== null || caption !== '') && this.phase !== 'card' && !this.dead;
     this.logEl.classList.toggle('on', on);
+    if (!shown && this.logWho.textContent) {
+      this.logWho.textContent = '';
+      this.logLine.textContent = '';
+      this.logPrev.textContent = '';
+    }
     if (shown && on) {
       const text = s.voice[shown.line as VoiceId] ?? '';
       let line: string;

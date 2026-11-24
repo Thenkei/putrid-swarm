@@ -1,0 +1,11 @@
+{
+  "id": "camper_zip",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "1DUZiCF3QJRDLOCi9ky4",
+  "generatedAt": "2026-11-24T14:15:17.603Z",
+  "prompt": "Isolated close Foley, one old metal zipper on a rust-orange fleece jacket chest pocket, a distinctive double pull lasting 1.2 seconds in total. First a short raspy zrrt which catches abruptly, a short still hesitation, then a longer descending zrrrrip and a delicate little brass tab tick. Two clearly separate pulls, the second releases. Dry soft fabric under it. Start immediately. No speech, footsteps, ambience, music or other objects.",
+  "bytes": 34305,
+  "sha256": "f48bd4da66e1352262b6f1a95f2c5c095972b599c2bab8e170183bd57454706d"
+}

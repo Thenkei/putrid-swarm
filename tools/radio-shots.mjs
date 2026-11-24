@@ -266,7 +266,7 @@ for (const branch of BRANCHES) {
     await wait(1800);
     await shot('j-01-night-ally');
     await page.keyboard.press('F4');
-    await page.waitForFunction(() => [...document.querySelectorAll('.banner *')].some((n) => /retourné|turned/.test(n.textContent ?? '')), null, { timeout: 120000 }).catch(() => console.log('  (he did not turn in time)'));
+    await page.waitForFunction(() => [...document.querySelectorAll('.banner *')].some((n) => /de l’intérieur|from inside/.test(n.textContent ?? '')), null, { timeout: 120000 }).catch(() => console.log('  (he did not turn in time)'));
     await shot('j-02-turned');
   }
   if (branch === 'finale') {

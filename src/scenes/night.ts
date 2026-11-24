@@ -29,6 +29,7 @@ import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
 import { BarnMoth } from '../render/house-reactions';
 import { NightWildlife } from './night-wildlife';
+import { CamperDoorFeed } from './camper-door';
 import { BrushPassage } from '../render/brush';
 import { rattleForNight } from '../core/rattle';
 import { DefenseMotion, deviceArt, floodlightEmitter } from '../render/defenses';
@@ -122,6 +123,9 @@ export class NightScene implements Scene {
   private readonly siren: SirenSector | null;
   private readonly brushPassage = new BrushPassage();
   private readonly defenseMotion = new DefenseMotion();
+  private camperDoor: CamperDoorFeed | null = null;
+  private camperTurnedAt = Infinity;
+  private rearEntryAt = -Infinity;
   private cam: SectorId = 'portail';
   private accumulator = 0;
   private time = 0;
@@ -274,6 +278,10 @@ export class NightScene implements Scene {
       this.camClock,
       this.detector,
     ]);
+    if (this.sim.heldDoor === 'arriere') {
+      this.camperDoor = new CamperDoorFeed();
+      void audio.prepareSample('camper_inside_knock');
+    }
     if (this.sim.rattleSector) {
       this.rattleCaption = el('span', { class: 'rattle-caption' });
       this.rattleCaption.setAttribute('role', 'status');
@@ -348,7 +356,10 @@ export class NightScene implements Scene {
     }
     // Someone from the radio came to hold a door.
     const ally = allyFor(this.state);
-    if (ally && this.state.radio.call) this.coachNote(fmt(s.night.ally, { name: this.allyName(), sector: s.sector[ally.sector] }), 9);
+    if (ally && this.state.radio.call) {
+      const line = this.sim.barricades[ally.sector].hp > 0 ? s.night.ally : s.night.allyAtSill;
+      this.coachNote(fmt(line, { name: this.allyName(), sector: s.sector[ally.sector] }), 9);
+    }
   }
 
   exit(): void {
@@ -595,6 +606,13 @@ export class NightScene implements Scene {
     this.syncClock(blind);
     this.epic.syncMoped();
     this.camFrame.classList.toggle('no-link', blind);
+    if (this.camperDoor) {
+      const monitor = this.cam === 'arriere' ? this.camFrame : this.miniEls.get('arriere')!.root;
+      const intact = sim.barricades.arriere.hp > 0;
+      const hitAt = intact ? this.defenseMotion.at('arriere')?.hitAt ?? -Infinity : this.rearEntryAt;
+      this.camperDoor.update(monitor, sim.time, sim.heldDoor === 'arriere', intact,
+        sim.time - hitAt, sim.time - this.camperTurnedAt);
+    }
     this.syncDetector(blind);
     if (this.rattleCaption && sim.rattleSector) {
       const heard = sim.rattleAt !== null && sim.time - sim.rattleAt < 3.2;
@@ -905,6 +923,11 @@ export class NightScene implements Scene {
 
   // ───────────────────────────── Events → feedback ─────────────────────────────
 
+  private insideKnockRinging(sector: SectorId): boolean {
+    const age = this.sim.time - this.camperTurnedAt;
+    return sector === 'arriere' && age >= 0 && age < .38;
+  }
+
   private consume(events: readonly SimEvent[]): void {
     const s = S();
     const now = this.sim.time + (this.ending?.t ?? 0);
@@ -1005,14 +1028,16 @@ export class NightScene implements Scene {
         }
         case 'barricade_hit':
           if (event.sector === 'grange') this.barnMoth.knock(this.sim.time);
-          audio.play('door');
+          if (!this.insideKnockRinging(event.sector)) audio.play('door');
           this.particles.push({ kind: 'dust', x: THRESHOLDS[event.sector].gx, y: THRESHOLDS[event.sector].gy, age: 0, life: 0.4, radius: 0.8 });
           break;
         case 'breach':
           if (event.sector === 'grange') this.barnMoth.knock(this.sim.time);
-          audio.play('breach');
-          this.remark('vo_breach', 8, true);
-          this.banner(fmt(s.night.breach, { sector: s.sector[event.sector] }), 'bad');
+          if (!this.insideKnockRinging(event.sector)) {
+            audio.play('breach');
+            this.remark('vo_breach', 8, true);
+            this.banner(fmt(s.night.breach, { sector: s.sector[event.sector] }), 'bad');
+          }
           this.flash = 0.5;
           break;
         case 'house_defense':
@@ -1030,7 +1055,8 @@ export class NightScene implements Scene {
           this.banner(s.night.deskBack, 'good');
           break;
         case 'entered':
-          audio.play('inside');
+          if (event.sector === 'arriere') this.rearEntryAt = this.sim.time;
+          if (!this.insideKnockRinging(event.sector)) audio.play('inside');
           if (!this.sim.awayFromDesk) this.remark('vo_inside', 18);
           this.flash = Math.max(this.flash, 0.3);
           if (!this.sim.awayFromDesk && this.time - this.lastInsideBanner > 4) {
@@ -1065,7 +1091,8 @@ export class NightScene implements Scene {
           this.syncHud(true);
           break;
         case 'ally_turned':
-          audio.play('breach');
+          this.camperTurnedAt = this.sim.time;
+          audio.play('camper_inside_knock');
           this.banner(fmt(s.night.allyTurned, { name: this.allyName(), sector: s.sector[event.sector] }), 'bad');
           break;
         case 'outcome':
@@ -1256,6 +1283,7 @@ export class NightScene implements Scene {
       mopedWreck: ride?.blastAt === null ? undefined : wreckSector(this.state),
       ...(ride && open > 0 && { houseDoor: { sector: ride.sector, open } }),
       night: true,
+      camperAtRearDoor: this.sim.heldDoor === 'arriere',
       barnMoth: this.barnMoth,
       foxAge: this.wildlife.foxAge,
       ...(this.sim.awayFromDesk && { indoorPassage: { age: HOUSE_RETURN_SECONDS - this.sim.deskReturnIn,

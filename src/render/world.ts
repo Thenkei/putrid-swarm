@@ -8,6 +8,7 @@ import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, SectorId } from
 import { SECTOR_IDS } from '../core/types';
 import { wreckDrawable } from './moped-wreck';
 import { kindlingDrawable } from './baker-kindling';
+import sillCamperUrl from '../assets/camper-sill-figure.webp';
 import { paintingImage, preparePaintings, sprite, type Sprite } from '../engine/assets';
 import { deviceArt, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseMotion, type LogLayer } from './defenses';
 import { drawDecals } from './aftermath';
@@ -111,6 +112,8 @@ export interface WorldFrame {
   readonly night: boolean;
   readonly houseHpRatio: number;
   readonly indoorShot?: { sector: SectorId; age: number };
+  /** A fold of his orange sleeve is pinched at the rear jamb while he holds it from the hall. */
+  readonly camperAtRearDoor?: boolean;
   readonly houseDoor?: HouseDoor;
   readonly mopedRide?: NonNullable<NightSim['mopedRide']>;
   readonly mopedWreck?: SectorId | undefined;
@@ -1124,6 +1127,7 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
   }
 }
 
+let sillCamper: HTMLImageElement | undefined;
 function doorSill(view: View, sector: SectorId): { x: number; y: number } {
   const p = project(view, HOUSE_CENTER.x, HOUSE_CENTER.y);
   const door = DOOR_OPENINGS[sector];
@@ -1176,6 +1180,28 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
           if (!drawn) placeholder(ctx, 0, 0, 30 * z, 50 * z, '#7a5a35', 'door');
         });
         ctx.restore();
+        if (sector === 'arriere' && frame.camperAtRearDoor && barricade.hp <= 0) {
+          if (!sillCamper) { sillCamper = new Image(); sillCamper.src = sillCamperUrl; }
+          if (sillCamper.naturalWidth) {
+            const height = door.h * k * z * .79, width = height * sillCamper.naturalWidth / sillCamper.naturalHeight;
+            ctx.save();
+            // His shoulder is behind the left jamb; the broken leaf and the boots remain on opposite sides of the sill.
+            ctx.beginPath(); ctx.rect(p.x - jambWidth * .43, p.y - height - 6 * z, jambWidth * .85, height + 5 * z); ctx.clip();
+            ctx.drawImage(sillCamper, p.x - jambWidth * .46, p.y - height - 3 * z, width, height);
+            ctx.restore();
+          }
+        } else if (sector === 'arriere' && frame.camperAtRearDoor) {
+          const hitAge = frame.time - (frame.defenseMotion?.at(sector)?.hitAt ?? -Infinity);
+          const brace = hitAge < .54 ? 1 : 0;
+          ctx.save();
+          ctx.translate(p.x + jambWidth * .43, p.y - door.h * k * z * .50);
+          ctx.scale(z, z);
+          ctx.fillStyle = '#713b22'; ctx.strokeStyle = '#392a20'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(-3, -7); ctx.quadraticCurveTo(2 + brace * 2, -5, 3 + brace, -1);
+          ctx.lineTo(2, 6); ctx.quadraticCurveTo(-1, 6, -2, 3); ctx.lineTo(-3, -7); ctx.fill(); ctx.stroke();
+          ctx.strokeStyle = '#d39050'; ctx.beginPath(); ctx.moveTo(-2, -5); ctx.quadraticCurveTo(1 + brace, -3, 1, 2); ctx.stroke();
+          ctx.restore();
+        }
         if (frame.doorHighlight === sector) {
           ctx.strokeStyle = '#f2a531';
           ctx.lineWidth = 2;

@@ -3772,6 +3772,17 @@ button:disabled {
   color: var(--teal);
 }
 
+.radio-log .radio-foley {
+  margin: 2px 0 0;
+  font: italic 19px/1.3 var(--slab-font);
+  color: #ebd7a7;
+}
+
+.radio-log .radio-foley:empty,
+.radio-log .line:empty:has(+ .radio-foley:not(:empty)) {
+  display: none;
+}
+
 .radio-log.decoy .line {
   font-style: italic;
   color: rgba(234, 219, 184, 0.8);

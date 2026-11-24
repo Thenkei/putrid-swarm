@@ -544,7 +544,12 @@ export class LocationScene implements Scene {
   }
 
   onBlur(): void {
+    this.panel.onBlur();
     this.puzzle?.pauseCourse();
+  }
+
+  exit(): void {
+    this.panel.hide();
   }
 
   render(ctx: CanvasRenderingContext2D): void {

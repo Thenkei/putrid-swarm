@@ -432,8 +432,9 @@ export const fr = {
       coachWait: 'La main arrive. Ce qui est demandé en route attend son tour : rien n’est perdu. Elle est là, sur la barre des pièges.',
     },
     /** Someone from the radio, holding a door on the last night. */
-    ally: '{name} tient la porte {sector}. Il s’est assis contre les planches.',
-    allyTurned: '{name} s’est retourné · porte {sector}',
+    ally: '{name} tient la porte {sector}. Sa veste rouille dépasse du battant.',
+    allyAtSill: '{name} veille au seuil {sector}, une main sur le montant brisé.',
+    allyTurned: '{sector} · {name} cogne de l’intérieur.',
   },
   cassette: {
     title: 'La cassette du dimanche',
@@ -731,7 +732,7 @@ export const fr = {
           fight: '« Reculez. J’ai pris ma part, et depuis l’autre fois, j’ai appris. »',
         },
         cue: {
-          firm: 'Il serre la caisse contre lui. Celle-là, il ne la lâchera pas.',
+          firm: 'La caisse est calée entre ses bottes. Il faudra vous entendre avec lui.',
           nervous: 'Il est seul, et regarde la porte toutes les trois secondes.',
         },
         refused: '« Non. Non, non. Pas celle-là. » Il tremble, mais il ne recule pas.',

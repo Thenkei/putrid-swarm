@@ -63,6 +63,8 @@ export const RADIO = {
   /** Between two lines of theirs, and between two calls while nobody answers. */
   gap: 0.7,
   callGap: 2.4,
+  /** Space on the carrier for the two pulls of the pocket zip, then for his voice. */
+  zipLead: 1.6,
   /** One hand, from the dial to the microphone or back. */
   crossSeconds: 1.1,
   /** How long they wait for an answer, and when they ask whether anyone is there. */
@@ -651,6 +653,7 @@ export type Press = 'act' | 'answer_1' | 'answer_2' | 'answer_3';
 export type Cue =
   | { readonly type: 'leaned' }
   | { readonly type: 'found' }
+  | { readonly type: 'foley'; readonly sound: 'camper_zip' | 'camper_breath' }
   /** One of their lines goes on air. */
   | { readonly type: 'line'; readonly line: LineId }
   | { readonly type: 'line_end'; readonly line: LineId; readonly cut: boolean }
@@ -808,6 +811,12 @@ function listen(radio: Radio, dt: number, cues: Cue[]): Radio {
   if (fading >= RADIO.fadeSeconds && radio.fading < RADIO.fadeSeconds) cues.push({ type: 'losing' });
   if (clock < seconds) return { ...radio, heard, fading, on: { line: on.line, clock } };
   cues.push({ type: 'line_end', line: on.line, cut: false });
+  // Let the sleeve and intake of breath through only when the receiver also caught
+  // the admission. The word "bitten" falls at .118 of the English line, "mordre" at .253 in French.
+  if (on.line === 'vo_cb_camper_owes_2a' && level >= RADIO.notice && wordHeard(slots, 9 / 76) && wordHeard(slots, 19 / 75)) {
+    cues.push({ type: 'foley', sound: 'camper_breath' });
+    return { ...radio, heard, fading: 0, on: null, wait: 1.55 };
+  }
   return { ...radio, heard, fading: 0, on: null, wait: radio.beat === 'search' || radio.beat === 'hail' ? RADIO.callGap : RADIO.gap };
 }
 
@@ -822,6 +831,13 @@ function speak(radio: Radio, cues: Cue[]): Turn | Radio {
   switch (radio.beat) {
     case 'search':
     case 'hail':
+      // Only a camper is fishing the mic out of his pocket. Hear the zip before any
+      // of the repeated calls can identify him, even after a long sweep of the band.
+      if (rivalOf(radio.call.caller) === 'camper' && !radio.noticed.includes('caller')) {
+        if (strength(radio, 'caller') < RADIO.notice) return radio;
+        cues.push({ type: 'foley', sound: 'camper_zip' });
+        return { ...radio, noticed: [...radio.noticed, 'caller'], wait: RADIO.zipLead };
+      }
       return air({ ...radio, calls: radio.calls + 1 }, script.calls[radio.calls % script.calls.length] as LineId);
     case 'talk': {
       const [next, ...rest] = radio.queue;

@@ -31,6 +31,8 @@ import { S, fmt, hours } from '../engine/i18n';
 import { costLine, drawPlate, returnCargoBar, lootSfx, oneArmed, resourceChip } from './common';
 import { goHomeStretch } from './flow';
 import { WashersBoard, type Landing, type Side } from './washers';
+import { CamperPocket } from './camper-pocket';
+import guardedCamperUrl from '../assets/camper-guarded.webp';
 
 export interface PanelHost {
   /** The game state changed: whatever shows the clock or the boot is out of date. */
@@ -80,6 +82,7 @@ export class EncounterPanel {
   private exchange: Exchange | null = null;
   private payment: Record<ResourceId, number> | null = null;
   private board: WashersBoard | null = null;
+  private pocket: CamperPocket | null = null;
   /** What the number keys do in the view on screen. */
   private keys: (() => void)[] = [];
 
@@ -105,14 +108,20 @@ export class EncounterPanel {
   }
 
   hide(): void {
+    this.onBlur();
     this.modal?.remove();
     this.modal = null;
     this.board = null;
     this.keys = [];
   }
 
+  onBlur(): void {
+    this.pocket?.pause();
+  }
+
   update(dt: number): void {
     this.board?.update(dt);
+    this.pocket?.update(dt);
   }
 
   /** Returns true when the key was for the panel. */
@@ -214,10 +223,29 @@ export class EncounterPanel {
   }
 
   private mount(who: RivalId | GroupId, body: readonly (HTMLElement | null)[], layout: 'side' | 'wide' = 'side'): void {
-    const url = portraitOf(who);
+    const encounter = this.state.encounter;
+    const guarded = who === 'camper' && (encounter?.stage === 'refused' || acquaintance(this.state, 'camper').standing === 'grudge');
+    const url = guarded ? guardedCamperUrl : portraitOf(who);
     const portrait = el('img', { class: 'portrait' });
     if (url) portrait.src = url;
-    const card = el('div', { class: `card dialogue encounter ${layout}` }, [layout === 'side' ? portrait : null, el('div', { class: 'body' }, body)]);
+    let illustration: HTMLElement = portrait;
+    if (who === 'camper' && encounter?.kind === 'dispute' && (encounter.stage === 'open' || encounter.stage === 'refused')) {
+      const standing = guarded ? 'grudge' : acquaintance(this.state, 'camper').standing;
+      if (!this.pocket || this.pocket.standing !== standing) {
+        this.pocket?.pause();
+        this.pocket = new CamperPocket(standing, this.state.flags['camper:pocketDay'] === this.state.day, () => {
+          const state = this.state;
+          this.app.state = { ...state, flags: { ...state.flags, 'camper:pocketDay': state.day } };
+          this.app.save();
+        });
+      }
+      illustration = el('div', { class: 'camper-study' }, [portrait, this.pocket.figure]);
+    } else if (who === 'camper' && this.pocket && this.resolution?.outcome === 'traded') {
+      // The deal can be taken immediately. His hands finish their gesture on the receipt.
+      illustration = el('div', { class: 'camper-study' }, [portrait, this.pocket.figure]);
+    }
+    const card = el('div', { class: `card dialogue encounter ${layout}` }, [layout === 'side' ? illustration : null, el('div', { class: 'body' }, body)]);
+    if (this.pocket && !card.contains(this.pocket.figure)) this.pocket.pause();
     const modal = el('div', { class: 'modal' }, [card]);
     this.modal?.remove();
     this.modal = modal;

@@ -1,0 +1,38 @@
+.encounter .camper-study {
+  display: flex;
+  flex: 0 0 276px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  align-self: flex-start;
+}
+
+.encounter .camper-study .portrait {
+  align-self: center;
+  width: 175px;
+  height: 180px;
+}
+
+.camper-pocket { width: 100%; margin: 0; }
+.camper-pocket-window {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 3 / 2;
+  border: 2px solid #765b3e;
+  border-radius: 3px;
+  background: #85552e;
+  box-shadow: 0 2px 5px #39250c50;
+}
+.camper-pocket-window img {
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  max-width: none;
+  object-fit: fill;
+}
+.camper-pocket figcaption {
+  margin-top: 8px;
+  padding-inline: 3px;
+  color: #54422e;
+  font: italic 18px/1.2 var(--body-font, Georgia, serif);
+}
