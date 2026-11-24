@@ -87,6 +87,8 @@ Each night from the second to the seventh has one special scene. Daytime clues c
 
 [Watch the baker’s hands, the last watch and the neighbour’s letter on the mower, with the in-game sound](docs/previews/night-watch-echoes.mp4).
 
+[Follow the Camper from a disputed lot to the CB and the back door, with the in-game sound](docs/previews/camper-back-door.mp4).
+
 | Night | At the desk |
 | --- | --- |
 | 2 | Brace the kitchen door under pressure. A sketch found in town unlocks a trip outside with the stove. Catch the swinging key to get back inside. If you used the flame, your fingerprints are still on the lock when you find the cold ravioli the next day. |
@@ -105,6 +107,7 @@ Each night from the second to the seventh has one special scene. Daytime clues c
    - **A disputed lot.** Where no neighbour minds the place any more, a survivor may already be standing at the best spot left. That spot cannot be searched behind their back; it is settled with them: share it, trade for it from the boot, wager it on three washers, insist, come to blows over it, or leave it. The rest of the place can be searched first, which is how the boot gets something to trade. Driving off leaves them the lot.
    - **A roadblock on the way home.** With a loaded boot, from the second day, a group may bar the road and ask for a share of the load: pay it (the player picks the pieces), settle it with the one thing they came for, call in a favour from a face in the group, go round at the price of daylight, or stand one's ground.
    - **They remember.** Each survivor is a stranger, owes a favour, or holds a grudge. Leaving someone a lot earns a favour, good for one whole lot or one open road. A threat or a scuffle earns a grudge: next time their half is already loaded, they neither wager nor give way, they ask more, and the group they stand with asks one piece more.
+   - The Camper carries a broken battery terminal in the pocket of his rust-coloured fleece. He gives its stuck zip two pulls. If he owes you, his hand goes straight to it. If he holds a grudge, his palm covers the pocket. Listen for the same two pulls when tuning his CB signal on the last morning. If you invite him to hold the back door, its camera shows him setting his boot against the floorboards as the crowd shoves. If the boards have already fallen, he keeps watch at the broken sill. If he turns, the first thump comes from inside.
 
    Every way out states the most daylight it can cost and is refused if the drive home would no longer fit; one way out always costs nothing. Nothing in an encounter can reach the refuge's stock.
 2. **Night.** Four cameras, one per approach: Portail, Grange, Arrière, Verger. The simulation runs on its own clock; switching camera only changes what you look at. Traps come in two kinds:
