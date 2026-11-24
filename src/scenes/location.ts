@@ -89,7 +89,7 @@ export class LocationScene implements Scene {
 
   private async reactToLooting(notice: number): Promise<void> {
     const line = notice === 1 ? 'vo_looted' : LOOTING_GRUMBLES[(notice - 2) % LOOTING_GRUMBLES.length]!;
-    await audio.waitForVoice(line);
+    await audio.prepareSample(line);
     const state = this.app.state;
     if (state?.where !== this.id || state.outing?.lootNotice !== notice) return;
     const { lootNotice, ...outing } = state.outing;

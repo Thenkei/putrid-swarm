@@ -142,6 +142,8 @@ export class NightScene implements Scene {
   private readonly minis = new Map<SectorId, HTMLCanvasElement>();
   private miniCursor = 0;
   private readonly lastAlert = new Map<SectorId, number>();
+  private houseEffortPending = false;
+  private houseVictoryUntil = -Infinity;
   private lastInsideBanner = -10;
 
   private root!: HTMLElement;
@@ -222,6 +224,7 @@ export class NightScene implements Scene {
   enter(): void {
     audio.setAmbience('night');
     audio.setMusic('night');
+    for (const clip of [...LINES.houseDefense, ...LINES.houseVictory, 'vo_house_effort', 'house_shotgun']) void audio.prepareSample(clip);
     // Both sides of the house are on the monitors at once: painted now, while the screen is dark.
     prepareWorld(...SECTOR_IDS.map(sector => this.viewFor(sector, MAIN, MAIN_ZOOM)));
     const s = S();
@@ -408,6 +411,7 @@ export class NightScene implements Scene {
   /** An occasional line: at most once every `gap` seconds. */
   /** Says a line, or one of a moment's lines, unless it was heard less than `gap` seconds ago. */
   private remark(id: VoiceId | Moment, gap: number, interrupt = false): void {
+    if (this.sim.awayFromDesk || this.time < this.houseVictoryUntil) return;
     if (this.time - (this.lastSaid.get(id) ?? -1e9) < gap) return;
     const seconds = id in LINES ? sayAny(id as Moment, { interrupt }) : say(id as VoiceId, { interrupt });
     if (seconds > 0) this.lastSaid.set(id, this.time);
@@ -1000,6 +1004,7 @@ export class NightScene implements Scene {
           this.flash = 0.5;
           break;
         case 'house_defense':
+          this.houseEffortPending = true;
           this.coachNoteUntil = 0;
           this.coachEl.className = 'coach';
           sayAny('houseDefense', { interrupt: true });
@@ -1008,6 +1013,8 @@ export class NightScene implements Scene {
           audio.play('house_shotgun');
           break;
         case 'desk_return':
+          this.houseEffortPending = false;
+          if (this.sim.houseHp > 0) this.houseVictoryUntil = this.time + sayAny('houseVictory', { interrupt: true });
           this.banner(s.night.deskBack, 'good');
           break;
         case 'entered':
@@ -1056,8 +1063,8 @@ export class NightScene implements Scene {
           audio.setMusic('none');
           if (this.sunriseAge !== undefined) audio.setAmbience('day', SUNRISE_SECONDS);
           audio.play(event.survived ? 'dawn' : 'lost');
-          if (event.survived) sayAny('dawn', { interrupt: true, oneArmed: oneArmed(this.state) });
-          else say('vo_lost', { interrupt: true });
+          if (!event.survived) say('vo_lost', { interrupt: true });
+          else if (this.time >= this.houseVictoryUntil) sayAny('dawn', { interrupt: true, oneArmed: oneArmed(this.state) });
           this.banner(event.survived ? s.night.dawn : s.end.lostTitle, event.survived ? 'good' : 'bad');
           break;
         case 'look':
@@ -1115,7 +1122,8 @@ export class NightScene implements Scene {
       const dawn = this.sunriseAge;
       if (dawn !== undefined) this.syncClock(this.isDark(this.cam));
       if (dawn !== undefined && previous < SWALLOW_CALL_AT && dawn >= SWALLOW_CALL_AT) audio.play('dawn_swallows', .76);
-      if (this.ending.t >= (dawn === undefined ? END_HOLD_SECONDS : SUNRISE_SECONDS)) this.finish();
+      const hold = dawn === undefined ? END_HOLD_SECONDS : SUNRISE_SECONDS;
+      if (this.ending.t >= hold && (!this.ending.survived || this.time >= this.houseVictoryUntil)) this.finish();
       return;
     }
     if (this.coachNoteUntil > 0 && this.time >= this.coachNoteUntil && !this.coach) {
@@ -1147,6 +1155,13 @@ export class NightScene implements Scene {
     this.defenseMotion.update(this.sim);
     this.advanceImpacts();
     this.consume(this.sim.drainEvents());
+    // Let Hugo finish his threat, then grunt in the gap after a real shot.
+    const shot = this.sim.lastHouseShot;
+    if (this.houseEffortPending && shot && this.sim.deskReturnIn > 0.8
+      && this.sim.time - shot.at >= 0.22 && !audio.speaking) {
+      this.houseEffortPending = false;
+      say('vo_house_effort');
+    }
     this.maybeCoach();
     this.syncHud();
   }

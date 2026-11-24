@@ -1,0 +1,13 @@
+{
+  "id": "vo_house_victory_4",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "FAdMMuPXaC3EOZ27r0Iw",
+  "generatedAt": "2026-11-24T12:21:56.777Z",
+  "prompt": "[exhales] [teasing] Maintenant… c’est qui, le boss ?",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "bytes": 74429,
+  "sha256": "bc918b98761e73f6439ba83b5021d7d983bb816cd35c499615529a7c59851c36"
+}

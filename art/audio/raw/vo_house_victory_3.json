@@ -1,0 +1,13 @@
+{
+  "id": "vo_house_victory_3",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v4",
+  "generationId": "cjpAvUkv4OtHZdepDOSF",
+  "generatedAt": "2026-11-24T12:21:51.023Z",
+  "prompt": "[relieved sigh] [triumphant] Voilà ! Je vous ai détruits !",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "bytes": 70667,
+  "sha256": "92fc0b7b8cfc4351b2151b3b47cc2ca4834e50143e1126925ce0fe3cbeec6111"
+}
