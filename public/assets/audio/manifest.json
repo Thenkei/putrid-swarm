@@ -1517,6 +1517,12 @@
     "seconds": 1.776,
     "gain": 1
   },
+  "vo_car_crush": {
+    "file": "vo_car_crush.mp3",
+    "kind": "voice",
+    "seconds": 2.273,
+    "gain": 1
+  },
   "vo_car_2": {
     "file": "vo_car_2.mp3",
     "kind": "voice",

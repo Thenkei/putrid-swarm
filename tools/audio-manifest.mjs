@@ -397,6 +397,7 @@ export const AUDIO = [
   voice('vo_looted_again_2', 'hero', '[dry] Ils auraient pu laisser un mot de remerciement.'),
   voice('vo_looted_again_3', 'hero', '[irritated] Bon. La prochaine fois, j’embarque tout au premier voyage.'),
   voice('vo_car', 'hero', 'Allez, ma vieille. Encore un tour.'),
+  voice('vo_car_crush', 'hero', '[muttering] Je suis idiot d’avoir placé ça là, moi…'),
   voice('vo_car_2', 'hero', '[pleading] Démarre. S’il te plaît, démarre.'),
   voice('vo_car_3', 'hero', 'Un plein, quatre pneus, zéro voisin. Ça ira.'),
   voice('vo_car_4', 'hero', 'On fait vite. La nuit n’attend pas.'),

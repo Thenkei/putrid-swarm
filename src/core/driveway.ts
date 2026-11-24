@@ -1,6 +1,6 @@
 import { carManeuver, MANEUVER_SECONDS } from './car-path';
 import { idx, inGrid, isBuildable } from './map';
-import type { Cell, DeviceInstance, YardState } from './types';
+import type { Cell, DeviceInstance, DeviceTypeId, YardState } from './types';
 
 interface Contact {
   readonly at: number;
@@ -58,16 +58,20 @@ function shoulder(device: DeviceInstance, contact: Contact, occupied: Set<number
   return undefined;
 }
 
+export function breaksUnderWagon(type: DeviceTypeId): boolean {
+  return type === 'log' || type === 'net' || type === 'floodlight';
+}
+
 export function drivewayImpacts(yard: YardState): DrivewayImpact[] {
   const contacts = yard.devices.flatMap(before => {
     const contact = swept.get(idx(before.x, before.y));
-    return contact && !before.broken && (before.type === 'log' || before.type === 'horn') ? [{ before, contact }] : [];
+    return contact && !before.broken && (breaksUnderWagon(before.type) || before.type === 'horn') ? [{ before, contact }] : [];
   }).sort((a, b) => a.contact.at - b.contact.at || a.before.id - b.before.id);
   const occupied = new Set(yard.devices.map(d => idx(d.x, d.y)));
   const impacts: DrivewayImpact[] = [];
   for (const { before, contact } of contacts) {
     let after: DeviceInstance;
-    if (before.type === 'log') {
+    if (breaksUnderWagon(before.type)) {
       after = { ...before, broken: true, hp: 0 };
     } else {
       const to = shoulder(before, contact, occupied);
