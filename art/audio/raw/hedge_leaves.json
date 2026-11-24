@@ -1,0 +1,11 @@
+{
+  "id": "hedge_leaves",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "hdUrFxWBADdmM8vxmaMd",
+  "generatedAt": "2026-11-24T13:12:41.063Z",
+  "prompt": "One small animal brushes past a patch of dry hazel leaves in a still French hedge. A soft papery shiver travelling through a few leaves, short swish then settle within one second. Quiet isolated close field foley. No footsteps, twigs breaking, bird calls, wind bed, voice or music.",
+  "bytes": 34305,
+  "sha256": "6c46572aa926994525864459ae948cefba6c6600d0cbfbadeb7bf0e0798e6261"
+}

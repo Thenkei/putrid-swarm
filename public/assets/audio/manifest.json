@@ -1,4 +1,22 @@
 {
+  "owl_call": {
+    "file": "owl_call.mp3",
+    "kind": "sfx",
+    "seconds": 1.541,
+    "gain": 0.79
+  },
+  "hedge_leaves": {
+    "file": "hedge_leaves.mp3",
+    "kind": "sfx",
+    "seconds": 1.045,
+    "gain": 0.66
+  },
+  "hedge_twig": {
+    "file": "hedge_twig.mp3",
+    "kind": "sfx",
+    "seconds": 0.549,
+    "gain": 0.69
+  },
   "bolt_slide": {
     "file": "bolt_slide.mp3",
     "kind": "sfx",
@@ -1220,7 +1238,7 @@
   "amb_night": {
     "file": "amb_night.mp3",
     "kind": "loop",
-    "seconds": 22.021,
+    "seconds": 14.733,
     "gain": 0.55
   },
   "amb_car": {
