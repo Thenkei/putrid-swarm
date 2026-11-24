@@ -40,6 +40,24 @@ describe('the walk from the house to the wagon', () => {
     expect(heroApproachShot(1, true, .1)!.start).toBe('grange');
   });
 
+  it.each([false, true])('lowers the hero through each grip and sounds the landing on contact (one arm = %s)', oneArmed => {
+    const shot = heroApproachShot(1, oneArmed, 1)!;
+    const poses = new Set<number>();
+    let previous = sampleApproach(shot, 0).lift;
+    for (let frame = 1; frame <= Math.ceil(shot.intro * 60); frame++) {
+      const hero = sampleApproach(shot, frame / 60);
+      expect(hero.lift).toBeLessThanOrEqual(previous + 1e-8);
+      expect(previous - hero.lift).toBeLessThan(3);
+      if (hero.windowPose !== undefined) poses.add(hero.windowPose);
+      previous = hero.lift;
+    }
+    expect([...poses]).toEqual([0, 1, 2, 3]);
+    const contact = shot.cues.find(cue => cue.sound === 'step_shed' && !cue.position)!.at;
+    expect(sampleApproach(shot, contact - 1 / 60).lift).toBeGreaterThan(0);
+    expect(sampleApproach(shot, contact).lift).toBeCloseTo(0);
+    expect(sampleApproach(shot, contact).frame).toBe(7);
+  });
+
   it.each([0, 1, 2])('wakes the cat on an approaching boot and registers every outdoor step to its surface (exit %s)', visit => {
     for (const oneArm of [false, true]) {
       const shot = heroApproachShot(visit, oneArm, 1)!;
