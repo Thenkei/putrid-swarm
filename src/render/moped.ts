@@ -3,11 +3,14 @@ import type { NightSim } from '../core/night';
 import { THRESHOLDS, VISIBLE_DOORS } from '../house-layout';
 import { clipAtSill, doorSwing, outsideSillDepth } from './house';
 import { calmMotion } from './lighting';
-import { depthOf, project, type View } from './projection';
+import { depthOf, project, TW, TH, type View } from './projection';
 
-import { MOPED_RUN_SECONDS, MOPED_EXIT_SECONDS, MOPED_BLAST_RADIUS } from '../core/epics';
+import { MOPED_RUN_SECONDS, MOPED_EXIT_SECONDS, MOPED_BLAST_RADIUS, mopedImpact } from '../core/epics';
+import type { SectorId } from '../core/types';
 import blastSheet from './epic-moped-blast.webp';
 const STEEL = '#b7ada0';
+// Grid-space blast diameter projected along the horizontal screen axis at unit zoom.
+const BLAST_WIDTH = MOPED_BLAST_RADIUS * Math.SQRT2 * TW;
 const paintedCels: HTMLCanvasElement[] = [];
 
 /** The garage and CCTV use the same registered vehicle. The tips extend beyond the front tyre
@@ -108,6 +111,44 @@ type Ride = NonNullable<NightSim['mopedRide']>;
 
 export function mopedDoorOpen(age: number): number {
   return doorSwing(age, 1.05, 1.40);
+}
+
+/** A mark on the monitor glass, registered to the footprint of the blast on the ground. */
+export function drawMopedTarget(ctx: CanvasRenderingContext2D, view: View, sector: SectorId, crowd: boolean) {
+  const end = mopedImpact(sector);
+  const centre = project(view, end.x, end.y);
+  const rx = BLAST_WIDTH * view.zoom / 2;
+  const ry = rx * TH / TW;
+  const ink = crowd ? '#ffe09a' : '#cfc1a1';
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(view.x, view.y, view.w, view.h);
+  ctx.clip();
+  ctx.translate(centre.x, centre.y);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+  ctx.setLineDash([8, 10]);
+  ctx.strokeStyle = 'rgba(27,20,12,.85)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = crowd ? 1.7 : 1;
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(-8, -4); ctx.lineTo(8, 4);
+  ctx.moveTo(8, -4); ctx.lineTo(-8, 4);
+  ctx.moveTo(2, -8); ctx.lineTo(10, -24); ctx.lineTo(20, -24);
+  ctx.strokeStyle = '#30291c'; ctx.lineWidth = 4; ctx.stroke();
+  ctx.strokeStyle = ink; ctx.lineWidth = 1.8; ctx.stroke();
+  ctx.fillStyle = '#242019';
+  ctx.fillRect(19, -34, 64, 20);
+  ctx.font = 'bold 13px monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = ink;
+  ctx.fillText('IMPACT', 26, -23);
+  ctx.restore();
 }
 
 export function drawMopedBlast(ctx: CanvasRenderingContext2D, view: View, ride: Ride | null, time: number) {
@@ -246,8 +287,7 @@ function blastCel(ctx: CanvasRenderingContext2D, cel: number, width: number,
 }
 
 function drawBlast(ctx: CanvasRenderingContext2D, view: View, x: number, y: number, age: number) {
-  // An isometric circle of r world cells spans 2 * hypot(32,32) * r in screen-space X.
-  const width = MOPED_BLAST_RADIUS * Math.hypot(32, 32) * 2;
+  const width = BLAST_WIDTH;
   const reach = width * view.zoom;
   if (x + reach < view.x || x - reach > view.x + view.w || y + reach < view.y || y - reach > view.y + view.h) return;
   const still = calmMotion();
