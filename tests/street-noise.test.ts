@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LOCATIONS } from '../src/core/data/locations';
-import { arriveHome, leaveLocation, newGame, planVisit, prepareSearch, remainingSearches, searchSpot, searchStop, travelTo, visitSearchesLeft } from '../src/core/game';
+import { act } from '../src/core/encounters';
+import { arriveHome, leaveLocation, newGame, noticeChiefEscort, planVisit, prepareSearch, remainingSearches, searchSpot, searchStop, travelTo, visitSearchesLeft } from '../src/core/game';
 import { RUMMAGE } from '../src/core/rummage';
 import { deserialize, serialize } from '../src/core/save';
 import { FAILED_ATTEMPT_NOISE, makeNoise, NOISE_PER_LOST_SEARCH, RECORD_DECOY_NOISE, rummageNoise, searchesLostToNoise, streetNoise } from '../src/core/street-noise';
@@ -88,6 +89,37 @@ describe('street noise', () => {
     const again = visit(home, 'hardware');
     expect(streetNoise(again)).toBe(0);
     expect(visitSearchesLeft(again, hardware)).toBe(remainingSearches(again, hardware));
+  });
+
+  it('plays the Chief’s watch once for the second paid search, even after an abandoned attempt or a reload', () => {
+    const station = visit({ ...newGame(5), day: 3 }, 'police');
+    const first = unwrap(searchSpot(station, openSpot(station))).state;
+    const second = unwrap(prepareSearch(first, openSpot(first)));
+    expect(noticeChiefEscort(first)).toBe(first);
+    for (const paid of [second.success.state, second.paid, second.failure]) {
+      const shown = noticeChiefEscort(paid);
+      expect(shown).toEqual({ ...paid, flags: { ...paid.flags, 'chief:escortedVisit': paid.locations.police.visits } });
+      const loaded = deserialize(serialize(shown))!;
+      expect(noticeChiefEscort(loaded)).toBe(loaded);
+    }
+    const road = unwrap(leaveLocation(noticeChiefEscort(second.success.state))).state;
+    const clear = road.encounter ? unwrap(act(road, { type: 'detour' })).state : road;
+    const newVisit = visit(unwrap(arriveHome(clear)).state, 'police');
+    expect(noticeChiefEscort(newVisit)).toBe(newVisit);
+    const third = unwrap(searchSpot(newVisit, openSpot(newVisit))).state;
+    const fourth = unwrap(searchSpot(third, openSpot(third))).state;
+    expect(noticeChiefEscort(fourth).flags['chief:escortedVisit']).toBe(station.locations.police.visits + 1);
+  });
+
+  it('keeps the watch away when the noise stopped the search or the Chief has gone', () => {
+    const station = visit({ ...newGame(5), day: 3 }, 'police');
+    const once = unwrap(searchSpot(station, openSpot(station))).state;
+    const loud = makeNoise(once, NOISE_PER_LOST_SEARCH);
+    expect(searchStop(loud, LOCATIONS.police)).toBe('noise');
+    expect(noticeChiefEscort(loud)).toBe(loud);
+    const twice = unwrap(searchSpot(once, openSpot(once))).state;
+    const gone = { ...twice, day: 7 };
+    expect(noticeChiefEscort(gone)).toBe(gone);
   });
 
   it('survives a save and reload mid-visit', () => {

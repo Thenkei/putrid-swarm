@@ -3,6 +3,7 @@
 
 import type { Acquaintance, Ambush, Cost, DeviceInstance, Dispute, Encounter, ChapterFate, Fate, Fight, GameState, Intel, Inventory, LocationId, LocationProgress, NightHighlight, OrchardChapter, Outing, Phase, RivalId, SectorId, ShedChapter, Stance, Standing, TrapTally } from './types';
 import { isMorningTape } from './cassette';
+import { chiefFall } from './chief-whistle';
 import { chapterOfFate, chapterWaiting } from './chapters';
 import { CALLERS, ENDINGS as RADIO_ENDINGS, QUIET_RADIO, optionOf, rollCall, type AnswerId, type Call, type CallerId, type Ending as RadioEnding, type RadioStage } from './radio';
 import { createRng } from './rng';
@@ -303,6 +304,7 @@ export function deserialize(raw: string): GameState | null {
     traps: parseTallies((parsed.lastNight as { traps?: unknown }).traps),
   };
   if (lastNight && !isNightHighlight(lastNight.highlight)) delete lastNight.highlight;
+  if (lastNight && !chiefFall(lastNight)) delete lastNight.chiefFellAt;
   if (lastNight && (lastNight.night !== BOSS_NIGHT.mechanic || !SECTOR_IDS.includes(lastNight.mechanicStoppedAt as SectorId))) delete lastNight.mechanicStoppedAt;
   const shed = parseShed(data);
   const radio = parseRadio(data, parsePeople(data['people']), shed.shed, data['seed'] as number);

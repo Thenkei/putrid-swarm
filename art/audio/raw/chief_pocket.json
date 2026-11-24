@@ -1,0 +1,11 @@
+{
+  "id": "chief_pocket",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "QGyuWDu5gKnqpa9HGbwS",
+  "generatedAt": "2026-11-24T20:55:38.802Z",
+  "prompt": "One tiny close foley gesture of slipping an old brass whistle into a worn work trouser pocket. A short soft dry rustle of coarse cotton, a little leather lanyard brushing a seam, one quiet muted brass tap inside fabric, then stillness. All in the first second. Absolutely no blown whistle, high ringing, keys jingling, voices, movement afterwards, music or ambience.",
+  "bytes": 34305,
+  "sha256": "20144c10ccbbdec89483f4ed271f8b103067a0be3b3ddea5cb3c7610b814bb58"
+}

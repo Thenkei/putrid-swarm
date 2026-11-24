@@ -4,6 +4,8 @@ import { epicFlag, markEpic, packTrail, wreckSector, type PackTrail } from '../c
 import { BARRICADE, DEVICES, HOUSE_MAX_HP } from '../core/data/devices';
 import { chapterWaiting } from '../core/chapters';
 import { pinnedInvoice } from '../core/mechanic-invoice';
+import { whistleInGrass } from '../core/chief-whistle';
+import { prepareWhistlePaintings } from './chief-whistle';
 import { bossOfNight, startNextDay } from '../core/game';
 import { ENTRIES, sectorOf } from '../core/map';
 import { silentTraps } from '../core/yard';
@@ -75,11 +77,18 @@ export class MorningScene implements Scene {
     // The neighbour of the night: beaten, or gone home at first light.
     const boss = bossOfNight(night);
     const invoice = pinnedInvoice(state);
+    const whistle = whistleInGrass(state);
     let bossLine = boss ? (report?.bossDefeated === boss ? s.neighbor[boss].defeated : s.neighbor[boss].escaped) : s.morning.quiet;
     if (invoice) {
       bossLine = report?.bossDefeated === 'mechanic'
         ? line('Le palan est à terre. Un feuillet gras tient aux planches par un seul clou.', 'The hoist lies on its side. A single nail holds a greasy slip to the boards.')
         : line('Le Dépanneur est reparti à l’aube. Il a laissé un feuillet sur les planches.', 'The Mechanic left at dawn. He left a slip nailed to the boards.');
+    }
+    if (whistle) {
+      prepareWhistlePaintings();
+      const sector = s.sector[sectorOf(Math.floor(whistle.x), Math.floor(whistle.y))];
+      bossLine = line(`${sector} · Là où le Chef est tombé, son sifflet accroche la lumière.`,
+        `${sector} · The Chief’s whistle catches the light where he fell.`);
     }
 
     const silent = silentTraps(state).length;
@@ -173,6 +182,7 @@ export class MorningScene implements Scene {
         night: false,
         mopedWreck: wreckSector(this.state),
         pinnedInvoice: pinnedInvoice(this.state)?.sector,
+        fallenWhistle: whistleInGrass(this.state),
         packTrail: packTrail(this.state),
         carPresent: true,
         houseHpRatio: yard.houseHp / HOUSE_MAX_HP,

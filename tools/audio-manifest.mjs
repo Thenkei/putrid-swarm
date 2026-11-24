@@ -89,6 +89,16 @@ const quietNightBed = [
 ].join(';');
 
 export const AUDIO = [
+  sfx('chief_pocket', .85, 'One tiny close foley gesture of slipping an old brass whistle into a worn work trouser pocket. A short soft dry rustle of coarse cotton, a little leather lanyard brushing a seam, one quiet muted brass tap inside fabric, then stillness. All in the first second. Absolutely no blown whistle, high ringing, keys jingling, voices, movement afterwards, music or ambience.', { gain: .78, peak: -10, maxSeconds: .85, tail: .06 }),
+  sfx('chief_watch', .24, 'A single close dry foley of a worn police pocket watch being snapped shut by a thumb. One tiny soft metal hinge movement then a decisive crisp high double click of the lid seating against brass. Intimate, easily recognizable from a desk or a quiet garden, no repeat. Start instantly, done in a quarter second. No clock ticking, background, footsteps, music, voices or echo.', {
+    // Keep the hinge and the lid seating, close together like one movement of the thumb.
+    edit: 'asplit=2[a][b];[a]atrim=end=0.095,asetpts=PTS-STARTPTS,volume=0.58[hinge];[b]atrim=start=1.50:end=1.63,asetpts=PTS-STARTPTS[seat];[hinge][seat]concat=n=2:v=0:a=1',
+    gain: .95, peak: -5, maxSeconds: .24, tail: .018,
+  }),
+  sfx('chief_dawn_whistle', 1.05, "A single hesitant breath blown into an old metal pea whistle, close and exposed in a quiet French country garden. Air leaks at first, then a brief clear slightly wavering policeman's whistle, tapering off as a tired man runs out of breath. One tentative short note in less than a second. No second blast, voices, birds, echo or music. Isolated clean game foley.", {
+    // Hugo tries a single, breath-led note on the Chief's old whistle.
+    edit: 'atrim=start=0.83:end=1.91,asetpts=PTS-STARTPTS', gain: .66, peak: -8, maxSeconds: 1.05, tail: .075,
+  }),
   sfx('mechanic_chain', 1, 'One second of close dry game foley. An old garage chain hoist being pulled hand over hand, four irregular sharp metallic link clatters over a pulley, ending in a tiny distinct seating tick as slack runs out. Abruptly completely still. Start immediately. No voice, music, engine, dropped weight, bass impact or reverb.', {
     // Spaces between four real link sounds let the final seating tick fall into silence.
     edit: [

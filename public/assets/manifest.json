@@ -2251,5 +2251,25 @@
     "file": "sprites/moon_laundry.webp",
     "w": 160,
     "h": 213
+  },
+  "chief_watch_pose_front": {
+    "file": "sprites/chief_watch_pose_front.webp",
+    "w": 185,
+    "h": 260
+  },
+  "chief_watch_pose_back": {
+    "file": "sprites/chief_watch_pose_back.webp",
+    "w": 185,
+    "h": 260
+  },
+  "chief_exposed_pose_front": {
+    "file": "sprites/chief_exposed_pose_front.webp",
+    "w": 236,
+    "h": 260
+  },
+  "chief_exposed_pose_back": {
+    "file": "sprites/chief_exposed_pose_back.webp",
+    "w": 253,
+    "h": 260
   }
 }

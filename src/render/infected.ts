@@ -2,6 +2,7 @@
 // owns travel and action time, so a paused, obstructed or restrained character cannot tread air.
 
 import { BOSS } from '../core/data/enemies';
+import { DEVICES } from '../core/data/devices';
 import { ENTRIES } from '../core/map';
 import { BLOW_RECOVERY_SECONDS, HIT_REACTION_SECONDS, hoistAge, type Enemy, type LogTarget } from '../core/night';
 import type { EnemyTypeId, SectorId } from '../core/types';
@@ -14,6 +15,7 @@ import mowerGait from './mower-gait.json';
 import { smoothstep } from './noise';
 import { project, type View } from './projection';
 import { contactShadow } from './shadows';
+import type { DeviceVisual } from './world';
 
 export interface Fallen {
   readonly threshold?: SectorId;
@@ -69,7 +71,7 @@ const CRAWL_TOP = [
 ] as const;
 type Clip = (typeof CLIPS)[number];
 type CrawlClip = (typeof CRAWL_CLIPS)[number];
-type Pose = Clip | CrawlClip | 'a' | 'p' | 'b' | 'x';
+type Pose = Clip | CrawlClip | 'a' | 'p' | 'b' | 'x' | 'watch' | 'exposed';
 interface Figure {
   readonly source: Sprite;
   readonly sx: number;
@@ -88,7 +90,7 @@ const reverseFront = (art: CharacterArt): boolean =>
 
 function figureFor(art: CharacterArt, front: boolean, pose: Pose): Figure | null {
   const base = art.key + (front ? '_front' : '_back');
-  const key = base + '_' + pose;
+  const key = pose === 'exposed' || pose === 'watch' ? 'chief_' + pose + '_pose_' + (front ? 'front' : 'back') : base + '_' + pose;
   const known = figures.get(key);
   if (known) return known;
   let figure: Figure;
@@ -115,7 +117,7 @@ function figureFor(art: CharacterArt, front: boolean, pose: Pose): Figure | null
     const forwardDeerLanding = art.key === 'en_deer' && pose === 'b' && mobCycle('deer');
     const reversingAction = pose === 'x' && (art.key === 'boss_mechanic' && mobCycle('mechanic') ||
       art.key === 'en_deer' && mobCycle('deer') || art.key === 'boss_chief' && mobCycle('chief'));
-    const reverse = front && reverseFront(art) && !forwardDeerLanding && (pose === 'a' || pose === 'p' || pose === 'b' || !!reversingAction);
+    const reverse = front && reverseFront(art) && !forwardDeerLanding && (pose === 'a' || pose === 'p' || pose === 'b' || pose === 'watch' || pose === 'exposed' || !!reversingAction);
     figure = { source, sx: 0, sy: 0, sw: source.w, sh: source.h, width: source.w / reference.h, height: source.h / reference.h, reverse };
   }
   figures.set(key, figure);
@@ -245,9 +247,10 @@ const grounded: Movement = { pose: 'p', forward: 0, up: 0, lean: 0, squash: 1, f
 
 // Length and onset of each footfall come from the painted gait. The hind legs
 // of a galloping animal carry one full phase, unlike two alternating boots.
-function locomotion(e: Enemy, art: CharacterArt, m: Movement, reduced: boolean): void {
+function locomotion(e: Enemy, art: CharacterArt, m: Movement, reduced: boolean, leader?: Enemy): void {
   const profile = mobCycle(e.type);
-  const cycle = e.travel / (profile?.stride ?? art.stride) + trait(e.id);
+  const cycle = leader ? leader.travel / (mobCycle('chief')?.stride ?? ART.chief.stride) + trait(leader.id)
+    : e.travel / (profile?.stride ?? art.stride) + trait(e.id);
   const phase = cycle % 1;
   const segment = Math.floor(phase * 4);
   const run = e.action === 'charge' || e.moveSpeed >= 1.45 || e.hasteFor > 0;
@@ -271,6 +274,11 @@ function locomotion(e: Enemy, art: CharacterArt, m: Movement, reduced: boolean):
   m.squash = 1 - (1 - lift) * (art.heavy ? 0.046 : 0.023);
   switch (e.type) {
     case 'shambler':
+      if (leader) {
+        m.lean = 0.077;
+        m.squash = 0.93;
+        break;
+      }
       m.up *= phase < 0.53 ? 0.92 : 0.22;
       m.lean *= phase < 0.53 ? 1.6 : -1.1;
       break;
@@ -346,7 +354,7 @@ function windup(e: Enemy, m: Movement, enhanced: boolean, reduced: boolean): voi
   }
 }
 
-function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
+function motion(e: Enemy, art: CharacterArt, reduced: boolean, leader?: Enemy, horn?: DeviceVisual): Movement {
   const m = { ...grounded };
   const enhanced = e.type === 'mower' || !!mobCycle(e.type);
   if (e.hitFlash > 0) {
@@ -369,6 +377,7 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
   } else if (e.nettedFor > 0 || e.stunnedFor > 0 || (e.action === 'idle' && e.crawlDepth > 0)) {
     const low = Math.max(e.crawlDepth, e.hitCrawlDepth ?? 0);
     m.pose = low >= 0.6 ? 'crawlGather' : low > 0 ? 'kneel' : 'p';
+    if (e.type === 'chief' && (e.nettedFor > 0 || e.lit)) m.pose = 'exposed';
     const pull = enhanced && e.nettedFor > 0 ? Math.sin(e.nettedFor * 21) * smoothstep(0, 0.4, e.nettedFor) : 0;
     m.squash = enhanced ? 0.93 + 0.021 * pull : 0.96;
     m.lean = 0.044 * pull;
@@ -383,6 +392,14 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
     m.pose = 'grip';
     m.lean = 0.045 * smoothstep(0.85, 0.94, progress);
     m.signature = { kind: 'registered', time: reduced ? 0 : progress, force: 1 };
+  } else if (e.type === 'chief' && e.lit) {
+    m.pose = 'exposed';
+    const step = e.travel / art.stride;
+    m.up = .014 * Math.sin(TAU * step) ** 2;
+    m.lean = -.024 + .014 * Math.sin(TAU * step);
+  } else if (e.type === 'chief' && e.boss && e.boss.ability <= BOSS.chief.watchLead) {
+    m.pose = 'watch';
+    m.lean = .025;
   } else if (enhanced && e.type === 'chief' && e.boss && e.boss.ability > BOSS.chief.whistleEvery - 0.7) {
     const t = (BOSS.chief.whistleEvery - e.boss.ability) / 0.7;
     m.pose = 'x';
@@ -416,6 +433,15 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
     m.lean = -0.106 * recoil;
     m.squash = 1 - 0.056 * Math.abs(recoil);
     m.signature = { kind: 'jam', time: e.actionSeconds, force: 1 - smoothstep(1, 2.5, e.actionSeconds) };
+  } else if (leader && (e.action === 'walk' || e.action === 'idle') &&
+    (horn || (leader.boss && leader.boss.ability <= BOSS.chief.watchLead))) {
+    // The rear rank takes the same low, forward brace a fraction after the front.
+    const age = horn?.activeAge ?? (BOSS.chief.watchLead - leader.boss!.ability);
+    const press = smoothstep(0, 0.17, age - ((e.fileRank ?? 1) - 1) * 0.065);
+    m.pose = press > 0.35 ? 'grip' : 'p';
+    m.squash = 1 - 0.16 * press;
+    m.lean = 0.12 * press;
+    m.forward = 0.045 * press;
   } else if (e.action === 'walk' || e.action === 'charge') {
     const vault = e.vault && (e.travel - e.vault.start) / e.vault.length;
     if (enhanced && vault !== undefined && vault >= 0 && vault < 1) {
@@ -425,7 +451,7 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean): Movement {
       m.up = 0.58 * Math.sin(Math.PI / 2 * (takeoff + landing));
       m.lean = 0.17 * Math.sin(TAU * vault);
       m.squash = 1 - 0.15 * smoothstep(0.76, 0.91, vault) * (1 - smoothstep(0.92, 1, vault));
-    } else locomotion(e, art, m, reduced);
+    } else locomotion(e, art, m, reduced, leader);
   }
   if (reduced) {
     m.lean = 0;
@@ -574,21 +600,29 @@ export function drawMobStride(ctx: CanvasRenderingContext2D, type: EnemyTypeId, 
 
 interface Moment { readonly time: number; readonly night: boolean }
 
-export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Moment, enemy: Enemy & { threshold?: SectorId }): void {
+export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Moment & { devices: readonly DeviceVisual[] },
+  enemy: Enemy & { threshold?: SectorId }, chief?: Enemy): void {
   const z = view.zoom;
   const art = ART[enemy.type];
   const p = project(view, enemy.x, enemy.y);
   if (p.x < view.x - 110 * z || p.x > view.x + view.w + 110 * z || p.y < view.y - 25 * z || p.y > view.y + view.h + 125 * z) return;
   const delivery = enemy.type === 'mail' && mobCycle('mail') && enemy.blowRecovery > 0 && typeof enemy.gripTarget === 'string'
     ? ENTRIES[enemy.gripTarget] : undefined;
-  const dx = delivery ? delivery.x + 0.5 - enemy.x : 0;
-  const dy = delivery ? delivery.y + 0.5 - enemy.y : 0;
-  const reach = delivery ? Math.hypot(dx, dy) : 0;
-  const { front, dir, flip, depth } = reach > 0.001 ? facing(view, dx / reach, dy / reach) : facing(view, enemy.fx, enemy.fy);
+  const leader = enemy.fileRank && enemy.shielded && chief?.action === 'walk' && (enemy.action === 'walk' || enemy.action === 'idle') &&
+    enemy.nettedFor <= 0 && enemy.stunnedFor <= 0 && enemy.hitFlash <= 0 ? chief : undefined;
+  const horn = chief && (leader || enemy.lureDevice !== null) ? frame.devices.find(d => d.type === 'horn' && d.state === 'active' &&
+    (d.activeAge ?? Infinity) < 0.8 && (enemy.lureDevice === d.id || (leader &&
+      Math.hypot(enemy.x - d.x - 0.5, enemy.y - d.y - 0.5) <= DEVICES.horn.radius))) : undefined;
+  const facingTarget = delivery ?? (horn && enemy.lureDevice === horn.id ? horn : undefined);
+  const dx = facingTarget ? facingTarget.x + 0.5 - enemy.x : 0;
+  const dy = facingTarget ? facingTarget.y + 0.5 - enemy.y : 0;
+  const reach = Math.hypot(dx, dy);
+  const { front, dir, flip, depth } = reach > 0.001 ? facing(view, dx / reach, dy / reach)
+    : facing(view, leader?.fx ?? enemy.fx, leader?.fy ?? enemy.fy);
   const h = art.height * z * stature(art, enemy.id);
   const reduced = calmMotion();
   const gait = enemy.type === 'mower' ? mowerFigure(enemy, front, reduced) : undefined;
-  const movement = gait ? grounded : motion(enemy, art, reduced);
+  const movement = gait ? grounded : motion(enemy, art, reduced, leader, horn);
   const moveCel = movement.gait === undefined ? undefined : gaitFigure(enemy.type, art, front, movement.gait);
   const f = gait ?? moveCel ?? figureFor(art, front, movement.pose);
   const crouching = CRAWL_CLIPS.includes(movement.pose as CrawlClip);

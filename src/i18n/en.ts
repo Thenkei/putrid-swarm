@@ -325,7 +325,7 @@ export const en: Strings = {
     found: 'Found',
     leave: 'Drive home',
     leaveCost: 'drive home {h} h',
-    escorted: 'The Chief walks you to the door. Come back tomorrow.',
+    escorted: 'The Chief walks you to the door, his watch snapped shut.',
     noTime: 'Keep enough time to drive home.',
     trunk: 'In the boot',
     disputed: 'This lot is settled with whoever is standing on it.',
