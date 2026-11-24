@@ -1237,9 +1237,15 @@ export class DayScene implements Scene {
     this.drag = null;
     if (!drag) return;
     this.updateHover(pointer, drag.moved && drag.pan);
+    if (!pointer.overCanvas || !inView(this.view, pointer.x, pointer.y)) return;
     if ((drag.moved && drag.pan) || drag.painted) return;
     if (drag.secondary) this.turn();
     else this.click();
+  }
+
+  onPointerCancel(): void {
+    this.drag = null;
+    this.updateHover(this.app.pointer, true);
   }
 
   private click(): void {

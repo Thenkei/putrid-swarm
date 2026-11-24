@@ -26,6 +26,8 @@ export interface Scene {
   onPointerDown?(pointer: Pointer, event: PointerEvent): void;
   onPointerMove?(pointer: Pointer): void;
   onPointerUp?(pointer: Pointer): void;
+  /** End an interrupted gesture without committing its release action. */
+  onPointerCancel?(): void;
   onKeyDown?(code: string, event: KeyboardEvent): void;
   onKeyUp?(code: string, event: KeyboardEvent): void;
   /** The window lost focus or the document was hidden. */
@@ -53,6 +55,7 @@ export class App {
   private fade = 0;
   private fadeTarget = 0;
   private pendingScene: (() => Scene) | null = null;
+  private canvasPointer: number | null = null;
 
   constructor() {
     this.canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -73,21 +76,32 @@ export class App {
       this.pointer.overCanvas = event.target === this.canvas;
     };
     this.canvas.addEventListener('pointerdown', (event) => {
-      if (this.pendingScene) return;
+      if (this.pendingScene || !event.isPrimary || this.canvasPointer !== null) return;
       audio.unlock();
       toStage(event);
+      this.canvasPointer = event.pointerId;
       this.pointer.down = true;
       this.scene?.onPointerDown?.(this.pointer, event);
     });
     window.addEventListener('pointermove', (event) => {
+      if (!event.isPrimary || (this.canvasPointer !== null && this.canvasPointer !== event.pointerId)) return;
+      // A mouse can be released outside this window and return without a pointerup.
+      if (this.canvasPointer !== null && event.buttons === 0) this.cancelPointer();
       toStage(event);
       if (!this.pendingScene) this.scene?.onPointerMove?.(this.pointer);
     });
     window.addEventListener('pointerup', (event) => {
+      if (event.pointerId !== this.canvasPointer) return;
       toStage(event);
+      this.canvasPointer = null;
       this.pointer.down = false;
       if (!this.pendingScene) this.scene?.onPointerUp?.(this.pointer);
     });
+    const cancel = (event: PointerEvent) => {
+      if (event.pointerId === this.canvasPointer) this.cancelPointer();
+    };
+    window.addEventListener('pointercancel', cancel);
+    this.canvas.addEventListener('lostpointercapture', cancel);
     this.canvas.addEventListener('wheel', (event) => {
       toStage(event);
       if (!this.pendingScene) this.scene?.onWheel?.(event.deltaY, this.pointer);
@@ -103,11 +117,23 @@ export class App {
       this.scene?.onKeyDown?.(event.code, event);
     });
     window.addEventListener('keyup', (event) => this.scene?.onKeyUp?.(event.code, event));
-    window.addEventListener('blur', () => this.scene?.onBlur?.());
+    const blur = () => {
+      this.cancelPointer();
+      this.scene?.onBlur?.();
+    };
+    window.addEventListener('blur', blur);
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) this.scene?.onBlur?.();
+      if (document.hidden) blur();
     });
     this.ui.addEventListener('pointerdown', () => audio.unlock(), true);
+  }
+
+  private cancelPointer(): void {
+    if (this.canvasPointer === null) return;
+    this.canvasPointer = null;
+    this.pointer.down = false;
+    this.pointer.overCanvas = false;
+    this.scene?.onPointerCancel?.();
   }
 
   private resize(): void {
@@ -144,6 +170,7 @@ export class App {
   }
 
   private swap(scene: Scene): void {
+    this.cancelPointer();
     this.scene?.exit?.();
     this.ui.replaceChildren();
     this.ui.inert = false;
