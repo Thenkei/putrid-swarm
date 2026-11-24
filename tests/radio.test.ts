@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { chapterWaiting, dawnOf } from '../src/core/chapters';
 import { DAY_HOURS } from '../src/core/data/locations';
 import { LAST_NIGHT } from '../src/core/data/waves';
+import { ENTRIES } from '../src/core/map';
 import { ALL_ENDINGS, ENDINGS, tallyOf } from '../src/core/endings';
 import { concludeNight, newGame, retryChapter, settleRadio, settleShed, startNextDay, startNight } from '../src/core/game';
 import { NightSim } from '../src/core/night';
@@ -758,6 +759,8 @@ describe('the radio: the last day and the last night', () => {
     expect(events.map(e => e.type)).toEqual(breaches ? ['ally_turned', 'breach'] : ['ally_turned']);
     expect(sim.barricades.arriere.hp).toBe(0);
     expect(sim.report().breaches).toBe(breaches);
+    const sill = ENTRIES.arriere;
+    expect(sim.decals.filter(d => d.kind === 'debris' && d.x === sill.x && d.y === sill.y)).toHaveLength(breaches);
   });
 
   it('lays out the last night door by door from the wave table, only the doors that got through', () => {

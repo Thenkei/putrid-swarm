@@ -37,6 +37,15 @@ try {
       const { audio } = await import('/src/engine/audio.ts');
       const original = audio.play.bind(audio);
       window.knocks = 0;
+      window.doorFrames = {};
+      const remember = () => {
+        const feed = document.querySelector('.camper-door');
+        if (feed) window.doorFrames[feed.dataset.door + '/' + feed.dataset.pose] = feed.getAttribute('aria-label');
+      };
+      new MutationObserver(remember).observe(document.querySelector('.night-top').parentElement, {
+        attributes: true, subtree: true, attributeFilter: ['data-pose', 'data-door'],
+      });
+      remember();
       audio.play = (id, ...args) => {
         if (id === 'camper_inside_knock') window.knocks++;
         return original(id, ...args);
@@ -57,13 +66,13 @@ try {
       await button('Resume').click();
     } else assert.equal(await feed.count(), 0);
     await p.keyboard.press('F4');
-    if (!absent) await p.locator('.camper-door[data-pose=' + (broken ? 'stepping' : 'bracing') + ']').waitFor({ timeout: 60000 });
+    if (!absent) await p.waitForFunction(key => key in window.doorFrames, broken ? 'broken/stepping' : 'boarded/bracing', { timeout: 60000 });
     await p.locator('.night-top').filter({ hasText: /Wave 2/i }).waitFor({ timeout: 90000 });
     if (bitten) {
       await p.getByText(/strikes from inside/i).waitFor();
       if (broken || branch === 'last-plank') {
-        await p.locator('.camper-door[data-door=broken][data-pose=inside]').waitFor();
-        assert.match(await feed.getAttribute('aria-label'), /splintered jamb/);
+        await p.waitForFunction(() => 'broken/inside' in window.doorFrames);
+        assert.match(await p.evaluate(() => window.doorFrames['broken/inside']), /splintered jamb/);
       }
       await feed.waitFor({ state: 'detached' });
     } else if (!absent) {
