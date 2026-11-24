@@ -1068,6 +1068,8 @@ export const en: Strings = {
     next: 'Start day {n}',
   },
   finale: {
+    leaveSong: 'Leave the song',
+    pause: 'Pause',
     shed: 'At the bottom of the garden',
     shedSub: 'A blade on the front. Two walls of amplifiers on the back.',
     /** The camper from the radio, locked in the shed for the night. */
