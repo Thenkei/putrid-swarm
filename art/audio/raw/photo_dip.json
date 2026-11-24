@@ -1,0 +1,11 @@
+{
+  "id": "photo_dip",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "K0PTZBTM3utXTTj5aEjH",
+  "generatedAt": "2026-11-24T12:51:12.709Z",
+  "prompt": "Close quiet darkroom foley. One small sheet of stiff photographic paper touches a shallow enamel tray of water and slides under the surface. Delicate paper-edge skiff and low soft slosh in one gesture, stops in half a second. No running water, pouring, large splash, music or voice.",
+  "bytes": 274213,
+  "sha256": "05bc9a22793bbb35d08745d99f6f3122806b7967e1e18a058a6bae7e605042d5"
+}

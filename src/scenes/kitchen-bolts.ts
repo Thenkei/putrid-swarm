@@ -6,6 +6,9 @@ import { line as L } from '../engine/i18n';
  * stays where it is. Continued pressure from both sides makes it slide backwards. */
 export function kitchenBolts(field: HTMLElement, note: HTMLElement, toggle: HTMLButtonElement, finish: () => void) {
   let time = 0, inserted = 0, travel = 0, pushing = false;
+  void audio.prepareSample('bolt_slide');
+  void audio.prepareSample('bolt_seat');
+  let motion = 0;
   let wasKnocking = false;
   const rails = [0, 1].map(() => el('div', { class: 'kitchen-bolt' }, [
     el('i', { class: 'bolt-rail' }), el('i', { class: 'bolt-shaft' }), el('i', { class: 'bolt-catch' }),
@@ -42,9 +45,18 @@ export function kitchenBolts(field: HTMLElement, note: HTMLElement, toggle: HTML
   label(); show(); toggle.focus();
   return (dt: number) => {
     time += dt;
+    const previous = travel;
     if (pushing) travel = Math.max(0, travel + dt * (pressure() ? -.8 : .70));
+    const direction = Math.sign(travel - previous);
+    if (direction !== motion) {
+      audio.fadeOut('bolt_slide', .035);
+      if (direction) audio.play('bolt_slide', direction > 0 ? .8 : .63, direction > 0 ? 1 : .78);
+      motion = direction;
+    }
     if (travel >= 1) {
-      audio.play('car_latch', .53);
+      audio.fadeOut('bolt_slide', .035);
+      motion = 0;
+      audio.play('bolt_seat', .9, inserted ? .89 : 1);
       inserted++;
       if (inserted === rails.length) { finish(); return; }
       pushing = false;
