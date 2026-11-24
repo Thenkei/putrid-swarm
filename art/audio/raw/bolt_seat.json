@@ -1,0 +1,11 @@
+{
+  "id": "bolt_seat",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "Q8uakI15Hph35DcCEFuH",
+  "generatedAt": "2026-11-24T12:50:59.755Z",
+  "prompt": "Single thick iron barrel bolt seating in its keeper on an old oak door. Immediate compact, weighty metal-on-metal ka-chunk with a tiny wooden resonance. Less than half a second. Isolated dry foley, no jingling keys or door slam.",
+  "bytes": 50187,
+  "sha256": "bc104d05cb59adfe13a0fa5e3f9c5beb957537d339aa9b5f5b5308c47ba3efbe"
+}

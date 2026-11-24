@@ -7,6 +7,8 @@ import './garage-print.css';
 
 /** The paper develops on the night clock so pausing also holds the exposure. */
 export function developGaragePrint(field: HTMLElement, note: HTMLElement, actions: HTMLElement, finish: (readable: boolean) => void) {
+  void audio.prepareSample('photo_dip');
+  void audio.prepareSample('photo_lift');
   const photo = el('div', { class: 'garage-print-photo' });
   photo.style.backgroundImage = 'url("' + garagePrint + '")';
   const frame = el('div', { class: 'garage-print-paper' }, [photo]);
@@ -36,13 +38,14 @@ export function developGaragePrint(field: HTMLElement, note: HTMLElement, action
     if (finished || lifting !== null) return;
     lifting = readable;
     dip.disabled = true;
-    audio.play(readable ? 'ready' : 'deny');
+    audio.fadeOut('photo_dip', .045);
+    audio.play('photo_lift');
     status.value = L('Le tirage s’égoutte', 'The print is draining');
   };
   const dip = el('button', { class: 'btn', text: L('Plonger le papier', 'Dip the paper'), onClick: () => {
     if (dipped) { takeOut(stage === 2); return; }
     dipped = true;
-    audio.play('click');
+    audio.play('photo_dip');
     dip.textContent = L('Retirer le tirage', 'Lift the print');
   } });
   status.value = stages[0]!;
@@ -59,7 +62,11 @@ export function developGaragePrint(field: HTMLElement, note: HTMLElement, action
       paperPosition(rise, -1 - rise * 3);
       ripple.style.opacity = still ? '0' : String(.28 * Math.sin(rise * Math.PI));
       ripple.style.transform = 'translate(-50%,-50%) scale(' + (1 + .12 * rise) + ')';
-      if (liftTime >= (still ? .20 : .70)) { finished = true; finish(lifting); }
+      if (liftTime >= (still ? .20 : .70)) {
+        finished = true;
+        audio.play(lifting ? 'ready' : 'deny', .40);
+        finish(lifting);
+      }
       return;
     }
     elapsed += dt;

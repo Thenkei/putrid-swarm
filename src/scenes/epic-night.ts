@@ -350,15 +350,18 @@ export class EpicNight {
   }
 
   private arcadeIntro() {
+    void audio.prepareSample('vhs_play');
+    void audio.prepareSample('vhs_eject');
     this.field.style.backgroundImage = 'url("' + vhsSleeve + '")';
     this.field.style.backgroundPosition = 'center 22%';
     const rules = L('Au feutre sur la cassette : « Rembobiner au portail rouge. » ← → pour changer de voie, Espace pour tirer. Au doigt ou à la souris, appuie et glisse. Contourne les chariots blindés.', 'Scrawled on the tape: “Rewind at the red gate.” Change lanes with ← → and hold Space to fire. With touch or mouse, hold and drag. Dodge the armoured carts.');
     const sleeve = this.flag('vhs') ? L(' La jaquette double le bonus du facteur.', ' The sleeve doubles the postman bonus.') : '';
     this.page(L('NUIT IV · Édition vidéo', 'NIGHT IV · Video edition'), rules + sleeve,
-      button(L('Lecture ▶', 'Play ▶'), () => this.arcade()), button(L('Éjecter', 'Eject'), this.close));
+      button(L('Lecture ▶', 'Play ▶'), () => this.arcade()), button(L('Éjecter', 'Eject'), () => { audio.play('vhs_eject'); this.close(); }));
   }
 
   private arcade() {
+    audio.play('vhs_play');
     this.page(L('NUIT IV · Tir en rafale', 'NIGHT IV · Burst fire'), '');
     this.clock = playVhs(this.field, this.actions, this.note, !!this.flag('vhs'), oneArmed(this.app.state), (score, complete) => {
       let best = score;
@@ -369,9 +372,16 @@ export class EpicNight {
       const lastFrame = complete ? this.field.querySelector('canvas') : null;
       const cut = complete ? L('Le portail rouge se fige. Fin de bande.', 'The red gate freezes on screen. The tape runs out.')
         : L('La cassette ressort encore tiède.', 'The cassette slides out, still warm.');
-      audio.play('door', .48);
+      audio.fadeOut('vhs_play', .04);
+      audio.play('vhs_eject');
       this.page(L('REMBOBINEZ S’IL VOUS PLAÎT', 'BE KIND, REWIND'),
         score + ' pts · Record ' + best + ' · ' + cut + L(' On cogne à ta porte. Cette fois, c’est la vraie nuit.', ' Someone pounds on your door. This time the night is real.'));
+      // Hear the visitor outside after the cassette clears the carriage.
+      this.clock = () => {
+        if (this.elapsed < .85) return;
+        audio.play('door', .48);
+        this.clock = null;
+      };
       if (lastFrame) {
         lastFrame.removeAttribute('tabindex');
         lastFrame.setAttribute('aria-label', L('Dernière image de la cassette, devant le portail du garage.', 'Final frame of the tape, outside the garage gate.'));

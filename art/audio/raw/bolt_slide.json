@@ -1,0 +1,11 @@
+{
+  "id": "bolt_slide",
+  "kind": "sfx",
+  "provider": "elevenlabs",
+  "model": "eleven_text_to_sound_v2",
+  "generationId": "UbvC8NmzxtjQIzxlZ2Ob",
+  "generatedAt": "2026-11-24T12:50:53.973Z",
+  "prompt": "One short gritty scrape of an old iron barrel bolt pushed a few centimetres along a wooden farmhouse door. Starts moving immediately, intimate low rasp of steel against its guides, fades out cleanly. No closing impact, knocking, room tone, voices or music.",
+  "bytes": 50187,
+  "sha256": "70d1eec75550c978d40f182c281f3ab678bd830b2615e1d24a927e3c821cb6a7"
+}
