@@ -89,6 +89,10 @@ Each night from the second to the seventh has one special scene. Daytime clues c
 
 [Follow the Camper from a disputed lot to the CB and the back door, with the in-game sound](docs/previews/camper-back-door.mp4).
 
+[Watch the Mechanic at the garage, on the barn camera and the following morning, with the in-game sound](docs/previews/depanneur-hoist.mp4).
+
+At the garage, the Mechanic holds up a greasy palm until the hoist chain goes quiet. He slides a spring or two pieces of scrap across the bench and pencils them onto his bill. Interrupt his hoist with a log on night four and, if you visited him, you can find the carbon copy nailed to the boards he was attacking. It stays there after the shed on day five.
+
 | Night | At the desk |
 | --- | --- |
 | 2 | Brace the kitchen door under pressure. A sketch found in town unlocks a trip outside with the stove. Catch the swinging key to get back inside. If you used the flame, your fingerprints are still on the lock when you find the cold ravioli the next day. |
@@ -176,7 +180,7 @@ The house falls when its integrity reaches zero; infected only get in through a 
 | 1 | villagers | the gate, then a few by the barn: to learn the desk |
 | 2 | Le Tondeur | mows a straight lane from door to door; flattens palisades in it |
 | 3 | prowlers, rams, jumpers | flanking, breaching, clearing obstacles |
-| 4 | Le Dépanneur | winds up, then rams with his hoist |
+| 4 | Le Dépanneur | the chain rattles, the last link draws taut and his boots settle before the hoist strikes |
 | 5 | La Dernière Tournée | two knocks per door, exploits any breach. On her first stop at the gate she waits for a signature. A wet slip in the yard mailbox on the fourth afternoon announces her visit. Leave her undisturbed and a registered letter can be opened in the morning. If you read the complaint, the same letter comes out of your pocket when you start the mower. |
 | 6 | Le Chef de la Police | shields the queue around him, makes it ignore the horn |
 | 7 | Le Maire | every speech brings reinforcements to another sector |

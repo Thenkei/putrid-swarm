@@ -3,6 +3,7 @@
 
 import { epicObject } from './epic-day';
 import { ShopLife } from './shop-life';
+import { MechanicVisit } from './mechanic-visit';
 import { CONCEAL_HOURS, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER } from '../core/data/locations';
 import { clockLabel, concealableSpots, concealSpot, leaveLocation, neighborStatus, prepareSearch, searchAttemptKey, searchStop, takeSpringReceipt, type NeighborMeeting, type SearchOutcome, type SearchStop } from '../core/game';
 import { hasViceLeftovers } from '../core/garage-vice';
@@ -39,6 +40,7 @@ export class LocationScene implements Scene {
   private overlay!: HTMLElement;
   private panel!: EncounterPanel;
   private puzzle: ScavengePanel | null = null;
+  private mechanicVisit: MechanicVisit | null = null;
   private concealing = false;
   private readonly roomLife: ShopLife;
   private searchDust: { readonly x: number; readonly y: number; age: number } | null = null;
@@ -292,6 +294,20 @@ export class LocationScene implements Scene {
   }
 
   private showMeeting(meeting: NeighborMeeting): void {
+    if (meeting.neighbor === 'mechanic') {
+      this.hud.inert = true;
+      const close = () => {
+        this.mechanicVisit?.close();
+        this.mechanicVisit = null;
+        this.meeting = null;
+        this.hud.inert = false;
+      };
+      this.mechanicVisit = new MechanicVisit(this.overlay, meeting, () => {
+        close();
+        this.hud.querySelector<HTMLButtonElement>('.spot:not(.done,.blocked)')?.focus({ preventScroll: true });
+      }, () => { close(); this.leave(); });
+      return;
+    }
     const s = S();
     const lines = s.neighbor[meeting.neighbor];
     const url = assetUrl(`por_${meeting.neighbor}_alive`);
@@ -534,6 +550,7 @@ export class LocationScene implements Scene {
   }
 
   update(dt: number): void {
+    this.mechanicVisit?.update(dt);
     if (!this.puzzle && !this.meeting && !this.panel.open) this.roomLife.update(dt, this.app.pointer, calmMotion());
     this.puzzle?.update(dt);
     this.panel.update(dt);
@@ -544,11 +561,13 @@ export class LocationScene implements Scene {
   }
 
   onBlur(): void {
+    this.mechanicVisit?.pause();
     this.panel.onBlur();
     this.puzzle?.pauseCourse();
   }
 
   exit(): void {
+    this.mechanicVisit?.close();
     this.panel.hide();
   }
 

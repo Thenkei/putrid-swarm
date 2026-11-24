@@ -3,6 +3,7 @@
 
 import { BARRICADE, COMBAT, DEVICES, isManual, isTrap } from './data/devices';
 import { BOSS, ENEMIES, type EnemyDef } from './data/enemies';
+import { BOSS_NIGHT } from './data/locations';
 import { NIGHT_LEAD_IN, planForNight, type SirenSector } from './data/waves';
 import type { DefenseTake } from './cassette';
 import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlocked, sectorOf } from './map';
@@ -99,7 +100,13 @@ export interface Enemy {
   alive: boolean;
 }
 
-export type TelegraphKind = 'mower' | 'ram' | 'speech' | 'whistle' | 'boar';
+export type TelegraphKind = 'mower' | 'ram' | 'hoist' | 'speech' | 'whistle' | 'boar';
+
+/** Elapsed time in a blow that the log can still interrupt. */
+export function hoistAge(e: Enemy): number | null {
+  return e.alive && e.type === 'mechanic' && e.action === 'windup' && e.windup > 0
+    ? e.def.windupSeconds - e.windup : null;
+}
 
 /** Position and approach at the instant of impact, before a shove or the end-of-step sweep. */
 export type EnemyImpact = Pick<Enemy, 'x' | 'y' | 'fx' | 'fy' | 'type' | 'def' | 'target' | 'action' | 'offsetX' | 'offsetY' | 'lureDevice' | 'crawlDepth'>;
@@ -202,6 +209,8 @@ const samePress = (a: DeskPress, b: DeskPress): boolean =>
 export interface Opportunity {
   readonly targets: number;
   readonly now: boolean;
+  /** This log's cue is for the bodies under it while the mechanic is on the approach. */
+  readonly group?: true;
 }
 
 export type Outcome = 'ongoing' | 'survived' | 'overrun';
@@ -302,6 +311,7 @@ export class NightSim {
   /** What each trap of the yard did tonight, by device id. Every trap has an entry, fired or not. */
   private readonly tallies = new Map<number, { fired: number; hits: number; kills: number }>();
   private letterDelivered = false;
+  private mechanicStoppedAt?: SectorId;
   private bossDefeated: NeighborId | null = null;
   /** A camera that stopped sending. The lot goes on without it: only the desk is blind. */
   cameraLost: SectorId | null = null;
@@ -570,24 +580,35 @@ export class NightSim {
    * Infected standing within a trap's reach. `pressing` when one of them is worth the trap alone:
    * a heavy one, or — for a trap that hurts — anything already at work on a door or a palisade.
    */
-  private underTrap(device: DeviceRuntime): { count: number; pressing: boolean } {
+  private underTrap(device: DeviceRuntime): { count: number; pressing: boolean; hoistSet: boolean } {
     const def = DEVICES[device.type];
     const cx = device.x + 0.5;
     const cy = device.y + 0.5;
     let count = 0;
     let pressing = false;
+    let hoistSet = false;
     for (const e of this.enemies) {
-      if (!e.alive || Math.hypot(e.x - cx, e.y - cy) > def.reach) continue;
+      // The raised engine can be caught at the outer edge of the timber's actual sweep.
+      const hoist = device.type === 'log' && e.type === 'mechanic';
+      const pull = hoist ? hoistAge(e) : null;
+      const reach = pull !== null ? def.radius + e.def.size * 0.15 : def.reach;
+      if (!e.alive || Math.hypot(e.x - cx, e.y - cy) > reach) continue;
       if (device.type === 'log' && clearsLog(e, device)) continue;
       // The horn means nothing to a boss or to the chief's file; the floodlight adds nothing to the already dazzled.
       if (device.type === 'horn' && (e.def.boss || e.shielded || e.lureDevice !== null)) continue;
       if (device.type === 'floodlight' && e.lit) continue;
       count++;
       if (device.type === 'barrier') continue;
+      // A lone mechanic walking through still takes damage. The desk calls the counter
+      // after the last link seats; a crowd beneath the timber counts throughout the pull.
+      if (hoist) {
+        if (pull === null || pull < BOSS.mechanic.chainSeconds) continue;
+        hoistSet = true;
+      }
       if (e.def.boss || e.def.tramples) pressing = true;
       if (def.damage > 0 && (e.action === 'attack' || e.action === 'windup')) pressing = true;
     }
-    return { count, pressing };
+    return { count, pressing, hoistSet };
   }
 
   /** The desk's cue for a manual trap: what is under it, and whether that is worth firing now. */
@@ -596,7 +617,9 @@ export class NightSim {
     if (!device || device.state !== 'armed' || !isManual(device.type) || this.outcome !== 'ongoing' || this.closingOutcome) return { targets: 0, now: false };
     const def = DEVICES[device.type];
     if (this.energy < def.energy) return { targets: 0, now: false };
-    const { count, pressing } = this.underTrap(device);
+    const { count, pressing, hoistSet } = this.underTrap(device);
+    if (device.type === 'log' && count >= def.targets && !hoistSet && this.night === BOSS_NIGHT.mechanic &&
+      this.threat(sectorOf(device.x, device.y)).boss === 'mechanic') return { targets: count, now: true, group: true };
     return { targets: count, now: count >= def.targets || pressing };
   }
 
@@ -627,6 +650,7 @@ export class NightSim {
             nearest = distance;
             device.logTarget = { id: before.id, ...impactPose(before) };
           }
+          if (this.night === BOSS_NIGHT.mechanic && e.boss && hoistAge(e) !== null) this.mechanicStoppedAt ??= e.boss.sector;
           this.interrupt(e);
           const control = e.def.boss ? COMBAT.bossControlFactor : 1;
           e.stunnedFor = Math.max(e.stunnedFor, COMBAT.logStunSeconds * control);
@@ -1053,6 +1077,7 @@ export class NightSim {
     if (e.windup <= 0) {
       e.windup = e.def.windupSeconds;
       e.action = 'windup';
+      if (kind === 'hoist' && e.boss) e.boss.sector = sector;
       this.telegraph(kind, e, sector, e.def.windupSeconds);
       return false;
     }
@@ -1067,6 +1092,7 @@ export class NightSim {
   }
 
   private telegraphKind(e: Enemy): TelegraphKind {
+    if (e.type === 'mechanic') return 'hoist';
     return e.type === 'boar' ? 'boar' : 'ram';
   }
 
@@ -1141,7 +1167,7 @@ export class NightSim {
       e.cooldown = 2.5;
       e.action = 'attack';
       e.blowRecovery = BLOW_RECOVERY_SECONDS;
-    } else if (!this.strike(e, dt, sector, 'ram', 3)) {
+    } else if (!this.strike(e, dt, sector, this.telegraphKind(e), 3)) {
       return;
     }
     this.loseHouse(e.def.houseDamage);
@@ -1672,6 +1698,7 @@ export class NightSim {
       ...(this.indoorKills > 0 && { indoorKills: this.indoorKills }),
       bossDefeated: this.bossDefeated,
       ...(this.letterDelivered && { letterDelivered: true as const }),
+      ...(this.mechanicStoppedAt && { mechanicStoppedAt: this.mechanicStoppedAt }),
       durationSeconds: Math.round(this.time),
       cameraLost: this.cameraLost,
       traps: Object.fromEntries([...this.tallies].map(([id, tally]) => [id, { ...tally }])) as Record<number, TrapTally>,

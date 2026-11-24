@@ -3,6 +3,7 @@
 import { epicFlag, markEpic, packTrail, wreckSector, type PackTrail } from '../core/epics';
 import { BARRICADE, DEVICES, HOUSE_MAX_HP } from '../core/data/devices';
 import { chapterWaiting } from '../core/chapters';
+import { pinnedInvoice } from '../core/mechanic-invoice';
 import { bossOfNight, startNextDay } from '../core/game';
 import { ENTRIES, sectorOf } from '../core/map';
 import { silentTraps } from '../core/yard';
@@ -21,6 +22,7 @@ import { smoothstep } from '../render/noise';
 import { cameraView, drawWorld, type View, type WorldFrame } from '../render/world';
 import { drawPlate, heroArt, oneArmed } from './common';
 import { CassettePlayer } from './cassette';
+import { invoiceDetail } from './mechanic-invoice';
 import { goChapter, goDay } from './flow';
 
 /** Cells around the highlighted spot that the inspection view rings, so it is found at a glance. */
@@ -72,7 +74,13 @@ export class MorningScene implements Scene {
 
     // The neighbour of the night: beaten, or gone home at first light.
     const boss = bossOfNight(night);
-    const bossLine = boss ? (report?.bossDefeated === boss ? s.neighbor[boss].defeated : s.neighbor[boss].escaped) : s.morning.quiet;
+    const invoice = pinnedInvoice(state);
+    let bossLine = boss ? (report?.bossDefeated === boss ? s.neighbor[boss].defeated : s.neighbor[boss].escaped) : s.morning.quiet;
+    if (invoice) {
+      bossLine = report?.bossDefeated === 'mechanic'
+        ? line('Le palan est à terre. Un feuillet gras tient aux planches par un seul clou.', 'The hoist lies on its side. A single nail holds a greasy slip to the boards.')
+        : line('Le Dépanneur est reparti à l’aube. Il a laissé un feuillet sur les planches.', 'The Mechanic left at dawn. He left a slip nailed to the boards.');
+    }
 
     const silent = silentTraps(state).length;
     const row = (label: string, value: string, tone: '' | 'bad' | 'good' | 'warn' = ''): HTMLElement => el('tr', {}, [el('td', { text: label }), el('td', { class: tone, text: value })]);
@@ -107,6 +115,7 @@ export class MorningScene implements Scene {
     ]);
     this.app.ui.append(card);
     const letters = el('div', { class: 'morning-mail' });
+    if (invoice) letters.append(invoiceDetail(invoice).detail);
     if (trail || (night === 6 && epicFlag(state, 'neighbor'))) {
       const account = trail === 'together' ? line('Deux grandes pistes et une petite ressortent ensemble par le portail.', 'Two large sets of prints and a small one lead out through the gate together.')
         : trail === 'digging' ? line('Devant le portail fermé, deux pistes longent la clôture. Au pied d’un poteau, la terre fraîche est striée de griffes.', 'Two trails follow the fence beside the closed gate. Fresh claw marks score the loose earth at the foot of a post.')
@@ -163,6 +172,7 @@ export class MorningScene implements Scene {
         time: 0,
         night: false,
         mopedWreck: wreckSector(this.state),
+        pinnedInvoice: pinnedInvoice(this.state)?.sector,
         packTrail: packTrail(this.state),
         carPresent: true,
         houseHpRatio: yard.houseHp / HOUSE_MAX_HP,

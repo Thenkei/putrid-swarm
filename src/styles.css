@@ -1672,6 +1672,21 @@ button:disabled {
   text-shadow: 0 2px 4px #000;
 }
 
+.hoist-caption {
+  position: absolute;
+  left: 14px;
+  top: 47px;
+  padding: 3px 8px;
+  border-left: 2px solid #a29179;
+  background: #151610e8;
+  color: #e9dfcc;
+  font-size: 20px;
+  line-height: 1.15;
+  pointer-events: none;
+}
+.hoist-caption[data-phase="set"] { border-color: #f0d596; color: #ffe7b7; }
+.mini .hoist-caption { left: 9px; top: 37px; font-size: 16px; }
+
 .rec {
   width: 14px;
   height: 14px;
@@ -2026,6 +2041,9 @@ button:disabled {
 }
 
 .trap.now .status {
+  padding-inline: 6px;
+  font-size: 18px;
+  letter-spacing: 0.035em;
   background: #201405;
   color: #ffd23c;
   font-weight: 700;
