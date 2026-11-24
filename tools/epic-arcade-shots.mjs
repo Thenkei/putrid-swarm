@@ -86,10 +86,48 @@ async function garage(profile) {
     await page.waitForFunction(([id,before]) => document.querySelector('[data-piece="'+id+'"]')?.getAttribute('style') !== before,[id,before]);
     await page.waitForTimeout(190);
   };
-  await move('trolley','ArrowLeft');
+  // Changing selection must leave the other piece mid-slide, even on a scaled stage.
+  const viewport = page.viewportSize();
+  if (!phone) await page.setViewportSize({width:854,height:480});
+  await click(piece('trolley'));
+  await click(btn('← Gauche'));
+  const trolleyX = await piece('trolley').evaluate(token => {
+    const slide = token.getAnimations()[0];
+    slide.pause();
+    slide.currentTime = 35;
+    return token.getBoundingClientRect().left;
+  });
+  await click(piece('bench'));
+  const selectionJump = await piece('trolley').evaluate((token,from) => {
+    const jump = token.getBoundingClientRect().left - from;
+    token.getAnimations()[0]?.play();
+    return jump;
+  },trolleyX);
+  assert.ok(Math.abs(selectionJump) < 1, 'changing pieces jumped '+selectionJump+' pixels');
+  if (!phone) await page.setViewportSize(viewport);
   await move('toolbox','ArrowDown'); await move('toolbox','ArrowDown');
   await move('bench','ArrowDown');
-  for(let i=0;i<3;i++) await move('moped','ArrowRight');
+  if (phone) {
+    for(let i=0;i<3;i++) await move('moped','ArrowRight');
+  } else {
+    await click(piece('moped'));
+    await page.keyboard.press('ArrowRight');
+    // Sample the second real key at a known point in the previous slide.
+    await piece('moped').evaluate(token => {
+      const slide = token.getAnimations()[0];
+      slide.pause();
+      slide.currentTime = 35;
+      const left = token.getBoundingClientRect().left;
+      token.closest('dialog').addEventListener('keydown', () => {
+        const next = document.querySelector('[data-piece="moped"]');
+        window.mopedSlideJump = next.getBoundingClientRect().left - left;
+      }, {once:true});
+    });
+    await page.keyboard.press('ArrowRight');
+    const jump = await page.evaluate(() => window.mopedSlideJump);
+    assert.ok(Math.abs(jump) < 1, 'repeated moped slide jumped '+jump+' pixels');
+    await page.keyboard.press('ArrowRight');
+  }
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('putrid-swarm.save.v1')).flags['epic.loaded']===1);
   await page.reload(); await resume();
   assert.match(await summary.textContent(), /break/);
