@@ -443,6 +443,7 @@ export const fr = {
     rewind: 'Rembobiner', pause: 'Pause', play: 'Lecture', eject: 'Éjecter la cassette', seek: 'Position sur la bande',
   },
   morning: {
+    defense: 'Hugo a quitté son poste pour défendre la maison.',
     breach: 'La barricade a cédé.',
     broken: 'Ce dispositif a cassé pendant la nuit.',
     caught: '{n} {n:infecté arrêté|infectés arrêtés} en une fois.',

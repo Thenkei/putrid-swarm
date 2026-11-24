@@ -48,7 +48,7 @@ export class NightWildlife {
     if (this.foxAge >= 2) this.foxAge = null;
   }
 
-  step(dt: number, outside: number, nextSpawn: number | null, speaking: boolean): YardSound | undefined {
+  step(dt: number, outside: number, nextSpawn: number | null, speaking: boolean, hedgeDisturbed = false): YardSound | undefined {
     this.active = true;
     this.advanceFox(dt);
     this.clock += dt;
@@ -71,7 +71,7 @@ export class NightWildlife {
     }
     if (this.clock < this.nextTexture) return;
     // Recheck after a busy moment instead of unleashing a backlog of sounds.
-    if (speaking || outside > 3 || room < .8) {
+    if (speaking || hedgeDisturbed || outside > 3 || room < .8) {
       this.nextTexture = this.clock + 1.3 + this.random() * 2;
       return;
     }

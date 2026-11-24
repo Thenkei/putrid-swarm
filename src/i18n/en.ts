@@ -440,6 +440,7 @@ export const en: Strings = {
     rewind: 'Rewind', pause: 'Pause', play: 'Play', eject: 'Eject tape', seek: 'Tape position',
   },
   morning: {
+    defense: 'Hugo left the desk to defend the house.',
     breach: 'The barricade gave way.',
     broken: 'This device broke during the night.',
     caught: '{n} infected stopped in one go.',

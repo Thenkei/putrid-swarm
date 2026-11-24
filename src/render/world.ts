@@ -15,6 +15,7 @@ import { drawDecals } from './aftermath';
 import { drawEnemy, drawFallen, FALL_SECONDS, type Fallen } from './infected';
 import { drawGround, prepareGround, setGroundDresser } from './ground';
 import { barnLamp, curtainShadow, type IndoorPassage, type BarnMoth } from './house-reactions';
+import type { GateHedge } from './gate-hedge';
 import { foxHedge } from './fox-passage';
 import { DOOR_OPENINGS, VISIBLE_DOORS, damagedFacade, doorStance, hingedLeaves, houseDamageStage, outsideSillDepth, paintHouse, type HouseDoor } from './house';
 import { drawMopedScorch, mopedRideDrawable, mopedStruckPose } from './moped';
@@ -108,6 +109,7 @@ export interface WorldFrame {
   readonly indoorPassage?: IndoorPassage;
   readonly barnMoth?: BarnMoth;
   readonly foxAge?: number | null;
+  readonly gateHedge?: GateHedge;
   readonly time: number;
   readonly night: boolean;
   readonly houseHpRatio: number;
@@ -590,7 +592,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     drawables.push({ depth, draw: () => drawStand(ctx, stand, lean, opacity, part) });
   }
 
-  drawables.push(...foxHedge(ctx, view, frame.foxAge ?? null, calmMotion()));
+  drawables.push(...foxHedge(ctx, view, frame.foxAge ?? null, calmMotion(), frame.gateHedge));
 
   // House.
   {

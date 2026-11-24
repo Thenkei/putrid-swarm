@@ -5,7 +5,7 @@ import { porchLights } from '../render/porch-flame';
 import { drawMopedBlast, drawMopedTarget, mopedDoorOpen } from '../render/moped';
 import { project } from '../render/projection';
 import { EpicNight } from './epic-night';
-import { CassetteRecorder } from '../render/cassette';
+import { CassetteRecorder, defenseTapeView } from '../render/cassette';
 import { TAPE } from '../core/cassette';
 import { cameraPriority, type CameraPriority } from '../core/camera-priority';
 import { BARRICADE, COMBAT, DEVICES, HOUSE_MAX_HP, isAuto, isManual } from '../core/data/devices';
@@ -28,6 +28,7 @@ import { el } from '../engine/dom';
 import { S, fmt, hours } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
 import { BarnMoth } from '../render/house-reactions';
+import { GateHedge } from '../render/gate-hedge';
 import { NightWildlife } from './night-wildlife';
 import { CamperDoorFeed } from './camper-door';
 import { BrushPassage } from '../render/brush';
@@ -199,6 +200,7 @@ export class NightScene implements Scene {
   private coachNoteUntil = 0;
   private bossAlive: NeighborId | null = null;
   private readonly barnMoth = new BarnMoth(5);
+  private readonly hedge = new GateHedge();
   private readonly wildlife = new NightWildlife();
   private nextGroan = 5;
   private nextBark = 9;
@@ -1047,6 +1049,7 @@ export class NightScene implements Scene {
           sayAny('houseDefense', { interrupt: true });
           break;
         case 'house_shot':
+          this.recorder.shot(event.showAt ?? this.sim.time);
           audio.play('house_shotgun');
           break;
         case 'desk_return':
@@ -1186,6 +1189,7 @@ export class NightScene implements Scene {
     while (this.accumulator >= STEP && steps < MAX_STEPS_PER_FRAME * this.speed) {
       this.sim.step(STEP, this.epic.active);
       this.brushPassage.update(this.sim.time, this.sim.enemies);
+      this.hedge.update(this.sim.time, STEP, this.sim.enemies);
       this.accumulator -= STEP;
       steps++;
     }
@@ -1219,6 +1223,7 @@ export class NightScene implements Scene {
   }
 
   private updateWildlife(dt: number): void {
+    const contact = this.hedge.takeSound();
     if (this.epic.active || this.coach || this.ending || this.sim.awayFromDesk || this.speed !== 1) {
       this.quietWildlife(dt);
       return;
@@ -1226,10 +1231,17 @@ export class NightScene implements Scene {
     const wasPerched = this.wildlife.owl?.flightAge === null;
     // NightSim has removed the dead and the intruders before this frame reaches us.
     const outside = this.sim.enemies.length;
-    const cue = this.wildlife.step(dt, outside, this.sim.secondsToNextSpawn(), audio.speaking);
+    const cue = this.wildlife.step(dt, outside, this.sim.secondsToNextSpawn(), audio.speaking, this.hedge.disturbed(this.sim.time));
     if (wasPerched && this.wildlife.owl?.flightAge !== null) audio.fadeOut('owl_call', .065);
     if (cue === 'owl_call') audio.play(cue, audio.speaking ? .29 : .56);
-    else if (cue) audio.play(cue, cue === 'hedge_twig' ? .65 : .52, .96 + Math.random() * .08);
+    const hedgeSound = contact ?? (cue === 'owl_call' ? undefined : cue);
+    if (hedgeSound && !audio.speaking) {
+      // The same crack can draw attention from another monitor, whatever disturbed the hedge.
+      const distance = this.cam === 'portail' ? 1 : .65;
+      const level = hedgeSound === 'hedge_twig' ? .65 : .5;
+      const pitch = contact === 'hedge_leaves' ? .87 : .96 + Math.random() * .08;
+      audio.play(hedgeSound, level * distance, pitch);
+    }
   }
 
   /** The lot is never silent while something is walking on it. */
@@ -1286,6 +1298,7 @@ export class NightScene implements Scene {
       camperAtRearDoor: this.sim.heldDoor === 'arriere',
       barnMoth: this.barnMoth,
       foxAge: this.wildlife.foxAge,
+      gateHedge: this.hedge,
       ...(this.sim.awayFromDesk && { indoorPassage: { age: HOUSE_RETURN_SECONDS - this.sim.deskReturnIn,
         remaining: this.sim.deskReturnIn, oneArm: oneArmed(this.state) } }),
       ...(this.wildlife.owl && { nightOwl: this.wildlife.owl }),
@@ -1363,11 +1376,14 @@ export class NightScene implements Scene {
     const ratio = canvas.width / MINI.w;
     mctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     const rect = { x: 0, y: 0, w: MINI.w, h: MINI.h };
+    this.drawCameraFeed(mctx, sector, this.viewFor(sector, rect, (MAIN_ZOOM * MINI.w) / MAIN.w));
+  }
+
+  private drawCameraFeed(mctx: CanvasRenderingContext2D, sector: SectorId, view: View): void {
     if (this.isDark(sector)) {
-      drawNoSignal(mctx, rect, this.time + SECTOR_IDS.indexOf(sector) * 1.7, S().night.noSignal, 17, 0);
+      drawNoSignal(mctx, view, this.time + SECTOR_IDS.indexOf(sector) * 1.7, S().night.noSignal, 17, 0);
       return;
     }
-    const view = this.viewFor(sector, rect, (MAIN_ZOOM * MINI.w) / MAIN.w);
     const frame = this.frame(sector, false);
     drawWorld(mctx, view, frame);
     drawMopedBlast(mctx, view, this.sim.mopedRide, frame.time);
@@ -1426,11 +1442,20 @@ export class NightScene implements Scene {
     });
 
     if (!this.paused && this.sim.night < LAST_NIGHT) {
-      const highlight = this.sim.currentHighlight;
-      const device = highlight && highlight.kind !== 'breach' ? this.sim.device(highlight.deviceId) : null;
-      const sector = highlight?.kind === 'breach' ? highlight.sector : device ? sectorOf(device.x, device.y) : undefined;
-      this.recorder.record(this.sim.time, highlight, sector, (id, into, x, y) => {
-        if (id === this.cam) {
+      const highlight = this.sim.firstHouseDefense ?? this.sim.currentHighlight;
+      const device = highlight && 'deviceId' in highlight ? this.sim.device(highlight.deviceId) : null;
+      const sector = highlight && 'sector' in highlight ? highlight.sector : device ? sectorOf(device.x, device.y) : undefined;
+      this.recorder.record(this.sim.time, highlight, sector, this.sim.awayFromDesk, (id, into, x, y) => {
+        if (highlight?.kind === 'defense') {
+          const view = defenseTapeView(id, this.sim.time - highlight.started, MAIN_ZOOM * TAPE.width / MAIN.w, calmMotion());
+          into.save();
+          into.translate(x, y);
+          into.beginPath();
+          into.rect(0, 0, TAPE.width, TAPE.height);
+          into.clip();
+          this.drawCameraFeed(into, id, view);
+          into.restore();
+        } else if (id === this.cam) {
           const ratio = this.app.pixelRatio;
           const h = MAIN.w * TAPE.height / TAPE.width;
           into.drawImage(ctx.canvas, MAIN.x * ratio, (MAIN.y + (MAIN.h - h) / 2) * ratio, MAIN.w * ratio, h * ratio,

@@ -17,6 +17,7 @@ export class CassettePlayer {
   private readonly transport: HTMLButtonElement;
   private readonly seek = el('input');
   private readonly stamp = el('span', { class: 'tape-stamp' });
+  private readonly shotFrames: readonly number[];
   private elapsed = 0;
   private playing = false;
   private winding = false;
@@ -31,6 +32,9 @@ export class CassettePlayer {
     inspect: () => void,
   ) {
     const s = S().cassette;
+    // Start the sound on the first recorded exposure that can show the flash.
+    this.shotFrames = (tape.shots ?? []).map(shot => tape.times.find(t => t >= shot)! - tape.times[0]!);
+    if (this.shotFrames.length) void audio.prepareSample('house_shotgun');
     this.screen.width = TAPE.width * 2;
     this.screen.height = TAPE.height * 2;
     this.screen.setAttribute('aria-label', S().sector[sector]);
@@ -47,6 +51,7 @@ export class CassettePlayer {
     this.seek.value = '0';
     this.seek.setAttribute('aria-label', s.seek);
     this.seek.addEventListener('input', () => {
+      this.stopSound();
       this.insert = 0;
       this.winding = false;
       this.playing = false;
@@ -100,7 +105,10 @@ export class CassettePlayer {
     this.transport.focus();
   }
 
+  stopSound(): void { audio.fadeOut('tape_shot', .025); }
+
   close(): void {
+    this.stopSound();
     audio.play('click');
     this.root.hidden = true;
     this.playing = false;
@@ -116,11 +124,13 @@ export class CassettePlayer {
     else {
       this.winding = false;
       this.playing = !this.playing;
+      if (!this.playing) this.stopSound();
       this.paint();
     }
   }
 
   private rewind(): void {
+    this.stopSound();
     audio.play('click');
     this.insert = 0;
     if (calmMotion() || !this.elapsed) this.start();
@@ -145,7 +155,11 @@ export class CassettePlayer {
       this.elapsed = Math.max(0, this.elapsed - dt * 14);
       if (!this.elapsed) this.winding = false;
     } else if (this.insert > 0) this.insert = Math.max(0, this.insert - dt);
-    else this.elapsed = Math.min(this.duration, this.elapsed + dt);
+    else {
+      const previous = this.elapsed;
+      this.elapsed = Math.min(this.duration, this.elapsed + dt);
+      for (const shot of this.shotFrames) if (previous < shot && shot <= this.elapsed) audio.playTapeShot();
+    }
     if (this.elapsed >= this.duration) this.playing = false;
     this.paint();
   }

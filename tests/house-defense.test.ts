@@ -30,6 +30,20 @@ function atOpenDoor(count: number, hp = 100) {
 }
 
 describe('inside the house', () => {
+  it('records a working feed when the entry camera is dark and assigns sound only to a real shot', () => {
+    const sim = atOpenDoor(1);
+    sim.cameraLost = 'verger';
+    sim.act({ kind: 'look', sector: 'grange' });
+    advance(sim, tick);
+    const take = sim.firstHouseDefense!;
+    expect(take.sector).toBe('verger');
+    expect(take.feed).toBe(sim.camera);
+    expect(take.feed).not.toBe('verger');
+    const shots = advance(sim, HOUSE_RETURN_SECONDS + tick).filter(event => event.type === 'house_shot');
+    expect(shots).toHaveLength(1);
+    expect(shots[0]!.showAt! - take.started).toBeCloseTo(2.5, 1);
+  });
+
   it('stops three entrants with three timed shots, holds the manual controls and returns them', () => {
     const sim = atOpenDoor(3);
     const log = sim.devices.find(d => d.type === 'log')!;
@@ -40,6 +54,7 @@ describe('inside the house', () => {
     expect(start.filter(e => e.type === 'house_defense')).toHaveLength(1);
     expect(sim.houseHp).toBe(100 - damage);
     expect(sim.camera).toBe('verger');
+    expect(sim.firstHouseDefense).toEqual({ kind: 'defense', sector: 'verger', feed: 'verger', started: sim.time });
     expect(sim.handView()?.queue).toHaveLength(0);
     expect(sim.act({ kind: 'fire', deviceId: log.id })).toBe('refused');
     expect(sim.trigger(log.id)).toEqual({ ok: false, error: 'away' });
