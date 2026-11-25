@@ -41,7 +41,7 @@ import { drawApproachWindow, drawApproachingHero, type ApproachingHero } from '.
 import type { NightOwl } from '../scenes/night-wildlife';
 import { owlDrawable } from './night-owl';
 import { drawYardCat, type YardCatPose } from './yard-cat';
-import { drawGlowworms, drawPropLife, drawSquirrelCache, groundLifeDrawable, MAILBOX_PERCH, WELL_WATER, type HomesteadLife } from './homestead-life';
+import { drawGlowworms, drawPropLife, drawSquirrelCache, groundLifeDrawable, squirrelRun, MAILBOX_PERCH, WELL_WATER, type HomesteadLife } from './homestead-life';
 import { dawnCel, firstSwallows, flowerPose, gateHare, projectSwallow, sunlight } from './sunrise';
 import { drawRattle, rattlePoint, type RattleVisual } from './rattle';
 
@@ -681,9 +681,14 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const key = propSpriteKey(prop.kind, view.rot);
     const centreDepth = propDepth(view.rot, gx, gy);
     if (frame.homesteadLife) {
-      if (prop.kind === 'woodpile') drawSquirrelCache(ctx, prop, view, frame.homesteadLife, frame.time, calmMotion());
-      const visitor = groundLifeDrawable(ctx, prop, view, frame.homesteadLife, frame.time, calmMotion());
-      if (visitor) drawables.push(visitor);
+      const still = calmMotion();
+      const run = prop.kind === 'woodpile' ? squirrelRun(prop, frame.homesteadLife, frame.time, still, frame.devices) : undefined;
+      if (run) drawSquirrelCache(ctx, prop, view, frame.homesteadLife, frame.time, still, run);
+      const visitor = groundLifeDrawable(ctx, prop, view, frame.homesteadLife, frame.time, still, run);
+      if (visitor) {
+        visitor.drawShadow?.();
+        drawables.push(visitor);
+      }
     }
     if (prop.kind === 'mailbox' && frame.nightOwl) {
       const mailbox = sprite(key);
