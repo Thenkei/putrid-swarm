@@ -323,7 +323,7 @@ const SWAYS: ReadonlySet<PropKind> = new Set<PropKind>(['apple', 'oak', 'bush'])
 
 // ───────────────────────────── Drawing helpers ─────────────────────────────
 
-interface Drawable {
+export interface Drawable {
   readonly depth: number;
   draw(): void;
 }

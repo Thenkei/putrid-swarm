@@ -1,10 +1,11 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import sharp from 'sharp';
 import manifest from '../public/assets/manifest.json';
-import { carManeuver } from '../src/core/car-path';
-import { drawForest, drawStand, projectStand, type ForestDrawable } from '../src/render/forest';
+import { carDepartureShot, departingCar, drawDepartingCar } from '../src/render/car-departure';
+import { drawForest, drawStand, projectStand } from '../src/render/forest';
 import { depthOf, project, type Rot, type View } from '../src/render/projection';
 import { DEPTH_SORTED_TREES, treesIn, type Tree } from '../src/render/scenery';
+import type { Drawable } from '../src/render/world';
 
 type Point = { x: number; y: number };
 type Matrix = [number, number, number, number, number, number];
@@ -45,7 +46,8 @@ vi.mock('../src/engine/assets', () => ({ sprite: (key: string) => unavailable.st
 vi.mock('../src/render/shadows', () => ({ castShadow() {}, contactShadow() {} }));
 const pixels = new Map<string, Uint8Array>();
 beforeAll(async () => {
-  for (const [key, entry] of Object.entries(manifest).filter(([k]) => k.startsWith('forest_stands') || k.startsWith('obj_trees'))) {
+  for (const [key, entry] of Object.entries(manifest).filter(([k]) => k.startsWith('forest_stands') || k.startsWith('obj_trees') ||
+    ['car_boarding', 'car_driver', 'car_turn_road'].includes(k))) {
     sprites.set(key, { ...entry, img: { key, width: entry.w, height: entry.h } });
     pixels.set(key, await sharp('public/assets/' + entry.file).ensureAlpha().raw().toBuffer());
   }
@@ -91,22 +93,18 @@ describe('the woodland fringe', () => {
 
   it.each([
     [0, 28.428, 12.904, 30.500, 14.251], [1, 26.640, 7.566, 26.097, 6.200],
-  ] as const)('puts the road trees and wagon in the same depth order in view %s', (rot, gx, gy, nx, ny) => {
+  ] as const)('sorts the mature beech in front of its roadside neighbour in view %s', (rot, gx, gy, nx, ny) => {
     vi.stubGlobal('document', { createElement: () => new Surface() });
     try {
       const fringe = DEPTH_SORTED_TREES.find(t => Math.hypot(t.gx - gx, t.gy - gy) < .01)!;
       const near = treesIn(nx - .01, ny - .01, nx + .01, ny + .01)[0]!;
       const v = view(rot, gx, gy), n = projectStand(v, near)!;
-      const c = new Surface(), foreground: ForestDrawable[] = [];
+      const c = new Surface(), foreground: Drawable[] = [];
       drawForest(c.ctx, v, .8, foreground);
       const depth = depthOf(rot, near.gx, near.gy);
       const draws = foreground.filter(d => d.depth === depth);
       expect(draws.length).toBeGreaterThan(0);
       expect(depth).toBeGreaterThan(depthOf(rot, fringe.gx, fringe.gy));
-      // The ordinary boarding sequence starts rolling at 1.70s. This is where the
-      // wagon first meets the foreground forest on the road at 4.70s.
-      const wagon = carManeuver(4.70 - 1.70).position;
-      if (rot === 0) expect(depth).toBeGreaterThan(depthOf(rot, wagon.x, wagon.y) + .4);
       c.draws.length = 0;
       for (const item of draws) item.draw();
       const faces: Matrix[] = [];
@@ -121,6 +119,34 @@ describe('the woodland fringe', () => {
         const p = map(m, ...bark);
         return Math.hypot(p.x - n.rootX, p.y - n.rootY) < .01;
       })).toBe(true);
+    } finally { vi.unstubAllGlobals(); }
+  });
+
+  it.each([
+    [4.70, 28.294, 17.667, 11, 25],
+    [5.40, 30.500, 14.251, 26, 22],
+  ] as const)('keeps the departing wagon behind the foreground branches at %s seconds', (time, gx, gy, dx, dy) => {
+    vi.stubGlobal('document', { createElement: () => new Surface() });
+    try {
+      const car = departingCar(carDepartureShot(false)!, time, .5), p = car.position;
+      const v: View = { ...view(0, p.x, p.y), zoom: 1 }, root = project(v, p.x, p.y);
+      const tree = treesIn(gx - .01, gy - .01, gx + .01, gy + .01)[0]!, stand = projectStand(v, tree)!;
+      const c = new Surface(), foreground: Drawable[] = [];
+      drawForest(c.ctx, v, time, foreground);
+      const depth = depthOf(0, tree.gx, tree.gy);
+      expect(foreground.some(item => item.depth === depth)).toBe(true);
+      expect(depth).toBeGreaterThan(depthOf(0, p.x, p.y) + .4);
+      c.draws.length = 0;
+      drawDepartingCar(c.ctx, car, root, 112);
+      const blit = c.draws[0]!, [a,b,k,d,e,f] = blit.matrix;
+      let overlapping = 0;
+      for (let x = root.x + dx - 1.5; x < root.x + dx + 2; x++) for (let y = root.y + dy - 1.5; y < root.y + dy + 2; y++) {
+        const u = ((x-e)*d - (y-f)*k) / (a*d-b*k), w = ((y-f)*a - (x-e)*b) / (a*d-b*k);
+        const art = sprites.get(stand.key)!;
+        const leafX = (x - stand.x + stand.w/2) * art.w / stand.w, leafY = (y - stand.y + stand.h) * art.h / stand.h;
+        if (alpha(blit.image.key!, u, w) > 160 && alpha(stand.key, leafX, leafY) > 160) overlapping++;
+      }
+      expect(overlapping).toBeGreaterThan(0);
     } finally { vi.unstubAllGlobals(); }
   });
 });

@@ -7,6 +7,7 @@ import { DEPTH_SORTED_TREES, isDepthSortedTree, treesIn, type Tree } from './sce
 import { castShadow, contactShadow } from './shadows';
 import { windAt } from './wind';
 import { vegetationView } from './vegetation';
+import type { Drawable } from './world';
 
 const TILE = 384;
 const PAD = 2;
@@ -99,7 +100,6 @@ function crownInWind(ctx: CanvasRenderingContext2D, { s, tree }: Stamp, time: nu
   drawStand(ctx, s);
 }
 
-export interface ForestDrawable { depth: number; draw: () => void }
 const tileDepths: [Map<string, number>, Map<string, number>] = [new Map(), new Map()];
 
 // A tile outside every interactive silhouette can stay completely baked. Inside the
@@ -220,7 +220,7 @@ export function prepareForest(view: View): void {
 }
 
 /** Transparent canopy tiles sit over the continuous forest floor, with identical border stamps. */
-export function drawForest(ctx: CanvasRenderingContext2D, view: View, time = 0, foreground?: ForestDrawable[]): void {
+export function drawForest(ctx: CanvasRenderingContext2D, view: View, time = 0, foreground?: Drawable[]): void {
   const { left, top, x0, y0, x1, y1 } = forestBounds(view);
   const z = view.zoom;
   const transform = ctx.getTransform();

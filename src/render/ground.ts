@@ -12,7 +12,8 @@ import { TH, TW, groundMatrix, project, viewBounds, viewX, viewY, world, type Ro
 import { SHADOW_RGB } from './shadows';
 import { FIELD_MARGIN, GROUND_TERRAINS, TRACKS, layerAlpha, roadCentre, terrainField, type GroundTerrain, type TerrainField } from './terrainfield';
 import { dressYardFloor } from './yard-floor';
-import { drawForest, type ForestDrawable } from './forest';
+import { drawForest } from './forest';
+import type { Drawable } from './world';
 import { drawWindPlants, drawYardPlants, vegetableRowDrawables } from './yard-plants';
 import type { BrushPassage } from './brush';
 
@@ -485,7 +486,7 @@ function outerRoad(ctx: CanvasRenderingContext2D, road: keyof typeof TRACKS, fro
 }
 
 /** Draws the ground for a view. The context is expected to be clipped to the view already. */
-export function drawGround(ctx: CanvasRenderingContext2D, view: View, time = 0, passage?: BrushPassage, foreground?: ForestDrawable[]): void {
+export function drawGround(ctx: CanvasRenderingContext2D, view: View, time = 0, passage?: BrushPassage, foreground?: Drawable[]): void {
   const z = view.zoom;
   const bounds = viewBounds(view);
 
