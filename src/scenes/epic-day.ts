@@ -1,4 +1,5 @@
 import './epic.css';
+import { showGarageBoot } from './garage-boot';
 import { stoveMorning } from './stove-return';
 import { epicFlag, markEpic } from '../core/epics';
 import { SECTOR_IDS, type SectorId } from '../core/types';
@@ -43,12 +44,13 @@ export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: Se
         app.state = markEpic(app.state!, 'loaded');
         app.save();
         refresh();
-        const cargo = app.ui.querySelector<HTMLElement>('.garage-loaded-moped');
+        const cargo = app.ui.querySelector<HTMLButtonElement>('.garage-boot-inspect');
         cargo?.focus({ preventScroll: true });
+        const dialog = showGarageBoot(app, true);
         void Promise.all([audio.prepareSample('crate_1'), audio.prepareSample('vo_moped_load')]).then(() => {
           if (!cargo?.isConnected) return;
           audio.play('crate', .42);
-          say('vo_moped_load', { interrupt: true });
+          say('vo_moped_load', { interrupt: true, subtitle: !dialog.open });
         });
       } });
       return el('details', { class: 'garage-load' }, [
