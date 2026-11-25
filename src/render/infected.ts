@@ -3,7 +3,6 @@
 
 import { BOSS } from '../core/data/enemies';
 import { DEVICES } from '../core/data/devices';
-import { ENTRIES } from '../core/map';
 import { BLOW_RECOVERY_SECONDS, HIT_REACTION_SECONDS, hoistAge, type Enemy, type LogTarget } from '../core/night';
 import type { EnemyTypeId, SectorId } from '../core/types';
 import { sprite, type Sprite } from '../engine/assets';
@@ -627,14 +626,12 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
   const art = ART[enemy.type];
   const p = project(view, enemy.x, enemy.y);
   if (p.x < view.x - 110 * z || p.x > view.x + view.w + 110 * z || p.y < view.y - 25 * z || p.y > view.y + view.h + 125 * z) return;
-  const delivery = enemy.type === 'mail' && mobCycle('mail') && enemy.blowRecovery > 0 && typeof enemy.gripTarget === 'string'
-    ? ENTRIES[enemy.gripTarget] : undefined;
   const leader = enemy.fileRank && enemy.shielded && chief?.action === 'walk' && (enemy.action === 'walk' || enemy.action === 'idle') &&
     enemy.nettedFor <= 0 && enemy.stunnedFor <= 0 && enemy.hitFlash <= 0 ? chief : undefined;
   const horn = chief && (leader || enemy.lureDevice !== null) ? frame.devices.find(d => d.type === 'horn' && d.state === 'active' &&
     (d.activeAge ?? Infinity) < 0.8 && (enemy.lureDevice === d.id || (leader &&
       Math.hypot(enemy.x - d.x - 0.5, enemy.y - d.y - 0.5) <= DEVICES.horn.radius))) : undefined;
-  const facingTarget = delivery ?? (horn && enemy.lureDevice === horn.id ? horn : undefined);
+  const facingTarget = horn && enemy.lureDevice === horn.id ? horn : undefined;
   const dx = facingTarget ? facingTarget.x + 0.5 - enemy.x : 0;
   const dy = facingTarget ? facingTarget.y + 0.5 - enemy.y : 0;
   const reach = Math.hypot(dx, dy);

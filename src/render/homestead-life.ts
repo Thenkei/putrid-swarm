@@ -2,7 +2,7 @@ import type { Prop } from '../core/map';
 import type { Enemy } from '../core/night';
 import { drawAnimal, drawSmallProp } from './life-art';
 import { clamp01, smoothstep } from './noise';
-import { depthOf, inView, project, type Rot, type View } from './projection';
+import { depthOf, project, type Rot, type View } from './projection';
 
 export interface HomesteadLife {
   readonly day: number;
@@ -165,15 +165,17 @@ export function drawGlowworms(ctx: CanvasRenderingContext2D, view: View, enemies
   ctx.globalCompositeOperation = 'screen';
   for (const [i, [x, y]] of GLOWWORMS.entries()) {
     const p = project(view, x, y), z = view.zoom, py = p.y - (1.8 + i % 3) * z;
-    if (!inView(view, p.x, py)) continue;
+    const radius = 5.5 * z;
+    if (p.x + radius <= view.x || p.x - radius >= view.x + view.w ||
+      py + radius <= view.y || py - radius >= view.y + view.h) continue;
     let clear = 1;
     for (const e of enemies) if (e.alive) clear = Math.min(clear, smoothstep(.65, 2.4, Math.hypot(x - e.x, y - e.y)));
     const pulse = still ? .72 : .28 + .72 * (.5 + .5 * Math.sin(time * 1.8 + i * 2.3)) ** 2;
     if (clear * pulse * darkness < .06) continue;
-    const g = ctx.createRadialGradient(p.x, py, 0, p.x, py, 5.5 * z);
+    const g = ctx.createRadialGradient(p.x, py, 0, p.x, py, radius);
     g.addColorStop(0, '#e2ec82'); g.addColorStop(.20, '#bed558'); g.addColorStop(1, 'rgba(165,183,78,0)');
     ctx.globalAlpha = clear * pulse * darkness; ctx.fillStyle = g;
-    ctx.fillRect(p.x - 5.5 * z, py - 5.5 * z, 11 * z, 11 * z);
+    ctx.fillRect(p.x - radius, py - radius, 2 * radius, 2 * radius);
     ctx.fillStyle = '#f2ffbb';
     ctx.beginPath(); ctx.ellipse(p.x, py, 1.65 * z, .88 * z, i * .7, 0, Math.PI * 2); ctx.fill();
   }

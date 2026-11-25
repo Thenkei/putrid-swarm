@@ -78,6 +78,8 @@ export interface Enemy {
   moveSpeed: number;
   /** Distance interval for rendering a fence vault. Collision stays on the route. */
   vault?: { readonly start: number; readonly length: number };
+  /** Painted sill offset at the start of the postman's stride to his next door. */
+  mailExit?: { readonly sector: SectorId; readonly dx: number; readonly dy: number; readonly atTravel: number };
   actionSeconds: number;
   blowRecovery: number;
   /** The door or device actually being gripped, including the recovery from a single blow. */
@@ -112,7 +114,8 @@ export function hoistAge(e: Enemy): number | null {
 }
 
 /** Position and approach at the instant of impact, before a shove or the end-of-step sweep. */
-export type EnemyImpact = Pick<Enemy, 'x' | 'y' | 'fx' | 'fy' | 'type' | 'def' | 'target' | 'action' | 'offsetX' | 'offsetY' | 'lureDevice' | 'crawlDepth'>;
+export type EnemyImpact = Pick<Enemy, 'x' | 'y' | 'fx' | 'fy' | 'type' | 'def' | 'target' | 'action' | 'offsetX' | 'offsetY' | 'lureDevice' | 'crawlDepth' | 'mailExit'>
+  & Partial<Pick<Enemy, 'travel' | 'gripTarget'>>;
 
 const clearsLog = (e: Enemy, log: DeviceRuntime): boolean =>
   e.action === 'crawl' && e.crawlLog === log && e.crawlDepth >= 1 && e.nettedFor <= 0 && e.stunnedFor <= 0;
@@ -128,7 +131,8 @@ export type LogTarget = EnemyImpact & Pick<Enemy, 'id'>;
 function impactPose(enemy: Enemy): EnemyImpact {
   const { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth } = enemy;
   const target = type === 'mower' && enemy.boss ? enemy.boss.sector : enemy.target;
-  return { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth, target };
+  return { x, y, fx, fy, type, def, action, offsetX, offsetY, lureDevice, crawlDepth, target,
+    ...(enemy.mailExit && { mailExit: enemy.mailExit, travel: enemy.travel, gripTarget: enemy.gripTarget }) };
 }
 
 export type SimEvent = (
@@ -1421,6 +1425,10 @@ export class NightSim {
   }
 
   private updateMail(e: Enemy, boss: BossRuntime, dt: number): void {
+    if (e.target !== boss.sector) {
+      const foot = doorStance(e);
+      if (foot.threshold) e.mailExit = { sector: foot.threshold, dx: foot.x - e.x, dy: foot.y - e.y, atTravel: e.travel };
+    }
     e.target = boss.sector;
     const entry = ENTRIES[boss.sector];
     const distance = Math.hypot(e.x - (entry.x + 0.5), e.y - (entry.y + 0.5));

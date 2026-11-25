@@ -99,7 +99,7 @@ describe('yard pointer targets', () => {
   it.each([
     ['wagon and farmhouse', 15, 12, [false, false]],
     ['wagon', 17, 14, [true, false]],
-    ['farmhouse', 10, 8, [false, true]], ['farmhouse', 11, 13, [true, false]],
+    ['farmhouse and reverse oak', 10, 8, [false, false]], ['farmhouse', 11, 13, [true, false]],
   ] as const)('respects the %s silhouette over the spikes at (%i, %i)', (_scenery, x, y, visible) => {
     const spikes: DeviceVisual = { id: 1, type: 'spikes', x, y, state: 'idle', facing: 0, hpRatio: 1 };
     for (const rot of [0, 1] as const) for (const zoom of [.62, 1.5]) {
@@ -107,6 +107,18 @@ describe('yard pointer targets', () => {
       const p = project(view, view.cx, view.cy);
       expect(pickDevice(view, [spikes], p.x, p.y)).toBe(visible[rot] ? spikes : null);
     }
+  });
+
+  it.each([
+    [0, .62, 777.5, 376.5, 774.5, 377.5], [0, 1, 778.5, 371.5, 771.5, 374.5],
+    [0, 1.5, 777.5, 366.5, 766.5, 370.5], [1, .62, 775.5, 376.5, 785.5, 377.5],
+    [1, 1, 773.5, 372.5, 788.5, 374.5], [1, 1.5, 777.5, 364.5, 792.5, 370.5],
+  ] as const)('only reaches exposed spikes under the apple in view %i at zoom %f', (rot, zoom, hiddenX, hiddenY, exposedX, exposedY) => {
+    const sign = rot === 0 ? 1 : -1;
+    const spikes: DeviceVisual = { id: 43, type: 'spikes', x: 4 - sign, y: 8 - sign, facing: 0, state: 'idle', hpRatio: 1 };
+    const view = { rot, zoom, cx: spikes.x + .5, cy: spikes.y + .5, x: 292, y: 56, w: 976, h: 652 };
+    expect(pickDevice(view, [spikes], hiddenX, hiddenY, false, 1, { time: 4 })).toBeNull();
+    expect(pickDevice(view, [spikes], exposedX, exposedY, false, 1, { time: 4 })).toBe(spikes);
   });
 
   it('reaches the spike plank through an open net and still picks the planted net posts', () => {
