@@ -61,8 +61,30 @@ describe('Last Light', () => {
     if (ambush.kind !== 'ambush') throw new Error('expected a roadblock');
     const after = unwrap(act(road, { type: 'pay', payment: { wood: ambush.toll } })).state;
     expect(after.outing?.crossbowStop).toBe(true);
+    expect(after.outing?.quiet).toBe(false);
     const clear = finishCrossbowStop(after, false, 3)!.state;
     expect(unwrap(arriveHome(clear)).brought.wood).toBe(ENCOUNTER.ambushMinLoad - ambush.toll);
+  });
+
+  it('keeps only uninterrupted outings quiet, including after the crossbow stop is cleared and reloaded', () => {
+    const garage = garageTrip();
+    expect(garage.outing?.quiet).toBe(false); // The mechanic was there.
+    const home = unwrap(arriveHome(unwrap(leaveLocation(garage)).state)).state;
+    const disputed = unwrap(travelTo(home, 'hardware')).state;
+    expect(disputed.encounter?.kind).toBe('dispute');
+    expect(disputed.outing?.quiet).toBe(false);
+    const afterDispute = unwrap(arriveHome(unwrap(leaveLocation(disputed)).state)).state;
+    const hardware = unwrap(travelTo(afterDispute, 'hardware')).state;
+    const cutoff = ROAD_DUSK_HOURS + LOCATIONS.hardware.travelHours;
+    const quietRoad = unwrap(leaveLocation({ ...hardware, hoursLeft: cutoff + 0.25 })).state;
+    expect(deserialize(serialize(quietRoad))?.outing?.quiet).toBe(true);
+
+    const dusk = unwrap(leaveLocation({ ...hardware, hoursLeft: cutoff })).state;
+    const clear = finishCrossbowStop(dusk, false, 3)!.state;
+    const resumed = deserialize(serialize(clear))!;
+    expect(resumed.outing?.crossbowStop).toBeUndefined();
+    expect(resumed.outing?.quiet).toBe(false);
+    expect(arriveHome(resumed).ok).toBe(true);
   });
 
   it('only catches the ignition within the marked part of the two passes', () => {

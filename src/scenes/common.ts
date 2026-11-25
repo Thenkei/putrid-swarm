@@ -90,10 +90,10 @@ const tripsSpoken = new Set<string>();
 const LATER_TRIP_CHANCE = 0.6;
 
 /** Getting into the break (`car`) or back from it (`home`): always remarked on once a day, then now and then. */
-export function tripLine(moment: 'car' | 'home', state: Pick<GameState, 'day' | 'orchard'>): void {
+export function tripLine(moment: 'car' | 'home', state: Pick<GameState, 'day' | 'orchard' | 'outing'>): void {
   const key = `${moment}:${state.day}`;
   if (tripsSpoken.has(key) && Math.random() > LATER_TRIP_CHANCE) return;
-  if (sayAny(moment, { oneArmed: oneArmed(state) }) > 0) tripsSpoken.add(key);
+  if (sayAny(moment, { oneArmed: oneArmed(state), quietTrip: state.outing?.quiet === true }) > 0) tripsSpoken.add(key);
 }
 
 export function resourceChip(id: ResourceId, amount: number | string, extraClass = ''): HTMLElement {

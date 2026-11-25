@@ -253,7 +253,7 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
   const rng = createRng(state.rng);
   const arrival = openViceOnReturn(state, id);
   const looted = rollLooting(arrival, location, rng);
-  const outing = { to: id, trunk: NO_STOCK, parted: NO_STOCK, major: false, marks: [] };
+  const outing = { to: id, trunk: NO_STOCK, parted: NO_STOCK, major: false, marks: [], quiet: true };
   const visit = { ...progress, visits: progress.visits + 1, lootCheckedDay: progress.lootCheckedDay === null ? null : state.day };
   let next: GameState = {
     ...arrival,
@@ -306,7 +306,7 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
     }
     next = {
       ...next,
-      outing: next.outing && { ...next.outing, trunk: gain(next.outing.trunk, gift) },
+      outing: next.outing && { ...next.outing, trunk: gain(next.outing.trunk, gift), quiet: false },
       hoursLeft: next.hoursLeft - hoursLost,
       flags: { ...next.flags, [key]: 1 },
     };
@@ -316,7 +316,7 @@ export function travelTo(state: GameState, id: LocationId): Result<TravelOutcome
   // Where nobody minds the place any more, somebody else may have had the same idea.
   const dispute = rollDispute(next, location, neighborAtHome, rng);
   next = { ...next, rng: rng.state() };
-  if (dispute && next.outing) next = { ...next, encounter: dispute.encounter, flags: dispute.flags, outing: { ...next.outing, major: true } };
+  if (dispute && next.outing) next = { ...next, encounter: dispute.encounter, flags: dispute.flags, outing: { ...next.outing, major: true, quiet: false } };
   return ok({ state: next, meeting });
 }
 
@@ -448,11 +448,11 @@ export function leaveLocation(state: GameState): Result<Departure, DayError> {
   }
 
   next = { ...next, where: 'road', hoursLeft: Math.max(0, next.hoursLeft - location.travelHours) };
-  if (next.outing && shouldStopAtDusk(next, next.hoursLeft)) next = { ...next, outing: { ...next.outing, crossbowStop: true } };
+  if (next.outing && shouldStopAtDusk(next, next.hoursLeft)) next = { ...next, outing: { ...next.outing, crossbowStop: true, quiet: false } };
   const rng = createRng(next.rng);
   const ambush = rollAmbush(next, rng);
   next = { ...next, rng: rng.state() };
-  if (ambush && next.outing) next = { ...next, encounter: ambush.encounter, flags: ambush.flags, outing: { ...next.outing, major: true } };
+  if (ambush && next.outing) next = { ...next, encounter: ambush.encounter, flags: ambush.flags, outing: { ...next.outing, major: true, quiet: false } };
   return ok({ state: next, forfeit });
 }
 

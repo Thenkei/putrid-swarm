@@ -155,6 +155,7 @@ function parseOuting(v: unknown, onRoad: boolean): Outing | null {
   const lootNotice = v['lootNotice'];
   return {
     to: v['to'], trunk: v['trunk'], parted: v['parted'], major: v['major'] === true, marks: marks as Outing['marks'],
+    ...(typeof v['quiet'] === 'boolean' ? { quiet: v['quiet'] } : {}),
     ...(onRoad && v['crossbowStop'] === true ? { crossbowStop: true } : {}),
     ...(!onRoad && isCount(lootNotice) && lootNotice > 0 ? { lootNotice } : {}),
   };
