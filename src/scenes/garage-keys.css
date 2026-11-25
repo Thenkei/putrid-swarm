@@ -98,8 +98,24 @@
 }
 .garage-load-button:hover { background: #634b30; }
 .garage-load :is(summary, button):focus-visible { outline: 2px solid #aa6b24; outline-offset: 2px; }
-/* The hatch opening on the 1280 × 853 garage plate, cropped to the 16:9 stage. */
-.garage-loaded-moped { position: absolute; left: 18.5547%; top: 78.75%; width: 10.2734%; height: auto; pointer-events: none; }
+/* The illustrated wagon covers (0,515)–(472,780) on the 1280 × 853 garage plate. */
+.garage-loaded-moped { position: absolute; left: 0; top: 62.2917%; width: 36.875%; height: 36.8056%; pointer-events: none; }
+.garage-loaded-moped img {
+  display: block; width: 100%; height: 100%;
+  mask-image: linear-gradient(to right, black 89%, transparent), linear-gradient(to bottom, transparent, black 12% 96%, transparent);
+  mask-composite: intersect;
+}
+.garage-boot-inspect {
+  position: absolute; left: 50%; top: 46%; width: 29%; height: 50%;
+  border: 0; padding: 0; background: transparent; cursor: url('../cursors/inspect.svg') 12 12, pointer;
+}
+.garage-boot-inspect:focus-visible { outline: 2px solid var(--cream); }
+.garage-boot-dialog {
+  width: min(96vw, calc(171dvh - 120px), 1675px); padding: 0; overflow: auto;
+}
+.garage-boot-dialog > img { display: block; width: 100%; height: auto; }
+.garage-boot-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 14px; }
+.garage-boot-actions .btn { margin-left: auto; flex: none; font-size: clamp(14px, 2vw, 18px); }
 .garage-loaded-moped ~ .loc-title { left: 31%; max-width: calc(69% - 322px); }
 @media (max-width: 640px) {
   .garage-load { max-width: 385px; }

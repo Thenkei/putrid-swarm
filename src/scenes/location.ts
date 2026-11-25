@@ -2,7 +2,7 @@
 // rides in the boot until the refuge. Someone else may already be standing at the best lot.
 
 import { epicObject } from './epic-day';
-import loadedMopedArt from '../assets/garage-loaded-moped.webp';
+import { loadedGarageBoot } from './garage-boot';
 import { type GarageFind, garageFinds, parkedGarageMoped, searchGarageKeys } from './garage-keys';
 import { epicFlag } from '../core/epics';
 import { ShopLife } from './shop-life';
@@ -23,7 +23,7 @@ import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { rememberEnding } from '../engine/progress';
 import { el } from '../engine/dom';
-import { S, fmt, durationLabel, line } from '../engine/i18n';
+import { S, fmt, durationLabel } from '../engine/i18n';
 import { hush, say } from '../engine/voice';
 import { calmMotion } from '../render/lighting';
 import { smoothstep } from '../render/noise';
@@ -235,11 +235,7 @@ export class LocationScene implements Scene {
     this.hud.replaceChildren(topbar, status, ...spots.filter(spot => spot !== null), title, leave);
     this.updateNoiseGauge();
     if (this.id === 'garage' && epicFlag(state, 'loaded')) {
-      const cargo = el('img', { class: 'garage-loaded-moped' });
-      cargo.src = loadedMopedArt;
-      cargo.alt = line('La mob de Gérard, sanglée dans le coffre ouvert du break.', 'Gérard’s moped strapped inside the open boot of the wagon.');
-      cargo.tabIndex = -1;
-      this.hud.prepend(cargo);
+      this.hud.prepend(loadedGarageBoot(this.app));
     }
     if (this.id === 'garage' && !epicFlag(state, 'loaded') && !epicFlag(state, 'moped')) {
       const searching = state.day >= 3 && !epicFlag(state, 'garageKey') && !epicFlag(state, 'garageStarterBroken') && !this.stop && !this.concealing;
