@@ -160,6 +160,8 @@ export interface WorldFrame {
   readonly lanes?: readonly { readonly cells: readonly Cell[]; readonly seconds: number }[];
   readonly hoverCell?: Cell | null;
   readonly hoverRadius?: number;
+  /** Exact ground point marked by the morning report, including a sill between cell centres. */
+  readonly inspectionSpot?: Cell;
   /** A raised barrier blocks its own square. The stripes mark that square. */
   readonly hoverBarrier?: Facing;
   /** Dim everything outside this camera's sector. */
@@ -323,6 +325,7 @@ const propLean = (prop: Prop, time: number, rot: Rot): number => SWAYS.has(prop.
   ? windAt(time, prop.x, prop.y, hash2(prop.x, prop.y, 3), rot) * (prop.kind === 'bush' ? .092 : .035) : 0;
 
 const houseDepth = (rot: Rot): number => depthOf(rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.2;
+const barricadeDepth = (rot: Rot): number => houseDepth(rot) + .1;
 const propDepth = (rot: Rot, gx: number, gy: number): number => depthOf(rot, gx, gy) + 0.4;
 
 // ───────────────────────────── Drawing helpers ─────────────────────────────
@@ -651,7 +654,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
         }
       },
     });
-    for (const sector of SECTOR_IDS) drawables.push(...barricadeDrawables(ctx, view, frame, sector, depth + 0.1));
+    for (const sector of SECTOR_IDS) drawables.push(...barricadeDrawables(ctx, view, frame, sector, barricadeDepth(view.rot)));
   }
 
   // Scenery.
@@ -1092,8 +1095,10 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
     ctx.stroke();
   }
 
-  if (frame.hoverCell && frame.hoverRadius && frame.hoverRadius > 0) {
-    groundRing(ctx, view, frame.hoverCell.x + 0.5, frame.hoverCell.y + 0.5, frame.hoverRadius);
+  const { hoverCell, hoverRadius, inspectionSpot } = frame;
+  const centre = inspectionSpot ?? (hoverRadius && hoverCell ? { x: hoverCell.x + .5, y: hoverCell.y + .5 } : null);
+  if (centre && hoverRadius && hoverRadius > 0) {
+    groundRing(ctx, view, centre.x, centre.y, hoverRadius);
     ctx.fillStyle = 'rgba(242,165,49,0.13)';
     ctx.fill();
     ctx.setLineDash([6 * z, 5 * z]);
@@ -1675,7 +1680,8 @@ function propPaintedAt(view: View, prop: Prop, sx: number, sy: number, lean = 0)
   const dx = sx - root.x, dy = sy - root.y;
   const u = mount.foot[0] + (dx + lean * dy) / w;
   const v = mount.foot[1] + (dy - dx * (mount.fit?.shearY ?? 0)) / ((mount.fit?.scaleY ?? 1) * h);
-  return paintedPixel(art, u, v);
+  // Preserve narrow branches and the wagon roofline where a single click can spend repair stock.
+  return paintedPixel(art, u, v, art.img, art.w);
 }
 
 /** Solid scenery covers devices behind it. Swaying canopies fade to reveal yard targets. */
@@ -1720,16 +1726,19 @@ export function pickProp(view: View, kinds: readonly PropKind[], sx: number, sy:
 }
 
 /** Which door, if any, is under the pointer (for daytime repairs). */
-export function pickDoor(view: View, sx: number, sy: number): SectorId | null {
+export function pickDoor(view: View, sx: number, sy: number, houseHpRatio = 1, time = 0): SectorId | null {
   if (!inView(view, sx, sy)) return null;
   const g = unproject(view, sx, sy);
   for (const sector of VISIBLE_DOORS[view.rot]) {
     const p = doorSill(view, sector);
     const door = DOOR_OPENINGS[sector], scale = HOUSE_PAINT_SCALE * view.zoom;
     const dx = sx - p.x, localY = sy - p.y - dx * door.rise / door.w;
-    if (Math.abs(dx) < (door.w / 2 + 6) * scale && localY > -(door.h + 5) * scale && localY < 10 * scale) return sector;
+    const jamb = Math.abs(dx) < (door.w / 2 + 6) * scale && localY > -(door.h + 5) * scale && localY < 10 * scale;
     const entry = ENTRIES[sector];
-    if (Math.hypot(g.gx - (entry.x + 0.5), g.gy - (entry.y + 0.5)) < 1.1) return sector;
+    if (!jamb && Math.hypot(g.gx - (entry.x + 0.5), g.gy - (entry.y + 0.5)) >= 1.1) continue;
+    // The boards stand on the facade. The alternative repair target lies flat at the approach.
+    const depth = jamb ? barricadeDepth(view.rot) : depthOf(view.rot, g.gx, g.gy);
+    if (!behindScenery(view, sx, sy, depth, houseHpRatio, time)) return sector;
   }
   return null;
 }

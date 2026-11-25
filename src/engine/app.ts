@@ -78,7 +78,10 @@ export class App {
       // A mouse cursor stays on screen when the viewport changes. A touch ends with its gesture.
       this.clientPointer = event instanceof PointerEvent && event.pointerType === 'touch'
         ? null : { x: event.clientX, y: event.clientY };
-      this.locatePointer(event.clientX, event.clientY, event.target);
+      // A captured finger keeps dispatching to the canvas even over a panel or the letterbox.
+      const captured = event instanceof PointerEvent && this.canvas.hasPointerCapture(event.pointerId);
+      const target = captured ? document.elementFromPoint(event.clientX, event.clientY) : event.target;
+      this.locatePointer(event.clientX, event.clientY, target);
     };
     this.canvas.addEventListener('pointerdown', (event) => {
       if (this.pendingScene || !event.isPrimary || this.canvasPointer !== null) return;
@@ -101,6 +104,10 @@ export class App {
       this.canvasPointer = null;
       this.pointer.down = false;
       if (!this.pendingScene) this.scene?.onPointerUp?.(this.pointer);
+      if (event.pointerType === 'touch' && this.pointer.overCanvas) {
+        this.pointer.overCanvas = false;
+        if (!this.pendingScene) this.scene?.onPointerMove?.(this.pointer);
+      }
     });
     const cancel = (event: PointerEvent) => {
       if (event.pointerId === this.canvasPointer) this.cancelPointer();
