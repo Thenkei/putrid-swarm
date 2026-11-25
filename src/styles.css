@@ -5318,9 +5318,24 @@ button:disabled {
 /* A rummage: six containers, a noise meter, and two buttons per container. */
 .rummage-noise { display: block; margin-bottom: 10px; color: #ffe1a8; font: bold 20px/1.2 var(--hud-font); letter-spacing: .04em; }
 .rummage-pile { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.rummage-item { display: grid; gap: 4px; padding: 8px; border: 1px dashed #8d7b5c; border-radius: 4px; background: #2b2d25; }
+.rummage-item { position: relative; display: grid; gap: 4px; padding: 8px; border: 1px dashed #8d7b5c; border-radius: 4px; background: #2b2d25; }
 .rummage-item strong { font-size: 17px; line-height: 1.1; }
-.rummage-loud { color: #f0a85a; font-size: 13px; font-style: normal; text-transform: uppercase; letter-spacing: .06em; }
+/* Set into the top border like a legend, so a loud container is no taller than a quiet one. */
+.rummage-loud {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  padding: 0 4px;
+  transform: translateY(-50%);
+  background: inherit;
+  color: #f0a85a;
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
 .rummage-item.loud { border-color: #b77b3c; }
 .rummage-reveal { min-height: 2.2em; color: #c9bb98; font-size: 15px; line-height: 1.1; }
 .rummage-item[data-state='good'] { border: 1px solid #b9d18c; }

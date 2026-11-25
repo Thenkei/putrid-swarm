@@ -27,7 +27,10 @@ export class ScavengePanel {
     puzzle: Puzzle, spotName: string, spot: SearchSpot, plate: string, rng: Rng, level: PuzzleLevel,
     private readonly solved: () => void, readonly cancel: () => void,
     private readonly onStart: () => void, private readonly onFailure: (message: string) => void,
-    /** Street noise made during the attempt, reported as it happens; a failure's own noise is the caller's. */
+    /**
+     * Street noise made during the attempt, reported as it happens so it stands however the attempt ends,
+     * backing out included (see core/street-noise.ts); a failure's own noise is the caller's.
+     */
     private readonly onNoise: (amount: number) => void = () => {},
   ) {
     const s = S().scavenge;
@@ -447,7 +450,8 @@ export class ScavengePanel {
       const name = puzzle.items[item]!;
       const reveal = el('small', { class: 'rummage-reveal', text: s.rummageUnknown });
       const loud = probeCost(item) > 1;
-      const probe = this.button(loud ? `${puzzle.probe} ●●` : puzzle.probe, () => {
+      // A loud container's cost rides on its tag, not its button: the button stays one line at every width.
+      const probe = this.button(puzzle.probe, () => {
         const heard = rummageNoise(RUMMAGE.noise - pile.noiseLeft);
         if (!pile.probe(item)) return;
         const louder = rummageNoise(RUMMAGE.noise - pile.noiseLeft) - heard;
@@ -467,7 +471,7 @@ export class ScavengePanel {
       probe.setAttribute('aria-label', `${puzzle.probe} · ${name}${loud ? ` · ${s.rummageLoud}` : ''}`);
       take.setAttribute('aria-label', `${s.rummageTake} · ${name}`);
       const card = el('div', { class: loud ? 'rummage-item loud' : 'rummage-item' }, [
-        el('strong', { text: name }), loud ? el('em', { class: 'rummage-loud', text: s.rummageLoud }) : null, reveal,
+        el('strong', { text: name }), loud ? el('em', { class: 'rummage-loud', text: `${s.rummageLoud} ${'●'.repeat(probeCost(item))}` }) : null, reveal,
         el('div', { class: 'rummage-actions' }, [probe, take]),
       ]);
       return { item, card, reveal, probe, take };
