@@ -1616,15 +1616,15 @@
     "file": "sprites/yard_flora_bramble.webp",
     "w": 168,
     "h": 138,
-    "footX": 0.3909,
-    "footY": 0.8727
+    "footX": 0.1161,
+    "footY": 0.9565
   },
   "yard_flora_hazel": {
     "file": "sprites/yard_flora_hazel.webp",
     "w": 168,
     "h": 136,
-    "footX": 0.3862,
-    "footY": 0.8731
+    "footX": 0.375,
+    "footY": 0.9779
   },
   "yard_flora_nettle": {
     "file": "sprites/yard_flora_nettle.webp",
@@ -1843,15 +1843,15 @@
     "file": "sprites/yard_flora_back_bramble.webp",
     "w": 168,
     "h": 136,
-    "footX": 0.575,
-    "footY": 0.8716
+    "footX": 0.881,
+    "footY": 0.9779
   },
   "yard_flora_back_hazel": {
     "file": "sprites/yard_flora_back_hazel.webp",
     "w": 168,
     "h": 137,
-    "footX": 0.5712,
-    "footY": 0.8742
+    "footX": 0.5476,
+    "footY": 0.9781
   },
   "yard_flora_back_nettle": {
     "file": "sprites/yard_flora_back_nettle.webp",

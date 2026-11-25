@@ -966,8 +966,9 @@ export class OrchardScene implements Scene {
     const o = this.orchard;
     const alpha = 1 - this.canopy;
     if (alpha <= 0) return;
-    const sway = Math.sin(this.time * 1.1) * 0.025 + Math.sin(this.time * 2.7) * 0.008;
-    const bob = this.walking ? Math.sin(this.stride * Math.PI) * 12 : 0;
+    const still = calmMotion();
+    const sway = still ? 0 : Math.sin(this.time * 1.1) * 0.025 + Math.sin(this.time * 2.7) * 0.008;
+    const bob = !still && this.walking ? Math.sin(this.stride * Math.PI) * 12 : 0;
     const arriving = this.phase === 'intro' || o.beat === 'arrive';
     // Pushing in parts the grass; panning drags it the other way, faster than the ground behind.
     const push = arriving ? smooth(o.walk) * 420 : (this.cam.zoom - 1.05) * 520;

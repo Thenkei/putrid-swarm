@@ -3,6 +3,7 @@
 // on top of a painted plate, and is purely decorative: no rule ever reads it.
 
 import { STAGE_H, STAGE_W } from '../engine/app';
+import { calmMotion } from '../render/lighting';
 
 export interface AtmosphereOptions {
   /** Drifting bands of mist. */
@@ -176,20 +177,22 @@ export class Atmosphere {
       ctx.fillStyle = '#ffb04a';
       ctx.fillRect(ember.x, ember.y, ember.size, ember.size);
     }
-    for (const leaf of this.leaves) {
-      ctx.save();
-      ctx.globalAlpha = alpha * Math.min(1, 0.45 + leaf.size / 20);
-      ctx.translate(leaf.x + shift * (0.6 + leaf.size / 14), leaf.y);
-      ctx.rotate(leaf.phase * leaf.spin * 0.5);
-      // Seen edge-on half the time, as a tumbling leaf is.
-      ctx.scale(1, 0.35 + Math.abs(Math.sin(leaf.phase * 1.3)) * 0.65);
-      ctx.fillStyle = LEAF_COLORS[leaf.hue] ?? LEAF_COLORS[0];
-      ctx.beginPath();
-      ctx.moveTo(-leaf.size, 0);
-      ctx.quadraticCurveTo(0, -leaf.size * 0.75, leaf.size, 0);
-      ctx.quadraticCurveTo(0, leaf.size * 0.75, -leaf.size, 0);
-      ctx.fill();
-      ctx.restore();
+    if (!calmMotion()) {
+      for (const leaf of this.leaves) {
+        ctx.save();
+        ctx.globalAlpha = alpha * Math.min(1, 0.45 + leaf.size / 20);
+        ctx.translate(leaf.x + shift * (0.6 + leaf.size / 14), leaf.y);
+        ctx.rotate(leaf.phase * leaf.spin * 0.5);
+        // Seen edge-on half the time, as a tumbling leaf is.
+        ctx.scale(1, 0.35 + Math.abs(Math.sin(leaf.phase * 1.3)) * 0.65);
+        ctx.fillStyle = LEAF_COLORS[leaf.hue] ?? LEAF_COLORS[0];
+        ctx.beginPath();
+        ctx.moveTo(-leaf.size, 0);
+        ctx.quadraticCurveTo(0, -leaf.size * 0.75, leaf.size, 0);
+        ctx.quadraticCurveTo(0, leaf.size * 0.75, -leaf.size, 0);
+        ctx.fill();
+        ctx.restore();
+      }
     }
     for (const bit of this.bits) {
       const t = bit.age / bit.life;

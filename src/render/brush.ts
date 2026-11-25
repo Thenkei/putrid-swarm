@@ -27,7 +27,7 @@ interface LeafBurst {
 /** Footfalls at the woodland edge belong to the night. All four cameras sample the same
  * contacts, including a branch still settling after the last infected has gone. */
 export class BrushPassage {
-  private readonly walkers = new WeakMap<Enemy, { entered: number; lastStep: number }>();
+  private readonly walkers = new Map<number, { entered: number; lastStep: number }>();
   private readonly contacts: BrushContact[] = [];
   private readonly bursts: LeafBurst[] = [];
 
@@ -36,11 +36,11 @@ export class BrushPassage {
     while (this.bursts.length && time - this.bursts[0]!.at >= LEAF_LIFE) this.bursts.shift();
     for (const e of enemies) {
       if (!e.alive || edgeDistance(e.x, e.y) > 3.1) continue;
-      let walker = this.walkers.get(e);
+      let walker = this.walkers.get(e.id);
       const arrival = !walker;
       if (!walker) {
         walker = { entered: time, lastStep: e.travel };
-        this.walkers.set(e, walker);
+        this.walkers.set(e.id, walker);
       }
       // Sample by distance. A creature held in a net never shakes the same branch in place.
       if (!arrival && e.travel - walker.lastStep < 0.38) continue;
@@ -84,8 +84,8 @@ export class BrushPassage {
   }
 
   /** Open a sightline over several frames when a new actor first appears behind a crown. */
-  presence(e: Enemy, time: number): number {
-    const walker = this.walkers.get(e);
+  presence(e: Pick<Enemy, 'id'>, time: number): number {
+    const walker = this.walkers.get(e.id);
     return walker ? smoothstep(0, 0.19, time - walker.entered) : 1;
   }
 

@@ -188,7 +188,16 @@ async function writeSprite(img, box, entry, name) {
   const file = `sprites/${name}.webp`;
   const info = await pipeline.webp({ quality: 90, alphaQuality: 95, effort: 5 }).toFile(join(OUT_DIR, file));
   manifest[name] = { file, w: info.width, h: info.height };
-  if (/^(forest_stands|yard_flora|yard_scatter)(_back)?$/.test(entry.id)) {
+  // On these single-stemmed shrubs, most ink near the ground belongs to hanging
+  // leaves and fruit. The cut end of the woody stem is the planting point.
+  const stem = {
+    yard_flora_bramble: [19.5, 132], yard_flora_back_bramble: [148, 133],
+    yard_flora_hazel: [63, 133], yard_flora_back_hazel: [92, 134],
+  }[name];
+  if (stem) {
+    manifest[name].footX = Number((stem[0] / info.width).toFixed(4));
+    manifest[name].footY = Number((stem[1] / info.height).toFixed(4));
+  } else if (/^(forest_stands|yard_flora|yard_scatter)(_back)?$/.test(entry.id)) {
     // A leaning seed head or asymmetric crown puts the stem well off the centre of the
     // trimmed picture. Register both paintings by the opaque feet near the soil line.
     const { data, info: rgba } = await sharp(join(OUT_DIR, file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });

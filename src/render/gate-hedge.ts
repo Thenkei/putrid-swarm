@@ -35,8 +35,11 @@ export class GateHedge {
         const strength = 1 - smoothstep(.14, reach, distance);
         if (strength < .06) continue;
         const stem = this.stems[i]!;
-        const direction = enemy.fx - enemy.fy;
-        const pressure = strength * (Math.abs(direction) < .12 ? 1 : Math.sign(direction));
+        const across = Math.max(-1, Math.min(1, enemy.fx - enemy.fy));
+        // When the path runs straight towards the camera, each shoulder parts its own side of the hedge.
+        const offset = ((plant.x - enemy.x) - (plant.y - enemy.y)) / reach;
+        const side = Math.max(-1, Math.min(1, offset));
+        const pressure = strength * (across + (1 - Math.abs(across)) * side);
         if (Math.abs(pressure) > Math.abs(stem.pressure)) stem.pressure = pressure;
         touching = true;
       }
