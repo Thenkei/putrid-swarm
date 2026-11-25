@@ -9,7 +9,7 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(() => {
     localStorage.setItem('putrid-swarm.warned', '1');
-    localStorage.setItem('putrid-swarm.hint.v2', '1');
+    localStorage.setItem('putrid-swarm.hint.v3', '1');
   });
   await page.goto(process.argv[2] ?? process.env.PS_URL ?? 'http://localhost:5173/');
   await page.waitForFunction(() => window.__app, null, { timeout: 90000 });
@@ -178,7 +178,9 @@ try {
     const middleClick = await built();
     await page.mouse.down({ button: 'right' });
     await page.mouse.up({ button: 'right' });
-    assert.equal(await page.evaluate(() => window.__app.scene.facing), 1);
+    await page.locator('.build-wheel').waitFor();
+    assert.equal(await page.evaluate(() => window.__app.scene.facing), 0);
+    await page.keyboard.press('Escape');
 
     await day(rot, 7.5, 16.5);
     await moveTo(7, 16);
@@ -213,7 +215,9 @@ try {
     await page.mouse.down({ button: 'right' });
     await page.mouse.down();
     await page.mouse.up({ button: 'right' });
-    assert.equal(await page.evaluate(() => window.__app.scene.facing), 1);
+    await page.locator('.build-wheel').waitFor();
+    assert.equal(await page.evaluate(() => window.__app.scene.facing), 0);
+    await page.keyboard.press('Escape');
     await moveTo(9, 16);
     await page.mouse.up();
     assert.deepEqual(await built(), [[5, 16, 0]]);
@@ -383,7 +387,7 @@ try {
       app.state = { ...game, day: 2, inventory, yard: { ...game.yard, devices: [lamp] } };
       app.swap(new DayScene(app));
       Object.assign(app.scene, { rot, cx: lamp.x + .5, cy: lamp.y + .5, zoom: 1.35 });
-      app.scene.root.querySelector('.tool-row.quick button.btn-alert').focus();
+      app.scene.root.querySelector('.tool-row button.btn-alert').focus();
     }, rot);
     await page.mouse.move(rot ? 776.5 : 770.5, 282.5);
     assert.equal(await page.evaluate(() => window.__app.scene.hoverDevice?.id), 71);

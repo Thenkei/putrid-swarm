@@ -33,12 +33,13 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 | Day | hold and drag with the palisade selected | draw a line of palisades (they turn to follow the stroke, diagonals included) |
 | Day | `F` | turn the piece in hand, or the placed device under the pointer |
 | Day | `1`–`7` | pick a device |
+| Build wheel | hover or use the arrow keys, then click or press Enter | preview costs and daylight, then select |
 | Day | `R` | look at the lot from the other side |
 | Day | `T` | show or hide the predicted walking routes, and the "zz" over the traps that never went off last night |
 | Day | `Backspace`, or "Annuler la dernière construction" | take back the last piece laid today: materials and daylight come back whole |
 | Day | "Tout réparer" | repair every broken device the stock and the daylight allow |
 | Day | point at a trap | what it did last night, and how far it reaches |
-| Day | wheel | rotate the piece in hand, or zoom when no piece is selected |
+| Day | wheel | rotate the piece in hand, or zoom while panning, drawing a fence, or using an empty hand |
 | Day | right-drag | pan |
 | Day | left-click a damaged device or door with an empty hand | repair |
 | Outing | click a spot | read the clue for free. The first move spends half an hour. Solve the puzzle to load the find into the boot. Click a face to talk about a claimed lot. |

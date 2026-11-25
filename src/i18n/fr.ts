@@ -252,6 +252,7 @@ export const fr = {
     upgraded: 'Amélioré',
     dismantled: 'Démonté',
     selectHint: 'Clic droit pour choisir une défense, clic gauche pour la poser.',
+    buildCapacity: '{n} {n:pièce disponible|pièces disponibles}',
     affordable: 'Le stock et le jour permettent d’en poser {n}.',
     undo: 'Annuler la dernière construction',
     undoTitle: 'Annuler la pose de la pièce « {name} » et récupérer les matériaux et le temps dépensés. Touche Retour arrière.',

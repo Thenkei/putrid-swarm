@@ -250,6 +250,7 @@ export const en: Strings = {
     upgraded: 'Upgraded',
     dismantled: 'Dismantled',
     selectHint: 'Right-click to choose a defense, then left-click to build.',
+    buildCapacity: 'Enough for {n}',
     affordable: 'The stock and the daylight pay for {n} of these.',
     undo: 'Undo last build',
     undoTitle: 'Undo today’s last build ({name}) and recover its materials and daylight. Backspace.',
