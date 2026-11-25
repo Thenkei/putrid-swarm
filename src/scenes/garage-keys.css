@@ -1,0 +1,215 @@
+.garage-key-dialog {
+  width: min(1000px, 95vw, 141dvh);
+  max-height: 96dvh;
+  margin: auto;
+  padding: clamp(10px, 1.8vw, 20px);
+  overflow: auto;
+  border: 1px solid #96734d;
+  background: #211d18;
+  color: var(--cream);
+  font-family: var(--hud-font);
+  box-shadow: 0 12px 52px #000b;
+}
+.garage-key-dialog::backdrop { background: #100d0ae6; }
+#ui > .garage-key-dialog { pointer-events: auto; }
+.garage-key-dialog h2 { margin: 0 0 8px; font: 600 clamp(21px, 3.4vh, 30px) var(--slab-font); }
+.garage-key-dialog h2:focus { outline: none; }
+.garage-key-frame { position: relative; isolation: isolate; }
+.garage-key-scene {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: #332b22 center / cover no-repeat;
+}
+.epic-field:has(> .garage-key-scene) { display: grid; place-items: center; container-type: size; }
+.epic-field > .garage-key-scene { width: min(100cqw, 177.78cqh); }
+.garage-finds, .garage-moped-prop, .garage-moped-occlusion { position: absolute; inset: 0; pointer-events: none; }
+.garage-finds { container-type: inline-size; }
+.garage-key-spot {
+  position: absolute;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: url('../cursors/inspect.svg') 12 12, pointer;
+}
+.garage-key-spot:focus-visible { outline: 2px solid #ffe3a4; outline-offset: 1px; border-radius: 4px; }
+.garage-finds .garage-key-spot { transform: translate(-50%, -50%); }
+.garage-key-spot[data-place=pocket] { left: 57.2%; top: 15.8%; width: 4.4%; height: 9%; }
+.garage-key-spot[data-place=cart] { left: 86.3%; top: 38.1%; width: 3.3%; height: 7%; }
+.garage-key-spot > .garage-door-ring {
+  position: absolute; left: 50%; top: 50%; width: 1.15cqw; transform: translate(-50%, -24%);
+  filter: saturate(.66) brightness(.90) drop-shadow(0 .06cqw .04cqw #312016); pointer-events: none;
+}
+.garage-door-ring { position: relative; display: block; aspect-ratio: 1; container-type: inline-size; filter: drop-shadow(1px 2px 1px #27190fa8); }
+.garage-door-ring::before { content: ''; position: absolute; left: 33%; top: 3%; width: 34%; height: 30%; box-sizing: border-box; border: max(1px, 2.2cqw) solid #be9761; border-radius: 50%; box-shadow: inset 0 1px #f2dbab, 0 1px #493524; }
+.garage-door-ring::after { content: ''; position: absolute; left: 47%; top: 0; width: 7%; height: 7%; border-radius: 50%; background: radial-gradient(at 35% 25%,#b3a494,#4a423b 67%); }
+.garage-ring-key { position: absolute; top: 29%; left: 39%; width: 76%; border: 0; padding: 0; background: transparent; transform-origin: 10% 27.7%; transform: translate(-10%,-27.7%) rotate(118deg); }
+.garage-ring-key[data-slot="1"] { left: 50%; top: 32%; transform: translate(-10%,-27.7%) rotate(89deg); }
+.garage-ring-key:is([data-slot="2"],[data-slot="4"]) { left: 63%; transform: translate(-10%,-27.7%) rotate(61deg); }
+.garage-ring-key canvas { display: block; width: 100%; height: auto; }
+.garage-ring-key:is(:hover,:focus-visible) canvas { filter: drop-shadow(0 0 2px #fff1b0); }
+.garage-key-detail > .garage-door-ring { position: absolute; left: 43%; top: 13%; width: 40%; }
+.garage-key-detail > .garage-key-rubbing { position: absolute; left: 3%; top: 8%; width: 29%; }
+.garage-print-photo { position: relative; background-position: center; }
+.garage-print-photo > .garage-door-ring { position: absolute; width: 23%; top: 31%; left: 59.5%; }
+.garage-key-spot[data-place=notebook] { left: 22.15%; top: 47.15%; width: 5.5%; height: 6.5%; }
+/* Project the illustrated spread onto the bottom of the half-open drawer. */
+.garage-key-spot[data-place=notebook]::after {
+  content: ''; position: absolute; left: 50%; top: 50%; width: 3.15cqw; height: 2.1cqw;
+  transform: translate(-50%, -50%) matrix(1,-.45,.78,.27,0,0);
+  background: repeating-linear-gradient(174deg, transparent 0 20%, #67543770 22% 25%, transparent 28% 33%) 86% center / 32% 70% no-repeat,
+    #aa9168 url('../assets/garage-drawer-notebook.webp') 47% 46% / 136% 127%;
+  border-radius: 10% 6% 7% 4%; box-shadow: 0 .18cqw .05cqw #553a24;
+  filter: brightness(.79) saturate(.77); pointer-events: none;
+}
+/* Follow the top edge and the step in the foreground brick wall of the garage plate. */
+.garage-moped-occlusion { clip-path: polygon(0 0, 100% 0, 100% 56.7%, 81.8% 78.6%, 81.8% 83.5%, 72.5% 100%, 0 100%); }
+.garage-parked-moped { position: absolute; left: 78.5%; top: 65.8%; display: block; width: 12.3%; container-type: inline-size; transform: skewY(-16deg) scaleX(.94); cursor: url('../cursors/inspect.svg') 12 12, pointer; }
+.garage-parked-moped img { position: relative; display: block; width: 100%; filter: brightness(.77) saturate(.65) drop-shadow(1px 2px 1px #291c18a6); }
+.garage-parked-moped::before { content: ''; position: absolute; inset: 87% 3% -3%; border-radius: 50%; background: #291e1c69; filter: blur(3px); }
+.garage-parked-moped:focus-visible { outline: 2px solid var(--cream); outline-offset: 3px; }
+.garage-moped-memory:not([hidden]) { position: absolute; z-index: 3; pointer-events: auto; bottom: 35%; right: 12%; width: 285px; padding: 9px 12px; background: #231d16; border: 1px solid #a78559; color: var(--cream); font-size: 18px; line-height: 1.23; }
+.garage-load {
+  position: absolute; z-index: 2; right: 22%; bottom: 20%; width: max-content; max-width: 245px;
+  pointer-events: auto; color: #35291e; background: #deccaa; border: 1px solid #6d5940;
+  border-radius: 3px 12px 3px 3px; box-shadow: 1px 3px 5px #21171070;
+}
+.garage-load::after {
+  content: ''; position: absolute; left: calc(100% - 10px); bottom: 12px; width: 49px;
+  border-top: 2px solid #cbb48b; box-shadow: 0 1px #514130; transform-origin: left; transform: rotate(-18deg); pointer-events: none;
+}
+.garage-load summary {
+  display: flex; align-items: center; gap: 11px; padding: 6px 13px;
+  font: 400 19px/1.2 Kalam, 'Segoe Print', cursive; cursor: pointer; list-style: none;
+}
+.garage-load summary::-webkit-details-marker { display: none; }
+.garage-load summary::after {
+  content: ''; width: 8px; height: 8px; margin-left: auto; border: 2px solid #997c50;
+  border-radius: 50%; background: #54432e; box-shadow: 0 1px #fff0c8;
+}
+.garage-load[open] summary { border-bottom: 1px solid #ab9774; }
+.garage-load[open] summary::after { position: absolute; right: 8px; bottom: 8px; }
+.garage-load-body { padding: 8px 13px 12px; }
+.garage-load-body p { margin: 0; font: 400 16px/1.24 var(--hud-font); }
+.garage-load-button {
+  margin-top: 9px; padding: 5px 11px; border: 1px solid #352919; border-radius: 3px;
+  background: #443627; color: #fff1cc; font: 600 17px/1.2 var(--hud-font);
+}
+.garage-load-button:hover { background: #634b30; }
+.garage-load :is(summary, button):focus-visible { outline: 2px solid #aa6b24; outline-offset: 2px; }
+/* The hatch opening on the 1280 × 853 garage plate, cropped to the 16:9 stage. */
+.garage-loaded-moped { position: absolute; left: 18.5547%; top: 78.75%; width: 10.2734%; height: auto; pointer-events: none; }
+.garage-loaded-moped ~ .loc-title { left: 31%; max-width: calc(69% - 322px); }
+@media (max-width: 640px) {
+  .garage-load { max-width: 385px; }
+  .garage-load[open] { top: 60%; right: 25%; bottom: auto; }
+  .garage-load[open]::after { top: 100px; bottom: auto; width: 88px; transform: rotate(12deg); }
+  .garage-load[open] summary::after { top: 95px; bottom: auto; }
+  .garage-load summary { font-size: 32px; }
+  .garage-load-body p, .garage-load-button { font-size: 29px; }
+}
+.garage-key-status { margin: 8px 0; font-size: clamp(15px, 1.65vw, 19px); }
+.garage-key-dialog canvas { display: block; width: 100%; height: auto; }
+.garage-key-detail:not([hidden]) {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  overflow-y: auto;
+  gap: clamp(6px, 1.3vh, 14px);
+  padding: clamp(8px, 2vw, 20px);
+  background: #18150fe8;
+}
+.garage-key-detail h3 { margin: 0; font: 600 clamp(17px, 2.4vw, 26px) var(--slab-font); }
+.garage-key-rubbing {
+  width: min(300px, 58%);
+  margin: 0;
+  padding: 8px 14px;
+  border-left: 6px double #976e4a;
+  background: repeating-linear-gradient(0deg, transparent 0 15px, #87928644 15px 16px), #d7c49e;
+  color: #463c33;
+  box-shadow: 2px 3px 0 #8c785c, 3px 5px 9px #0008;
+  transform: rotate(-1deg);
+}
+.garage-key-rubbing figcaption { font: italic clamp(13px, 1.5vw, 17px) var(--slab-font); }
+.garage-key-frame:has(.garage-notebook-spread, [data-view=cart]) { overflow: hidden; }
+.garage-key-detail:has(.garage-notebook-spread) {
+  display: block; padding: 0; overflow: hidden; background: #32271f;
+}
+.garage-notebook-spread {
+  position: absolute; top: 0; left: 65%; height: 100%; aspect-ratio: 16 / 9;
+  transform: translateX(-65%); container-type: inline-size;
+  background: url('../assets/garage-drawer-notebook.webp') center / 100% 100%;
+  color: #423426;
+}
+.garage-notebook-spread h3 {
+  position: absolute; left: 52%; top: 16%; width: 29%;
+  font: 400 clamp(14px, 2.65cqw, 28px)/1.15 Kalam, 'Segoe Print', cursive;
+  transform: rotate(-1deg);
+}
+.garage-key-pages {
+  position: absolute; left: 52%; top: 26%; width: 28%; height: 52%;
+  display: grid; grid-template-rows: repeat(3, 1fr);
+}
+.garage-key-sheet { min-height: 0; border: 0; background: transparent; color: inherit; }
+.garage-key-sheet .garage-key-rubbing {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; height: 100%; padding: 0 2%; text-align: left;
+  background: transparent; box-shadow: none; border: 0; transform: none;
+  mix-blend-mode: multiply;
+}
+.garage-key-sheet figcaption { font: 400 clamp(12px, 1.9cqw, 21px)/1.15 Kalam, 'Segoe Print', cursive; }
+.garage-key-sheet canvas { width: 63%; opacity: .9; }
+.garage-key-sheet:hover, .garage-key-sheet:focus-visible { background: #72503219; outline: 2px dashed #705331; outline-offset: -2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .garage-key-frame:has(.garage-notebook-spread) .garage-key-scene {
+    transform-origin: 22.5% 47.4%; animation: lean-to-drawer .48s ease-in-out both;
+  }
+  .garage-key-detail:has(.garage-notebook-spread) { animation: reveal-drawer .26s .17s ease-out both; }
+  .garage-key-frame:has([data-view=cart]) .garage-key-scene {
+    transform-origin: 86.25% 37.43%; animation: lean-to-cart .46s ease-in-out both;
+  }
+  .garage-key-detail[data-view=cart] { animation: reveal-drawer .24s .2s ease-out both; }
+}
+@keyframes lean-to-cart { from { transform: none; } to { transform: translate(-36.25%, 12.57%) scale(6.67); } }
+@keyframes lean-to-drawer {
+  from { transform: none; }
+  to { transform: translate(27.5%, 2.6%) scale(2.8); }
+}
+@keyframes reveal-drawer { from { opacity: 0; } to { opacity: 1; } }
+.garage-key-detail[data-view=model] { align-items: flex-start; justify-content: flex-end; overflow: hidden; background: #332b22; }
+.garage-model-portrait {
+  position: absolute; width: 200%; aspect-ratio: 16 / 9; top: 50%; left: 55%;
+  transform: translate(-76%, -43%); container-type: inline-size; pointer-events: none;
+  background: url('../assets/garage-key-search.webp') center / 100% 100%;
+}
+.garage-frame-number {
+  position: absolute; left: 76.15%; top: 42.6%; transform: translate(-50%, -50%) rotate(-35deg) skewX(-8deg);
+  font: italic bold 2.38cqw/1 Georgia, serif; letter-spacing: -.045em; white-space: nowrap;
+  color: transparent; background: linear-gradient(#fff2cd 15%, #b6aca1 43%, #514d48 52%, #dcccb2 80%);
+  background-clip: text; -webkit-text-stroke: .055cqw #53473d;
+  filter: drop-shadow(0 .09cqw 0 #46382b) drop-shadow(.04cqw .04cqw .035cqw #56422e);
+}
+.garage-try-key { position: relative; }
+.garage-parked-moped .garage-frame-number { left: 61.5%; top: 42.2%; font-size: 5.8cqw; opacity: .72; }
+.garage-key-detail[data-view=pocket] { background: #494c52 url('../assets/garage-key-pocket.webp') center / cover; }
+.garage-key-detail[data-view=pocket] > .garage-door-ring { left: 55%; top: 35%; width: 32%; }
+.garage-key-detail[data-view=pocket] > .garage-door-ring::after { display: none; }
+.garage-key-detail[data-view=cart] { background: #663f34 url('../assets/garage-key-cart.webp') center / cover; }
+.garage-key-detail[data-view=cart] > .garage-door-ring { left: 41%; top: 48%; width: 20%; }
+@media (max-width: 640px) {
+  .garage-key-detail:not([hidden]) { position: relative; min-height: 200px; }
+  .garage-key-frame:has(.garage-key-detail:not([hidden])) .garage-key-scene { display: none; }
+  .garage-key-detail > .garage-door-ring { width: 48%; top: 12%; }
+  .garage-key-detail:is([data-view=pocket], [data-view=cart]) { aspect-ratio: 16 / 9; min-height: 0; }
+  .garage-key-rubbing { width: 55%; }
+}
+@media (max-width: 640px) and (orientation: portrait) {
+  .garage-key-frame:has(.garage-notebook-spread) { aspect-ratio: 1; }
+  .garage-key-frame:has(.garage-notebook-spread) .garage-key-scene { display: block; position: absolute; inset: 0; aspect-ratio: auto; background-size: auto 100%; background-position: 22.5% center; }
+  .garage-key-detail:has(.garage-notebook-spread) { position: absolute; min-height: 0; }
+  .garage-key-rubbing { width: min(210px, 85%); }
+}

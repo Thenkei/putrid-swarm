@@ -1,9 +1,10 @@
 import './epic.css';
 import { stoveMorning } from './stove-return';
-import { clearGarageAisle } from './garage-aisle';
 import { epicFlag, markEpic } from '../core/epics';
 import { SECTOR_IDS, type SectorId } from '../core/types';
 import type { App } from '../engine/app';
+import { audio } from '../engine/audio';
+import { say } from '../engine/voice';
 import { el } from '../engine/dom';
 import { line, S } from '../engine/i18n';
 
@@ -13,7 +14,7 @@ export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: Se
   const flag = (key: string) => epicFlag(state, key);
   const mark = (key: string, value = 1) => {
     const opened = app.ui.querySelector<HTMLDetailsElement>('.epic-object[open]')?.querySelector('summary')?.textContent;
-    app.state = markEpic(state, key, value);
+    app.state = markEpic(app.state!, key, value);
     app.save();
     refresh();
     const objects = Array.from(app.ui.querySelectorAll<HTMLDetailsElement>('.epic-object'));
@@ -32,12 +33,31 @@ export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: Se
   };
   const { where, day } = state;
   if (where === 'garage' && !flag('moped')) {
-    if (flag('loaded')) return item(line('Le break', 'Station wagon'), line('La mob dépasse du coffre. Avec elle, tu gardes un objet par paire de même type.', 'The moped sticks out of the boot. You can bring home one item per matching pair.'));
-    return item(flag('garagePrint') ? line('La clé sur la photo', 'The key in the photo') : line('Rétroviseur fêlé', 'Cracked mirror'), day < 3
-      ? line('« Si tu touches, tu pédales. » Gérard a fermé le rideau.', '“Touch it and you pedal.” Gérard pulled the shutter down.')
-      : line('Dans le rétro, une clé pend au rideau levé. Avec la mob, tu rapportes un objet par paire de même type. Un objet seul reste ici.', 'In the mirror, a key hangs from the raised shutter. With the moped, you can bring home one item per matching pair. Single items stay behind.'),
-      day >= 3 ? line('Décrocher la clé et sortir la mob', 'Take the key and roll the moped out') : undefined,
-      () => clearGarageAisle(app.ui, () => mark('loaded')));
+    if (flag('garageStarterBroken') || flag('loaded')) return null;
+    if (day >= 3 && flag('garageKey')) {
+      void audio.prepareSample('vo_moped_load');
+      void audio.prepareSample('crate_1');
+      const summary = el('summary', { text: line('Antivol ouvert', 'Steering unlocked') });
+      const note = el('p', { text: line('Avec la mob, tu ramènes un objet par paire de même type. Les objets seuls restent ici.', 'With the moped aboard, you keep one item per matching pair. Single items stay here.') });
+      const load = el('button', { class: 'garage-load-button', text: line('Charger dans le break', 'Load into the wagon'), onClick: () => {
+        app.state = markEpic(app.state!, 'loaded');
+        app.save();
+        refresh();
+        const cargo = app.ui.querySelector<HTMLElement>('.garage-loaded-moped');
+        cargo?.focus({ preventScroll: true });
+        void Promise.all([audio.prepareSample('crate_1'), audio.prepareSample('vo_moped_load')]).then(() => {
+          if (!cargo?.isConnected) return;
+          audio.play('crate', .42);
+          say('vo_moped_load', { interrupt: true });
+        });
+      } });
+      return el('details', { class: 'garage-load' }, [
+        summary, el('div', { class: 'garage-load-body' }, [note, load]),
+      ]);
+    }
+    if (day < 3) return item(line('Rétroviseur fêlé', 'Cracked mirror'),
+      line('« Si tu touches, tu pédales. » Gérard a fermé le rideau.', '“Touch it and you pedal.” Gérard pulled the shutter down.'));
+    return null;
   }
   if (day === 2 && where === 'grocery') return item(line('Menu du snack', 'Snack menu'),
     line('Au dos, le cuistot crache du feu. Sa toque ressemble au bouton de ta gazinière.', 'On the back the cook breathes fire. His hat looks just like your stove dial.'),
@@ -53,8 +73,8 @@ export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: Se
     flag('menu') && !flag('stove') ? line('Sacrifier la gazinière 🔥', 'Sacrifice the stove 🔥') : undefined, () => mark('stove')));
   if (day === 6 && flag('photo')) objects.append(item(line('Cendrier et lampe', 'Ashtray and lamp'), line('Le reflet dans la photo vient de cette ampoule.', 'The reflection in the photo comes from this bulb.'),
     flag('lamp') ? undefined : line('Poser la lampe à la fenêtre', 'Set the lamp in the window'), () => mark('lamp')));
-  if (flag('garagePrint') && !flag('moped')) objects.append(item(line('Tirage du garage', 'Garage print'),
-    line('Au dos du tirage : « Clé sous le rideau. Prendre le break. »', 'On the back: “Key under the shutter. Take the wagon.”')));
+  if (flag('garagePrint') && !flag('moped') && !flag('garageKey') && !flag('garageStarterBroken')) objects.append(item(line('Tirage du garage', 'Garage print'),
+    line('Un petit anneau dépasse de la poche du bleu de travail.', 'A small ring peeks out of the coverall pocket.')));
   if (flag('moped') && !flag('spent')) {
     const lane = flag('lane') % 4;
     const current = SECTOR_IDS[lane]!;

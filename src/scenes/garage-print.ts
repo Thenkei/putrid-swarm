@@ -1,4 +1,5 @@
-import garagePrint from '../render/epic-garage-print.webp';
+import pocketPlate from '../assets/garage-key-pocket.webp';
+import { garageRing } from './garage-keys';
 import { calmMotion } from '../render/lighting';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
@@ -6,11 +7,12 @@ import { line as L } from '../engine/i18n';
 import './garage-print.css';
 
 /** The paper develops on the night clock so pausing also holds the exposure. */
-export function developGaragePrint(field: HTMLElement, note: HTMLElement, actions: HTMLElement, finish: (readable: boolean) => void) {
+export function developGaragePrint(field: HTMLElement, note: HTMLElement, actions: HTMLElement, seed: number, finish: (readable: boolean) => void) {
   void audio.prepareSample('photo_dip');
   void audio.prepareSample('photo_lift');
   const photo = el('div', { class: 'garage-print-photo' });
-  photo.style.backgroundImage = 'url("' + garagePrint + '")';
+  photo.style.backgroundImage = 'url("' + pocketPlate + '")';
+  photo.append(garageRing(seed, 'pocket'));
   const frame = el('div', { class: 'garage-print-paper' }, [photo]);
   frame.setAttribute('aria-hidden', 'true');
   const bath = el('div', { class: 'garage-print-bath' }, [frame]);
@@ -84,7 +86,7 @@ export function developGaragePrint(field: HTMLElement, note: HTMLElement, action
       if (stage === 2) {
         frame.removeAttribute('aria-hidden');
         frame.setAttribute('role', 'img');
-        frame.setAttribute('aria-label', L('Une clé pend au rideau du garage, devant la mobylette.', 'A key hangs from the garage shutter in front of the moped.'));
+        frame.setAttribute('aria-label', L('Un anneau de laiton dépasse de la poche du bleu de travail.', 'A brass ring peeks out of the coverall pocket.'));
       } else {
         frame.setAttribute('aria-hidden', 'true');
         frame.removeAttribute('aria-label');

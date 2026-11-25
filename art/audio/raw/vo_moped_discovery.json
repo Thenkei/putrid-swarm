@@ -1,0 +1,13 @@
+{
+  "id": "vo_moped_discovery",
+  "model": "eleven_v4",
+  "generationId": "fQ1LuaZ2ESuB5hul8GG6",
+  "generatedAt": "2026-11-25T22:25:49.639Z",
+  "prompt": "[conversational] Ah tiens, c’est pas la mob de Gérard ? Depuis le temps qu’on le voit dessus… [dryly] Surtout pour aller au bar. [thoughtful] Tiens… Si les clés traînent encore dans le coin, ça me donne une idée.",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "bytes": 171813,
+  "sha256": "745873831ef08feb782d3a23f4815cfd81da5d1536b4e93ef2dd14b40feb61c7"
+}
