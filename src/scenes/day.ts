@@ -62,7 +62,7 @@ import { say, sayAny, sayOnce } from '../engine/voice';
 import { onDriveway, WAGON_CONTACT } from '../core/driveway';
 import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, yardItemVisible, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
 import { deviceArt } from '../render/defenses';
-import { FROG_RETURNS_AT, FROG_SPLASH_AT } from '../render/homestead-life';
+import { FROG_RETURNS_AT, FROG_SPLASH_AT, SquirrelMotion } from '../render/homestead-life';
 import { calmMotion } from '../render/lighting';
 import { VISIBLE_DOORS } from '../render/house';
 import { costLine, describeCost, inventoryBar } from './common';
@@ -197,6 +197,7 @@ export class DayScene implements Scene {
   private hornAt = -Infinity;
   private frogStart = -Infinity;
   private time = 0;
+  private readonly squirrelMotion = new SquirrelMotion();
   private reveal: number;
   private readonly particles: Particle[] = [];
   private readonly construction = new Map<number, Construction>();
@@ -1226,7 +1227,7 @@ export class DayScene implements Scene {
         sector: SECTOR_IDS[epicFlag(state, 'lane') % SECTOR_IDS.length]!,
         previous: this.previousMopedAim, aimAge: this.time - this.mopedAimAt,
       } }),
-      homesteadLife: { day: state.day, hornAge: this.time - this.hornAt, wellAge: this.time - this.frogStart },
+      homesteadLife: { day: state.day, hornAge: this.time - this.hornAt, wellAge: this.time - this.frogStart, squirrelMotion: this.squirrelMotion },
       ...(rattle && { rattle: { sector: rattle, struckAt: null } }),
       devices,
       ...(this.dismantling.length > 0 && !calmMotion() && {

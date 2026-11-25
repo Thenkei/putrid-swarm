@@ -1,13 +1,17 @@
-import type { Prop } from '../core/map';
+import { isStaticBlocked, type Prop } from '../core/map';
 import type { Enemy } from '../core/night';
+import { sprite } from '../engine/assets';
+import { deviceArt, logLayerDepth } from './defenses';
 import { drawAnimal, drawSmallProp } from './life-art';
 import { clamp01, smoothstep } from './noise';
 import { depthOf, project, type Rot, type View } from './projection';
+import type { DeviceVisual } from './world';
 
 export interface HomesteadLife {
   readonly day: number;
   readonly hornAge?: number;
   readonly wellAge?: number;
+  readonly squirrelMotion?: SquirrelMotion;
 }
 
 const DIVE_AT = .91;
@@ -51,11 +55,88 @@ function lifeTime(life: HomesteadLife, clock: number, still: boolean): number {
   return still ? 1 : clock + ((life.day - 1) % 5) * 1.6;
 }
 
+type SquirrelObstacle = Pick<DeviceVisual, 'x' | 'y' | 'type' | 'state' | 'facing'>;
+
+interface SquirrelRun {
+  x: number; y: number; cacheX: number; cacheY: number;
+  t: number; lift: number; canDig: boolean; obstacle: SquirrelObstacle | undefined;
+}
+
+// Paw clearance above the crossing in both views. Broken rigs still have posts and splintered boards.
+const jumpHeight: Record<SquirrelObstacle['type'], { standing: number; broken: number }> = {
+  spikes: { standing: 28, broken: 34 }, fence: { standing: 55, broken: 42 },
+  barrier: { standing: 48, broken: 57 }, net: { standing: 75, broken: 68 },
+  log: { standing: 78, broken: 73 }, horn: { standing: 57, broken: 52 },
+  floodlight: { standing: 92, broken: 70 },
+};
+
+function clearance(obstacle: SquirrelObstacle): number {
+  return jumpHeight[obstacle.type][obstacle.state === 'broken' ? 'broken' : 'standing'];
+}
+
+/** The cache lies in the tile beside the woodpile. If that tile is occupied, land on clear earth beyond it. */
+export function squirrelRun(prop: Prop, life: HomesteadLife, clock: number, still: boolean, devices: readonly SquirrelObstacle[] = []): SquirrelRun {
+  const homeX = prop.x + .89, homeY = prop.y + .42;
+  const obstacle = devices.find(d => d.x === prop.x + 1 && d.y === prop.y);
+  let endX = prop.x + 1.63, endY = prop.y + .31;
+  let canDig = true;
+  if (obstacle) {
+    // Each segment crosses only the original obstacle on its way to the landing.
+    const landings = [[2.36, .31], [1.78, -.35], [1.86, 1.26]] as const;
+    const landing = landings.find(([dx, dy]) => {
+      const x = prop.x + Math.floor(dx), y = prop.y + Math.floor(dy);
+      return !isStaticBlocked(x, y) && !devices.some(d => d.x === x && d.y === y);
+    });
+    if (landing) { endX = prop.x + landing[0]; endY = prop.y + landing[1]; }
+    else canDig = false;
+  }
+  const t = canDig ? lifeTime(life, clock, still) % 16 : 0;
+  const progress = smoothstep(2.1, 3.2, t) - smoothstep(7.65, 8.95, t);
+  const phase = t < 3.2 ? clamp01((t - 2.1) / 1.1) : clamp01((t - 7.65) / 1.3);
+  const peak = obstacle ? clearance(obstacle) : 0;
+  const run = { x: homeX + (endX - homeX) * progress, y: homeY + (endY - homeY) * progress,
+    cacheX: endX + .12, cacheY: endY - .13, lift: peak * 4 * phase * (1 - phase), obstacle, t, canDig };
+  return life.squirrelMotion?.follow(run, clock, still) ?? run;
+}
+
+/** Start from the visible paws when the player builds or removes an obstacle mid-run. */
+export class SquirrelMotion {
+  private previous?: SquirrelRun;
+  private hop: { at: number; dx: number; dy: number; lift: number } | undefined;
+
+  follow(run: SquirrelRun, clock: number, still: boolean): SquirrelRun {
+    const previous = this.previous;
+    if (still) this.hop = undefined;
+    else if (previous && (run.cacheX !== previous.cacheX || run.cacheY !== previous.cacheY ||
+      run.obstacle?.type !== previous.obstacle?.type || run.obstacle?.state !== previous.obstacle?.state)) {
+      const dx = previous.x - run.x, dy = previous.y - run.y;
+      this.hop = Math.hypot(dx, dy) > .025 || Math.abs(previous.lift - run.lift) > 1
+        ? { at: clock, dx, dy, lift: previous.lift } : undefined;
+    }
+    let pose = run;
+    if (this.hop) {
+      const { at, dx, dy, lift } = this.hop;
+      const phase = clamp01((clock - at) / .5);
+      if (phase >= 1) this.hop = undefined;
+      else {
+        const remain = 1 - smoothstep(0, 1, phase);
+        const peak = run.obstacle ? clearance(run.obstacle) : 18;
+        pose = { ...run, x: run.x + dx * remain, y: run.y + dy * remain, canDig: false,
+          lift: Math.max(lift * remain + run.lift * (1 - remain), 4 * phase * (1 - phase) * peak),
+          t: dx > dy ? 8.95 : 2.1 };
+      }
+    }
+    this.previous = pose;
+    return pose;
+  }
+}
+
 /** The cache is in the soil and stays behind standing scenery as the squirrel retreats. */
-export function drawSquirrelCache(ctx: CanvasRenderingContext2D, prop: Prop, view: View, life: HomesteadLife, clock: number, still: boolean): void {
-  const t = lifeTime(life, clock, still) % 16;
-  if (t < 3.2) return;
-  const p = project(view, prop.x + 1.75, prop.y + .18);
+export function drawSquirrelCache(ctx: CanvasRenderingContext2D, prop: Prop, view: View, life: HomesteadLife, clock: number, still: boolean,
+  run = squirrelRun(prop, life, clock, still)): void {
+  const { t } = run;
+  if (!run.canDig || t < 3.2) return;
+  const p = project(view, run.cacheX, run.cacheY);
   ctx.save();
   ctx.translate(p.x, p.y); ctx.scale(view.zoom, view.zoom);
   ctx.fillStyle = '#68472c';
@@ -67,14 +148,14 @@ export function drawSquirrelCache(ctx: CanvasRenderingContext2D, prop: Prop, vie
   ctx.restore();
 }
 
-function squirrel(ctx: CanvasRenderingContext2D, t: number, rot: Rot): void {
+function squirrel(ctx: CanvasRenderingContext2D, t: number, rot: Rot, lift: number): void {
   const side = rot ? -1 : 1;
   const running = t > 2.1 && t < 3.2 || t > 7.65 && t < 8.95;
   const digging = t >= 3.2 && t < 6.15;
   const beat = Math.sin(t * (digging ? 13 : 15));
-  const height = running ? 5 * Math.abs(beat) : 0;
-  shadow(ctx, 0, 0, 6);
-  const pose = running ? (beat > 0 ? 2 : 1) : digging ? 1 : t < 2.1 ? 0 : 3;
+  const height = lift || (running ? 5 * Math.abs(beat) : 0);
+  if (!lift) shadow(ctx, 0, 0, 6);
+  const pose = lift > 5 ? 2 : running ? (beat > 0 ? 2 : 1) : digging ? 1 : t < 2.1 ? 0 : 3;
   drawAnimal(ctx, 1, pose, 0, -height + (digging ? 1.1 * beat : 0), 34, (side < 0) !== (t > 7.6 && t < 11.5));
   if (digging) {
     for (let i = 0; i < 3; i++) {
@@ -113,6 +194,39 @@ function frog(ctx: CanvasRenderingContext2D, w: number, h: number, age: number, 
   }
 }
 
+let rearFrog: { layer: CanvasRenderingContext2D; cover: Path2D } | undefined;
+
+/** The reverse perch is beyond the windlass. Its roof, axle and posts retain their painted transparency. */
+function rearWellFrog(ctx: CanvasRenderingContext2D, w: number, h: number, age: number, time: number, still: boolean): void {
+  const well = sprite('yard_rear_well');
+  if (!well) return frog(ctx, w, h, age, time, 1, still);
+  if (age >= FROG_SPLASH_AT && age < FROG_RETURNS_AT && (still || age >= FROG_SPLASH_AT + .7)) return;
+  // The foreground landmarks are in the 238 × 320 rear painting. Below the axle,
+  // only the hanging rope, the near upright and the front arc of coping cross the frog.
+  if (!rearFrog) {
+    const surface = document.createElement('canvas');
+    surface.width = 238; surface.height = 320;
+    const layer = surface.getContext('2d');
+    if (!layer) return;
+    const cover = new Path2D(
+      'M0 0H238V168H0Z M115 167H122V227H115Z M160.5 167H193V213L181 220L160.5 216Z '
+      + 'M0 195H52Q62 215 94 222Q119 230 149 222Q180 217 195 197H238V320H0Z');
+    rearFrog = { layer, cover };
+  }
+  const { layer, cover } = rearFrog;
+  layer.clearRect(0, 0, 238, 320);
+  layer.save();
+  layer.scale(238 / w, 320 / h);
+  frog(layer, w, h, age, time, 1, still);
+  layer.restore();
+  layer.save();
+  layer.clip(cover);
+  layer.globalCompositeOperation = 'destination-out';
+  layer.drawImage(well.img, 0, 0, 238, 320);
+  layer.restore();
+  ctx.drawImage(layer.canvas, 0, 0, w, h);
+}
+
 function windfall(ctx: CanvasRenderingContext2D, t: number, roll: number, rot: Rot): void {
   const side = rot ? -1 : 1;
   const drop = clamp01((t - 3) / .76), bounce = clamp01((t - 3.76) / .82);
@@ -126,19 +240,33 @@ function windfall(ctx: CanvasRenderingContext2D, t: number, roll: number, rot: R
 
 /** The animal and fallen fruit occupy specific patches of soil. Enqueue them at
  * their own world depth so a tree or shelter can cross in front when turning. */
-export function groundLifeDrawable(ctx: CanvasRenderingContext2D, prop: Prop, view: View, life: HomesteadLife, clock: number, still: boolean) {
+export function groundLifeDrawable(ctx: CanvasRenderingContext2D, prop: Prop, view: View, life: HomesteadLife, clock: number, still: boolean,
+  run = prop.kind === 'woodpile' ? squirrelRun(prop, life, clock, still) : undefined) {
   const woodpile = prop.kind === 'woodpile';
   if (!woodpile && !(prop.kind === 'apple' && prop.x === 5)) return;
-  const time = lifeTime(life, clock, still);
-  const t = time % (woodpile ? 16 : 21);
-  const travel = woodpile ? smoothstep(2.1, 3.2, t) - smoothstep(7.65, 8.95, t) : smoothstep(3.76, 5.55, t);
-  const gx = prop.x + (woodpile ? .89 + .74 * travel : 1.28 + .49 * travel);
-  const gy = prop.y + (woodpile ? .42 - .11 * travel : -.02 - .23 * travel);
+  const t = run?.t ?? lifeTime(life, clock, still) % 21;
+  const travel = smoothstep(3.76, 5.55, t);
+  const gx = run?.x ?? prop.x + 1.28 + .49 * travel;
+  const gy = run?.y ?? prop.y - .02 - .23 * travel;
   const root = project(view, gx, gy);
-  return { depth: depthOf(view.rot, gx, gy) + .4, draw() {
+  let depth = depthOf(view.rot, gx, gy) + .4;
+  const over = run?.obstacle;
+  if (over && run.lift > 0 && Math.floor(gx) === over.x && Math.floor(gy) === over.y) {
+    const centre = depthOf(view.rot, over.x + .5, over.y + .5);
+    const front = over.type === 'log' && over.state !== 'broken'
+      ? logLayerDepth(centre, deviceArt('log', over.facing, 'resting', view.rot), 'near') : centre + .3;
+    depth = Math.max(depth, front + .01);
+  }
+  const drawShadow = run && run.lift > 0 ? () => {
     ctx.save();
     ctx.translate(root.x, root.y); ctx.scale(view.zoom, view.zoom);
-    if (woodpile) squirrel(ctx, t, view.rot);
+    shadow(ctx, 0, 0, 6, .25 / (1 + run.lift / 50));
+    ctx.restore();
+  } : undefined;
+  return { depth, drawShadow, draw() {
+    ctx.save();
+    ctx.translate(root.x, root.y); ctx.scale(view.zoom, view.zoom);
+    if (run) squirrel(ctx, t, view.rot, run.lift);
     else windfall(ctx, t, travel, view.rot);
     ctx.restore();
   } };
@@ -152,7 +280,11 @@ export function drawPropLife(ctx: CanvasRenderingContext2D, prop: Prop, rect: { 
   ctx.save();
   ctx.translate(rect.x, rect.y); ctx.scale(view.zoom, view.zoom);
   if (prop.kind === 'mailbox') robin(ctx, w, h, t, life.hornAge ?? -1, still, rot);
-  if (prop.kind === 'well') frog(ctx, w, h, life.wellAge ?? -1, t, rot, still);
+  if (prop.kind === 'well') {
+    const age = life.wellAge ?? -1;
+    if (rot === 1) rearWellFrog(ctx, w, h, age, t, still);
+    else frog(ctx, w, h, age, t, rot, still);
+  }
   ctx.restore();
 }
 
