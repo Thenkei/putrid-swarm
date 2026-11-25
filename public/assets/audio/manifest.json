@@ -149,6 +149,18 @@
     "seconds": 0.522,
     "gain": 0.86
   },
+  "vo_moped_discovery": {
+    "file": "vo_moped_discovery.mp3",
+    "kind": "voice",
+    "seconds": 9.43,
+    "gain": 1
+  },
+  "vo_moped_load": {
+    "file": "vo_moped_load.mp3",
+    "kind": "voice",
+    "seconds": 1.176,
+    "gain": 1
+  },
   "vo_moped_alibi": {
     "file": "vo_moped_alibi.mp3",
     "kind": "voice",

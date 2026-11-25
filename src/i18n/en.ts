@@ -1136,6 +1136,8 @@ export const en: Strings = {
   },
   voice: {
     vo_epic_stove: 'Right. Cold dinner tonight.',
+    vo_moped_discovery: 'Hang on, is that Gérard’s moped? He’s been riding it for as long as I can remember. Mostly to the bar. Hang on… If the keys are still around here, that gives me an idea.',
+    vo_moped_load: 'Come on, let’s load her up.',
     vo_moped_alibi: 'Right. If Gérard asks, we never found it.',
     vo_epic_pack: 'Wait. There’s a cub under the gate.',
     vo_epic_neighbor: 'There. His kitchen light’s back on.',

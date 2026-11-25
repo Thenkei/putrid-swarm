@@ -1,0 +1,13 @@
+{
+  "id": "vo_moped_load",
+  "model": "eleven_v4",
+  "generationId": "PyQgCxGtl7OELQntf1o9",
+  "generatedAt": "2026-11-25T22:37:27.601Z",
+  "prompt": "[matter-of-fact] Allez, on l’embarque.",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "bytes": 42664,
+  "sha256": "6eba61799a7534ee64958135cb82778bc565e94df5669c2f472edd4f1976d5c5"
+}

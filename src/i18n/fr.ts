@@ -1145,6 +1145,8 @@ export const fr = {
   },
   voice: {
     vo_epic_stove: 'Bon. Ce soir, on mange froid.',
+    vo_moped_discovery: 'Ah tiens, c’est pas la mob de Gérard ? Depuis le temps qu’on le voit dessus… Surtout pour aller au bar. Tiens… Si les clés traînent encore dans le coin, ça me donne une idée.',
+    vo_moped_load: 'Allez, on l’embarque.',
     vo_moped_alibi: 'Bon. Pour Gérard, on dit qu’on l’a pas trouvée.',
     vo_epic_pack: 'Attends. Y a un petit sous la grille.',
     vo_epic_neighbor: 'Ça y est. Il a rallumé sa cuisine.',

@@ -2,6 +2,8 @@ import { porchContact, porchFlame, type PorchBurst } from '../render/porch-flame
 import { stoveReturn } from './stove-return';
 import { kitchenBolts } from './kitchen-bolts';
 import kitchenPlate from '../assets/epic-kitchen.webp';
+import mopedReadyPlate from '../assets/epic-moped-ready.webp';
+import { garageView } from './garage-keys';
 import neighbourPlate from '../assets/epic-neighbour.webp';
 import vhsSleeve from '../assets/epic-vhs.webp';
 import { BARRICADE, COMBAT } from '../core/data/devices';
@@ -181,17 +183,35 @@ export class EpicNight {
   private garage() {
     const title = L('La mob à Gérard', 'Gérard’s moped');
     if (this.flag('moped')) {
-      this.page(title, this.flag('spent')
+      const spent = this.flag('spent');
+      this.page(title, spent
         ? L('La caméra se rallume. Une roue tourne encore près de la haie. Gérard va demander où est passée sa mob.', 'The feed comes back. A wheel is still spinning by the hedge. Gérard is going to ask about his moped.')
         : L('Les pointillés sur la caméra marquent la haie où la mob va exploser. Lâche-la quand le groupe approche, le temps qu’elle traverse le jardin. Gérard peut rentrer à pied.', 'The dashed ring on the feed marks where the moped will blow. Release it as a group approaches so it has time to cross the yard. Gérard can walk home.'));
+      if (spent) {
+        const feed = el('canvas', { class: 'garden-feed' });
+        feed.width = 960;
+        feed.height = 420;
+        this.field.append(feed);
+        this.paintYard(feed, SECTOR_IDS[this.lane]!);
+      } else {
+        this.field.style.backgroundImage = 'url("' + mopedReadyPlate + '")';
+      }
+      return;
+    }
+    if (this.flag('garageKey') || this.flag('garageStarterBroken')) {
+      this.page(title, this.flag('garageStarterBroken') ? L('La caméra du garage montre la mob à sa place. Avec son démarreur cassé, elle va y rester.',
+        'The garage feed shows the moped where you left it. With its broken starter, it is staying there.') : L('Tu as la clé. La mob est restée chez Gérard, l’antivol ouvert. Tu peux revenir la chercher avec le break.',
+        'You have the key. The moped is still at Gérard’s with its steering unlocked. You can go back for it with the wagon.'));
+      this.field.style.backgroundImage = 'none';
+      this.field.append(garageView(assetUrl(heroArt('plate_loc_garage', oneArmed(this.app.state))), this.app.state!.seed));
       return;
     }
     const develop = () => {
       this.page(title, '');
-      this.clock = developGaragePrint(this.field, this.note, this.actions, readable => {
+      this.clock = developGaragePrint(this.field, this.note, this.actions, this.app.state!.seed, readable => {
         if (readable) this.mark('garagePrint');
         this.page(title, readable
-          ? L('Sur le tirage, la clé pend au rideau du garage. Tu gardes la photo pour ta prochaine sortie.', 'In the print, a key hangs from the garage shutter. You keep the photo for your next outing.')
+          ? L('Sur le tirage, un reflet de laiton au bord d’une poche. Tu reconnais le bleu de travail de Gérard.', 'In the print, brass glints at the edge of a pocket. You recognise Gérard’s coveralls.')
           : L('Impossible de lire le tirage. À la prochaine sortie, il faudra fouiller le garage à la lumière du jour.', 'The print is unreadable. You’ll have to search the garage in daylight on your next outing.'));
       });
     };
