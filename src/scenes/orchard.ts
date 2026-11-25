@@ -39,6 +39,7 @@ import { endingsTally, rememberEnding as remember } from '../engine/progress';
 import { hush, say, type VoiceId } from '../engine/voice';
 import { Atmosphere, drawArm } from './atmosphere';
 import { calmMotion } from '../render/lighting';
+import { drawArmInfection } from '../render/orchard-infection';
 import { goDay, goEnd, goTitle } from './flow';
 
 // ───────────────────────────── Framing ─────────────────────────────
@@ -149,35 +150,6 @@ const OUTRO: Readonly<Record<Ending, number>> = { spared: 2.8, maimed: 5.4, thro
 /** The orchard's endings are counted with every other in the game (core/endings.ts). */
 const rememberEnding = (ending: Ending): boolean => remember(endingId('orchard', ending));
 
-/** A vein: a crooked line from the bite, toward the hand (`up`) or the elbow, in fractions of the arm sprite. */
-interface Vein {
-  readonly points: readonly Point[];
-}
-
-function growVeins(): Vein[] {
-  // A fixed little generator: the same arm every time, no dependence on the campaign's RNG.
-  let seed = 0x5eed1e;
-  const rnd = (): number => {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    return seed / 0x100000000;
-  };
-  const veins: Vein[] = [];
-  for (let v = 0; v < 9; v++) {
-    const up = v % 3 === 0;
-    let x = 0.5 + (rnd() - 0.5) * 0.2;
-    let y = 0.53;
-    const points: Point[] = [{ x, y }];
-    const steps = up ? 12 : 14;
-    for (let i = 0; i < steps; i++) {
-      x = clamp(x + (rnd() - 0.5) * 0.16, 0.14, 0.86);
-      y += (up ? -0.5 : 0.46) / steps;
-      points.push({ x, y });
-    }
-    veins.push({ points });
-  }
-  return veins;
-}
-
 type Phase = 'intro' | 'play' | 'outro' | 'card';
 
 export class OrchardScene implements Scene {
@@ -228,7 +200,6 @@ export class OrchardScene implements Scene {
   private nextBreath = 1.5;
 
   private readonly queue: { at: number; run: () => void }[] = [];
-  private readonly veins = growVeins();
   private readonly armCanvas = document.createElement('canvas');
 
   private root!: HTMLElement;
@@ -1008,8 +979,8 @@ export class OrchardScene implements Scene {
   }
 
   /** The bitten arm with the infection drawn into it, clipped to the arm itself. */
-  private armLayer(key: string, infection: number): HTMLCanvasElement | null {
-    const art = sprite(key);
+  private armLayer(tied: boolean, infection: number, pulse: number): HTMLCanvasElement | null {
+    const art = sprite(tied ? 'orchard_arm_tied' : 'orchard_arm_bitten');
     if (!art) return null;
     const canvas = this.armCanvas;
     if (canvas.width !== art.w || canvas.height !== art.h) {
@@ -1018,47 +989,9 @@ export class OrchardScene implements Scene {
     }
     const g = canvas.getContext('2d');
     if (!g) return null;
-    g.globalCompositeOperation = 'source-over';
     g.clearRect(0, 0, art.w, art.h);
     g.drawImage(art.img, 0, 0);
-    if (infection <= 0) return canvas;
-    g.globalCompositeOperation = 'source-atop';
-    const bite = art.h * 0.53;
-    const down = bite + infection * (art.h - bite);
-    const up = bite - infection * bite * 0.92;
-    // The stain: darkest at the teeth marks, feathered at both fronts.
-    const stain = g.createLinearGradient(0, up - 46, 0, down + 46);
-    const span = down - up + 92;
-    stain.addColorStop(0, 'rgba(22, 36, 20, 0)');
-    stain.addColorStop(46 / span, 'rgba(22, 36, 20, 0.5)');
-    stain.addColorStop(clamp01((bite - up + 46) / span), 'rgba(14, 24, 14, 0.78)');
-    stain.addColorStop(1 - 46 / span, 'rgba(22, 36, 20, 0.55)');
-    stain.addColorStop(1, 'rgba(22, 36, 20, 0)');
-    g.fillStyle = stain;
-    g.fillRect(0, up - 46, art.w, span);
-    // The veins run ahead of it.
-    g.lineCap = 'round';
-    g.lineJoin = 'round';
-    for (const vein of this.veins) {
-      const reach = infection * 1.12;
-      g.beginPath();
-      let drawn = 0;
-      vein.points.forEach((point, i) => {
-        const progress = Math.abs(point.y - 0.53) / 0.5;
-        if (progress > reach) return;
-        if (i === 0 || drawn === 0) g.moveTo(point.x * art.w, point.y * art.h);
-        else g.lineTo(point.x * art.w, point.y * art.h);
-        drawn++;
-      });
-      if (drawn < 2) continue;
-      g.strokeStyle = 'rgba(12, 22, 12, 0.85)';
-      g.lineWidth = 4.2;
-      g.stroke();
-      g.strokeStyle = 'rgba(124, 158, 72, 0.5)';
-      g.lineWidth = 1.3;
-      g.stroke();
-    }
-    g.globalCompositeOperation = 'source-over';
+    drawArmInfection(g, infection, pulse, tied);
     return canvas;
   }
 
@@ -1122,7 +1055,7 @@ export class OrchardScene implements Scene {
 
     if (o.beat === 'loose' || (o.beat === 'sawing' && this.canopy < 1) || this.ending === 'turned') {
       const rise = smooth(this.fling === null ? 1 : (this.fling - 0.35) / 0.5);
-      const layer = this.armLayer(o.tied ? 'orchard_arm_tied' : 'orchard_arm_bitten', o.infection);
+      const layer = this.armLayer(o.tied, o.infection, still ? 0 : this.pulse);
       if (layer && rise > 0) {
         const height = 610;
         const width = (layer.width / layer.height) * height;
@@ -1131,7 +1064,8 @@ export class OrchardScene implements Scene {
         ctx.save();
         ctx.globalAlpha = 1 - this.canopy;
         ctx.translate(352 + knot * 60 + jitter(tremble), STAGE_H + 46 + (1 - rise) * 520 + (this.walking ? Math.sin(this.stride * Math.PI) * 14 : 0) - knot * 30);
-        ctx.rotate(0.07 + Math.sin(this.time * 1.7) * 0.02 + knot * 0.16 + jitter(tremble * 0.002));
+        const sway = still ? 0 : Math.sin(this.time * 1.7) * 0.02 + jitter(tremble * 0.002);
+        ctx.rotate(0.07 + knot * 0.16 + sway);
         ctx.drawImage(layer, -width / 2, -height, width, height);
         ctx.restore();
       }
@@ -1195,8 +1129,17 @@ export class OrchardScene implements Scene {
 
     // A little dread at the edges all along, more once it has turned round.
     edge(8, 10, 6, o.beat === 'reveal' || o.beat === 'guard' ? 0.75 : 0.34, 0.42);
-    // The infection closes in on what can still be seen, with every heartbeat.
-    if (o.infection > 0 && this.ending !== 'maimed') edge(10, 26, 12, 0.2 + o.infection * 0.72 + this.pulse * 0.14, 0.5 - o.infection * 0.28);
+    // The cold tint enters from the bitten side as the edges close in.
+    if (o.infection > 0 && this.ending !== 'maimed' && o.beat !== 'bleeding' && this.ending !== 'bled') {
+      const pressure = smooth(o.infection);
+      const pulse = calmMotion() ? 0 : this.pulse * pressure;
+      edge(13, 27, 24, .12 + pressure * .73 + pulse * .1, .54 - pressure * .34);
+      const tint = ctx.createLinearGradient(0, STAGE_H, STAGE_W * .66, STAGE_H * .6);
+      tint.addColorStop(0, `rgba(27, 28, 47, ${pressure * .33})`);
+      tint.addColorStop(1, 'transparent');
+      ctx.fillStyle = tint;
+      ctx.fillRect(0, 0, STAGE_W, STAGE_H);
+    }
     edge(150, 12, 8, this.red * 0.75 + (o.beat === 'clamped' ? 0.18 + this.pulse * 0.1 : 0), 0.3);
     if (o.beat === 'sawing') flat('#1a0503', (o.strokes / ORCHARD.sawStrokes) * 0.34);
     if (o.beat === 'bleeding') {
