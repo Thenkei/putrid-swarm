@@ -1,4 +1,4 @@
-import { ENTRIES, PROPS, inGrid, isStaticBlocked } from '../core/map';
+import { ENTRIES, PROPS, inGrid, isStaticBlocked, type Prop } from '../core/map';
 import type { Sprite } from '../engine/assets';
 import { hash2, seeded } from './noise';
 import { depthOf, groundMatrix, project, world, type View } from './projection';
@@ -47,7 +47,7 @@ const companions: Record<Habitat, readonly Plant[]> = {
 };
 const sills = Object.values(ENTRIES);
 
-interface Planting { gx: number; gy: number; kind: Plant; scale: number; flip: boolean }
+interface Planting { gx: number; gy: number; kind: Plant; scale: number; flip: boolean; bed?: Prop }
 
 interface MovingPlant {
   art: Sprite;
@@ -61,19 +61,24 @@ interface MovingPlant {
   trait: number;
   compliance: number;
   flip: boolean;
+  drawBase?: boolean;
 }
 
 const crowns: [MovingPlant[], MovingPlant[]] = [[], []];
+type VegetablePlant = MovingPlant & { depth: number };
+const vegetableRows: [VegetablePlant[], VegetablePlant[]] = [[], []];
 const compliance: Record<Plant, number> = {
   foxtail: 0.24, knapweed: 0.18, clover: 0.08, bramble: 0.11, hazel: 0.14,
   nettle: 0.2, cabbage: 0.065, leeks: 0.22, chicory: 0.2,
 };
+// Wind and a passing body can bend a crown together.
+const MAX_BEND = 3.6;
 
 function plantings(field: TerrainField): Planting[] {
   const rand = seeded(78431);
   const plants: Planting[] = [];
-  function add(gx: number, gy: number, kind: Plant, scale: number): void {
-    plants.push({ gx, gy, kind, scale, flip: rand() < 0.5 });
+  function add(gx: number, gy: number, kind: Plant, scale: number, bed?: Prop): void {
+    plants.push({ gx, gy, kind, scale, flip: rand() < 0.5, ...(bed && { bed }) });
   }
   for (const habitat of ['hedge', 'meadow', 'verge'] as const) {
     const palette = companions[habitat];
@@ -104,8 +109,8 @@ function plantings(field: TerrainField): Planting[] {
   // leeks behind the brassicas in the world, so the beds also read as rows from the reverse side.
   for (const bed of PROPS.filter(p => p.kind === 'veg')) {
     for (let i = 0; i < 5; i++) {
-      add(bed.x - 0.12 + i * 0.54, bed.y + 1.35 + rand() * 0.07, 'cabbage', 0.84 + 0.25 * rand());
-      add(bed.x - 0.14 + i * 0.54, bed.y - 0.33 - rand() * 0.08, 'leeks', 0.85 + 0.22 * rand());
+      add(bed.x - 0.12 + i * 0.54, bed.y + 1.35 + rand() * 0.07, 'cabbage', 0.84 + 0.25 * rand(), bed);
+      add(bed.x - 0.14 + i * 0.54, bed.y - 0.33 - rand() * 0.08, 'leeks', 0.85 + 0.22 * rand(), bed);
     }
   }
   return plants;
@@ -116,6 +121,8 @@ export function drawYardPlants(ctx: CanvasRenderingContext2D, view: View, field:
   const plants = plantings(field).sort((a, b) => depthOf(view.rot, a.gx, a.gy) - depthOf(view.rot, b.gx, b.gy));
   const moving = crowns[view.rot];
   moving.length = 0;
+  const rows = vegetableRows[view.rot];
+  rows.length = 0;
   // Leaf mould joins the bases of the hedge plants; the meadow remains broken turf.
   ctx.save();
   ctx.transform(...groundMatrix(view));
@@ -142,44 +149,88 @@ export function drawYardPlants(ctx: CanvasRenderingContext2D, view: View, field:
       castShadow(ctx, key, p.x, p.y, h, flip, 0.34, 0.9, foot);
     }
   }
+  const liveBounds: { left: number; right: number; top: number; bottom: number }[] = [];
   for (const { plant, art, p, x, top, w, h, foot, flip } of stamps) {
     const trait = hash2(Math.floor(plant.gx * 53), Math.floor(plant.gy * 71), 87);
-    const plantedRow = plant.kind === 'leeks' || plant.kind === 'cabbage';
-    // The scrub just outside the first walkable cell can be brushed aside on arrival.
-    // Roots and shadows stay in the terrain, including those of stems that can move.
-    const live = plantedRow || trait < 0.52;
+    const live = plant.bed !== undefined || trait < 0.52;
+    // A foreground plant overlapping a moving crown must be drawn after it, even
+    // if its own leaves are still. Include the space a brush can bend the crown into.
+    const reach = live ? top * compliance[plant.kind] * MAX_BEND : 0;
+    const box = { left: x - w / 2 - reach, right: x + w / 2 + reach, top: p.y - top, bottom: p.y - top + h };
+    const overlaps = !plant.bed && liveBounds.some(b => box.left < b.right && box.right > b.left && box.top < b.bottom && box.bottom > b.top);
     ctx.save();
     ctx.translate(x, p.y - top);
     if (flip) ctx.scale(-1, 1);
-    if (live) {
-      const root = Math.round(art.h * (foot[1] - 0.05));
-      const cut = h * root / art.h;
-      ctx.drawImage(art.img, 0, root, art.w, art.h - root, -w / 2, cut, w, h - cut);
+    if (live || overlaps) {
       const stage = world(view.rot, plant.gx, plant.gy);
-      moving.push({ art, gx: plant.gx, gy: plant.gy, wx: stage.x + (x - p.x) / view.zoom, wy: stage.y - top / view.zoom, width: w / view.zoom, height: h / view.zoom, root, trait, compliance: compliance[plant.kind], flip });
+      const stem = { art, gx: plant.gx, gy: plant.gy, wx: stage.x + (x - p.x) / view.zoom, wy: stage.y - top / view.zoom,
+        width: w / view.zoom, height: h / view.zoom, trait, compliance: live ? compliance[plant.kind] : 0, flip };
+      if (plant.bed) {
+        const bed = plant.bed;
+        const bedDepth = depthOf(view.rot, bed.x + bed.w / 2, bed.y + bed.h / 2) + .4;
+        const depth = depthOf(view.rot, plant.gx, plant.gy);
+        // Both rows run the length of the bed. At an end, the bed centre's depth
+        // alone can put a leaf behind the near board or in front of the far one.
+        const nearer = (plant.kind === 'cabbage') === (view.rot === 0);
+        rows.push({ ...stem, root: art.h * foot[1], depth: nearer ? Math.max(depth, bedDepth + .01) : Math.min(depth, bedDepth - .01) });
+      } else {
+        liveBounds.push(box);
+        const root = live ? Math.round(art.h * (foot[1] - 0.05)) : art.h;
+        if (!overlaps) {
+          const cut = h * root / art.h;
+          ctx.drawImage(art.img, 0, root, art.w, art.h - root, -w / 2, cut, w, h - cut);
+        }
+        moving.push({ ...stem, root, drawBase: live && overlaps });
+      }
     } else ctx.drawImage(art.img, -w / 2, 0, w, h);
     ctx.restore();
   }
 }
 
-/** The cut at the root is fixed in screen space: only the stem and crown bend. The same
- * lightweight visible subset serves the large feed and the three camera thumbnails. */
-export function drawWindPlants(ctx: CanvasRenderingContext2D, view: View, time: number, passage?: BrushPassage): void {
+function* visiblePlants<T extends MovingPlant>(plants: readonly T[], view: View) {
   const centre = world(view.rot, view.cx, view.cy);
   const ox = view.x + view.w / 2 - centre.x * view.zoom;
   const oy = view.y + view.h / 2 - centre.y * view.zoom;
-  for (const plant of crowns[view.rot]) {
+  for (const plant of plants) {
     const x = ox + plant.wx * view.zoom;
     const y = oy + plant.wy * view.zoom;
     const w = plant.width * view.zoom;
     const h = plant.height * view.zoom;
-    if (x < view.x - w || x > view.x + view.w + w || y + h < view.y || y > view.y + view.h) continue;
-    const cap = h * plant.root / plant.art.h;
-    const rustle = passage?.bend(plant.gx, plant.gy, view.rot, time) ?? 0;
-    const bend = plant.compliance * (windAt(time, plant.gx, plant.gy, plant.trait, view.rot) + 2.3 * rustle);
+    const reach = w / 2 + h * plant.compliance * MAX_BEND;
+    if (x + reach < view.x || x - reach > view.x + view.w || y + h < view.y || y > view.y + view.h) continue;
+    yield { plant, x, y };
+  }
+}
+
+function paintWindPlant(ctx: CanvasRenderingContext2D, view: View, time: number, passage: BrushPassage | undefined,
+  plant: MovingPlant, x: number, y: number, sourceHeight: number): void {
+  const w = plant.width * view.zoom, h = plant.height * view.zoom;
+  const cap = h * plant.root / plant.art.h;
+  const bend = plant.compliance && plant.compliance * (windAt(time, plant.gx, plant.gy, plant.trait, view.rot)
+    + 2.3 * (passage?.bend(plant.gx, plant.gy, view.rot, time) ?? 0));
+  if (plant.drawBase) {
     ctx.save();
-    ctx.transform(plant.flip ? -1 : 1, 0, -bend, 1, x, y + cap);
-    ctx.drawImage(plant.art.img, 0, 0, plant.art.w, plant.root, -w / 2, -cap, w, cap);
+    ctx.transform(plant.flip ? -1 : 1, 0, 0, 1, x, y + cap);
+    ctx.drawImage(plant.art.img, 0, plant.root, plant.art.w, plant.art.h - plant.root, -w / 2, 0, w, h - cap);
     ctx.restore();
+  }
+  ctx.save();
+  ctx.transform(plant.flip ? -1 : 1, 0, -bend, 1, x, y + cap);
+  ctx.drawImage(plant.art.img, 0, 0, plant.art.w, sourceHeight, -w / 2, -cap, w, h * sourceHeight / plant.art.h);
+  ctx.restore();
+}
+
+/** Keep the soil end fixed and paint overlapping stems from back to front. */
+export function drawWindPlants(ctx: CanvasRenderingContext2D, view: View, time: number, passage?: BrushPassage): void {
+  for (const { plant, x, y } of visiblePlants(crowns[view.rot], view)) {
+    paintWindPlant(ctx, view, time, passage, plant, x, y, plant.root);
+  }
+}
+
+/** Cabbages and leeks stand on opposite sides of the timber. Queue the whole
+ * plant at its own depth so neither its root nor crown shows through the bed. */
+export function* vegetableRowDrawables(ctx: CanvasRenderingContext2D, view: View, time: number, passage?: BrushPassage) {
+  for (const { plant, x, y } of visiblePlants(vegetableRows[view.rot], view)) {
+    yield { depth: plant.depth, draw: () => paintWindPlant(ctx, view, time, passage, plant, x, y, plant.art.h) };
   }
 }

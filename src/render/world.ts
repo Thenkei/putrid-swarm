@@ -16,7 +16,7 @@ import { paintingImage, preparePaintings, sprite, type Sprite } from '../engine/
 import { defensePaintMatrix, deviceArt, deviceLean, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseArt, type DefenseMotion, type LogLayer } from './defenses';
 import { drawDecals } from './aftermath';
 import { drawEnemy, drawFallen, FALL_SECONDS, type Fallen } from './infected';
-import { drawGround, prepareGround, setGroundDresser } from './ground';
+import { drawGround, drawWoodlandShade, prepareGround, setGroundDresser } from './ground';
 import { barnLamp, curtainShadow, type IndoorPassage, type BarnMoth } from './house-reactions';
 import type { GateHedge } from './gate-hedge';
 import { foxHedge } from './fox-passage';
@@ -323,7 +323,7 @@ const SWAYS: ReadonlySet<PropKind> = new Set<PropKind>(['apple', 'oak', 'bush'])
 
 // ───────────────────────────── Drawing helpers ─────────────────────────────
 
-interface Drawable {
+export interface Drawable {
   readonly depth: number;
   draw(): void;
 }
@@ -525,9 +525,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   ctx.imageSmoothingQuality = 'medium';
 
   const passage = calmMotion() ? undefined : frame.brushPassage;
-  drawGround(ctx, view, frame.time, passage);
-
   const drawables: Drawable[] = [];
+  drawGround(ctx, view, frame.time, passage, drawables);
   /** Shadows go down before anything stands on them; they are collected as the scene is. */
   const contacts: { gx: number; gy: number; rx: number; ry: number; alpha: number }[] = [];
   const casts: (() => void)[] = [];
@@ -725,7 +724,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const p = project(view, gx, gy);
     if (!onScreen(p, width)) continue;
     const pose = !frame.night ? 3 : frame.sunriseAge === undefined ? 0 : flowerPose(frame.sunriseAge, calmMotion());
-    drawables.push({ depth: depthOf(view.rot, gx, gy) + .54, draw: () => dawnCel(ctx, 'daisies', pose, p.x, p.y, width * z) });
+    drawables.push({ depth: depthOf(view.rot, gx, gy) + .54, draw: () => dawnCel(ctx, 'daisies', pose, p.x, p.y, width * z, view.rot === 1) });
   }
   if (frame.sunriseAge !== undefined) {
     const hare = gateHare(frame.sunriseAge, calmMotion());
@@ -853,21 +852,23 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     if (particle.kind === 'ring') continue;
     drawables.push({ depth: depthOf(view.rot, particle.x, particle.y) + 0.6, draw: () => drawParticle(ctx, view, particle) });
   }
-  const leaves = frame.secondsSinceCarRoll === undefined ? passage?.leaves(frame.time) : wagonLeaves(frame.secondsSinceCarRoll);
-  if (leaves) {
+  const addLeaves = (leaves: Iterable<YardLeaf>, withContactShadows = false) => {
     for (const leaf of leaves) {
       const p = project(view, leaf.x, leaf.y);
       const y = p.y - leaf.height * z;
       if (!onScreen({ x: p.x, y }, 10)) continue;
-      if (frame.secondsSinceCarRoll !== undefined && leaf.height > 0) {
+      if (withContactShadows && leaf.height > 0) {
         contacts.push({ gx: leaf.x, gy: leaf.y, rx: .095, ry: .055, alpha: .28 * (1 - leaf.height / 32) });
       }
       drawables.push({
         depth: depthOf(view.rot, leaf.x, leaf.y),
-        draw: () => paintLeaf(ctx, p.x, y, leaf.size * z, view.rot === 0 ? leaf.angle : -leaf.angle, leaf.turning, leaf.alpha, leaf.colour),
+        draw: () => paintLeaf(ctx, p.x, y, leaf, z),
       });
     }
-  }
+  };
+  if (frame.secondsSinceCarRoll !== undefined) addLeaves(wagonLeaves(frame.secondsSinceCarRoll), true);
+  else if (passage) addLeaves(passage.leaves(frame.time));
+  if (!frame.night && !calmMotion()) addLeaves(fallingLeaves(frame.time));
 
   // Shadows first, on the bare ground: what is painted over it afterwards (routes, rings) stays legible.
   ctx.save();
@@ -899,16 +900,14 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   if (frame.fallenWhistle) drawables.push(whistleDrawable(ctx, view, frame.fallenWhistle, frame.time));
   drawables.sort((a, b) => a.depth - b.depth);
   for (const drawable of drawables) drawable.draw();
+  drawWoodlandShade(ctx, view);
 
   // What is in the air over all of it.
   if (frame.night) {
     ctx.save(); ctx.globalAlpha *= 1 - .74 * sunlight(frame.sunriseAge);
     drawMist(ctx, view, frame.time); ctx.restore();
   }
-  else {
-    drawCloudShadows(ctx, view, frame.time);
-    drawLeaves(ctx, view, frame.time);
-  }
+  else drawCloudShadows(ctx, view, frame.time);
   drawTopOverlays(ctx, view, frame);
   ctx.restore();
 }
@@ -1000,41 +999,46 @@ function drawLanternMoths(ctx: CanvasRenderingContext2D, x: number, y: number, z
 const LEAF_COLORS = ['#d98a2b', '#c9561f', '#e0b23a', '#a8662a', '#8f3b1c'] as const;
 const LEAVES = 18;
 
-/**
- * Autumn: a few leaves coming down over the lot. Each one falls onto a point of the ground, so it
- * drifts with the view when the yard is panned instead of sliding over the picture.
- */
-function drawLeaves(ctx: CanvasRenderingContext2D, view: View, time: number): void {
-  if (calmMotion()) return;
-  const z = view.zoom;
-  const side = view.rot === 0 ? 1 : -1;
+interface YardLeaf {
+  x: number;
+  y: number;
+  height: number;
+  size: number;
+  angle: number;
+  turning: number;
+  alpha: number;
+  colour: number;
+}
+
+/** The breeze carries each leaf across the ground while it falls between the standing trees. */
+function* fallingLeaves(time: number): Generator<YardLeaf> {
   for (let i = 0; i < LEAVES; i++) {
     const period = 7 + hash2(i, 1, 9) * 6;
     const t = time / period + hash2(i, 2, 9) * 10;
     const fallIndex = Math.floor(t);
     const fall = t - fallIndex;
     const gx = -3 + hash2(i, fallIndex, 11) * (GRID_W + 6);
-    const gy = -3 + hash2(i, fallIndex, 12) * (GRID_H + 6);
-    const landing = project(view, gx, gy);
+    const gy = -3 + hash2(fallIndex, i + 37, 12) * (GRID_H + 6);
     const up = 1 - fall;
-    const x = landing.x + side * up * (Math.sin(fall * 9 + i) * 9 - 54) * z;
-    const y = landing.y - up * 190 * z;
-    if (x < view.x - 10 || x > view.x + view.w + 10 || y < view.y - 10 || y > view.y + view.h + 10) continue;
-    const size = (2.2 + hash2(i, 3, 9) * 1.8) * z;
-    const angle = side * (fall * (5 + hash2(i, 4, 9) * 9) + i);
-    const turning = 0.35 + Math.abs(Math.sin(fall * 13 + i)) * 0.65;
-    const alpha = Math.min(1, fall / 0.08) * Math.min(1, up / 0.1) * 0.9;
-    paintLeaf(ctx, x, y, size, angle, turning, alpha, i);
+    const drift = up * (Math.sin(fall * 9 + i) * 9 - 54) / TW;
+    yield {
+      x: gx + drift, y: gy - drift, height: up * 190, size: 2.2 + hash2(i, 3, 9) * 1.8,
+      angle: fall * (5 + hash2(i, 4, 9) * 9) + i, turning: 0.35 + Math.abs(Math.sin(fall * 13 + i)) * 0.65,
+      alpha: Math.min(1, fall / 0.08) * Math.min(1, up / 0.1) * 0.9, colour: i,
+    };
   }
 }
 
-function paintLeaf(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, angle: number, turning: number, alpha: number, colour: number): void {
+function paintLeaf(ctx: CanvasRenderingContext2D, x: number, y: number, leaf: YardLeaf, zoom: number): void {
+  const size = leaf.size * zoom;
   ctx.save();
-  ctx.globalAlpha = alpha;
+  ctx.globalAlpha *= leaf.alpha;
   ctx.translate(x, y);
-  ctx.rotate(angle);
-  ctx.scale(1, turning);
-  ctx.fillStyle = LEAF_COLORS[colour % LEAF_COLORS.length]!;
+  // A settled blade lies on the ground plane. A half-turn preserves its diagonal in either view.
+  ctx.scale(1, TH / TW + (1 - TH / TW) * smoothstep(0, 12, leaf.height));
+  ctx.rotate(leaf.angle);
+  ctx.scale(1, leaf.turning);
+  ctx.fillStyle = LEAF_COLORS[leaf.colour % LEAF_COLORS.length]!;
   ctx.beginPath();
   ctx.moveTo(-size, 0);
   ctx.quadraticCurveTo(0, -size * 0.75, size, 0);

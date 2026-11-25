@@ -1,10 +1,13 @@
+import { carManeuver, MANEUVER_SECONDS } from '../core/car-path';
+import { GRID_H, GRID_W, roadCentre } from '../core/map';
 import { sprite } from '../engine/assets';
 import { depthOf, project, unproject, viewX, viewY, world, type Rot, type View } from './projection';
-import { BOTTOM_CENTRE, spriteRect, type Foot } from './registration';
-import { isDepthSortedTree, treesIn, type Tree } from './scenery';
+import { PROP_FEET, spriteRect, type Foot } from './registration';
+import { DEPTH_SORTED_TREES, isDepthSortedTree, treesIn, type Tree } from './scenery';
 import { castShadow, contactShadow } from './shadows';
 import { windAt } from './wind';
 import { vegetationView } from './vegetation';
+import type { Drawable } from './world';
 
 const TILE = 384;
 const PAD = 2;
@@ -21,7 +24,7 @@ export interface Stand {
 }
 interface Stamp { tree: Tree; s: Stand }
 interface Crown extends Stamp { x: number; y: number; w: number; h: number; cover: HTMLCanvasElement | null }
-interface ForestTile { picture: HTMLCanvasElement; crowns: Crown[]; pixels: number }
+interface ForestTile { picture: HTMLCanvasElement; crowns: Crown[]; foreground: Stamp[]; pixels: number }
 const movingCrown = (t: Tree): boolean => t.trait > 0.835 && !isDepthSortedTree(t);
 const hinge = (s: Stand): number => s.y - s.h * 0.59;
 
@@ -31,7 +34,7 @@ export function projectStand(view: View, tree: Tree): Stand | undefined {
   const key = painted?.key ?? (tree.key.includes('fir') ? 'obj_trees_pine' : 'obj_trees_oak');
   const art = painted?.art ?? sprite(key);
   if (!art) return;
-  const foot = painted?.foot ?? BOTTOM_CENTRE;
+  const foot: Foot = painted?.foot ?? (key === 'obj_trees_pine' ? [121 / 218, 404 / 430] : PROP_FEET.oak[0]);
   const h = tree.h * view.zoom / foot[1];
   const p = project(view, tree.gx, tree.gy);
   const layer = shade[tree.row] ?? 0;
@@ -90,6 +93,38 @@ function fixedStand(ctx: CanvasRenderingContext2D, {s, tree}: Stamp): void {
   drawStand(ctx, s); ctx.restore();
 }
 
+function crownInWind(ctx: CanvasRenderingContext2D, { s, tree }: Stamp, time: number, rot: Rot): void {
+  const wind = windAt(time, tree.gx, tree.gy, tree.trait, rot);
+  const shear = wind * (tree.key.includes('fir') ? .042 : .064);
+  ctx.transform(1, 0, -shear, 1, shear * hinge(s), 0);
+  drawStand(ctx, s);
+}
+
+const tileDepths: [Map<string, number>, Map<string, number>] = [new Map(), new Map()];
+
+// A tile outside every interactive silhouette can stay completely baked. Inside the
+// clearing, only trees in front of its farthest possible actor enter the painter's pass.
+function interactiveDepth(rot: Rot, tx: number, ty: number): number {
+  const depths = tileDepths[rot];
+  if (!depths.size) {
+    const mark = (gx: number, gy: number, radius: number, up: number, down: number) => {
+      const p = world(rot, gx, gy), depth = depthOf(rot, gx, gy);
+      for (let y = Math.floor((p.y - up) / TILE); y <= Math.floor((p.y + down) / TILE); y++) {
+        for (let x = Math.floor((p.x - radius) / TILE); x <= Math.floor((p.x + radius) / TILE); x++) {
+          const key = x + '/' + y;
+          depths.set(key, Math.min(depths.get(key) ?? Infinity, depth));
+        }
+      }
+    };
+    // Include the edge of each walkable cell and the station wagon's full exit along the barn road.
+    for (let gy = 0; gy <= GRID_H; gy++) for (let gx = 0; gx <= GRID_W; gx++) mark(gx, gy, 100, 155, 32);
+    const exit = carManeuver(MANEUVER_SECONDS).position.x;
+    for (let gx = GRID_W; gx <= exit + 1; gx++) mark(gx, roadCentre('barn', gx), 120, 140, 45);
+    for (const tree of DEPTH_SORTED_TREES) mark(tree.gx, tree.gy, tree.h, tree.h + 4, tree.h * .15);
+  }
+  return depths.get(tx + '/' + ty) ?? Infinity;
+}
+
 function bakeTile(rot: Rot, tx: number, ty: number): ForestTile | null {
   const v: View = { rot, cx: viewX(rot, 0), cy: viewY(rot, 0), x: -tx * TILE, y: -ty * TILE, w: 0, h: 0, zoom: 1 };
   // Include feet beyond the tile: a canopy, its cast shadow or both can cross a tile seam.
@@ -111,9 +146,13 @@ function bakeTile(rot: Rot, tx: number, ty: number): ForestTile | null {
     castShadow(c, s.key, s.rootX, s.rootY, s.h, s.mirror, tree.row < 2 ? 0.27 : 0.19, 0.8, s.foot);
   }
   visible.sort((a,b) => depthOf(rot,a.tree.gx,a.tree.gy) - depthOf(rot,b.tree.gx,b.tree.gy));
+  const split = interactiveDepth(rot, tx, ty);
+  const foreground = visible.filter(({ tree, s }) => !isDepthSortedTree(tree) && depthOf(rot, tree.gx, tree.gy) >= split &&
+    s.x + s.w / 2 + 7 > -PAD && s.x - s.w / 2 - 7 < TILE + PAD && s.y > -PAD && s.y - s.h < TILE + PAD);
+  const backdrop = visible.filter(({ tree }) => !isDepthSortedTree(tree) && depthOf(rot, tree.gx, tree.gy) < split);
   const crowns: Crown[] = [];
   let pixels = canvas.width * canvas.height;
-  for (const [index, stamp] of visible.entries()) {
+  for (const [index, stamp] of backdrop.entries()) {
     fixedStand(c, stamp);
     if (!movingCrown(stamp.tree)) continue;
     const s = stamp.s;
@@ -123,8 +162,8 @@ function bakeTile(rot: Rot, tx: number, ty: number): ForestTile | null {
     const h = Math.min(TILE + PAD, Math.ceil(hinge(s))) - y;
     if (w <= 0 || h <= 0) continue;
     // Keep any branches in front of this moving crown in their correct depth order.
-    const nearer = visible.slice(index + 1).filter(({s:n, tree}) =>
-      !isDepthSortedTree(tree) && n.x + n.w / 2 >= x && n.x - n.w / 2 < x+w && n.y >= y && n.y - n.h < y+h);
+    const nearer = backdrop.slice(index + 1).filter(({s:n}) =>
+      n.x + n.w / 2 >= x && n.x - n.w / 2 < x+w && n.y >= y && n.y - n.h < y+h);
     let cover: HTMLCanvasElement | null = null;
     if (nearer.length) {
       cover = document.createElement('canvas'); cover.width = w; cover.height = h;
@@ -137,7 +176,7 @@ function bakeTile(rot: Rot, tx: number, ty: number): ForestTile | null {
     }
     crowns.push({ ...stamp, x, y, w, h, cover });
   }
-  return { picture: canvas, crowns, pixels };
+  return { picture: canvas, crowns, foreground, pixels };
 }
 
 function tile(rot: Rot, tx: number, ty: number): ForestTile | null {
@@ -181,7 +220,7 @@ export function prepareForest(view: View): void {
 }
 
 /** Transparent canopy tiles sit over the continuous forest floor, with identical border stamps. */
-export function drawForest(ctx: CanvasRenderingContext2D, view: View, time = 0): void {
+export function drawForest(ctx: CanvasRenderingContext2D, view: View, time = 0, foreground?: Drawable[]): void {
   const { left, top, x0, y0, x1, y1 } = forestBounds(view);
   const z = view.zoom;
   const transform = ctx.getTransform();
@@ -195,20 +234,38 @@ export function drawForest(ctx: CanvasRenderingContext2D, view: View, time = 0):
       const y = view.y + (ty * TILE - top) * z;
       // Give adjoining tiles the same physical-pixel edge. Their gutters supply real
       // neighbouring pixels to the resampler at fractional stage scales.
-      ctx.save(); ctx.beginPath();
-      ctx.rect(snapX(x), snapY(y), snapX(x + TILE * z) - snapX(x), snapY(y + TILE * z) - snapY(y)); ctx.clip();
-      ctx.translate(x, y); ctx.scale(z, z);
+      const tileLeft = snapX(x), tileTop = snapY(y), w = snapX(x + TILE * z) - tileLeft, h = snapY(y + TILE * z) - tileTop;
+      const tileSpace = () => {
+        ctx.beginPath(); ctx.rect(tileLeft, tileTop, w, h); ctx.clip();
+        ctx.translate(x, y); ctx.scale(z, z);
+      };
+      ctx.save(); tileSpace();
       ctx.drawImage(chunk.picture, -PAD, -PAD);
       for (const crown of chunk.crowns) {
-        const {s, tree} = crown;
-        const wind = windAt(time, tree.gx, tree.gy, tree.trait, view.rot);
-        const shear = wind * (tree.key.includes('fir') ? 0.042 : 0.064);
-        ctx.save(); ctx.beginPath(); ctx.rect(crown.x, crown.y, crown.w, Math.min(crown.h, hinge(s)-crown.y)); ctx.clip();
-        ctx.transform(1,0,-shear,1,shear * hinge(s),0);
-        drawStand(ctx, s); ctx.restore();
+        ctx.save(); ctx.beginPath(); ctx.rect(crown.x, crown.y, crown.w, Math.min(crown.h, hinge(crown.s)-crown.y)); ctx.clip();
+        crownInWind(ctx, crown, time, view.rot); ctx.restore();
         if (crown.cover) ctx.drawImage(crown.cover, crown.x, crown.y);
       }
       ctx.restore();
+      for (const stamp of chunk.foreground) {
+        const s = stamp.s, radius = s.w / 2 + 7;
+        if (x + (s.x + radius) * z < view.x || x + (s.x - radius) * z > view.x + view.w ||
+          y + s.y * z < view.y || y + (s.y - s.h) * z > view.y + view.h) continue;
+        const crossesEdge = s.x - radius < 1 || s.x + radius > TILE - 1 || s.y - s.h < 1 || s.y > TILE - 1;
+        const draw = () => {
+          ctx.save();
+          if (crossesEdge) tileSpace();
+          else { ctx.translate(x, y); ctx.scale(z, z); }
+          fixedStand(ctx, stamp);
+          if (movingCrown(stamp.tree)) {
+            ctx.beginPath(); ctx.rect(-PAD, -PAD, TILE + 2 * PAD, Math.max(0, hinge(stamp.s) + PAD)); ctx.clip();
+            crownInWind(ctx, stamp, time, view.rot);
+          }
+          ctx.restore();
+        };
+        if (foreground) foreground.push({ depth: depthOf(view.rot, stamp.tree.gx, stamp.tree.gy), draw });
+        else draw();
+      }
     }
   }
 }

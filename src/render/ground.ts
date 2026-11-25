@@ -13,7 +13,8 @@ import { SHADOW_RGB } from './shadows';
 import { FIELD_MARGIN, GROUND_TERRAINS, TRACKS, layerAlpha, roadCentre, terrainField, type GroundTerrain, type TerrainField } from './terrainfield';
 import { dressYardFloor } from './yard-floor';
 import { drawForest } from './forest';
-import { drawWindPlants, drawYardPlants } from './yard-plants';
+import type { Drawable } from './world';
+import { drawWindPlants, drawYardPlants, vegetableRowDrawables } from './yard-plants';
 import type { BrushPassage } from './brush';
 
 const MARGIN = FIELD_MARGIN;
@@ -485,7 +486,7 @@ function outerRoad(ctx: CanvasRenderingContext2D, road: keyof typeof TRACKS, fro
 }
 
 /** Draws the ground for a view. The context is expected to be clipped to the view already. */
-export function drawGround(ctx: CanvasRenderingContext2D, view: View, time = 0, passage?: BrushPassage): void {
+export function drawGround(ctx: CanvasRenderingContext2D, view: View, time = 0, passage?: BrushPassage, foreground?: Drawable[]): void {
   const z = view.zoom;
   const bounds = viewBounds(view);
 
@@ -511,9 +512,16 @@ export function drawGround(ctx: CanvasRenderingContext2D, view: View, time = 0, 
   ctx.drawImage(ground(view.rot), gx0, gy0, GROUND_W * z, GROUND_H * z);
   // Moving tops belong to the same undergrowth as their baked roots, below the woodland canopy.
   drawWindPlants(ctx, view, time, passage);
-  drawForest(ctx, view, time);
+  const vegetables = vegetableRowDrawables(ctx, view, time, passage);
+  if (foreground) foreground.push(...vegetables);
+  else for (const plant of vegetables) plant.draw();
+  drawForest(ctx, view, time, foreground);
+  if (!foreground) drawWoodlandShade(ctx, view);
+}
 
-  // The lot reads as a clearing: the further into the wood, the less light gets down.
+/** Apply the light falloff once, after the forest and its interleaved figures are in place. */
+export function drawWoodlandShade(ctx: CanvasRenderingContext2D, view: View): void {
+  const z = view.zoom;
   const centre = project(view, GRID_W / 2, GRID_H / 2);
   const reaches = (sx: number, sy: number): boolean => Math.hypot(sx - centre.x, (sy - centre.y) * 2) > CLEARING * z;
   if (!reaches(view.x, view.y) && !reaches(view.x + view.w, view.y) && !reaches(view.x, view.y + view.h) && !reaches(view.x + view.w, view.y + view.h)) return;

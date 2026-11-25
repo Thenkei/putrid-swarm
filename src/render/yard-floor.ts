@@ -42,16 +42,29 @@ function paving(ctx: CanvasRenderingContext2D, view: View): void {
 type Scatter = 'fern' | 'straw' | 'dock' | 'leaves' | 'yarrow' | 'stones';
 // A rear crop can be wider or tighter around identical debris. Height relative to the
 // planting's nominal width is a world property, independent of the selected painting.
-const heightAboveGround: Record<Scatter, number> = {
-  fern: 0.46, straw: 0.46, dock: 0.42, leaves: 0.42, yarrow: 0.46, stones: 0.36,
+const heightAboveGround: Record<Exclude<Scatter, 'leaves'>, number> = {
+  fern: 0.46, straw: 0.46, dock: 0.42, yarrow: 0.46, stones: 0.36,
 };
 
 function scatter(ctx: CanvasRenderingContext2D, view: View, gx: number, gy: number, kind: Scatter, width: number, flip: boolean): void {
-  const face = vegetationView('yard_scatter', kind, flip, view.rot);
+  // Both oak-leaf paintings show the same side of fallen leaves and a twig.
+  // Keep the chosen painting with its planting and turn the entire mark with the soil.
+  const flat = kind === 'leaves';
+  const face = vegetationView('yard_scatter', kind, flip, flat ? 0 : view.rot);
   if (!face) return;
   const { art } = face;
   const p = project(view, gx, gy);
-  const top = width * heightAboveGround[kind];
+  if (flat) {
+    const w = width * view.zoom, h = w * art.h / art.w;
+    const sign = view.rot === 0 ? 1 : -1;
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.scale(face.mirror ? -sign : sign, sign);
+    ctx.drawImage(art.img, -w / 2, -h / 2, w, h);
+    ctx.restore();
+    return;
+  }
+  const top = width * view.zoom * heightAboveGround[kind];
   const h = top / face.foot[1];
   const w = h * art.w / art.h;
   ctx.save();
