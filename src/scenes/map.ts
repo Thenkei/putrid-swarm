@@ -56,7 +56,6 @@ export class MapScene implements Scene {
       el('span', { text: clockLabel(state.hoursLeft) }),
       el('span', { class: 'meter' }, [el('i', { style: { width: `${(state.hoursLeft / DAY_HOURS) * 100}%` } })]),
       el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { h: hours(state.hoursLeft) }) }),
-      el('span', { class: 'grow' }),
       inventoryBar(state.inventory),
     ]);
 

@@ -330,7 +330,7 @@ export class DayScene implements Scene {
 
     const daylight = el('span', { class: 'meter' }, [el('i', { style: { width: `${(state.hoursLeft / DAY_HOURS) * 100}%` } })]);
     const houseMeter = el('span', { class: `meter house ${yard.houseHp <= 35 ? 'low' : ''}` }, [el('i', { style: { width: `${(yard.houseHp / HOUSE_MAX_HP) * 100}%` } })]);
-    const topbar = el('div', { class: 'topbar day-top' }, [
+    const topbar = el('div', { class: 'topbar' }, [
       el('span', { class: 'label-strong', text: fmt(s.day.day, { n: state.day }) }),
       el('span', { class: 'sep' }),
       el('span', { text: clockLabel(state.hoursLeft) }),

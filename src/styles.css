@@ -296,11 +296,12 @@ button:disabled {
   height: 40px;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 8px;
   padding: 2px 16px 0;
-  font-size: 24px;
-  letter-spacing: 0.07em;
+  font-size: 20px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap;
   background: linear-gradient(180deg, #2b2319 0%, #17120d 100%);
   border: 2px solid var(--edge);
   border-radius: 8px;
@@ -308,39 +309,34 @@ button:disabled {
 }
 
 .topbar .sep {
+  flex: none;
   width: 2px;
   height: 22px;
   background: var(--edge);
-}
-
-.topbar .grow {
-  flex: 1;
 }
 
 .topbar .label-strong {
   color: #fff3d6;
 }
 
-.day-top {
-  gap: 8px;
-  font-size: 20px;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-.day-top .sep {
-  flex: none;
-}
-
-.day-top .meter {
-  flex: 0 1 150px;
+.topbar > .meter {
   min-width: 64px;
 }
 
-.day-top .cost {
+.topbar .cost,
+.location-readouts .cost {
   flex-wrap: nowrap;
   gap: 7px;
+}
+
+.topbar > :is(.cost, .cargo-stock, .equipment-chip) {
   margin-inline-start: auto;
+}
+
+.cargo-stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .meter {
@@ -1633,10 +1629,8 @@ button:disabled {
 }
 
 .last-search-thought {
-  position: absolute;
-  top: 54px;
-  left: 16px;
-  margin: 0;
+  width: fit-content;
+  margin: 6px 0 0;
   padding: 7px 10px;
   color: #ffda99;
   font-size: 17px;
@@ -2706,18 +2700,31 @@ button:disabled {
 
 /* ───────── Encounters on outings ───────── */
 
-.street-noise,
-.stash {
+.location-status {
   position: absolute;
+  left: 12px;
   right: 12px;
-  top: 54px;
+  top: 52px;
+}
+
+.location-readouts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px 8px;
+}
+
+.location-readouts > * {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 3px 14px 1px;
-  font-size: 19px;
-  letter-spacing: 0.06em;
+  gap: 7px;
+  padding: 2px 9px 1px;
+  font-size: 17px;
+  line-height: 20px;
+  letter-spacing: 0.025em;
   text-transform: uppercase;
+  white-space: nowrap;
   background: rgba(24, 18, 12, 0.88);
   border: 1px solid var(--edge-soft);
   border-radius: 6px;
@@ -2725,8 +2732,7 @@ button:disabled {
 }
 
 .street-noise {
-  right: auto;
-  left: 12px;
+  margin-inline-end: auto;
 }
 
 .street-noise b {
