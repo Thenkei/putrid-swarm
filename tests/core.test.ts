@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { COMBAT, DEVICES } from '../src/core/data/devices';
-import { BOSS } from '../src/core/data/enemies';
 import { CONCEAL_HOURS, LOCATIONS } from '../src/core/data/locations';
 import { GARAGE_WORKBENCH, hasViceLeftovers } from '../src/core/garage-vice';
 import { NIGHTS } from '../src/core/data/waves';
@@ -648,24 +647,62 @@ describe('night simulation', () => {
     expect(sim.report().bossDefeated).toBeNull();
   });
 
-  it('the mower flattens palisades in his lane and only mauls the traps', () => {
-    let state = rich(newGame(1));
+  it.each(['armed', 'active', 'rearming'] as const)('the mower breaks a palisade and a log (%s) in its charge lane', (logState) => {
+    const base = newGame(1);
+    let state = rich({ ...base, yard: { ...base.yard, devices: [] } });
     state = unwrap(build(state, 'fence', 10, 19));
     state = unwrap(build(state, 'log', 10, 18));
-    const fence = state.yard.devices.find((d) => d.x === 10 && d.y === 19)!;
-    const log = state.yard.devices.find((d) => d.x === 10 && d.y === 18)!;
+    state = unwrap(build(state, 'log', 11, 18));
+    const fence = state.yard.devices[0]!;
+    const log = state.yard.devices[1]!;
+    const besideLane = state.yard.devices[2]!;
     const sim = new NightSim(2, state.yard, 1);
-    let mown = false;
-    let firstPassHp: number | undefined;
-    run(sim, 200, (s) => {
-      mown ||= s.decals.some((d) => d.kind === 'mown' && d.x === 10 && d.y === 17);
-      if (mown && firstPassHp === undefined) firstPassHp = s.device(log.id)?.hp;
-    });
-    expect(mown).toBe(true);
+    const inLane = sim.device(log.id)!;
+    const triggerAt = logState === 'active' ? 'charge' : 'rev';
+    let reachedLog = false;
+    let stateBeforeContact = inLane.state;
+    for (let t = 0; t < 200 * 60 && sim.outcome === 'ongoing' && !reachedLog; t++) {
+      const mower = sim.enemies.find((e) => e.type === 'mower');
+      if (logState !== 'armed' && mower?.action === triggerAt && inLane.state === 'armed') unwrap(sim.trigger(inLane.id));
+      stateBeforeContact = inLane.state;
+      sim.step(1 / 60);
+      reachedLog = mower?.action === 'charge' && Math.floor(mower.x) === log.x && Math.floor(mower.y) === log.y;
+    }
+    expect(reachedLog).toBe(true);
+    expect(stateBeforeContact).toBe(logState);
     expect(sim.device(fence.id)?.state).toBe('broken');
-    expect(firstPassHp).toBeCloseTo(DEVICES.log.maxHp * (1 - BOSS.mower.laneDamage));
-    const mauled = sim.device(log.id)!;
-    expect(mauled.hp).toBeLessThan(DEVICES.log.maxHp);
+    expect(inLane).toMatchObject({ state: 'broken', hp: 0, timer: 0 });
+    expect(sim.device(besideLane.id)?.state).toBe('armed');
+    expect(sim.toYard(state.yard).devices.find((d) => d.id === inLane.id)).toMatchObject({ broken: true, hp: 0 });
+  });
+
+  it('a well-timed log can stop the mower before it reaches the trap', () => {
+    const base = newGame(1);
+    const state = unwrap(build(rich({ ...base, yard: { ...base.yard, devices: [] } }), 'log', 10, 18));
+    const log = state.yard.devices[0]!;
+    const sim = new NightSim(2, state.yard, 1);
+    let mower: Enemy | undefined;
+    for (let t = 0; t < 200 * 60 && sim.outcome === 'ongoing'; t++) {
+      mower = sim.enemies.find((e) => e.type === 'mower');
+      if (mower?.action === 'charge' && mower.y < log.y + 0.5 + DEVICES.log.reach) {
+        unwrap(sim.trigger(log.id));
+        sim.step(1 / 60);
+        break;
+      }
+      sim.step(1 / 60);
+    }
+    expect(mower?.action).toBe('jam');
+    expect(sim.device(log.id)).toMatchObject({ state: 'active', hp: DEVICES.log.maxHp });
+  });
+
+  it('the mower breaks a lowered barrier and carries on charging', () => {
+    const base = newGame(1);
+    const state = unwrap(build(rich({ ...base, yard: { ...base.yard, devices: [] } }), 'barrier', 10, 18));
+    const barrier = state.yard.devices[0]!;
+    const sim = new NightSim(2, state.yard, 1);
+    run(sim, 200);
+    expect(sim.decals.some((d) => d.kind === 'mown' && d.x === barrier.x && d.y === barrier.y - 1)).toBe(true);
+    expect(sim.device(barrier.id)).toMatchObject({ state: 'broken', hp: 0 });
   });
 
   it('a raised barrier in the lane stops the charge', () => {
@@ -682,6 +719,7 @@ describe('night simulation', () => {
       if (mower?.action === 'jam' && mower.y > 14) jammed = true;
     });
     expect(jammed).toBe(true);
+    expect(sim.device(barrier.id)?.state).toBe('broken');
   });
 
   describe('trap effects', () => {

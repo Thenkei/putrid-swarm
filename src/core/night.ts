@@ -1362,17 +1362,15 @@ export class NightSim {
       case 'charge': {
         e.action = 'charge';
         const cell = lane[Math.min(boss.laneIndex + 1, lane.length - 1)] as Cell;
+        const wasInCell = Math.floor(e.x) === cell.x && Math.floor(e.y) === cell.y;
         const reached = this.moveToward(e, cell.x + 0.5, cell.y + 0.5, BOSS.mower.chargeSpeed * (e.lit ? 0.8 : 1), dt);
-        if (!reached) return;
-        boss.laneIndex = Math.min(boss.laneIndex + 1, lane.length - 1);
+        const enteredCell = !wasInCell && Math.floor(e.x) === cell.x && Math.floor(e.y) === cell.y;
+        if (!enteredCell && !reached) return;
         this.addDecal('mown', cell.x, cell.y);
         const device = this.devices.find((d) => d.x === cell.x && d.y === cell.y && d.state !== 'broken');
         if (device) {
           const raisedBarrier = device.type === 'barrier' && device.state === 'active';
-          // Palisades and raised barriers are mown flat; a trap lying in the lane is mauled, not erased.
-          const flattened = raisedBarrier || DEVICES[device.type].blocks;
-          e.trampled.add(device.id);
-          this.damageDevice(device, flattened ? Infinity : DEVICES[device.type].maxHp * BOSS.mower.laneDamage);
+          this.damageDevice(device, Infinity);
           if (raisedBarrier) {
             // Blades meet a striped wall: the wall loses, but so does the momentum.
             this.damage(e, 80);
@@ -1380,6 +1378,8 @@ export class NightSim {
             return;
           }
         }
+        if (!reached) return;
+        boss.laneIndex = Math.min(boss.laneIndex + 1, lane.length - 1);
         if (boss.laneIndex >= lane.length - 1) {
           const barricade = this.barricades[boss.sector];
           if (barricade.hp > 0) {
