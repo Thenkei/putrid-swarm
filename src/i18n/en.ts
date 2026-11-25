@@ -375,10 +375,9 @@ export const en: Strings = {
     complaint: 'Dear Sir, at 7:12 on Sunday morning you once again mowed the lawn beneath my window. Please consider this my third and final complaint. Your neighbour.',
   },
   rattle: {
-    title: 'Tin rattle',
-    pick: 'Choose a hedge. It rattles once, when the first infected comes through.',
-    approach: 'Hedge to wire',
-    arm: 'Tie the wire',
+    forecast: 'Unstable camera · {sector}',
+    pick: 'If the feed cuts out, the tins will rattle the first time an infected crosses this hedge.',
+    arm: 'Hang the tins',
     armed: 'Tin rattle · {sector}',
     heard: 'Tin rattling at the {sector} hedge.',
   },

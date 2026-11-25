@@ -377,10 +377,9 @@ export const fr = {
     complaint: 'Monsieur, dimanche à 7 h 12, vous avez de nouveau passé la tondeuse sous ma fenêtre. Je vous prie de considérer ce courrier comme ma troisième et dernière réclamation. Votre voisin.',
   },
   rattle: {
-    title: 'Boîte à grelots',
-    pick: 'Choisissez une haie. La boîte tinte au passage du premier infecté.',
-    approach: 'Haie à équiper',
-    arm: 'Attacher le fil',
+    forecast: 'Caméra instable · {sector}',
+    pick: 'Si l’image coupe, les grelots vous préviendront dès qu’un infecté franchira cette haie.',
+    arm: 'Attacher les grelots',
     armed: 'Boîte à grelots · {sector}',
     heard: 'Un bruit de ferraille près de la haie · {sector}.',
   },

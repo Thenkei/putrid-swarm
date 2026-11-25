@@ -2271,5 +2271,15 @@
     "file": "sprites/chief_exposed_pose_back.webp",
     "w": 253,
     "h": 260
+  },
+  "rattle_stake": {
+    "file": "sprites/rattle_stake.webp",
+    "w": 41,
+    "h": 144
+  },
+  "rattle_tins": {
+    "file": "sprites/rattle_tins.webp",
+    "w": 117,
+    "h": 144
   }
 }

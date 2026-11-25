@@ -831,7 +831,8 @@ export class NightSim {
     }
     this.enemies.push(enemy);
     // The wire spans the entry hedge. Use the edge the creature crossed, even when it flanks a different door.
-    if (sector === this.rattleSector && this.rattleAt === null) {
+    // Save the audible warning for the blind feed. Older saves can have a wire on another hedge.
+    if (sector === this.rattleSector && this.rattleAt === null && (this.outage?.sector !== sector || this.cameraLost === sector)) {
       this.rattleAt = this.time;
       this.events.push({ type: 'rattle', sector });
     }

@@ -18,7 +18,7 @@ import { prepareWhistlePaintings, WhistleDawn } from './chief-whistle';
 import { BARRICADE, DEVICES, HOUSE_MAX_HP, HOUSE_REPAIR, facingsOf, isTrap, turned } from '../core/data/devices';
 import { BOSS } from '../core/data/enemies';
 import { DAY_HOURS } from '../core/data/locations';
-import { ORCHARD, hasLeftArm } from '../core/orchard';
+import { ORCHARD, hasLeftArm, outageFor } from '../core/orchard';
 import { SHED, briefingFor, type Briefing } from '../core/shed';
 import { allyFor, guestOf, lookoutFor } from '../core/radio';
 import { canRigRattle, rattleForNight, RATTLE_COST, RATTLE_HOURS, rigRattle } from '../core/rattle';
@@ -583,7 +583,7 @@ export class DayScene implements Scene {
     this.updateHover(this.app.pointer, true);
   }
 
-  private rattlePanel(): HTMLElement {
+  private rattlePanel(): HTMLElement | null {
     const s = S();
     const armed = rattleForNight(this.state);
     if (armed) {
@@ -593,38 +593,34 @@ export class DayScene implements Scene {
         onClick: () => this.showDoor(armed),
       });
     }
-    const approach = el('select', {}, SECTOR_IDS.map(id => {
-      const option = el('option', { text: s.sector[id] });
-      option.value = id;
-      return option;
-    }));
-    approach.setAttribute('aria-label', s.rattle.approach);
-    const details = el('details', { class: 'rattle-plan' }, [
-      el('summary', { text: s.rattle.title }),
+    const outage = outageFor(this.state);
+    if (!outage) return null;
+    const icon = el('img');
+    icon.alt = '';
+    const url = assetUrl('rattle_tins');
+    if (url) icon.src = url;
+    return el('details', { class: 'rattle-plan' }, [
+      el('summary', {}, [url ? icon : null, fmt(s.rattle.forecast, { sector: s.sector[outage.sector] })]),
       el('p', { text: s.rattle.pick }),
       el('div', { class: 'rattle-price' }, [
         costLine(RATTLE_COST, this.state.inventory), ` · ${durationLabel(RATTLE_HOURS)}`,
       ]),
       el('div', { class: 'rattle-controls' }, [
-        approach,
         el('button', {
           class: 'btn',
           text: s.rattle.arm,
           disabled: !canRigRattle(this.state),
           onClick: () => {
-            const id = SECTOR_IDS[approach.selectedIndex];
-            if (!id) return;
-            const next = rigRattle(this.state, id);
+            const next = rigRattle(this.state, outage.sector);
             if (!next) return;
             this.apply(ok(next), '', null);
             audio.play('tin', 0.45);
-            this.showDoor(id);
+            this.showDoor(outage.sector);
             this.root.querySelector<HTMLButtonElement>('.rattle-rigged')?.focus();
           },
         }),
       ]),
     ]);
-    return details;
   }
 
   private sirenPanel(): HTMLElement | null {
