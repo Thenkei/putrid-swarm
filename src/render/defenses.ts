@@ -6,7 +6,7 @@ import { defenseMount, type DefensePose as Pose } from './defense-mounts';
 import { DOOR_OUTWARD, doorStance } from './house';
 import { attackBeat, shoulderAt } from './infected';
 import { calmMotion } from './lighting';
-import type { Point, Rot, View } from './projection';
+import { TH, type Point, type Rot, type View } from './projection';
 import type { Foot, PaintFit } from './registration';
 import { castShadow, castSilhouette, SHADOW_REACH, SHADOW_RGB } from './shadows';
 
@@ -311,6 +311,12 @@ function drawPlank(ctx: CanvasRenderingContext2D, art: Sprite, image: CanvasImag
 const load = [37,51, 47,51, 60,55, 88,64, 117,75, 125,77, 124,98, 117,109, 104,108, 42,86, 33,79];
 
 export type LogLayer = 'far' | 'near';
+
+/** Painter depth of the planted feet on either side of the gallows. */
+export function logLayerDepth(centre: number, art: DefenseArt, layer: LogLayer): number {
+  const foot = layer === 'near' ? (art.rear ? 198 : 196) : (art.rear ? 140 : 143);
+  return centre + (foot / 200 - art.foot[1]) * art.h / (TH / 2);
+}
 // Traces between the two A-frames, including the near winch. Mirroring a fitted
 // rig flips x alone: the same two painted feet still register its depth.
 const nearFrame = [118,44, 200,44, 200,200, 89,200, 94,156, 110,122, 117,80];
@@ -320,12 +326,23 @@ const slackLoad = [44,114, 51,110, 66,110, 69,38, 77,38, 73,111, 104,120,
 const rearSlackLoad = [57,119, 68,111, 79,109, 79,29, 90,29, 87,111, 108,118,
   111,40, 121,42, 119,122, 151,130, 155,150, 144,162, 125,163, 58,140];
 
-function paintLogFrame(ctx: CanvasRenderingContext2D, art: Sprite, image: CanvasImageSource,
-  rear: boolean, layer?: LogLayer, suspended?: readonly number[]): void {
-  if (!layer) { ctx.drawImage(image, 0, 0, 200, 200); return; }
+function logFrameImage(art: Sprite, image: CanvasImageSource, rear: boolean, layer?: LogLayer, suspended?: readonly number[]): CanvasImageSource | null {
+  if (!layer) return image;
   const parts = cut(art, image, rear ? rearNearFrame : nearFrame, suspended);
-  if (parts) ctx.drawImage(layer === 'far' ? parts.base : parts.moving, 0, 0, 200, 200);
-  else if (layer === 'near') ctx.drawImage(image, 0, 0, 200, 200);
+  return parts ? (layer === 'near' ? parts.moving : parts.base) : layer === 'near' ? image : null;
+}
+
+/** The fixed frame and its suspended load use the same split for drawing and picking. */
+export function stillLogLayer(art: DefenseArt, source: Sprite, image: CanvasImageSource, layer: LogLayer): CanvasImageSource | null {
+  const raised = art.key.endsWith('_armed');
+  const suspended = art.rear ? (raised ? backLoadHole : rearSlackLoad) : (raised ? load : slackLoad);
+  return logFrameImage(source, image, !!art.rear, layer, suspended);
+}
+
+function paintLogFrame(ctx: CanvasRenderingContext2D, art: Sprite, image: CanvasImageSource,
+  rear: boolean, layer?: LogLayer): void {
+  const part = logFrameImage(art, image, rear, layer);
+  if (part) ctx.drawImage(part, 0, 0, 200, 200);
 }
 
 /** Displacement from the resting swing arc that puts the near end of the timber on the shoulder. */
@@ -662,9 +679,8 @@ function drawOperation(ctx: CanvasRenderingContext2D, d: DefenseDrawing, art: Sp
       }
     }
   } else if (d.kind === 'log' && d.logLayer) {
-    const raised = d.art.key.endsWith('_armed');
-    const suspended = rear ? (raised ? backLoadHole : rearSlackLoad) : (raised ? load : slackLoad);
-    paintLogFrame(ctx, art, image, rear, d.logLayer, suspended);
+    const layer = stillLogLayer(d.art, art, image, d.logLayer);
+    if (layer) ctx.drawImage(layer, 0, 0, 200, 200);
   } else ctx.drawImage(image, 0, 0, 200, 200);
 }
 

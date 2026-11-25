@@ -86,6 +86,8 @@ export interface Decal {
   readonly kind: DecalKind;
   readonly x: number;
   readonly y: number;
+  /** The exact world contact for a stain. Integer x and y keep one mark of each kind per cell. */
+  readonly at?: Cell & { readonly threshold?: SectorId };
 }
 
 export interface YardState {

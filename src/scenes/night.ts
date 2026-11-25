@@ -35,10 +35,10 @@ import { NightWildlife } from './night-wildlife';
 import { CamperDoorFeed } from './camper-door';
 import { BrushPassage } from '../render/brush';
 import { rattleForNight } from '../core/rattle';
-import { DefenseMotion, deviceArt, floodlightEmitter } from '../render/defenses';
+import { DefenseMotion, deviceArt } from '../render/defenses';
 import { THRESHOLDS, doorStance, houseDamageStage } from '../render/house';
 import { HOUSE_BREAK_SECONDS, type HouseBreak } from '../render/house-debris';
-import { calmMotion, drawRetune } from '../render/lighting';
+import { calmMotion, drawRetune, floodlightOutput } from '../render/lighting';
 import { smoothstep } from '../render/noise';
 import { SUNRISE_SECONDS, SWALLOW_CALL_AT, sunlight } from '../render/sunrise';
 import { LogReactions } from '../render/log-sweep';
@@ -956,20 +956,21 @@ export class NightScene implements Scene {
     });
   }
 
-  onPointerMove(pointer: Pointer): void {
-    if (this.paused || this.ending) return;
-    this.hoverFeedDevice = null;
-    if (!pointer.overCanvas || this.isDark(this.cam)) return;
+  private manualDeviceAt(pointer: Pointer): DeviceVisual | null {
+    if (!pointer.overCanvas || this.isDark(this.cam)) return null;
     const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
-    const picked = pickDevice(view, this.deviceVisuals(this.cam).filter((d) => isManual(d.type)), pointer.x, pointer.y, true);
-    this.hoverFeedDevice = picked?.id ?? null;
+    const picked = pickDevice(view, this.deviceVisuals(this.cam), pointer.x, pointer.y, true, this.sim.houseHp / HOUSE_MAX_HP);
+    return picked && isManual(picked.type) ? picked : null;
   }
 
-  onPointerDown(pointer: Pointer): void {
+  onPointerMove(pointer: Pointer): void {
     if (this.paused || this.ending) return;
-    const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
-    // Nothing can be picked out of snow: on a dark camera the traps are fired from the keys.
-    const picked = this.isDark(this.cam) ? undefined : pickDevice(view, this.deviceVisuals(this.cam).filter((d) => isManual(d.type)), pointer.x, pointer.y, true);
+    this.hoverFeedDevice = this.manualDeviceAt(pointer)?.id ?? null;
+  }
+
+  onPointerDown(pointer: Pointer, event: PointerEvent): void {
+    if (event.button !== 0 || this.paused || this.ending) return;
+    const picked = this.manualDeviceAt(pointer);
     if (picked) {
       this.fire(picked.id);
       return;
@@ -1056,8 +1057,9 @@ export class NightScene implements Scene {
           break;
         case 'log_contact': {
           audio.play('log');
-          const foot = event.target ? doorStance(event.target) : event;
-          this.particles.push({ kind: 'dust', x: foot.x, y: foot.y, age: now - (event.showAt ?? now), life: 0.42, radius: 1.1 });
+          const foot = event.target && doorStance(event.target);
+          this.particles.push({ kind: 'dust', x: foot?.x ?? event.x, y: foot?.y ?? event.y,
+            ...(foot?.threshold && { threshold: foot.threshold }), age: now - (event.showAt ?? now), life: 0.42, radius: 1.1 });
           break;
         }
         case 'trigger_denied':
@@ -1074,7 +1076,7 @@ export class NightScene implements Scene {
         case 'enemy_hit': {
           if (event.amount >= 30) {
             const p = doorStance(event.pose);
-            this.particles.push({ kind: 'text', x: p.x, y: p.y, age: 0, life: 0.7, text: `-${event.amount}` });
+            this.particles.push({ kind: 'text', x: p.x, y: p.y, ...(p.threshold && { threshold: p.threshold }), age: 0, life: 0.7, text: `-${event.amount}` });
           }
           audio.play('hit');
           break;
@@ -1090,7 +1092,7 @@ export class NightScene implements Scene {
         case 'barricade_hit':
           if (event.sector === 'grange') this.barnMoth.knock(this.sim.time);
           if (!this.insideKnockRinging(event.sector)) audio.play('door');
-          this.particles.push({ kind: 'dust', x: THRESHOLDS[event.sector].gx, y: THRESHOLDS[event.sector].gy, age: 0, life: 0.4, radius: 0.8 });
+          this.particles.push({ kind: 'dust', x: THRESHOLDS[event.sector].gx, y: THRESHOLDS[event.sector].gy, threshold: event.sector, age: 0, life: 0.4, radius: 0.8 });
           break;
         case 'breach':
           if (event.sector === 'grange') this.barnMoth.knock(this.sim.time);
@@ -1142,10 +1144,12 @@ export class NightScene implements Scene {
           // The mayor is still campaigning; the megaphone carries.
           if (event.kind === 'speech') say(this.mayorBark++ % 2 === 0 ? 'bark_mayor_1' : 'bark_mayor_2');
           break;
-        case 'interrupt':
+        case 'interrupt': {
           audio.play('interrupt');
-          this.particles.push({ kind: 'text', x: event.x, y: event.y, age: 0, life: 0.8, text: '✕', color: '#ffe58a' });
+          const p = doorStance(event.pose);
+          this.particles.push({ kind: 'text', x: p.x, y: p.y, ...(p.threshold && { threshold: p.threshold }), age: 0, life: 0.8, text: '✕', color: '#ffe58a' });
           break;
+        }
         case 'reinforcements':
           audio.play('alert');
           this.banner(fmt(s.night.reinforcements, { sector: s.sector[event.sector] }), 'bad');
@@ -1157,7 +1161,7 @@ export class NightScene implements Scene {
           audio.play('signal_lost');
           this.remark('vo_cam_lost', 60, true);
           this.banner(fmt(s.night.cameraLost, { i: String(SECTOR_IDS.indexOf(event.sector) + 1).padStart(2, '0'), name: s.sector[event.sector] }), 'bad');
-          this.hoverFeedDevice = null;
+          if (event.sector === this.cam) this.hoverFeedDevice = null;
           this.lostAt = this.time;
           this.lastSignalClock = this.cameraTimestamp(this.deskClock());
           this.syncHud(true);
@@ -1421,17 +1425,9 @@ export class NightScene implements Scene {
     for (const device of this.sim.devices) {
       if (device.state === 'broken') continue;
       if (device.type === 'floodlight' && device.state === 'active') {
-        // A warm pool spreads as the lamp comes up. The simulation already counts the light as on.
+        // The lamp warms up across its full working range from the moment it switches on.
         const def = DEVICES.floodlight;
-        const rise = calmMotion() ? 1 : smoothstep(0, 0.42, def.activeSeconds - device.timer);
-        const intensity = 0.38 + 0.62 * rise;
-        const color = (alpha: number): string =>
-          `rgba(255,${Math.round(171 + 73 * rise)},${Math.round(103 + 111 * rise)},${alpha})`;
-        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: def.radius * (0.78 + 0.22 * rise), color: color(1), intensity });
-        const wear = this.defenseMotion.at(device.id);
-        const hitAge = this.sim.time + (this.ending?.t ?? 0) - (wear?.hitAt ?? -Infinity);
-        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.2, color: color(0.6), intensity,
-          ...floodlightEmitter(device.facing, rot, device.hp / def.maxHp, hitAge, wear?.strikes), glow: 1, round: true });
+        lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: def.radius, ...floodlightOutput(def.activeSeconds - device.timer) });
       }
       else if (device.state === 'active') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 1.6, color: 'rgba(255,180,90,0.6)' });
       else if (device.state === 'armed') lights.push({ gx: device.x + 0.5, gy: device.y + 0.5, radius: 0.9, color: 'rgba(255,170,70,0.35)', lift: 20 });

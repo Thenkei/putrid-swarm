@@ -183,8 +183,7 @@ export class DayScene implements Scene {
     y: number;
     moved: boolean;
     pan: boolean;
-    /** Pressed with the secondary button: a press without a drag turns the piece. */
-    secondary: boolean;
+    button: number;
     painted: boolean;
     stopped: boolean;
     /** Last palisade laid by this stroke, to know which way the line runs. */
@@ -698,7 +697,7 @@ export class DayScene implements Scene {
 
   private showDoor(sector: SectorId, audible = true): void {
     const view = cameraView(sector, RECT, this.zoom);
-    this.endFenceStroke();
+    this.drag = null;
     if (audible) audio.play('camera');
     if (this.rot !== view.rot) {
       this.rot = view.rot;
@@ -855,6 +854,7 @@ export class DayScene implements Scene {
 
   private setMode(mode: Mode): void {
     audio.play('click');
+    this.drag = null;
     this.mode = mode;
     // A facing only palisades have does not carry over to a trap.
     if (mode.kind === 'build' && this.facing >= facingsOf(mode.type)) this.facing = 0;
@@ -864,7 +864,7 @@ export class DayScene implements Scene {
 
   private flip(): void {
     audio.play('camera');
-    this.endFenceStroke();
+    this.drag = null;
     this.rot = this.rot === 0 ? 1 : 0;
     this.ghostCache = null;
     this.refreshBuildArt();
@@ -1246,7 +1246,7 @@ export class DayScene implements Scene {
         this.hoverDoor = null;
       } else {
         const visuals = this.state.yard.devices.map(d => dayDeviceVisual(d));
-        const picked = pickDevice(view, visuals, pointer.x, pointer.y);
+        const picked = pickDevice(view, visuals, pointer.x, pointer.y, false, this.state.yard.houseHp / HOUSE_MAX_HP);
         this.hoverDevice = picked ? (this.state.yard.devices.find((d) => d.id === picked.id) ?? null) : null;
         this.hoverDoor = this.hoverDevice ? null : pickDoor(view, pointer.x, pointer.y);
       }
@@ -1269,7 +1269,7 @@ export class DayScene implements Scene {
       y: pointer.y,
       moved: false,
       pan: event.button !== 0 || this.mode.kind === 'idle',
-      secondary: event.button === 2,
+      button: event.button,
       painted: false,
       stopped: false,
       last: null,
@@ -1284,10 +1284,6 @@ export class DayScene implements Scene {
 
   private paintsLine(): boolean {
     return this.mode.kind === 'build' && DEVICES[this.mode.type].blocks;
-  }
-
-  private endFenceStroke(): void {
-    if (this.drag && !this.drag.pan && this.paintsLine()) this.drag = null;
   }
 
   private continueFenceStroke(pointer: Pointer): void {
@@ -1387,8 +1383,8 @@ export class DayScene implements Scene {
     this.updateHover(pointer, drag.moved && drag.pan);
     if (!pointer.overCanvas || !inView(this.view, pointer.x, pointer.y)) return;
     if ((drag.moved && drag.pan) || drag.painted) return;
-    if (drag.secondary) this.turn();
-    else this.click();
+    if (drag.button === 2) this.turn();
+    else if (drag.button === 0) this.click();
   }
 
   onPointerCancel(): void {
@@ -1445,11 +1441,12 @@ export class DayScene implements Scene {
 
   /** Inspect the mailbox or play with the scenery without spending daylight. */
   private poke(): void {
-    if (this.deliverySlip && pickProp(this.view, ['mailbox'], this.app.pointer.x, this.app.pointer.y)) {
+    const health = this.state.yard.houseHp / HOUSE_MAX_HP;
+    if (this.deliverySlip && pickProp(this.view, ['mailbox'], this.app.pointer.x, this.app.pointer.y, health)) {
       this.deliverySlip.open = !this.deliverySlip.open;
       return;
     }
-    const prop = pickProp(this.view, ['car', 'well'], this.app.pointer.x, this.app.pointer.y);
+    const prop = pickProp(this.view, ['car', 'well'], this.app.pointer.x, this.app.pointer.y, health);
     if (this.sceneryAction || (prop !== 'car' && prop !== 'well')) return;
     this.sceneryAction = { kind: prop, startedAt: this.time };
     if (prop === 'car' && this.time - this.hornAt > 4.65) this.hornAt = this.time;
@@ -1466,7 +1463,8 @@ export class DayScene implements Scene {
     this.cy = panLimit(this.cy + before.gy - after.gy, GRID_H);
     this.updateHover(pointer, true);
     // At the pan limits a zoom can put a different tile under the pointer.
-    if (this.hover?.x !== Math.floor(before.gx) || this.hover?.y !== Math.floor(before.gy)) this.endFenceStroke();
+    if (this.drag && !(this.drag.pan && this.drag.moved)
+      && (this.hover?.x !== Math.floor(before.gx) || this.hover?.y !== Math.floor(before.gy))) this.drag = null;
   }
 
   onKeyDown(code: string): void {
