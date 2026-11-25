@@ -3,7 +3,7 @@
 
 import { BARRICADE, DEVICES } from '../core/data/devices';
 import { PARKED } from '../core/car-path';
-import { ENTRIES, GRID_H, GRID_W, HOUSE_CENTER, PROPS, propAt, sectorOf, type PropKind } from '../core/map';
+import { ENTRIES, GRID_H, GRID_W, HOUSE_CENTER, PROPS, propAt, sectorOf, type Prop, type PropKind } from '../core/map';
 import type { DeviceRuntimeState, Enemy, LogTarget, NightSim } from '../core/night';
 import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
@@ -13,20 +13,20 @@ import { drawPinnedInvoice } from './pinned-invoice';
 import { whistleDrawable } from './fallen-whistle';
 import sillCamperUrl from '../assets/camper-sill-figure.webp';
 import { paintingImage, preparePaintings, sprite, type Sprite } from '../engine/assets';
-import { defensePaintMatrix, deviceArt, deviceLean, devicePose, doorPose, drawDefense, drawDeviceCast, logAim, type DefenseArt, type DefenseMotion, type LogLayer } from './defenses';
-import { drawDecals } from './aftermath';
+import { defensePaintMatrix, deviceArt, deviceLean, devicePose, doorPose, drawDefense, drawDeviceCast, floodlightEmitter, logAim, logLayerDepth, stillLogLayer, type DefenseArt, type DefenseMotion, type LogLayer } from './defenses';
+import { drawDecals, drawDoorstepDecals, type DoorstepDecals } from './aftermath';
 import { drawEnemy, drawFallen, FALL_SECONDS, type Fallen } from './infected';
 import { drawGround, drawWoodlandShade, prepareGround, setGroundDresser } from './ground';
 import { barnLamp, curtainShadow, type IndoorPassage, type BarnMoth } from './house-reactions';
 import type { GateHedge } from './gate-hedge';
 import { foxHedge } from './fox-passage';
-import { DOOR_OPENINGS, VISIBLE_DOORS, damagedFacade, doorStance, hingedLeaves, houseDamageStage, outsideSillDepth, paintHouse, type HouseDoor } from './house';
+import { DOOR_OPENINGS, THRESHOLDS, VISIBLE_DOORS, damagedFacade, doorStance, facadeForStage, hingedLeaves, houseDamageStage, outsideSillDepth, paintHouse, type HouseDoor } from './house';
 import { drawMopedScorch, mopedRideDrawable, mopedStruckPose } from './moped';
 import { drawMopedTracks, mopedParkingSpot, parkedMopedDrawable, trackOpacity, type ParkedMoped } from './parked-moped';
 import { mopedPath, type PackTrail } from '../core/epics';
 import { yardPackTrail } from './pack-tracks';
 import { drawHouseDebris, type HouseBreak } from './house-debris';
-import { calmMotion, drawCloudShadows, drawMist, type Light } from './lighting';
+import { calmMotion, drawCloudShadows, drawLampHalo, drawMist, floodlightOutput, type Light } from './lighting';
 import { hash2, smoothstep } from './noise';
 import { TH, TW, depthOf, groundMatrix, inView, project, unproject, viewX, viewY, type Rot, type View } from './projection';
 import { BOTTOM_CENTRE, HOUSE_PAINT_SCALE, houseOffset, propMount, propRoot, spriteRect, type Foot } from './registration';
@@ -83,6 +83,7 @@ export interface Particle {
   kind: 'burst' | 'dust' | 'ring' | 'text';
   x: number;
   y: number;
+  threshold?: SectorId;
   age: number;
   life: number;
   radius?: number;
@@ -282,20 +283,17 @@ function drawLitDoorway(ctx: CanvasRenderingContext2D, sector: SectorId, age: nu
 /** Light leaks through the painted panes and falls on the yard below the firing room. */
 export function indoorShotLights(rot: Rot, sector: SectorId, age: number, reducedMotion: boolean): Light[] {
   const pulse = shotEnvelope(age, reducedMotion);
-  if (!pulse) return [];
-  const near = VISIBLE_DOORS[rot].includes(sector);
-  const intensity = (near ? 1 : .68) * pulse;
+  if (!pulse || !VISIBLE_DOORS[rot].includes(sector)) return [];
   const lamps = HOUSE_ART[rot].lamps;
   const window = sector === 'portail' || sector === 'arriere' ? lamps[0]! : lamps[1]!;
-  const face = near ? sector : VISIBLE_DOORS[rot][0]!;
-  const sill = ENTRIES[face];
-  const door = DOOR_OPENINGS[face];
+  const sill = THRESHOLDS[sector];
+  const door = DOOR_OPENINGS[sector];
   return [
     { gx: HOUSE_CENTER.x, gy: HOUSE_CENTER.y, ...houseOffset(rot, window.x, window.y),
-      radius: 3.4, glow: 1, round: true, color: 'rgba(255,217,139,.95)', intensity },
+      radius: 3.4, glow: 1, round: true, color: 'rgba(255,217,139,.95)', intensity: pulse },
     { gx: HOUSE_CENTER.x, gy: HOUSE_CENTER.y, ...houseOffset(rot, door.x + door.w / 2, door.y + (door.h + door.rise) / 2),
-      radius: 2.7, glow: .9, round: true, color: 'rgba(255,177,82,.85)', intensity },
-    { gx: sill.x + .5, gy: sill.y + .5, radius: 3.2, color: 'rgba(255,163,76,.8)', intensity: intensity * .8 },
+      radius: 2.7, glow: .9, round: true, color: 'rgba(255,177,82,.85)', intensity: pulse },
+    { gx: sill.gx, gy: sill.gy, radius: 3.2, color: 'rgba(255,163,76,.8)', intensity: pulse * .8 },
   ];
 }
 
@@ -320,6 +318,9 @@ const DEVICE_CAST: Readonly<Record<DeviceTypeId, number>> = {
 
 /** Things with leaves, which the wind moves. */
 const SWAYS: ReadonlySet<PropKind> = new Set<PropKind>(['apple', 'oak', 'bush']);
+
+const houseDepth = (rot: Rot): number => depthOf(rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.2;
+const propDepth = (rot: Rot, gx: number, gy: number): number => depthOf(rot, gx, gy) + 0.4;
 
 // ───────────────────────────── Drawing helpers ─────────────────────────────
 
@@ -537,6 +538,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   const sightlines: { x: number; y: number; depth: number; presence: number }[] = [];
   const hit = frame.mopedRide?.contact;
   const contact = hit && frame.time - hit.at < FALL_SECONDS ? hit : undefined;
+  const doorsteps: DoorstepDecals = {};
   const actors = frame.enemies.filter(e => e.alive).map(e => mopedStruckPose(doorStance(e), contact, frame.time));
   const bodies = contact ? frame.fallen?.map(body => mopedStruckPose(body, contact, frame.time)) : frame.fallen;
   if (frame.night) {
@@ -602,7 +604,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const side = HOUSE_ART[view.rot];
     const root = project(view, HOUSE_CENTER.x, HOUSE_CENTER.y);
     const art = sprite(side.key);
-    const depth = depthOf(view.rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.2;
+    const depth = houseDepth(view.rot);
     drawables.push({
       depth,
       draw: () => {
@@ -612,6 +614,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           const left = root.x + origin.dx * z;
           const top = root.y - origin.lift * z;
           paintHouse(ctx, view.rot, side.key, art, left, top, w, frame.houseHpRatio, frame.barricades, frame.houseDoor);
+          drawDoorstepDecals(ctx, view, doorsteps);
           if (frame.indoorShot && VISIBLE_DOORS[view.rot].includes(frame.indoorShot.sector)) {
             drawLitDoorway(ctx, frame.indoorShot.sector, frame.indoorShot.age, left, top, w / art.w);
           }
@@ -640,6 +643,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           }
         } else {
           placeholder(ctx, root.x, root.y, 240 * z, 200 * z, '#8a6a47', 'house');
+          drawDoorstepDecals(ctx, view, doorsteps);
         }
       },
     });
@@ -656,7 +660,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const p = project(view, gx, gy);
     const { foot, fit } = art;
     const key = propSpriteKey(prop.kind, view.rot);
-    const centreDepth = depthOf(view.rot, gx, gy) + 0.4;
+    const centreDepth = propDepth(view.rot, gx, gy);
     if (frame.homesteadLife) {
       if (prop.kind === 'woodpile') drawSquirrelCache(ctx, prop, view, frame.homesteadLife, frame.time, calmMotion());
       const visitor = groundLifeDrawable(ctx, prop, view, frame.homesteadLife, frame.time, calmMotion());
@@ -775,10 +779,9 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       // The outer planted feet span the crossing. An actor keeps its own ground
       // depth as it passes the far frame, the suspended timber, then the near legs.
       const art = deviceArt('log', device.facing, 'armed', view.rot);
-      const atFoot = (y: number) => depth + (y / 200 - art.foot[1]) * art.h / (TH / 2);
       drawables.push(
-        { depth: atFoot(view.rot === 0 ? 143 : 140), draw: () => drawDevice(ctx, view, frame, device, p, 'far') },
-        { depth: atFoot(view.rot === 0 ? 196 : 198), draw: () => drawDevice(ctx, view, frame, device, p, 'near') },
+        { depth: logLayerDepth(depth, art, 'far'), draw: () => drawDevice(ctx, view, frame, device, p, 'far') },
+        { depth: logLayerDepth(depth, art, 'near'), draw: () => drawDevice(ctx, view, frame, device, p, 'near') },
       );
     } else drawables.push({ depth: depth + 0.3, draw: () => drawDevice(ctx, view, frame, device, p) });
     contacts.push({ gx: device.x + 0.5, gy: device.y + 0.5, rx: 0.56, ry: 0.56, alpha: device.type === 'fence' ? 0.3 : broken ? 0.3 : 0.42 });
@@ -850,7 +853,9 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   // Particles that stand up from the ground.
   for (const particle of frame.particles) {
     if (particle.kind === 'ring') continue;
-    drawables.push({ depth: depthOf(view.rot, particle.x, particle.y) + 0.6, draw: () => drawParticle(ctx, view, particle) });
+    let depth = depthOf(view.rot, particle.x, particle.y) + 0.6;
+    if (particle.threshold && VISIBLE_DOORS[view.rot].includes(particle.threshold)) depth = Math.max(depth, outsideWall);
+    drawables.push({ depth, draw: () => drawParticle(ctx, view, particle) });
   }
   const addLeaves = (leaves: Iterable<YardLeaf>, withContactShadows = false) => {
     for (const leaf of leaves) {
@@ -877,7 +882,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   ctx.restore();
   for (const cast of casts) cast();
 
-  drawDecals(ctx, view, frame.decals);
+  drawDecals(ctx, view, frame.decals, doorsteps);
   if (frame.mopedWreck) drawMopedScorch(ctx, view, frame.mopedWreck);
   if (frame.packTrail) yardPackTrail(ctx, view, frame.packTrail);
   if (frame.departingCar) drawHeadlightPools(ctx, view, frame.departingCar);
@@ -1263,6 +1268,7 @@ function barricadeDrawables(ctx: CanvasRenderingContext2D, view: View, frame: Wo
 }
 
 const PIP_LIFT = 9;
+const PIP_CORE_RADIUS = 3;
 const TRAP_KEY = { x: 12, lift: 9, size: 16, cueScale: 1.10 };
 
 /** Vertical bounds of the fitted painting, relative to its cell centre at zoom 1. */
@@ -1305,6 +1311,13 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   if (device.repairPreview) ctx.restore();
   if (logLayer === 'far') return;
   if (!drawn) placeholder(ctx, p.x, baseY, 34 * z, 34 * z, state === 'broken' ? '#4a3a2a' : '#b98a3a', device.type);
+  if (drawn && frame.night && device.type === 'floodlight' && device.state === 'active') {
+    // The fixture's own glow disappears behind foreground scenery with its painted bulb.
+    const wear = frame.defenseMotion?.at(device.id);
+    const bulb = floodlightEmitter(device.facing, view.rot, device.hpRatio, frame.time - (wear?.hitAt ?? -Infinity), wear?.strikes);
+    const power = floodlightOutput(device.activeAge ?? 0).intensity * (1 - .92 * sunlight(frame.sunriseAge));
+    drawLampHalo(ctx, p.x + bulb.dx * z, baseY - bulb.lift * z, 35 * z, .65 * power);
+  }
 
   const bounds = deviceBounds(art);
   if (device.type !== 'fence' && device.hpRatio < 0.999 && state !== 'broken') {
@@ -1334,7 +1347,7 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
   if (device.state === 'active') {
     // The solid centre covers the instant of release; the outer arc runs down while deployed.
     const left = Math.max(0, 1 - (device.activeAge ?? 0) / DEVICES[device.type].activeSeconds);
-    ctx.beginPath(); ctx.arc(p.x, pipY, 3 * z, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(p.x, pipY, PIP_CORE_RADIUS * z, 0, Math.PI * 2);
     ctx.fillStyle = '#e5f5cd'; ctx.fill();
     ctx.beginPath(); ctx.arc(p.x, pipY, 5.5 * z, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left);
     ctx.strokeStyle = '#cde8b8'; ctx.lineWidth = 1.4 * z; ctx.stroke();
@@ -1345,7 +1358,7 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
     else if (device.state !== 'active') {
       ctx.fillStyle = device.state === 'armed' ? 'rgba(150,220,235,0.9)' : 'rgba(90,100,104,0.9)';
       ctx.beginPath();
-      ctx.arc(p.x, pipY, 3 * z, 0, Math.PI * 2);
+      ctx.arc(p.x, pipY, PIP_CORE_RADIUS * z, 0, Math.PI * 2);
       ctx.fill();
       if (device.state === 'rearming') {
         ctx.strokeStyle = '#cfd6d0';
@@ -1545,20 +1558,20 @@ function drawTopOverlays(ctx: CanvasRenderingContext2D, view: View, frame: World
 
 // ───────────────────────────── Picking ─────────────────────────────
 
-const pickMasks = new WeakMap<HTMLImageElement, ImageData>();
+const pickMasks = new WeakMap<CanvasImageSource, ImageData>();
 
-function paintedPixel(art: Sprite, u: number, v: number): boolean {
+function paintedPixel(art: Sprite, u: number, v: number, source: CanvasImageSource = art.img, width = 64): boolean {
   if (u < 0 || v < 0 || u >= 1 || v >= 1) return false;
-  let mask = pickMasks.get(art.img);
+  let mask = pickMasks.get(source);
   if (!mask) {
     const surface = document.createElement('canvas');
-    surface.width = 64;
-    surface.height = Math.max(1, Math.round(64 * art.h / art.w));
+    surface.width = width;
+    surface.height = Math.max(1, Math.round(width * art.h / art.w));
     const context = surface.getContext('2d');
     if (!context) return false;
-    context.drawImage(art.img, 0, 0, surface.width, surface.height);
+    context.drawImage(source, 0, 0, surface.width, surface.height);
     mask = context.getImageData(0, 0, surface.width, surface.height);
-    pickMasks.set(art.img, mask);
+    pickMasks.set(source, mask);
   }
   const index = Math.floor(v * mask.height) * mask.width + Math.floor(u * mask.width);
   return mask.data[4 * index + 3]! > 64;
@@ -1567,7 +1580,7 @@ function paintedPixel(art: Sprite, u: number, v: number): boolean {
 let poseSample: CanvasRenderingContext2D | null | undefined;
 
 /** An operating mechanism can move outside its source painting. Sample only the pointer pixel. */
-function movingPixel(device: DeviceVisual, view: View, p: { x: number; y: number }, art: DefenseArt, dx: number, dy: number): boolean {
+function movingPixel(device: DeviceVisual, view: View, p: { x: number; y: number }, art: DefenseArt, dx: number, dy: number, logLayer?: LogLayer): boolean {
   if (poseSample === undefined) {
     const surface = document.createElement('canvas');
     surface.width = surface.height = 1;
@@ -1576,16 +1589,16 @@ function movingPixel(device: DeviceVisual, view: View, p: { x: number; y: number
   if (!poseSample) return false;
   poseSample.clearRect(0, 0, 1, 1);
   drawDefense(poseSample, 0.5 - dx * view.zoom, 0.5 - dy * view.zoom, view.zoom, {
-    ...device, kind: device.type, rot: view.rot, art, time: 0, motion: undefined,
+    ...device, kind: device.type, rot: view.rot, art, time: 0, motion: undefined, ...(logLayer && { logLayer }),
     previous: pose => deviceArt(device.type, device.facing, pose, view.rot),
     ...(device.logTarget && { aim: logAim(view, p, art, device.logTarget, false, device.hpRatio) }),
   });
   return poseSample.getImageData(0, 0, 1, 1).data[3]! > 64;
 }
 
-function devicePixel(device: DeviceVisual, view: View, p: { x: number; y: number }, art: DefenseArt, dx: number, dy: number): boolean {
+function devicePixel(device: DeviceVisual, view: View, p: { x: number; y: number }, art: DefenseArt, dx: number, dy: number, logLayer?: LogLayer): boolean {
   const image = sprite(art.key);
-  if (!image) return dx * dx + (dy + 17) ** 2 <= 17 ** 2;
+  if (!image) return logLayer !== 'far' && dx * dx + (dy + 17) ** 2 <= 17 ** 2;
   if (device.state === 'active' || device.state === 'rearming') {
     // Allow one painting around the rig and the path to an aimed log's victim.
     const reach = art.h * Math.max(1, image.w / image.h) + 8;
@@ -1593,7 +1606,7 @@ function devicePixel(device: DeviceVisual, view: View, p: { x: number; y: number
     const tx = (target.x - p.x) / view.zoom, ty = (target.y - p.y) / view.zoom;
     if (dx < Math.min(0, tx) - reach || dx > Math.max(0, tx) + reach ||
         dy < Math.min(0, ty) - reach || dy > Math.max(0, ty) + reach) return false;
-    return movingPixel(device, view, p, art, dx, dy);
+    return movingPixel(device, view, p, art, dx, dy, logLayer);
   }
   let localX = art.flip ? -dx : dx, localY = dy;
   if (device.type !== 'fence' && device.hpRatio > 0 && device.hpRatio < 0.64) {
@@ -1603,57 +1616,96 @@ function devicePixel(device: DeviceVisual, view: View, p: { x: number; y: number
   }
   const [a, b, , d, e, f] = defensePaintMatrix(art, image.w / image.h);
   const x = (localX - e) / a;
-  return paintedPixel(image, x / 200, (localY - f - b * x) / (200 * d));
+  const u = x / 200, v = (localY - f - b * x) / (200 * d);
+  if (!logLayer) return paintedPixel(image, u, v);
+  if (u < 0 || v < 0 || u >= 1 || v >= 1) return false;
+  const source = stillLogLayer(art, image, image.img, logLayer);
+  // Keep single-pixel ropes on the correct side of the crossing.
+  return !!source && paintedPixel(image, u, v, source, image.w);
 }
 
 /** Visible paint and controls receive the pointer in painter's order, then the occupied ground tile. */
-export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: number, sy: number, nightControls = false): DeviceVisual | null {
+export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: number, sy: number, nightControls = false, houseHpRatio = 1): DeviceVisual | null {
   if (!inView(view, sx, sy)) return null;
   let best: DeviceVisual | null = null;
   let bestDepth = -Infinity;
   for (const device of devices) {
-    const depth = depthOf(view.rot, device.x, device.y);
-    if (depth < bestDepth) continue;
     const art = deviceArt(device.type, device.facing, devicePose(device), view.rot);
+    const centre = depthOf(view.rot, device.x + 0.5, device.y + 0.5);
+    const splitLog = device.type === 'log' && device.state !== 'broken';
+    let depth = splitLog ? logLayerDepth(centre, art, 'near') : centre + 0.3;
+    if (depth < bestDepth) continue;
     const p = project(view, device.x + 0.5, device.y + 0.5);
     const dx = (sx - p.x) / view.zoom, dy = (sy - p.y) / view.zoom;
     let control = false;
-    if (nightControls && DEVICES[device.type].mode === 'manual') {
+    const mode = DEVICES[device.type].mode;
+    if (nightControls && mode !== 'passive') {
       const pipY = deviceBounds(art).top - PIP_LIFT;
       const grow = device.cue ? TRAP_KEY.cueScale : 1;
       const half = TRAP_KEY.size * grow / 2;
-      control = Math.hypot(dx, dy - pipY) <= 7 || (!!device.label && device.state !== 'broken'
+      const pipRadius = mode === 'manual' ? 7 : device.state === 'armed' || device.state === 'idle' ? PIP_CORE_RADIUS : 6;
+      control = Math.hypot(dx, dy - pipY) <= pipRadius || (!!device.label && device.state !== 'broken'
         && Math.abs(dx - TRAP_KEY.x) <= half && Math.abs(dy - (pipY - TRAP_KEY.lift * grow)) <= half);
     }
-    if (!control && !devicePixel(device, view, p, art, dx, dy)) continue;
+    if (!control && !devicePixel(device, view, p, art, dx, dy, splitLog ? 'near' : undefined)) {
+      if (!splitLog) continue;
+      depth = logLayerDepth(centre, art, 'far');
+      if (depth < bestDepth || !devicePixel(device, view, p, art, dx, dy, 'far')) continue;
+    }
     bestDepth = depth;
     best = device;
   }
-  if (best) return best;
+  if (best && !behindScenery(view, sx, sy, bestDepth, houseHpRatio)) return best;
   const g = unproject(view, sx, sy);
-  return devices.find((d) => d.x === Math.floor(g.gx) && d.y === Math.floor(g.gy)) ?? null;
+  const tile = devices.find(d => d.x === Math.floor(g.gx) && d.y === Math.floor(g.gy));
+  if (!tile || behindScenery(view, sx, sy, depthOf(view.rot, g.gx, g.gy), houseHpRatio)) return null;
+  return tile;
+}
+
+function propPaintedAt(view: View, prop: Prop, sx: number, sy: number): boolean {
+  const art = sprite(propSpriteKey(prop.kind, view.rot));
+  if (!art) return false;
+  const mount = propMount(prop.kind, view.rot, PROP_ART[prop.kind].h);
+  const root = propRoot(view, prop);
+  const h = mount.h * view.zoom, w = h * art.w / art.h;
+  const dx = sx - root.x, dy = sy - root.y;
+  const u = mount.foot[0] + dx / w;
+  const v = mount.foot[1] + (dy - dx * (mount.fit?.shearY ?? 0)) / ((mount.fit?.scaleY ?? 1) * h);
+  return paintedPixel(art, u, v);
+}
+
+/** Solid scenery covers devices behind it. Swaying canopies fade to reveal yard targets. */
+function behindScenery(view: View, sx: number, sy: number, depth: number, houseHpRatio: number): boolean {
+  if (depth < houseDepth(view.rot)) {
+    const key = HOUSE_ART[view.rot].key;
+    const art = sprite(key);
+    if (art) {
+      const root = project(view, HOUSE_CENTER.x, HOUSE_CENTER.y);
+      const origin = houseOffset(view.rot, 0, 0);
+      const u = ((sx - root.x) / view.zoom - origin.dx) / (art.w * HOUSE_PAINT_SCALE);
+      const v = ((sy - root.y) / view.zoom + origin.lift) / (art.h * HOUSE_PAINT_SCALE);
+      if (u >= 0 && u < 1 && v >= 0 && v < 1
+        && paintedPixel(art, u, v, facadeForStage(view.rot, key, art, houseDamageStage(houseHpRatio)))) return true;
+    }
+  }
+  return PROPS.some(prop => !SWAYS.has(prop.kind)
+    && depth < propDepth(view.rot, prop.x + prop.w / 2, prop.y + prop.h / 2)
+    && propPaintedAt(view, prop, sx, sy));
 }
 
 /** The painted silhouettes receive clicks as well as their original ground footprints. */
-export function pickProp(view: View, kinds: readonly PropKind[], sx: number, sy: number): PropKind | null {
+export function pickProp(view: View, kinds: readonly PropKind[], sx: number, sy: number, houseHpRatio = 1): PropKind | null {
   if (!inView(view, sx, sy)) return null;
   let picked: PropKind | null = null, front = -Infinity;
   for (const prop of PROPS) {
     if (!kinds.includes(prop.kind)) continue;
-    const art = sprite(propSpriteKey(prop.kind, view.rot));
-    if (!art) continue;
-    const mount = propMount(prop.kind, view.rot, PROP_ART[prop.kind].h);
-    const root = propRoot(view, prop);
-    const h = mount.h * view.zoom, w = h * art.w / art.h;
-    const dx = sx - root.x, dy = sy - root.y;
-    const u = mount.foot[0] + dx / w;
-    const v = mount.foot[1] + (dy - dx * (mount.fit?.shearY ?? 0)) / ((mount.fit?.scaleY ?? 1) * h);
-    const depth = depthOf(view.rot, prop.x + prop.w / 2, prop.y + prop.h / 2);
-    if (depth > front && paintedPixel(art, u, v)) { picked = prop.kind; front = depth; }
+    const depth = propDepth(view.rot, prop.x + prop.w / 2, prop.y + prop.h / 2);
+    if (depth > front && propPaintedAt(view, prop, sx, sy)) { picked = prop.kind; front = depth; }
   }
-  if (picked) return picked;
+  if (picked && !behindScenery(view, sx, sy, front, houseHpRatio)) return picked;
   const g = unproject(view, sx, sy);
-  return propAt(g.gx, g.gy, kinds);
+  const tile = propAt(g.gx, g.gy, kinds);
+  return tile && !behindScenery(view, sx, sy, depthOf(view.rot, g.gx, g.gy), houseHpRatio) ? tile : null;
 }
 
 /** Which door, if any, is under the pointer (for daytime repairs). */

@@ -12,6 +12,7 @@ import type { Ally } from './radio';
 import { computeField, nextStep, type Field } from './pathing';
 import { mopedImpact, mopedPath, MOPED_BLAST_RADIUS, MOPED_EXIT_SECONDS, MOPED_RUN_SECONDS } from './epics';
 import { createRng, type Rng } from './rng';
+import { DOOR_REACH, doorStance } from '../house-layout';
 import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, NeighborId, NightHighlight, NightReport, Result, SectorId, TrapTally, YardState } from './types';
 import { SECTOR_IDS, err, ok } from './types';
 
@@ -154,7 +155,7 @@ export type SimEvent = (
   | { readonly type: 'desk_return' }
   | { readonly type: 'entered'; readonly sector: SectorId; readonly enemy: EnemyTypeId; readonly damage: number }
   | { readonly type: 'telegraph'; readonly kind: TelegraphKind; readonly enemyId: number; readonly x: number; readonly y: number; readonly sector: SectorId; readonly seconds: number }
-  | { readonly type: 'interrupt'; readonly x: number; readonly y: number }
+  | { readonly type: 'interrupt'; readonly x: number; readonly y: number; readonly pose: EnemyImpact }
   | { readonly type: 'registered_letter'; readonly stage: 'knock' | 'waiting' | 'delivered' | 'missed' }
   | { readonly type: 'reinforcements'; readonly sector: SectorId }
   | { readonly type: 'jump'; readonly x: number; readonly y: number }
@@ -244,7 +245,7 @@ const CORNER_AFTER: Readonly<Record<SectorId, Cell>> = {
 };
 const nextSector = (sector: SectorId): SectorId => SECTOR_CYCLE[(SECTOR_CYCLE.indexOf(sector) + 1) % SECTOR_CYCLE.length] as SectorId;
 
-export const DOOR_REACH = 1.3;
+export { DOOR_REACH };
 const FENCE_BLOW_FACTOR = 2.5;
 const TRAMPLE_DAMAGE = 45;
 const LURE_GNAW_DPS = 2;
@@ -1403,7 +1404,7 @@ export class NightSim {
     e.boss.phase = 'jam';
     e.boss.timer = BOSS.mower.jamSeconds;
     e.action = 'jam';
-    this.events.push({ type: 'interrupt', x: e.x, y: e.y });
+    this.events.push({ type: 'interrupt', x: e.x, y: e.y, pose: impactPose(e) });
   }
 
   private updateMail(e: Enemy, boss: BossRuntime, dt: number): void {
@@ -1524,7 +1525,7 @@ export class NightSim {
     }
     if (wasWinding) {
       e.cooldown = Math.max(e.cooldown, 1.2);
-      this.events.push({ type: 'interrupt', x: e.x, y: e.y });
+      this.events.push({ type: 'interrupt', x: e.x, y: e.y, pose: impactPose(e) });
     }
   }
 
@@ -1639,7 +1640,10 @@ export class NightSim {
     e.alive = false;
     this.kills[e.type] = (this.kills[e.type] ?? 0) + 1;
     this.killCount++;
-    const stain = this.addDecal('splat', Math.floor(e.x), Math.floor(e.y));
+    const foot = doorStance(pose);
+    const stain = this.addDecal('splat', Math.floor(e.x), Math.floor(e.y), {
+      x: foot.x, y: foot.y, ...(foot.threshold && { threshold: foot.threshold }),
+    });
     this.events.push({ type: 'enemy_dead', id: e.id, enemy: type, x, y, fx, fy, pose, ...(stain && { stain }) });
     if (e.def.boss) {
       this.bossDefeated = e.def.boss;
@@ -1703,9 +1707,9 @@ export class NightSim {
     e.y = ny;
   }
 
-  private addDecal(kind: Decal['kind'], x: number, y: number): Decal | undefined {
+  private addDecal(kind: Decal['kind'], x: number, y: number, at?: Decal['at']): Decal | undefined {
     if (this.decals.some((d) => d.kind === kind && d.x === x && d.y === y)) return;
-    const decal = { kind, x, y };
+    const decal = { kind, x, y, ...(at && { at }) };
     this.decals.push(decal);
     // Mown strips are the joke: they outlive the stains.
     while (this.decals.length > MAX_DECALS) {

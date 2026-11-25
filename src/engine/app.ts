@@ -58,6 +58,7 @@ export class App {
   private fadeTarget = 0;
   private pendingScene: (() => Scene) | null = null;
   private canvasPointer: number | null = null;
+  private clientPointer: { x: number; y: number } | null = null;
 
   constructor() {
     this.canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -74,10 +75,10 @@ export class App {
     this.resize();
 
     const toStage = (event: PointerEvent | WheelEvent): void => {
-      const rect = this.stage.getBoundingClientRect();
-      this.pointer.x = (event.clientX - rect.left) / this.scale;
-      this.pointer.y = (event.clientY - rect.top) / this.scale;
-      this.pointer.overCanvas = event.target === this.canvas;
+      // A mouse cursor stays on screen when the viewport changes. A touch ends with its gesture.
+      this.clientPointer = event instanceof PointerEvent && event.pointerType === 'touch'
+        ? null : { x: event.clientX, y: event.clientY };
+      this.locatePointer(event.clientX, event.clientY, event.target);
     };
     this.canvas.addEventListener('pointerdown', (event) => {
       if (this.pendingScene || !event.isPrimary || this.canvasPointer !== null) return;
@@ -122,6 +123,7 @@ export class App {
     });
     window.addEventListener('keyup', (event) => this.scene?.onKeyUp?.(event.code, event));
     const blur = () => {
+      this.clientPointer = null;
       this.cancelPointer();
       this.scene?.onBlur?.();
     };
@@ -140,13 +142,27 @@ export class App {
     this.scene?.onPointerCancel?.();
   }
 
+  private locatePointer(clientX: number, clientY: number, target: EventTarget | null): void {
+    const rect = this.stage.getBoundingClientRect();
+    this.pointer.x = (clientX - rect.left) / this.scale;
+    this.pointer.y = (clientY - rect.top) / this.scale;
+    this.pointer.overCanvas = target === this.canvas;
+  }
+
   private resize(): void {
+    // Stage coordinates change under a held button. Reframe without committing the old gesture.
+    this.cancelPointer();
     this.scale = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
     this.stage.style.setProperty('--stage-scale', String(this.scale));
     this.stage.style.transform = `translate(-50%, -50%) scale(${this.scale})`;
     this.dpr = Math.min(2, Math.max(1, (window.devicePixelRatio || 1) * Math.min(1.5, this.scale)));
     this.canvas.width = Math.round(STAGE_W * this.dpr);
     this.canvas.height = Math.round(STAGE_H * this.dpr);
+    if (this.clientPointer) {
+      const { x, y } = this.clientPointer;
+      this.locatePointer(x, y, document.elementFromPoint(x, y));
+      if (!this.pendingScene) this.scene?.onPointerMove?.(this.pointer);
+    }
   }
 
   /** Device pixels per stage unit; offscreen layers use it to stay sharp. */

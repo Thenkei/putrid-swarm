@@ -6,7 +6,7 @@
 // cameras show the same mist in the same place, and a paused night stands still.
 
 import { periodicFbm, smoothstep, valueNoise } from './noise';
-import { TW, groundMatrix, project, viewBounds, type View } from './projection';
+import { TH, TW, groundMatrix, project, viewBounds, type View } from './projection';
 
 export interface Light {
   readonly gx: number;
@@ -45,6 +45,11 @@ const waver = (time: number, seed: number): number => valueNoise(time * 5.5, see
 function lightPoint(view: View, light: Light): { x: number; y: number } {
   const p = project(view, light.gx, light.gy);
   return { x: p.x + (light.dx ?? 0) * view.zoom, y: p.y - (light.lift ?? 0) * view.zoom };
+}
+
+export function floodlightOutput(age: number) {
+  const rise = calmMotion() ? 1 : smoothstep(0, .42, age);
+  return { intensity: .38 + .62 * rise, color: `rgb(255,${Math.round(171 + 73 * rise)},${Math.round(103 + 111 * rise)})` };
 }
 
 // ───────────────────────────── Night ─────────────────────────────
@@ -100,7 +105,7 @@ export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: re
     lctx.save();
     lctx.globalAlpha = (light.intensity ?? 1) * (1 - dip * 0.45) * (1 - sunrise * .92);
     lctx.translate(x, y);
-    lctx.scale(1, light.round ? 0.9 : 0.62);
+    lctx.scale(1, light.round ? 0.9 : TH / TW);
     const gradient = lctx.createRadialGradient(0, 0, 0, 0, 0, rx);
     gradient.addColorStop(0, light.color);
     gradient.addColorStop(1, 'rgba(0,0,0,0)');
@@ -120,12 +125,23 @@ export function applyNight(ctx: CanvasRenderingContext2D, view: View, lights: re
   ctx.restore();
 }
 
-/** The lamps themselves: a small bright halo on each visible source, added over the picture. */
+/** The lamps themselves: a small bright halo on each visible source. */
 const DEFAULT_TWILIGHT = [0.55, 0.95] as const;
+
+export function drawLampHalo(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, peak: number): void {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const halo = ctx.createRadialGradient(x, y, 0, x, y, radius);
+  halo.addColorStop(0, `rgba(255, 214, 150, ${peak})`);
+  halo.addColorStop(0.4, `rgba(255, 170, 90, ${peak * 0.38})`);
+  halo.addColorStop(1, 'rgba(255, 150, 60, 0)');
+  ctx.fillStyle = halo;
+  ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  ctx.restore();
+}
 
 function drawGlows(ctx: CanvasRenderingContext2D, view: View, lights: readonly Light[], time: number, dusk?: number, lampVisibility = 1): void {
   const still = calmMotion();
-  ctx.globalCompositeOperation = 'lighter';
   for (const light of lights) {
     if (!light.glow) continue;
     const strength = dusk === undefined ? 1 : smoothstep(...(light.twilight ?? DEFAULT_TWILIGHT), dusk);
@@ -134,15 +150,9 @@ function drawGlows(ctx: CanvasRenderingContext2D, view: View, lights: readonly L
     const dip = light.flicker && !still ? light.flicker * waver(time, light.gx * 3.1 + light.gy * 5.7 + (light.dx ?? 0)) : 0;
     const r = (9 + 26 * light.glow) * view.zoom;
     if (p.x < view.x - r || p.y < view.y - r || p.x > view.x + view.w + r || p.y > view.y + view.h + r) continue;
-    const halo = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
     const peak = (0.2 + 0.36 * light.glow) * strength * (light.intensity ?? 1) * (1 - dip * 0.5) * lampVisibility;
-    halo.addColorStop(0, `rgba(255, 214, 150, ${peak})`);
-    halo.addColorStop(0.4, `rgba(255, 170, 90, ${peak * 0.38})`);
-    halo.addColorStop(1, 'rgba(255, 150, 60, 0)');
-    ctx.fillStyle = halo;
-    ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
+    drawLampHalo(ctx, p.x, p.y, r, peak);
   }
-  ctx.globalCompositeOperation = 'source-over';
 }
 
 // ───────────────────────────── Day ─────────────────────────────

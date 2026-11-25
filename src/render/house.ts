@@ -1,13 +1,12 @@
 import type { SectorId } from '../core/types';
-import { ENTRIES, HOUSE_CENTER } from '../core/map';
-import { DOOR_REACH, type EnemyImpact } from '../core/night';
+import { HOUSE_CENTER } from '../core/map';
 import { paintingImage, sprite, type Sprite } from '../engine/assets';
-import { depthOf, project, unproject, type Rot, type View } from './projection';
+import { depthOf, project, type Rot, type View } from './projection';
 import { HOUSE_PAINT_SCALE } from './registration';
-import { DOOR_OPENINGS, DOOR_OUTWARD, THRESHOLDS, VISIBLE_DOORS } from '../house-layout';
+import { DOOR_OPENINGS, THRESHOLDS, VISIBLE_DOORS } from '../house-layout';
 import { smoothstep } from './noise';
 
-export { DOOR_OPENINGS, DOOR_OUTWARD, THRESHOLDS, VISIBLE_DOORS } from '../house-layout';
+export { DOOR_OPENINGS, DOOR_OUTWARD, THRESHOLDS, VISIBLE_DOORS, doorStance } from '../house-layout';
 
 const worn = new Map<Rot, HTMLCanvasElement>();
 const exposedInteriors = new Map<Rot, HTMLCanvasElement>();
@@ -281,26 +280,4 @@ export function paintHouse(ctx: CanvasRenderingContext2D, rot: Rot, key: string,
     launchOpening(ctx, door.sector, door.open, image, barricades[door.sector].hp > 0);
   }
   ctx.restore();
-}
-
-
-/** The simulation resolves a bite within a radius around the entry cell. Carry the last step
- * to the painted boards, leaving pathfinding, collision and trap targeting in simulation space. */
-export function doorStance<T extends EnemyImpact & { boss?: { sector: SectorId } | null }>(e: T): T & { threshold?: SectorId } {
-  const mower = e.type === 'mower', sector = mower && e.boss ? e.boss.sector : e.target;
-  const entry = ENTRIES[sector];
-  const distance = Math.hypot(e.x - entry.x - 0.5, e.y - entry.y - 0.5);
-  const contactDistance = mower ? 0.12 : DOOR_REACH, approach = 0.92;
-  if (distance >= contactDistance + approach || e.lureDevice !== null || e.crawlDepth > 0 ||
-    (distance > contactDistance && e.action !== 'walk' && e.action !== 'charge')) return e;
-  const door = THRESHOLDS[sector], [nx, ny] = DOOR_OUTWARD[sector];
-  const p = project(door.view, e.x, e.y);
-  // Preserve lateral ordering on a wide barn door, and spread a crowd across a narrow jamb.
-  const side = Math.max(-0.32, Math.min(0.32, (p.x - door.sx) / door.width)) + (e.offsetX - e.offsetY) * 0.22;
-  const along = side * door.width;
-  const at = unproject(door.view, door.sx + along, door.sy + along * door.slope);
-  const reach = Math.min(0.66, 0.32 * e.def.size + 0.07);
-  const t = 1 - smoothstep(contactDistance, contactDistance + approach, distance);
-  return { ...e, x: e.x + (at.gx + nx * reach - e.x) * t, y: e.y + (at.gy + ny * reach - e.y) * t,
-    fx: e.fx + (-nx - e.fx) * t, fy: e.fy + (-ny - e.fy) * t, threshold: sector };
 }

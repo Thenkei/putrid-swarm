@@ -97,6 +97,32 @@ try {
     await page.mouse.up();
     assert.deepEqual(await built(), [[5, 6, 0]]);
 
+    await day(rot, 7.5, 16.5);
+    await page.keyboard.press('Digit1');
+    await moveTo(7, 16);
+    await page.mouse.down({ button: 'middle' });
+    await page.mouse.up({ button: 'middle' });
+    const middleClick = await built();
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.up({ button: 'right' });
+    assert.equal(await page.evaluate(() => window.__app.scene.facing), 1);
+
+    await day(rot, 7.5, 16.5);
+    await moveTo(7, 16);
+    await page.mouse.down();
+    await page.keyboard.press('Digit1');
+    await page.mouse.up();
+    const switchedTool = await built();
+
+    await day(rot, 7.5, 16.5);
+    await page.keyboard.press('Digit2');
+    await moveTo(7, 16);
+    await page.mouse.down();
+    await page.keyboard.press('r');
+    await page.mouse.up();
+    const switchedView = await built();
+    assert.deepEqual({ middleClick, switchedTool, switchedView }, { middleClick: [], switchedTool: [], switchedView: [] });
+
     await day(rot, 11, 11);
     const centre = await screen(11, 11);
     await page.mouse.move(centre.x, centre.y);
@@ -110,6 +136,25 @@ try {
     await page.mouse.up({ button: 'right' });
     assert.ok(Math.hypot(original.gx - moved.gx, original.gy - moved.gy) < 0.025, JSON.stringify({ rot, original, moved }));
   }
+  await day(0, 7.5, 16.5);
+  await page.keyboard.press('Digit1');
+  const parked = await screen(7, 16);
+  await page.mouse.move(parked.x, parked.y);
+  await page.mouse.down();
+  await page.setViewportSize({ width: 1040, height: 780 });
+  await page.waitForFunction(() => window.__app.scale === 1040 / 1280);
+  const resized = await page.evaluate(async ({ x, y }) => {
+    const { unproject } = await import('/src/render/projection.ts');
+    const app = window.__app, rect = app.canvas.getBoundingClientRect();
+    const ground = unproject(app.scene.view, (x - rect.left) / app.scale, (y - rect.top) / app.scale);
+    return { hover: app.scene.hover, expected: { x: Math.floor(ground.gx), y: Math.floor(ground.gy) } };
+  }, parked);
+  assert.deepEqual(resized.hover, resized.expected, 'Resizing keeps the build preview under a stationary cursor');
+  await page.mouse.up();
+  assert.deepEqual(await built(), [[7, 16, 0]], 'A resized fence stroke cannot place on the newly hovered cells');
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.waitForFunction(() => window.__app.scale === 1);
+
   const controls = await page.evaluate(async () => {
     const { newGame, startNight } = await import('/src/core/game.ts');
     const { build } = await import('/src/core/yard.ts');
@@ -117,8 +162,10 @@ try {
     const { project } = await import('/src/render/projection.ts');
     const app = window.__app, game = newGame(11);
     let state = { ...game, day: 2, yard: { ...game.yard, devices: [] }, inventory: { ...game.inventory, wood: 20, springs: 20, scrap: 20 } };
-    for (const [x, y] of [[11, 16], [17, 11], [10, 5], [5, 10]]) {
-      const result = build(state, 'barrier', x, y, 1);
+    const cells = [[11, 16], [17, 11], [11, 5], [5, 10]];
+    for (const kind of ['barrier', 'fence']) for (const [index, [x, y]] of cells.entries()) {
+      const front = index < 2 ? 1 : -1;
+      const result = build(state, kind, kind === 'fence' ? x + front : x, y, 1);
       if (!result.ok) throw new Error(JSON.stringify(result.error));
       state = result.value;
     }
@@ -136,7 +183,43 @@ try {
     await page.keyboard.press(`Digit${index + 1}`);
     await page.waitForFunction(expected => window.__app.scene.cam === expected, sector);
     assert.equal(await page.evaluate(() => window.__app.scene.hoverFeedDevice), id);
+    // An opaque slat on the adjacent fence covers the barrier from either side.
+    const slat = { x: point.x + (index < 2 ? 18 : 28), y: point.y - (index < 2 ? 4 : 5) };
+    await page.mouse.move(slat.x, slat.y);
+    assert.equal(await page.evaluate(() => window.__app.scene.hoverFeedDevice), null);
+    await page.mouse.click(slat.x, slat.y);
+    for (const button of ['middle', 'right']) await page.mouse.click(point.x, point.y, { button });
+    const trapState = () => page.evaluate(id => window.__app.scene.sim.device(id).state, id);
+    assert.equal(await trapState(), 'armed');
+    if (index === 3) {
+      const hoverAfterOutage = await page.evaluate(() => {
+        const scene = window.__app.scene, sim = scene.sim;
+        sim.outage = { sector: 'portail', wave: 1, delay: 0 };
+        sim.outageAt = sim.time;
+        scene.update(.08);
+        return [sim.cameraLost, scene.hoverFeedDevice];
+      });
+      assert.deepEqual(hoverAfterOutage, ['portail', id]);
+    }
+    await page.mouse.click(point.x, point.y);
+    assert.equal(await trapState(), 'active');
   }
+  const timberHits = await page.evaluate(async () => {
+    const { pickDevice, cameraView, project } = await import('/src/render/world.ts');
+    const hits = [];
+    for (const [sector, x, y, dx, dy] of [['portail', 10, 16, 53.5, -74.5], ['arriere', 12, 3, -81.5, -58.5]]) {
+      const view = cameraView(sector, { x: 12, y: 54, w: 884, h: 497 }, 1.22);
+      const centre = project(view, x + .5, y + .5);
+      const log = { id: 1, type: 'log', x, y, facing: 0, hpRatio: .81, state: 'active', activeAge: .4,
+        logTarget: { id: 3, type: 'shambler', x: x + 1.5, y: y - .5, fx: 0, fy: -1, crawlDepth: 0, target: sector, lureDevice: null } };
+      const light = { id: 2, type: 'floodlight', x: x + 1, y: y - 1, facing: 0, hpRatio: 1, state: 'armed' };
+      // The falling timber is painted over this lamp pixel, irrespective of build order.
+      const pick = devices => pickDevice(view, devices, centre.x + dx, centre.y + dy)?.id;
+      hits.push([pick([light]), pick([log, light]), pick([light, log])]);
+    }
+    return hits;
+  });
+  assert.deepEqual(timberHits, [[2, 1, 1], [2, 1, 1]]);
   assert.deepEqual(errors, []);
   console.log('Yard controls passed in both yard views and all four CCTV feeds.');
 } finally {
