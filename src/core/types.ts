@@ -54,6 +54,11 @@ export interface Cell {
   readonly y: number;
 }
 
+/** A physical position that may lie on one of the painted doorsteps. */
+export interface GroundContact extends Cell {
+  readonly threshold?: SectorId;
+}
+
 /** A defense placed in the yard. Persisted between days. */
 /**
  * Which way a device is turned on its cell: 0 runs along the grid's x axis, 1 along its y axis.
@@ -87,7 +92,7 @@ export interface Decal {
   readonly x: number;
   readonly y: number;
   /** The exact world contact for a stain. Integer x and y keep one mark of each kind per cell. */
-  readonly at?: Cell & { readonly threshold?: SectorId };
+  readonly at?: GroundContact;
 }
 
 export interface YardState {
@@ -137,7 +142,7 @@ export interface NightReport {
   /** First sector where the log interrupted the mechanic's loaded hoist. */
   readonly mechanicStoppedAt?: SectorId;
   /** Final ground position of the fallen Chief, including the landing of a fatal log sweep. */
-  readonly chiefFellAt?: Cell;
+  readonly chiefFellAt?: GroundContact;
   readonly bossDefeated: NeighborId | null;
   readonly durationSeconds: number;
   /** A camera that stopped sending during the night, and is still dark in the morning. */

@@ -190,13 +190,6 @@ export function drawMopedTarget(ctx: CanvasRenderingContext2D, view: View, secto
   ctx.restore();
 }
 
-export function drawMopedBlast(ctx: CanvasRenderingContext2D, view: View, ride: Ride | null, time: number) {
-  if (!ride || ride.blastAt === null) return;
-  const impact = project(view, ride.impact.x, ride.impact.y);
-  drawBlast(ctx, view, impact.x, impact.y, Math.max(0, time - ride.blastAt));
-}
-
-
 export function mopedRideDrawable(ctx: CanvasRenderingContext2D, view: View, ride: Ride, time: number) {
   const age = time - ride.start;
   if (age < .22 || ride.blastAt !== null) return;
@@ -369,38 +362,46 @@ function blastCel(ctx: CanvasRenderingContext2D, cel: 0 | 1 | 2, width: number,
   ctx.globalAlpha = 1;
 }
 
-function drawBlast(ctx: CanvasRenderingContext2D, view: View, x: number, y: number, age: number) {
+/** The flash falls on the ground. The upright fire and smoke sort with their impact point. */
+export function mopedBlastDrawable(ctx: CanvasRenderingContext2D, view: View, ride: Ride, time: number) {
+  if (ride.blastAt === null) return;
+  const age = time - ride.blastAt;
+  if (age < 0 || age >= 2.75) return;
+  const { x, y } = project(view, ride.impact.x, ride.impact.y);
   const width = BLAST_WIDTH;
   const reach = width * view.zoom;
   if (x + reach < view.x || x - reach > view.x + view.w || y + reach < view.y || y - reach > view.y + view.h) return;
   const still = calmMotion();
-  ctx.save();
-  ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
-  ctx.translate(x, y); ctx.scale(view.rot ? -view.zoom : view.zoom, view.zoom);
-
-  if (age < 2.75) {
-    const light = still ? .36 : Math.max(0, 1 - age / 1.1);
-    if (light > 0) {
+  return {
+    depth: depthOf(view.rot, ride.impact.x, ride.impact.y),
+    drawGround() {
+      const light = still ? .36 : Math.max(0, 1 - age / 1.1);
+      if (light <= 0) return;
       ctx.save();
-      ctx.scale(1, .47);
+      ctx.translate(x, y);
+      ctx.scale(view.zoom, view.zoom * TH / TW);
       const pool = ctx.createRadialGradient(0, 0, 0, 0, 0, width * .53);
       pool.addColorStop(0, 'rgba(255,211,112,' + (.68 * light) + ')');
       pool.addColorStop(.52, 'rgba(249,137,61,' + (.42 * light) + ')');
       pool.addColorStop(1, 'rgba(238,100,27,0)');
       ctx.fillStyle = pool; ctx.fillRect(-width * .53, -width * .53, width * 1.06, width * 1.06);
       ctx.restore();
-    }
-    if (still) {
-      // Fixed silhouettes and a steady local glow replace expansion, flying cinders and drift.
-      blastCel(ctx, age < 1 ? 1 : 2, width * .64, age < 1 ? .9 : .62);
-    } else {
-      const swell = Math.min(1, age / .33);
-      blastCel(ctx, 0, width * (.42 + .32 * swell), Math.max(0, 1 - age / .30));
-      const fire = Math.min(1, age / .16) * Math.max(0, Math.min(1, (1.05 - age) / .50));
-      blastCel(ctx, 1, width * (.49 + .39 * swell), fire);
-      const smoke = Math.min(1, Math.max(0, (age - .47) / .51)) * Math.min(1, (2.75 - age) / 1.48);
-      blastCel(ctx, 2, width * (.55 + Math.min(age, 2) * .105), smoke * .81, age * 5, age * 5);
-    }
-  }
-  ctx.restore();
+    },
+    draw() {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(view.rot ? -view.zoom : view.zoom, view.zoom);
+      if (still) {
+        blastCel(ctx, age < 1 ? 1 : 2, width * .64, age < 1 ? .9 : .62);
+      } else {
+        const swell = Math.min(1, age / .33);
+        blastCel(ctx, 0, width * (.42 + .32 * swell), Math.max(0, 1 - age / .30));
+        const fire = Math.min(1, age / .16) * Math.max(0, Math.min(1, (1.05 - age) / .50));
+        blastCel(ctx, 1, width * (.49 + .39 * swell), fire);
+        const smoke = Math.min(1, Math.max(0, (age - .47) / .51)) * Math.min(1, (2.75 - age) / 1.48);
+        blastCel(ctx, 2, width * (.55 + Math.min(age, 2) * .105), smoke * .81, age * 5, age * 5);
+      }
+      ctx.restore();
+    },
+  };
 }

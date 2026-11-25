@@ -158,11 +158,15 @@ export class App {
     this.dpr = Math.min(2, Math.max(1, (window.devicePixelRatio || 1) * Math.min(1.5, this.scale)));
     this.canvas.width = Math.round(STAGE_W * this.dpr);
     this.canvas.height = Math.round(STAGE_H * this.dpr);
-    if (this.clientPointer) {
-      const { x, y } = this.clientPointer;
-      this.locatePointer(x, y, document.elementFromPoint(x, y));
-      if (!this.pendingScene) this.scene?.onPointerMove?.(this.pointer);
-    }
+    this.refreshPointer();
+  }
+
+  /** Re-evaluate the stationary cursor after a stage resize or a covering panel closes. */
+  refreshPointer(): void {
+    if (!this.clientPointer) return;
+    const { x, y } = this.clientPointer;
+    this.locatePointer(x, y, document.elementFromPoint(x, y));
+    if (!this.pendingScene) this.scene?.onPointerMove?.(this.pointer);
   }
 
   /** Device pixels per stage unit; offscreen layers use it to stay sharp. */

@@ -5,10 +5,11 @@ import { BARRICADE, DEVICES } from '../core/data/devices';
 import { PARKED } from '../core/car-path';
 import { ENTRIES, GRID_H, GRID_W, HOUSE_CENTER, PROPS, propAt, sectorOf, type Prop, type PropKind } from '../core/map';
 import type { DeviceRuntimeState, Enemy, LogTarget, NightSim } from '../core/night';
-import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, SectorId } from '../core/types';
+import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, GroundContact, SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { wreckDrawable } from './moped-wreck';
 import { kindlingDrawable } from './baker-kindling';
+import { paintedPixel } from './painted-pixel';
 import { drawPinnedInvoice } from './pinned-invoice';
 import { whistleDrawable } from './fallen-whistle';
 import sillCamperUrl from '../assets/camper-sill-figure.webp';
@@ -21,7 +22,7 @@ import { barnLamp, curtainShadow, type IndoorPassage, type BarnMoth } from './ho
 import type { GateHedge } from './gate-hedge';
 import { foxHedge } from './fox-passage';
 import { DOOR_OPENINGS, THRESHOLDS, VISIBLE_DOORS, damagedFacade, doorStance, facadeForStage, hingedLeaves, houseDamageStage, outsideSillDepth, paintHouse, type HouseDoor } from './house';
-import { drawMopedScorch, mopedRideDrawable, mopedStruckPose } from './moped';
+import { drawMopedScorch, mopedBlastDrawable, mopedRideDrawable, mopedStruckPose } from './moped';
 import { drawMopedTracks, mopedParkingSpot, parkedMopedDrawable, trackOpacity, type ParkedMoped } from './parked-moped';
 import { mopedPath, type PackTrail } from '../core/epics';
 import { yardPackTrail } from './pack-tracks';
@@ -125,7 +126,7 @@ export interface WorldFrame {
   readonly mopedWreck?: SectorId | undefined;
   readonly bakerKindling?: boolean;
   readonly pinnedInvoice?: SectorId | undefined;
-  readonly fallenWhistle?: Cell | null | undefined;
+  readonly fallenWhistle?: GroundContact | null | undefined;
   readonly packTrail?: PackTrail | undefined;
   readonly parkedMoped?: ParkedMoped;
   readonly houseBreaks?: readonly HouseBreak[];
@@ -318,6 +319,8 @@ const DEVICE_CAST: Readonly<Record<DeviceTypeId, number>> = {
 
 /** Things with leaves, which the wind moves. */
 const SWAYS: ReadonlySet<PropKind> = new Set<PropKind>(['apple', 'oak', 'bush']);
+const propLean = (prop: Prop, time: number, rot: Rot): number => SWAYS.has(prop.kind)
+  ? windAt(time, prop.x, prop.y, hash2(prop.x, prop.y, 3), rot) * (prop.kind === 'bush' ? .092 : .035) : 0;
 
 const houseDepth = (rot: Rot): number => depthOf(rot, HOUSE_CENTER.x, HOUSE_CENTER.y) + 1.2;
 const propDepth = (rot: Rot, gx: number, gy: number): number => depthOf(rot, gx, gy) + 0.4;
@@ -513,7 +516,8 @@ function prepareRearPaintings(health: number): void {
   void preparePaintings(new Set(art.filter((item): item is Sprite => item !== undefined)));
 }
 
-export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): void {
+/** Return the positioned actors so the porch view can target the frame it just painted. */
+export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): readonly Enemy[] {
   prepareRearPaintings(frame.houseHpRatio);
   const z = view.zoom;
   ctx.save();
@@ -536,9 +540,9 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   // Thin foreground foliage where it would conceal a fighting figure or one of this side's
   // doorways. The overlap is measured in the current projection, including painter's depth.
   const sightlines: { x: number; y: number; depth: number; presence: number }[] = [];
+  const doorsteps: DoorstepDecals = {};
   const hit = frame.mopedRide?.contact;
   const contact = hit && frame.time - hit.at < FALL_SECONDS ? hit : undefined;
-  const doorsteps: DoorstepDecals = {};
   const actors = frame.enemies.filter(e => e.alive).map(e => mopedStruckPose(doorStance(e), contact, frame.time));
   const bodies = contact ? frame.fallen?.map(body => mopedStruckPose(body, contact, frame.time)) : frame.fallen;
   if (frame.night) {
@@ -674,7 +678,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           rect.x + rect.w * MAILBOX_PERCH[view.rot][0], rect.y + art.h * z * MAILBOX_PERCH[view.rot][1], calmMotion()));
       }
     }
-    const lean = SWAYS.has(prop.kind) ? windAt(frame.time, prop.x, prop.y, hash2(prop.x, prop.y, 3), view.rot) * (prop.kind === 'bush' ? 0.092 : 0.035) : 0;
+    const lean = propLean(prop, frame.time, view.rot);
     let opacity = 1;
     if (SWAYS.has(prop.kind) && sightlines.length) {
       const height = art.h * z;
@@ -713,7 +717,14 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     // The car comes and goes; everything else that is fixed has its shadow in the ground already.
     if (prop.kind === 'car') {
       const ground = PROP_SHADOW.car;
-      contacts.push({ gx, gy, rx: ground.rx, ry: ground.ry, alpha: ground.contact });
+      casts.push(() => {
+        ctx.save();
+        ctx.transform(...groundMatrix(view));
+        ctx.translate(gx, gy);
+        if (departure?.kind === 'driving') ctx.rotate(departure.yaw);
+        contactShadow(ctx, 0, 0, ground.rx, ground.ry, ground.contact * shade);
+        ctx.restore();
+      });
     }
   }
 
@@ -884,6 +895,11 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
 
   drawDecals(ctx, view, frame.decals, doorsteps);
   if (frame.mopedWreck) drawMopedScorch(ctx, view, frame.mopedWreck);
+  const blast = frame.mopedRide && mopedBlastDrawable(ctx, view, frame.mopedRide, frame.time);
+  if (blast) {
+    blast.drawGround();
+    drawables.push(blast);
+  }
   if (frame.packTrail) yardPackTrail(ctx, view, frame.packTrail);
   if (frame.departingCar) drawHeadlightPools(ctx, view, frame.departingCar);
   drawGroundOverlays(ctx, view, frame);
@@ -915,6 +931,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   else drawCloudShadows(ctx, view, frame.time);
   drawTopOverlays(ctx, view, frame);
   ctx.restore();
+  return actors;
 }
 
 let puff: HTMLCanvasElement | null = null;
@@ -1558,25 +1575,6 @@ function drawTopOverlays(ctx: CanvasRenderingContext2D, view: View, frame: World
 
 // ───────────────────────────── Picking ─────────────────────────────
 
-const pickMasks = new WeakMap<CanvasImageSource, ImageData>();
-
-function paintedPixel(art: Sprite, u: number, v: number, source: CanvasImageSource = art.img, width = 64): boolean {
-  if (u < 0 || v < 0 || u >= 1 || v >= 1) return false;
-  let mask = pickMasks.get(source);
-  if (!mask) {
-    const surface = document.createElement('canvas');
-    surface.width = width;
-    surface.height = Math.max(1, Math.round(width * art.h / art.w));
-    const context = surface.getContext('2d');
-    if (!context) return false;
-    context.drawImage(source, 0, 0, surface.width, surface.height);
-    mask = context.getImageData(0, 0, surface.width, surface.height);
-    pickMasks.set(source, mask);
-  }
-  const index = Math.floor(v * mask.height) * mask.width + Math.floor(u * mask.width);
-  return mask.data[4 * index + 3]! > 64;
-}
-
 let poseSample: CanvasRenderingContext2D | null | undefined;
 
 /** An operating mechanism can move outside its source painting. Sample only the pointer pixel. */
@@ -1624,9 +1622,7 @@ function devicePixel(device: DeviceVisual, view: View, p: { x: number; y: number
   return !!source && paintedPixel(image, u, v, source, image.w);
 }
 
-/** Visible paint and controls receive the pointer in painter's order, then the occupied ground tile. */
-export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: number, sy: number, nightControls = false, houseHpRatio = 1): DeviceVisual | null {
-  if (!inView(view, sx, sy)) return null;
+function frontDevicePaint(view: View, devices: readonly DeviceVisual[], sx: number, sy: number, nightControls: boolean) {
   let best: DeviceVisual | null = null;
   let bestDepth = -Infinity;
   for (const device of devices) {
@@ -1647,35 +1643,43 @@ export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: num
       control = Math.hypot(dx, dy - pipY) <= pipRadius || (!!device.label && device.state !== 'broken'
         && Math.abs(dx - TRAP_KEY.x) <= half && Math.abs(dy - (pipY - TRAP_KEY.lift * grow)) <= half);
     }
-    if (!control && !devicePixel(device, view, p, art, dx, dy, splitLog ? 'near' : undefined)) {
+    const paintY = dy + (device.placementLift ?? 0);
+    if (!control && !devicePixel(device, view, p, art, dx, paintY, splitLog ? 'near' : undefined)) {
       if (!splitLog) continue;
       depth = logLayerDepth(centre, art, 'far');
-      if (depth < bestDepth || !devicePixel(device, view, p, art, dx, dy, 'far')) continue;
+      if (depth < bestDepth || !devicePixel(device, view, p, art, dx, paintY, 'far')) continue;
     }
     bestDepth = depth;
     best = device;
   }
-  if (best && !behindScenery(view, sx, sy, bestDepth, houseHpRatio)) return best;
+  return best && { device: best, depth: bestDepth };
+}
+
+/** Visible paint and controls receive the pointer in painter's order, then the occupied ground tile. */
+export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: number, sy: number, nightControls = false, houseHpRatio = 1): DeviceVisual | null {
+  if (!inView(view, sx, sy)) return null;
+  const front = frontDevicePaint(view, devices, sx, sy, nightControls);
+  if (front && !behindScenery(view, sx, sy, front.depth, houseHpRatio)) return front.device;
   const g = unproject(view, sx, sy);
   const tile = devices.find(d => d.x === Math.floor(g.gx) && d.y === Math.floor(g.gy));
   if (!tile || behindScenery(view, sx, sy, depthOf(view.rot, g.gx, g.gy), houseHpRatio)) return null;
   return tile;
 }
 
-function propPaintedAt(view: View, prop: Prop, sx: number, sy: number): boolean {
+function propPaintedAt(view: View, prop: Prop, sx: number, sy: number, lean = 0): boolean {
   const art = sprite(propSpriteKey(prop.kind, view.rot));
   if (!art) return false;
   const mount = propMount(prop.kind, view.rot, PROP_ART[prop.kind].h);
   const root = propRoot(view, prop);
   const h = mount.h * view.zoom, w = h * art.w / art.h;
   const dx = sx - root.x, dy = sy - root.y;
-  const u = mount.foot[0] + dx / w;
+  const u = mount.foot[0] + (dx + lean * dy) / w;
   const v = mount.foot[1] + (dy - dx * (mount.fit?.shearY ?? 0)) / ((mount.fit?.scaleY ?? 1) * h);
   return paintedPixel(art, u, v);
 }
 
 /** Solid scenery covers devices behind it. Swaying canopies fade to reveal yard targets. */
-function behindScenery(view: View, sx: number, sy: number, depth: number, houseHpRatio: number): boolean {
+function behindScenery(view: View, sx: number, sy: number, depth: number, houseHpRatio: number, daylightTime?: number): boolean {
   if (depth < houseDepth(view.rot)) {
     const key = HOUSE_ART[view.rot].key;
     const art = sprite(key);
@@ -1688,9 +1692,16 @@ function behindScenery(view: View, sx: number, sy: number, depth: number, houseH
         && paintedPixel(art, u, v, facadeForStage(view.rot, key, art, houseDamageStage(houseHpRatio)))) return true;
     }
   }
-  return PROPS.some(prop => !SWAYS.has(prop.kind)
+  return PROPS.some(prop => (daylightTime !== undefined || !SWAYS.has(prop.kind))
     && depth < propDepth(view.rot, prop.x + prop.w / 2, prop.y + prop.h / 2)
-    && propPaintedAt(view, prop, sx, sy));
+    && propPaintedAt(view, prop, sx, sy, daylightTime === undefined ? 0 : propLean(prop, daylightTime, view.rot)));
+}
+
+/** A keepsake can be seen through a gap in a raised trap or tree, or from its other side. */
+export function yardItemVisible(view: View, sx: number, sy: number, depth: number, houseHpRatio: number, time: number, devices: readonly DeviceVisual[]): boolean {
+  if (behindScenery(view, sx, sy, depth, houseHpRatio, time)) return false;
+  const front = frontDevicePaint(view, devices, sx, sy, false);
+  return !front || front.depth <= depth;
 }
 
 /** The painted silhouettes receive clicks as well as their original ground footprints. */

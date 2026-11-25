@@ -3,6 +3,7 @@ import { type SectorId } from '../core/types';
 import { sprite } from '../engine/assets';
 import { THRESHOLDS } from '../house-layout';
 import { calmMotion } from './lighting';
+import { paintedSource } from './painted-pixel';
 import { depthOf, project, type View } from './projection';
 
 // Keep the chipped red tank, the saddle and the teeth of Gérard's original painting.
@@ -61,15 +62,25 @@ function wreckPlacement(view: View, sector: SectorId) {
 // the broken frame about that tyre in its 370×320 crop.
 const chassisX = -86 * 53 / 370, chassisY = -315 * 24 / 320;
 const chassisTilt = .28;
+const rollSeconds = 7, settledHeight = .36;
+const wheelTurn = (roll: number): number => roll * (13 - 6.5 * roll / rollSeconds);
 
-export function hitsMopedWreck(view: View, sector: SectorId, px: number, py: number): boolean {
+export function hitsMopedWreck(view: View, sector: SectorId, px: number, py: number, visible?: (depth: number) => boolean): boolean {
   const p = wreckPlacement(view, sector);
   const x = (px - p.x) / view.zoom, y = (py - p.y) / view.zoom;
   const cx = (x + 26 * p.dx) * Math.sign(p.dx), cy = y + 26 * p.dy;
-  const u = cx * Math.cos(chassisTilt) + cy * Math.sin(chassisTilt) - chassisX;
-  const v = cy * Math.cos(chassisTilt) - cx * Math.sin(chassisTilt) - chassisY;
-  return (u >= 0 && u <= 53 && v >= 0 && v <= 24)
-    || ((x - 20 * p.dx) / 14) ** 2 + ((y - 20 * p.dy + 12 * .36) / 8) ** 2 <= 1;
+  const u = (cx * Math.cos(chassisTilt) + cy * Math.sin(chassisTilt) - chassisX) / 53;
+  const v = (cy * Math.cos(chassisTilt) - cx * Math.sin(chassisTilt) - chassisY) / 24;
+  const wx = (x - 20 * p.dx) * Math.sign(p.dx), wy = (y - 20 * p.dy) / settledHeight + 12;
+  const onBody = u >= 0 && u < 1 && v >= 0 && v < 1, onWheel = Math.hypot(wx, wy) <= 12;
+  if (!onBody && !onWheel) return false;
+  prepareWreck();
+  if (!chassis || !wheel) return false;
+  const turn = wheelTurn(rollSeconds);
+  const wu = .5 + (wx * Math.cos(turn) + wy * Math.sin(turn)) / 24;
+  const wv = .5 + (wy * Math.cos(turn) - wx * Math.sin(turn)) / 24;
+  const painted = (onBody && paintedSource(chassis, u, v, 370 / 320)) || (onWheel && paintedSource(wheel, wu, wv, 1));
+  return painted && (visible?.(p.depth + .2) ?? true);
 }
 
 export function wreckDrawable(ctx: CanvasRenderingContext2D, view: View, sector: SectorId, age: number) {
@@ -80,10 +91,9 @@ export function wreckDrawable(ctx: CanvasRenderingContext2D, view: View, sector:
     // The blast is painted over the wreck. The freed wheel emerges as the smoke lifts,
     // slows, and tips onto its side. Later visits pick up the same settled pose.
     const t = calmMotion() ? 8 : Math.min(8, Math.max(0, age));
-    const roll = Math.min(7, t);
-    const turn = roll * (13 - 6.5 * roll / 7);
+    const turn = wheelTurn(Math.min(rollSeconds, t));
     const fall = Math.max(0, Math.min(1, (t - 4.5) / 3));
-    const height = 1 - .64 * fall + .09 * Math.sin(t * 9) * fall * (1 - fall);
+    const height = 1 - (1 - settledHeight) * fall + .09 * Math.sin(t * 9) * fall * (1 - fall);
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.scale(view.zoom, view.zoom);

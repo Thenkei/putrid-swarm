@@ -59,7 +59,7 @@ import { el } from '../engine/dom';
 import { S, fmt, hours, line } from '../engine/i18n';
 import { say, sayAny, sayOnce } from '../engine/voice';
 import { breaksUnderWagon, onDriveway } from '../core/driveway';
-import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
+import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, yardItemVisible, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
 import { deviceArt } from '../render/defenses';
 import { FROG_RETURNS_AT, FROG_SPLASH_AT } from '../render/homestead-life';
 import { calmMotion } from '../render/lighting';
@@ -106,13 +106,15 @@ interface RouteOverlay {
   readonly routes: Cell[][];
   /** How many of the predicted routes step on each cell: the worn ground the overlay paints. */
   readonly traffic: Map<number, number>;
+  /** Top-left cell of each 2×2 block crossed diagonally by a route. */
+  readonly diagonals: Set<number>;
 }
 
 interface Forecast extends RouteOverlay {
   readonly byDoor: Readonly<Record<SectorId, RouteOverlay>>;
 }
 
-const emptyOverlay = (): RouteOverlay => ({ routes: [], traffic: new Map() });
+const emptyOverlay = (): RouteOverlay => ({ routes: [], traffic: new Map(), diagonals: new Set() });
 
 export function yardErrorText(error: YardError): string {
   const s = S();
@@ -391,7 +393,7 @@ export class DayScene implements Scene {
     const { byDoor } = this.forecast();
     this.reinforceButtons.clear();
     const doorRows = SECTOR_IDS.map((sector) => {
-      const cover = yard.devices.filter((d) => !d.broken && isTrap(d.type) && this.covers(d.type, d.x, d.y, byDoor[sector].traffic)).length;
+      const cover = yard.devices.filter((d) => !d.broken && isTrap(d.type) && this.covers(d.type, d.x, d.y, byDoor[sector])).length;
       const exposed = cover === 0 && expected.includes(sector);
       const barricade = yard.barricades[sector];
       const max = barricadeMaxHp(barricade.level);
@@ -1038,10 +1040,17 @@ export class DayScene implements Scene {
         if (!Number.isFinite(best)) continue;
         const route = traceRoute(fields[target], cell, fences);
         const approach = byDoor[target];
+        let previous = cell;
         for (const step of route) {
           const cellIndex = idx(step.x, step.y);
           approach.traffic.set(cellIndex, (approach.traffic.get(cellIndex) ?? 0) + 1);
           overlay.traffic.set(cellIndex, (overlay.traffic.get(cellIndex) ?? 0) + 1);
+          if (step.x !== previous.x && step.y !== previous.y) {
+            const corner = idx(Math.min(step.x, previous.x), Math.min(step.y, previous.y));
+            approach.diagonals.add(corner);
+            overlay.diagonals.add(corner);
+          }
+          previous = step;
         }
         if (drawn.has(cell)) {
           approach.routes.push(route);
@@ -1055,14 +1064,13 @@ export class DayScene implements Scene {
   }
 
   /** True when a device of that type on that cell would have a predicted route within reach. */
-  private covers(type: DeviceTypeId, x: number, y: number, traffic: ReadonlyMap<number, number>): boolean {
+  private covers(type: DeviceTypeId, x: number, y: number, overlay: RouteOverlay): boolean {
     const reach = coverReach(type);
-    const span = Math.ceil(reach);
-    for (let dy = -span; dy <= span; dy++) {
-      for (let dx = -span; dx <= span; dx++) {
-        if (Math.hypot(dx, dy) <= reach && traffic.has(idx(x + dx, y + dy))) return true;
-      }
-    }
+    const near = (cell: number, offset: number) =>
+      Math.hypot(cell % GRID_W + offset - x, Math.floor(cell / GRID_W) + offset - y) <= reach;
+    for (const cell of overlay.traffic.keys()) if (near(cell, 0)) return true;
+    // On a one-cell diagonal, the closest point to another tile centre can also be its midpoint.
+    for (const corner of overlay.diagonals) if (near(corner, 0.5)) return true;
     return false;
   }
 
@@ -1070,7 +1078,7 @@ export class DayScene implements Scene {
   private ghostIdle(): boolean {
     const ghost = this.currentGhost().ghost;
     if (!ghost || !ghost.ok || !isTrap(ghost.type)) return false;
-    return !this.covers(ghost.type, ghost.x, ghost.y, this.forecast().traffic);
+    return !this.covers(ghost.type, ghost.x, ghost.y, this.forecast());
   }
 
   /** The approaches tonight's infected come from: the tracks the protagonist found this morning. */
@@ -1103,7 +1111,10 @@ export class DayScene implements Scene {
         sayOnce('day1', 'vo_day1');
       }
     }
-    this.advanceConstruction(dt);
+    if (this.construction.size) {
+      this.advanceConstruction(dt);
+      if (this.mode.kind !== 'build' && this.app.pointer.overCanvas && !this.drag?.moved) this.updateHover(this.app.pointer);
+    }
     if (this.dismantling.length > 0) {
       for (const removal of this.dismantling) removal.age += dt;
       this.dismantling = this.dismantling.filter(removal => removal.age < DISMANTLE_SECONDS);
@@ -1226,11 +1237,15 @@ export class DayScene implements Scene {
     const inside = pointer.overCanvas && inView(view, pointer.x, pointer.y);
     const wreck = wreckSector(this.state);
     const whistle = whistleInGrass(this.state);
-    this.hoverWhistle = !inspected && inside && this.mode.kind === 'idle' && !!whistle && hitsWhistle(view, whistle, pointer.x, pointer.y);
-    this.hoverWreck = !inspected && inside && this.mode.kind === 'idle' && !!wreck && hitsMopedWreck(view, wreck, pointer.x, pointer.y);
-    this.hoverKindling = !inspected && inside && this.mode.kind === 'idle' && this.bakerVisit?.freed === true && hitsKindling(view, pointer.x, pointer.y);
+    const visuals = inside && this.mode.kind !== 'build'
+      ? this.state.yard.devices.map(d => ({ ...dayDeviceVisual(d), placementLift: this.placementLift(d.id) })) : [];
+    const health = this.state.yard.houseHp / HOUSE_MAX_HP;
+    const visible = (depth: number) => yardItemVisible(view, pointer.x, pointer.y, depth, health, this.time, visuals);
+    this.hoverWhistle = !inspected && inside && this.mode.kind === 'idle' && !!whistle && hitsWhistle(view, whistle, pointer.x, pointer.y, visible);
+    this.hoverWreck = !inspected && inside && this.mode.kind === 'idle' && !!wreck && hitsMopedWreck(view, wreck, pointer.x, pointer.y, visible);
+    this.hoverKindling = !inspected && inside && this.mode.kind === 'idle' && this.bakerVisit?.freed === true && hitsKindling(view, pointer.x, pointer.y, visible);
     this.hoverInvoice = !inspected && inside && this.mode.kind === 'idle' && !!this.invoice
-      && hitsInvoice(view, this.invoice.sector, this.state.yard.barricades[this.invoice.sector].hp <= 0, pointer.x, pointer.y);
+      && hitsInvoice(view, this.invoice.sector, this.state.yard.barricades[this.invoice.sector].hp <= 0, pointer.x, pointer.y, this.time, visible);
     if (inspected) this.panelDoor = inspected;
     else if (inside) this.panelDoor = null;
     if (!inside) {
@@ -1245,8 +1260,7 @@ export class DayScene implements Scene {
         this.hoverDevice = null;
         this.hoverDoor = null;
       } else {
-        const visuals = this.state.yard.devices.map(d => dayDeviceVisual(d));
-        const picked = pickDevice(view, visuals, pointer.x, pointer.y, false, this.state.yard.houseHp / HOUSE_MAX_HP);
+        const picked = pickDevice(view, visuals, pointer.x, pointer.y, false, health);
         this.hoverDevice = picked ? (this.state.yard.devices.find((d) => d.id === picked.id) ?? null) : null;
         this.hoverDoor = this.hoverDevice ? null : pickDoor(view, pointer.x, pointer.y);
       }

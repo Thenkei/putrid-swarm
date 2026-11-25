@@ -1,18 +1,38 @@
-import { afterAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import sharp from 'sharp';
 import { mopedPath } from '../src/core/epics';
 import { SECTOR_IDS, type EnemyTypeId } from '../src/core/types';
 import { drawFallen } from '../src/render/infected';
-import { drawMopedBlast, mopedMount } from '../src/render/moped';
+import { mopedBlastDrawable, mopedMount } from '../src/render/moped';
 import { hitsMopedWreck } from '../src/render/moped-wreck';
-import { project, unproject, type Rot, type View } from '../src/render/projection';
+import * as masks from '../src/render/painted-pixel';
+import { depthOf, project, unproject, type Rot, type View } from '../src/render/projection';
 
 vi.mock('../src/engine/assets', () => ({
-  sprite: (key: string) => key === 'defense_mob_poses' ? { w: 2688, h: 1584, img: {} } : undefined,
+  sprite: (key: string) => key === 'defense_mob_poses' ? { w: 2688, h: 1584, img: {} }
+    : key === 'epic_moped_art' ? { w: 480, h: 320, img: {} } : undefined,
 }));
 vi.mock('../src/render/shadows', () => ({ contactShadow() {} }));
 vi.hoisted(() => vi.stubGlobal('Image', class { naturalWidth = 768; complete = true; }));
-afterAll(() => vi.unstubAllGlobals());
+beforeAll(async () => {
+  // Node has no canvas. For the skid hit test, read the cropped chassis and the
+  // reflected lower tyre directly from the same painting as the browser.
+  const pixels = await sharp('public/assets/sprites/epic_moped_art.webp')
+    .resize(480, 320, { fit: 'fill' }).ensureAlpha().raw().toBuffer();
+  const ink = {
+    beginPath() {}, moveTo() {}, lineTo() {}, closePath() {}, clip() {}, drawImage() {},
+    fillRect() {}, translate() {}, save() {}, scale() {}, ellipse() {}, restore() {}, arc() {}, fill() {},
+    createLinearGradient: () => ({ addColorStop() {} }),
+  };
+  vi.stubGlobal('document', { createElement: () => ({ getContext: () => ink }) });
+  vi.spyOn(masks, 'paintedSource').mockImplementation((source, u, v) => {
+    const wheel = (source as HTMLCanvasElement).width === 160;
+    const x = Math.floor(wheel ? 401 + (u - .5) * 160 : u * 370);
+    const y = Math.floor(wheel ? 232 + Math.abs(v - .5) * 160 : v * 320);
+    return x >= 0 && x < 480 && y >= 0 && y < 320 && pixels[(y * 480 + x) * 4 + 3]! > 64;
+  });
+});
+afterAll(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 const camera = (rot: Rot): View => ({ rot, zoom: rot ? 1.48 : .72, cx: 13, cy: 8, x: 32, y: 40, w: 920, h: 550 });
 const sides = [0, 1] as const;
@@ -49,13 +69,18 @@ describe('actor and vehicle contacts under a camera turn', () => {
       const angle = Math.atan2(root.y - start.y, root.x - start.x);
       const x = root.x + 20 * Math.cos(angle) * v.zoom, y = root.y + (20 * Math.sin(angle) - 12 * .36) * v.zoom;
       expect(hitsMopedWreck(v, sector, x, y)).toBe(true);
+      // A gap between two spokes at (440,265) in the original painting.
+      const turn = 7 * 6.5, sx = 39.5 * 24 / 160, sy = 33.5 * 24 / 160;
+      const gapX = (sx * Math.cos(turn) - sy * Math.sin(turn)) * Math.sign(Math.cos(angle));
+      const gapY = (sx * Math.sin(turn) + sy * Math.cos(turn)) * .36;
+      expect(hitsMopedWreck(v, sector, x + gapX * v.zoom, y + gapY * v.zoom)).toBe(false);
       expect(hitsMopedWreck(v, sector, x + 22 * Math.cos(angle) * v.zoom, y + 22 * Math.sin(angle) * v.zoom)).toBe(false);
     }
   });
 
-  it('keeps the fire at impact and the rising smoke downwind in both cameras', () => {
-    const path = mopedPath('grange'), impact = path[1];
-    const ride = { sector: 'grange' as const, path, impact, start: 0, blastAt: 1, departed: true,
+  it('sorts fire and smoke at impact and keeps the ground flash below the gate mailbox', () => {
+    const path = mopedPath('portail'), impact = path[1];
+    const ride = { sector: 'portail' as const, path, impact, start: 0, blastAt: 1, departed: true,
       hit: new Set<number>(), bladeKills: 0, blastKills: 0 };
     const feet = [[186, 346], [181, 350], [130, 353]] as const;
     const seen = new Set<number>();
@@ -63,17 +88,26 @@ describe('actor and vehicle contacts under a camera turn', () => {
       const v = { ...camera(rot), cx: impact.x, cy: impact.y }, centre = project(v, impact.x, impact.y);
       let scaleX = 1, scaleY = 1, tx = 0, ty = 0;
       const stack: [number, number, number, number][] = [];
-      const ctx = { beginPath() {}, rect() {}, clip() {}, fillRect() {}, createRadialGradient: () => ({ addColorStop() {} }),
+      let groundFills = 0, paintedCels = 0;
+      const ctx = { fillRect() { groundFills++; }, createRadialGradient: () => ({ addColorStop() {} }),
         save() { stack.push([scaleX, scaleY, tx, ty]); }, restore() { [scaleX, scaleY, tx, ty] = stack.pop()!; },
         translate(x: number, y: number) { tx += scaleX * x; ty += scaleY * y; }, scale(x: number, y: number) { scaleX *= x; scaleY *= y; },
         drawImage(_: unknown, left: number, top: number, sw: number, sh: number, x: number, y: number, w: number, h: number) {
+          paintedCels++;
           const cel = left / sw + 2 * top / sh, [cx, cy] = feet[cel]!;
           const drift = cel === 2 ? 5 * age : 0;
           expect(Math.abs((tx + scaleX * (x + cx * w / sw) - centre.x) / v.zoom - (rot ? -drift : drift))).toBeLessThan(4);
           expect(Math.abs((ty + scaleY * (y + cy * h / sh) - centre.y) / v.zoom + drift)).toBeLessThan(3);
           seen.add(cel);
         } };
-      drawMopedBlast(ctx as unknown as CanvasRenderingContext2D, v, ride, 1 + age);
+      const blast = mopedBlastDrawable(ctx as unknown as CanvasRenderingContext2D, v, ride, 1 + age)!;
+      const mailboxDepth = depthOf(rot, 12.5, 19.5);
+      expect(blast.depth < mailboxDepth).toBe(rot === 0);
+      blast.drawGround();
+      expect(groundFills).toBe(age < 1.1 ? 1 : 0);
+      expect(paintedCels).toBe(0);
+      blast.draw();
+      expect(paintedCels).toBeGreaterThan(0);
     }
     expect(seen.size).toBe(3);
   });
