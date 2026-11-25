@@ -29,8 +29,6 @@ page.on('pageerror', (e) => fail(`page error: ${e.message}`));
 page.on('console', (m) => {
   if (m.type() !== 'error') return;
   const source = m.location()?.url ?? '';
-  // puzzles.html declares no icon, so the browser's own favicon probe 404s; that is not the lab failing.
-  if (/\/favicon\.ico$/.test(source)) return;
   fail(`console error: ${m.text()}${source ? ` (${source})` : ''}`);
 });
 page.on('response', (r) => {

@@ -1,5 +1,12 @@
 // What the street hears during one visit to a town location. Noise only lasts for that visit: it is
 // keyed like the visit's search counter, so a new visit (or a new day) starts quiet and saves keep it.
+//
+// Two rules the callers rely on:
+// - A sound cannot be unmade. Noise made inside a puzzle is added to the live state the moment it is
+//   heard, so backing out of the panel (its back button or Escape) keeps it, exactly like finishing
+//   or failing the attempt would; a later attempt is prepared from that state and carries it.
+// - Hiding a stash (`concealSpot` in core/game.ts) is quiet work, not a search: it makes no noise,
+//   costs no search, and stays possible after noise (or the Chief) has ended searching on the visit.
 
 import { RUMMAGE } from './rummage';
 import type { GameState, LocationId } from './types';

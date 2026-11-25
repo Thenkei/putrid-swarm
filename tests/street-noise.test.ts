@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { LOCATIONS } from '../src/core/data/locations';
+import { CONCEAL_HOURS, LOCATIONS } from '../src/core/data/locations';
 import { act } from '../src/core/encounters';
-import { arriveHome, leaveLocation, newGame, noticeChiefEscort, planVisit, prepareSearch, remainingSearches, searchSpot, searchStop, travelTo, visitSearchesLeft } from '../src/core/game';
+import { arriveHome, concealableSpots, concealSpot, leaveLocation, newGame, noticeChiefEscort, planVisit, prepareSearch, remainingSearches, searchAttemptKey, searchSpot, searchStop, travelTo, visitSearchesLeft } from '../src/core/game';
 import { RUMMAGE } from '../src/core/rummage';
 import { deserialize, serialize } from '../src/core/save';
 import { FAILED_ATTEMPT_NOISE, makeNoise, NOISE_PER_LOST_SEARCH, RECORD_DECOY_NOISE, rummageNoise, searchesLostToNoise, streetNoise } from '../src/core/street-noise';
@@ -120,6 +120,69 @@ describe('street noise', () => {
     const twice = unwrap(searchSpot(once, openSpot(once))).state;
     const gone = { ...twice, day: 7 };
     expect(noticeChiefEscort(gone)).toBe(gone);
+  });
+
+  it('keeps the noise of an attempt the player backs out of', () => {
+    // The panel adds a rummage's noise to the live state as it is heard, after the attempt was paid for;
+    // backing out (the back button or Escape) leaves that state as it is.
+    const spot = openSpot(town);
+    const attempt = unwrap(prepareSearch(town, spot));
+    const heard = rummageNoise(RUMMAGE.noise);
+    const backedOut = makeNoise(attempt.paid, heard);
+    expect(streetNoise(backedOut)).toBe(heard);
+    expect(backedOut.locations.hardware.searched).not.toContain(spot);
+    expect(streetNoise(deserialize(serialize(backedOut))!)).toBe(heard);
+
+    // The next attempt is prepared from that state, so whichever way it ends the noise is still there.
+    const retry = unwrap(prepareSearch(backedOut, spot));
+    expect(streetNoise(retry.paid)).toBe(heard);
+    expect(streetNoise(retry.success.state)).toBe(heard);
+    expect(streetNoise(retry.failure)).toBe(heard + FAILED_ATTEMPT_NOISE);
+
+    // Abandoned rummages add up like any other noise.
+    let state = town;
+    for (let n = 0; n < NOISE_PER_LOST_SEARCH; n++) state = makeNoise(unwrap(prepareSearch(state, spot)).paid, heard);
+    expect(searchesLostToNoise(state, 'hardware')).toBe(1);
+    expect(visitSearchesLeft(state, hardware)).toBe(remainingSearches(state, hardware) - 1);
+  });
+
+  describe('hiding a stash', () => {
+    /** Covers the first lot that can be covered and checks it was neither heard nor counted as a search. */
+    const coverQuietly = (state: GameState): GameState => {
+      const target = concealableSpots(state)[0];
+      expect(target).toBeDefined();
+      const covered = concealSpot(state, target!);
+      expect(covered.hoursLeft).toBeCloseTo(state.hoursLeft - CONCEAL_HOURS);
+      expect(covered.locations[covered.where as LocationId].covered).toContain(target);
+      expect(streetNoise(covered)).toBe(streetNoise(state));
+      expect(searchAttemptKey(covered)).toBe(searchAttemptKey(state));
+      expect(covered.totals.searches).toBe(state.totals.searches);
+      return covered;
+    };
+
+    it('is silent and costs no search, even one short of losing a search', () => {
+      const edge = makeNoise(town, NOISE_PER_LOST_SEARCH - 1);
+      const covered = coverQuietly(edge);
+      expect(visitSearchesLeft(covered, hardware)).toBe(visitSearchesLeft(edge, hardware));
+      expect(searchStop(covered, hardware)).toBeNull();
+    });
+
+    it('stays open once the noise has ended searching', () => {
+      // Two searches lost, so a lot with something to cover is among those left (the detector case holds no lot).
+      let state = makeNoise(town, 2 * NOISE_PER_LOST_SEARCH);
+      while (searchStop(state, hardware) === null) state = unwrap(searchSpot(state, openSpot(state))).state;
+      expect(searchStop(state, hardware)).toBe('noise');
+      expect(searchStop(coverQuietly(state), hardware)).toBe('noise');
+    });
+
+    it('stays open once the Chief has walked the player out, the same as for noise', () => {
+      const station = LOCATIONS.police;
+      const police = visit({ ...newGame(5), day: 3 }, 'police');
+      const once = unwrap(searchSpot(police, openSpot(police))).state;
+      const twice = unwrap(searchSpot(once, openSpot(once))).state;
+      expect(searchStop(twice, station)).toBe('escorted');
+      expect(searchStop(coverQuietly(twice), station)).toBe('escorted');
+    });
   });
 
   it('survives a save and reload mid-visit', () => {
