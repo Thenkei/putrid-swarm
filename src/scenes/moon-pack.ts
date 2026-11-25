@@ -41,7 +41,7 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
   const screen = el('div', { class: 'moon-screen', data: { phase: 'trail' } }, [canvas, header, evidence, contacts, lamp, track, caption]);
   field.replaceChildren(screen);
   const control = (label: string, click: () => void) => el('button', { class: 'btn', text: label, onClick: click });
-  let camera = 2, stage = 0, time = 0, arrivalTime = 0, opened: number | null = null, crossed = false, done = false, slow = false;
+  let camera = 2, stage = 0, time = 0, arrivalTime = 0, opened: number | null = null, done = false, slow = false;
   let feedback = '', feedbackUntil = 0;
   let heardBoot = false;
   const atGate = () => stage === route.length;
@@ -157,13 +157,14 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
         if (passage === 'impact') {
           audio.fadeOut('ram', .08);
           audio.play('door');
-          end(crossed, 5, crossed
+          // One update can span both the cub clearing the gate and the infected hitting it.
+          const rescued = gatePassage(opened, opened + CUB_CROSSING) === 'through';
+          end(rescued, 5, rescued
             ? L('Le petit passe. Un infecté percute la grille avant sa fermeture (−5). Les adultes traversent la horde à sa suite.', 'The cub gets through. An infected slams the gate before it closes (−5). The adults charge after their cub.')
             : L('Un infecté percute la grille (−5). Le petit détale sous la clôture. Les adultes le suivent par le fossé.', 'An infected slams the gate (−5). The cub bolts along the fence. The adults follow it into the ditch.'));
           return;
         }
-        crossed = passage === 'through';
-        cue = crossed ? L('Queue dégagée. Referme !', 'Tail clear. Lower it!') : L('Le petit traverse…', 'The cub is crossing…');
+        cue = passage === 'through' ? L('Queue dégagée. Referme !', 'Tail clear. Lower it!') : L('Le petit traverse…', 'The cub is crossing…');
       } else {
         cue = phase >= PACK_RETURN - .95 && phase < PACK_RETURN ? L('Ils reviennent. Attends la prochaine trouée.', 'They’re coming back. Wait for the next gap.')
           : phase >= PACK_GAP && phase < PACK_RETURN ? L('Passage libre.', 'The approach is clear.')

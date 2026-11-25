@@ -43,12 +43,13 @@ function wolf(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number
   ctx.restore();
 }
 
-function infected(ctx: CanvasRenderingContext2D, x: number, time: number) {
+function infected(ctx: CanvasRenderingContext2D, x: number, time: number, facing = 1) {
   lightPool(ctx,x,295,29,6,'#050b10bb');
-  if (patrolCel(ctx,x,295,88,-1,time)) return;
+  if (patrolCel(ctx,x,295,88,facing,time)) return;
   const stride = Math.sin(time * 7);
   ctx.save();
   ctx.translate(x, 295);
+  ctx.scale(facing, 1);
   ctx.lineCap = 'round'; ctx.strokeStyle = '#323132'; ctx.lineWidth = 12;
   ctx.beginPath();
   ctx.moveTo(1, -68); ctx.lineTo(-4, -36);
@@ -61,19 +62,21 @@ function infected(ctx: CanvasRenderingContext2D, x: number, time: number) {
 }
 
 /** The pale tail tip and the bent rear hocks distinguish the pup from either adult. */
-function cub(ctx: CanvasRenderingContext2D, x: number, facing: number, time: number, running: boolean) {
+function cub(ctx: CanvasRenderingContext2D, x: number, facing: number, time: number, running: boolean, lift = 0) {
   const stride = Math.sin(time * (running ? 13 : 5));
   lightPool(ctx,x,339,32,6,'#11161cbb');
   const sheet = sprite('epic_pack_art');
   if (sheet) {
     const frame = running ? (calmMotion() ? 1 : Math.floor(time * 9) % 3) : 2;
     const breath = !running && !calmMotion() ? 1 + Math.sin(time * 3.2) * .015 : 1;
-    ctx.save(); ctx.translate(x, 338); ctx.scale(facing, breath);
-    ctx.drawImage(sheet.img, frame * 384, 534, 384, 222, -53, -57, 107.52, 62.16);
+    // The middle stride lands ten source pixels lower than the other two.
+    const footY = frame === 1 ? 200 : 190;
+    ctx.save(); ctx.translate(x, 338 - lift); ctx.scale(facing, breath);
+    ctx.drawImage(sheet.img, frame * 384, 534, 384, 222, -53, -footY * .28, 107.52, 62.16);
     ctx.restore();
     return;
   }
-  ctx.save(); ctx.translate(x,338); ctx.scale(facing,1);
+  ctx.save(); ctx.translate(x,338 - lift); ctx.scale(facing,1);
   const rise = running ? Math.abs(stride) * 2 : 0;
   ctx.translate(0,-rise);
   ctx.lineCap = 'round';ctx.lineJoin = 'round';
@@ -107,8 +110,11 @@ function paw(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number)
 
 /** The evidence reticle and the cub use the same ground anchor even in reduced motion. */
 export function trailCubX(time: number, camera = 0) {
-  if (camera === 2) return 330 + Math.sin((calmMotion() ? 0 : time) * .57) * 13;
-  return 490 + Math.sin((calmMotion() ? 0 : time) * .57) * 100;
+  return cubPosition(calmMotion() ? 0 : time, camera);
+}
+
+function cubPosition(time: number, camera: number) {
+  return camera === 2 ? 330 + Math.sin(time * .57) * 13 : 490 + Math.sin(time * .57) * 100;
 }
 
 function portcullis(ctx: CanvasRenderingContext2D, lift: number, time: number) {
@@ -151,7 +157,7 @@ function passingStraggler(ctx: CanvasRenderingContext2D, phase: number, still: b
   ctx.translate(x, y);
   ctx.scale(.94, .96);
   lightPool(ctx, 9, -1, 32, 7, '#0f171eb0');
-  if (!patrolCel(ctx, 0, 0, 105, -1, still ? .22 : phase)) {
+  if (!patrolCel(ctx, 0, 0, 105, 1, still ? .22 : phase)) {
     ctx.translate(0, -295);
     infected(ctx, 0, still ? 0 : phase);
   }
@@ -231,15 +237,15 @@ export function moonFeed(canvas: HTMLCanvasElement, camera: number, subject: num
     lightPool(ctx, cubX, feet - 14, 58, 21, '#a5becc3d');
     for (let i = 1; i <= 5; i++) {
       const step = i / 6;
-      if (advance > step) paw(ctx,330 + 219 * step * step,281 + 57 * step + (i%2)*2,.7);
+      if (advance > step) paw(ctx,330 + 219 * step * step,281 + 57 * step + (i%2)*2,Math.PI / 2 + Math.atan2(57, 438 * step));
     }
     ctx.save();
     ctx.translate(cubX,feet);
     const leap = still?0:Math.sin(crossing*Math.PI) * 10;
     const scale = .85 + .27 * advance;
     ctx.scale(scale,scale);
-    ctx.translate(-cubX,-338-leap);
-    cub(ctx,cubX,1,air,crossing>0&&crossing<1);
+    ctx.translate(-cubX,-338);
+    cub(ctx,cubX,1,air,crossing>0&&crossing<1,leap);
     ctx.restore();
     if (feet < 307) portcullis(ctx,lift,air);
     return;
@@ -257,15 +263,21 @@ export function moonFeed(canvas: HTMLCanvasElement, camera: number, subject: num
     return;
   }
   if (camera === subject) {
-    const path = trailCubX(time) - 490;
     const facing=Math.cos(air*.57)>0?1:-1;
-    for(let i=0;i<6;i++)paw(ctx,490+path-facing*(38+i*16),340+(i%2)*5,facing*.7);
-    cub(ctx, 490 + path, facing, air, !still);
+    // Stamp each print where a paw touched down. Old prints stay put through a turn.
+    const stride = .32;
+    const lastStep = Math.floor(air / stride);
+    for (let step = lastStep - 5; step <= lastStep; step++) {
+      const footfall = step * stride;
+      const direction = Math.cos(footfall * .57) >= 0 ? 1 : -1;
+      paw(ctx, cubPosition(footfall, camera), 340 + Math.abs(step % 2) * 5, direction * Math.PI / 2);
+    }
+    cub(ctx, trailCubX(time, camera), facing, air, !still);
   } else if (camera === (subject + 1) % 3) {
     lightPool(ctx,478,337,62,10,'#09101ab3');
     wolf(ctx, 478, 337, 1.35, -1, air);
   } else {
-    infected(ctx, 360 + Math.sin(air * .6) * 63, air);
+    infected(ctx, 360 + Math.sin(air * .6) * 63, air, Math.cos(air * .6) >= 0 ? 1 : -1);
   }
   if (camera === 1) {
     const trackingCub = subject === camera;

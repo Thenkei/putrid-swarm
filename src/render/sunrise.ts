@@ -1,5 +1,7 @@
 import { sprite } from '../engine/assets';
 import { clamp01, smoothstep } from './noise';
+import { project, type Point, type View } from './projection';
+import { SHADOW_REACH } from './shadows';
 
 /** The last CCTV shot of an ordinary night, before the morning report. */
 export const SUNRISE_SECONDS = 4.8;
@@ -32,6 +34,14 @@ export function* firstSwallows(age: number, still: boolean) {
     yield { x: -2 + t * 28, y: 13.4 + i * 1.45 + sweep * 3.3 - 2 * t, height: 89 + 12 * i - 31 * sweep + 11 * Math.sin(t * 7),
       pose: t > .64 && t < .86 ? 3 : wing, alpha: smoothstep(0, .09, flight) * (1 - smoothstep(.9, 1, flight)) };
   }
+}
+
+export function projectSwallow(view: View, bird: Point & { height: number }) {
+  const floor = project(view, bird.x, bird.y), height = bird.height * view.zoom;
+  return {
+    breast: { x: floor.x, y: floor.y - height },
+    shadow: { x: floor.x + SHADOW_REACH.x * height, y: floor.y + SHADOW_REACH.y * height },
+  };
 }
 
 /** Two short hops out of the gate, a long listen, then three bounds into the verge. */

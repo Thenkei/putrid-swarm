@@ -6,6 +6,7 @@
   "atlasScale": 0.75,
   "renderHeight": 82,
   "standingHeight": 251,
+  "groundPadding": 12,
   "walkStride": 1.2,
   "chargeStride": 1.65
 }

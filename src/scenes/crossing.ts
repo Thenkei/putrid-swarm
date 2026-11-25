@@ -111,6 +111,7 @@ export class CrossingScene implements Scene {
   }
 
   private drawHerd(ctx: CanvasRenderingContext2D): void {
+    const standing = sprite('en_deer_front_a') ?? sprite('en_deer_front');
     for (const [index, deer] of HERD.entries()) {
       const age = this.time - deer.start;
       const advance = this.still ? 0.21 + (2 - index) * 0.21 : age / deer.seconds;
@@ -120,18 +121,20 @@ export class CrossingScene implements Scene {
       if (!art) continue;
       const x = 45 + advance * 1210;
       const y = 492 - advance * 32 - deer.farSide;
-      const h = deer.height;
-      const w = h * art.w / art.h;
+      // The crops share the same antler line. Tucking the hooves shortens the
+      // painting while the skull and torso keep their scale above the road.
+      const scale = deer.height / (standing ?? art).h;
+      const w = art.w * scale, h = art.h * scale;
       const lift = this.still ? 0 : Math.max(0, Math.sin(age * 13)) * (index === 0 ? 11 : 6);
       ctx.save();
       ctx.globalAlpha = Math.min(1, advance * 9, (1 - advance) * 9);
       ctx.fillStyle = '#291e1960';
       ctx.beginPath();
-      ctx.ellipse(x, y, w * 0.44, h * 0.085, -0.04, 0, Math.PI * 2);
+      ctx.ellipse(x, y, (standing ?? art).w * scale * 0.44, deer.height * 0.085, -0.04, 0, Math.PI * 2);
       ctx.fill();
       ctx.translate(x, y - lift);
       ctx.filter = 'brightness(0.86) saturate(0.81)';
-      ctx.drawImage(art.img, -w / 2, -h, w, h);
+      ctx.drawImage(art.img, -w / 2, -deer.height, w, h);
       ctx.restore();
     }
   }

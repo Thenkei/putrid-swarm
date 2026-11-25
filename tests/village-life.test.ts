@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { audio } from '../src/engine/audio';
 import { drawAnimal } from '../src/render/life-art';
 import { wagonLeaves } from '../src/render/car-departure';
+import { drawClockPigeons } from '../src/render/clock-pigeons';
 import { drawGlowworms, drawPropLife, drawSquirrelCache, FROG_SPLASH_AT, FROG_RETURNS_AT, groundLifeDrawable } from '../src/render/homestead-life';
 import { ShopLife } from '../src/scenes/shop-life';
 import type { Enemy } from '../src/core/night';
@@ -21,6 +22,19 @@ function canvas() {
 beforeEach(() => vi.clearAllMocks());
 
 describe('life in the homestead and shops', () => {
+  it('shows the pigeons on the opposite roof when the bell rings in reduced motion', () => {
+    const positions = (age: number, still: boolean) => {
+      vi.mocked(drawAnimal).mockClear();
+      drawClockPigeons(canvas(), { x: 1000, y: 145 }, { x: 700, y: 265 }, age, still);
+      return vi.mocked(drawAnimal).mock.calls.map(([, , pose, x, y]) => [pose, x, y]);
+    };
+    const settled = positions(6, false);
+    expect(settled).toHaveLength(6);
+    expect(positions(-1, true)).toEqual(positions(-1, false));
+    expect(positions(-1, true)).not.toEqual(settled);
+    expect(positions(0, true)).toEqual(settled);
+  });
+
   it('keeps the squirrel, its buried cache, and the rolling apple at the same world positions in either camera', () => {
     for (const kind of ['woodpile', 'apple'] as const) for (const time of [1, 2.65, 4.35, 8.4, 13]) {
       const prop = { kind, x: kind === 'apple' ? 5 : 14, y: kind === 'apple' ? 12 : 8, w: 1, h: 1 };

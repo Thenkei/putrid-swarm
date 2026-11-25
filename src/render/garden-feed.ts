@@ -121,8 +121,10 @@ export function drawGarden(canvas: HTMLCanvasElement, game: GardenEscort, camera
   }
   for (const [index, patrol] of patrols.entries()) {
     const centre = game.patrolAt(index);
-    const facing = index === 0 ? 1 : -1;
-    const feet = x(centre) - facing * 38;
+    const facing = game.patrolAt(index, .001) >= centre ? 1 : -1;
+    // The patrol walks behind its gaze. Close the gap as it turns at either end.
+    const toTurn = Math.min(x(centre) - x(patrol.from), x(patrol.to) - x(centre));
+    const feet = x(centre) - facing * Math.min(38, Math.max(0, toTurn) * .5);
     const back = TRACK - 23;
     lightPool(ctx, feet, back, 20, 4, '#111412c9');
     ctx.save();

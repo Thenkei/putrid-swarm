@@ -33,8 +33,6 @@ function rowBounds(pixels, width, height) {
 async function loadPose(out, key, view, pose, scale) {
   const texture = sharp(join(out, `sprites/${key}_${view}_${pose}.webp`));
   const { height } = await texture.metadata();
-  // The front landing painting faces the other way from the stag's extension and tuck.
-  if (key === 'en_deer' && view === 'front' && pose === 'b') texture.flop();
   const { data, info } = await texture.ensureAlpha().resize({ height: Math.round(height * scale) }).raw()
     .toBuffer({ resolveWithObject: true });
   return { pixels: data, w: info.width, h: info.height, bounds: rowBounds(data, info.width, info.height) };

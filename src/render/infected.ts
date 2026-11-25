@@ -13,7 +13,7 @@ import mobGaits from './mob-gaits.json';
 import { drawHoist, drawMobGesture, type MobGesture } from './mob-signatures';
 import mowerGait from './mower-gait.json';
 import { smoothstep } from './noise';
-import { project, type View } from './projection';
+import { project, TH, TW, type View } from './projection';
 import { contactShadow } from './shadows';
 import type { DeviceVisual } from './world';
 
@@ -71,12 +71,13 @@ const ART: Readonly<Record<EnemyTypeId, CharacterArt>> = {
 const CLIPS = ['walk', 'run', 'grip', 'hit', 'fall', 'dead'] as const;
 const CRAWL_CLIPS = ['kneel', 'crawlLeft', 'crawlGather', 'crawlRight'] as const;
 const CRAWL_CYCLE = ['crawlLeft', 'crawlGather', 'crawlRight', 'crawlGather'] as const;
-// Top of the ink in each crawl cel. All four rows share the ground line at 146.
-// Register the actual silhouette: the transparent headroom varies by as much as
-// 31 pixels between strokes of the same gait in the same camera.
-const CRAWL_TOP = [
-  [41, 72, 89, 84], [32, 47, 62, 54],
-  [12, 50, 70, 59], [4, 28, 59, 46],
+// Top of the ink and midpoint of the supporting limbs in each 216×148 crawl painting.
+// The lowest toe changes across strokes and is on the near side in both camera views.
+const CRAWL_CONTACTS = [
+  [[41, 106, 139], [72, 107, 132], [89, 105, 141], [84, 103, 134]],
+  [[32, 106, 131], [47, 97, 124], [62, 95, 130], [54, 83, 129]],
+  [[12, 108, 128], [50, 112, 129], [70, 129, 130], [59, 119, 124]],
+  [[4, 102, 126], [28, 102, 116], [59, 104, 130], [46, 106, 123]],
 ] as const;
 type Clip = (typeof CLIPS)[number];
 type CrawlClip = (typeof CRAWL_CLIPS)[number];
@@ -91,6 +92,10 @@ interface Figure {
   readonly width: number;
   readonly height: number;
   readonly reverse: boolean;
+  /** Transparent space below the gait's authored ground line, in standing heights. */
+  readonly groundPadding?: number;
+  /** Travel from the lower centre of a crawl crop to its ground mount, in standing heights. */
+  readonly crawlMount?: readonly [number, number];
 }
 
 const figures = new Map<string, Figure>();
@@ -112,9 +117,9 @@ function figureFor(art: CharacterArt, front: boolean, pose: Pose): Figure | null
     const cw = sheet.w / CRAWL_CLIPS.length;
     const ch = sheet.h / 4;
     const row = (art.key === 'en_dog' ? 2 : 0) + (front ? 0 : 1);
-    const top = CRAWL_TOP[row]![crawl]!;
+    const [top, x, y] = CRAWL_CONTACTS[row]![crawl]!;
     figure = { source: sheet, sx: crawl * cw, sy: row * ch + top, sw: cw, sh: 146 - top,
-      width: cw / 128, height: 1, reverse: false };
+      width: cw / 128, height: 1, reverse: false, crawlMount: [(cw / 2 - x) / 128, (146 - y) / (146 - top)] };
   } else if (atlas) {
     const cw = atlas.w / (CLIPS.length * 2);
     const ch = atlas.h / 11;
@@ -123,10 +128,9 @@ function figureFor(art: CharacterArt, front: boolean, pose: Pose): Figure | null
     const reference = sprite(base + '_a') ?? sprite(base);
     const source = sprite(key) ?? (pose === 'grip' ? sprite(base + '_x') : undefined) ?? reference;
     if (!source || !reference) return null;
-    const forwardDeerLanding = art.key === 'en_deer' && pose === 'b' && mobCycle('deer');
     const reversingAction = pose === 'x' && (art.key === 'boss_mechanic' && mobCycle('mechanic') ||
       art.key === 'en_deer' && mobCycle('deer') || art.key === 'boss_chief' && mobCycle('chief'));
-    const reverse = front && reverseFront(art) && !forwardDeerLanding && (pose === 'a' || pose === 'p' || pose === 'b' || pose === 'watch' || pose === 'exposed' || !!reversingAction);
+    const reverse = front && reverseFront(art) && (pose === 'a' || pose === 'p' || pose === 'b' || pose === 'watch' || pose === 'exposed' || !!reversingAction);
     figure = { source, sx: 0, sy: 0, sw: source.w, sh: source.h, width: source.w / reference.h, height: source.h / reference.h, reverse };
   }
   figures.set(key, figure);
@@ -178,6 +182,7 @@ function mowerFigure(e: Enemy, front: boolean, reduced: boolean): Figure | undef
     sh,
     width: cellWidth / standingHeight,
     height: cellHeight / standingHeight,
+    groundPadding: mowerGait.groundPadding / standingHeight,
     reverse: false,
   };
 }
@@ -213,7 +218,10 @@ function facing(view: View, fx: number, fy: number) {
   const dy = (fx + fy) * sign;
   const front = Math.abs(dy) < 0.08 ? view.rot === 0 : dy > 0;
   const dir = Math.abs(dx) < 0.04 ? (front ? -1 : 1) : Math.sign(dx);
-  return { front, dir, flip: front ? dir > 0 : dir < 0, depth: front ? 0.38 : -0.38 };
+  // The mirror chooses between two paintings. Lunges, recoil and debris follow
+  // the continuous grid heading, including straight toward or across the camera.
+  const length = Math.hypot(fx, fy) || 1;
+  return { front, flip: front ? dir > 0 : dir < 0, forwardX: dx / length, forwardY: dy / length * TH / TW };
 }
 
 // The rear painting includes the distance from the near boot to the far shoulder.
@@ -242,14 +250,14 @@ interface Movement {
 export function shoulderAt(view: View, target: LogTarget) {
   const art = ART[target.type];
   const h = art.height * view.zoom * stature(art, target.id);
-  const { dir, depth, front } = facing(view, target.fx, target.fy);
+  const { forwardX, forwardY, front } = facing(view, target.fx, target.fy);
   const low = smoothstep(0, 1, target.crawlDepth);
   const p = project(view, target.x, target.y);
   const upright = art.animal ? 0.25 : 0.08;
   const forward = upright + (0.28 - upright) * low;
   const shoulder = art.animal ? 0.57 : 0.73;
   const lift = h * (shoulder + (crawlHeight(art, front, 1) * 0.67 - shoulder) * low);
-  return { x: p.x + h * dir * forward, y: p.y + h * depth * forward, lift };
+  return { x: p.x + h * forwardX * forward, y: p.y + h * forwardY * forward, lift };
 }
 
 const grounded: Movement = { pose: 'p', forward: 0, up: 0, lean: 0, squash: 1, flash: 0, step: 1 };
@@ -365,6 +373,9 @@ function windup(e: Enemy, m: Movement, enhanced: boolean, reduced: boolean): voi
 
 function motion(e: Enemy, art: CharacterArt, reduced: boolean, leader?: Enemy, horn?: DeviceVisual): Movement {
   const m = { ...grounded };
+  // Their passing pose gathers every boot or paw in the air. A stopped actor
+  // settles on the planted walk contact while the simulation holds it still.
+  const planted = art.animal || e.type === 'runner' || e.type === 'mail' ? 'walk' : 'p';
   const enhanced = e.type === 'mower' || !!mobCycle(e.type);
   if (e.hitFlash > 0) {
     const t = 1 - e.hitFlash / HIT_REACTION_SECONDS;
@@ -385,7 +396,7 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean, leader?: Enemy, h
     }
   } else if (e.nettedFor > 0 || e.stunnedFor > 0 || (e.action === 'idle' && e.crawlDepth > 0)) {
     const low = Math.max(e.crawlDepth, e.hitCrawlDepth ?? 0);
-    m.pose = low >= 0.6 ? 'crawlGather' : low > 0 ? 'kneel' : 'p';
+    m.pose = low >= 0.6 ? 'crawlGather' : low > 0 ? 'kneel' : planted;
     if (e.type === 'chief' && (e.nettedFor > 0 || e.lit)) m.pose = 'exposed';
     const pull = enhanced && e.nettedFor > 0 ? Math.sin(e.nettedFor * 21) * smoothstep(0, 0.4, e.nettedFor) : 0;
     m.squash = enhanced ? 0.93 + 0.021 * pull : 0.96;
@@ -461,7 +472,7 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean, leader?: Enemy, h
       m.lean = 0.17 * Math.sin(TAU * vault);
       m.squash = 1 - 0.15 * smoothstep(0.76, 0.91, vault) * (1 - smoothstep(0.92, 1, vault));
     } else locomotion(e, art, m, reduced, leader);
-  }
+  } else if (e.action === 'idle') m.pose = planted;
   if (reduced) {
     m.lean = 0;
     m.up = 0;
@@ -567,11 +578,12 @@ function cameraCel(f: Figure, exposure: Exposure): HTMLCanvasElement | undefined
 
 function drawFigure(
   ctx: CanvasRenderingContext2D, f: Figure, height: number, exposure: Exposure, night: boolean,
-  flash = 0, front = false, signature?: MobGesture,
+  flash = 0, front = false, signature?: MobGesture, crawlDepth = 0,
 ): void {
   const w = f.width * height;
   const h = f.height * height;
   ctx.save();
+  if (f.crawlMount) ctx.translate(f.crawlMount[0] * height * crawlDepth, f.crawlMount[1] * height * crawlDepth);
   if (f.reverse) ctx.scale(-1, 1);
   const baked = night ? cameraCel(f, exposure) : undefined;
   if (signature?.kind === 'hoist' && f.sw === (front ? 331 : 302) && f.sh === (front ? 269 : 268)) {
@@ -626,7 +638,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
   const dx = facingTarget ? facingTarget.x + 0.5 - enemy.x : 0;
   const dy = facingTarget ? facingTarget.y + 0.5 - enemy.y : 0;
   const reach = Math.hypot(dx, dy);
-  const { front, dir, flip, depth } = reach > 0.001 ? facing(view, dx / reach, dy / reach)
+  const { front, flip, forwardX, forwardY } = reach > 0.001 ? facing(view, dx / reach, dy / reach)
     : facing(view, leader?.fx ?? enemy.fx, leader?.fy ?? enemy.fy);
   const h = art.height * z * stature(art, enemy.id);
   const reduced = calmMotion();
@@ -645,19 +657,22 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
     movement.up += Math.max(0, 1 - f.height) * (flight ? 0.8 : 0.45);
   }
 
-  contactShadow(ctx, p.x, p.y + z, 18 * enemy.def.size * z, 7 * enemy.def.size * z, 0.58 - movement.up);
+  const groundX = p.x + forwardX * movement.forward * h, groundY = p.y + forwardY * movement.forward * h;
+  const support = f?.crawlMount ? smoothstep(0, 1, low) : 0;
+  contactShadow(ctx, groundX, groundY + z, 18 * enemy.def.size * z, 7 * enemy.def.size * z, 0.58 - movement.up);
   if (art.heavy && movement.step < 0.24 && !reduced) {
     const t = movement.step / 0.24;
     ctx.fillStyle = 'rgba(172,154,121,' + (0.19 * (1 - t)) + ')';
     ctx.beginPath();
-    ctx.ellipse(p.x - dir * h * 0.06, p.y + z, h * (0.08 + t * 0.12), h * (0.025 + t * 0.032), 0, 0, TAU);
+    ctx.ellipse(groundX - forwardX * h * 0.06, groundY + z - forwardY * h * 0.06, h * (0.08 + t * 0.12), h * (0.025 + t * 0.032), 0, 0, TAU);
     ctx.fill();
   }
   ctx.save();
-  ctx.translate(p.x + dir * movement.forward * h, p.y + 3 * z + h * (movement.forward * depth - movement.up));
-  ctx.rotate(dir * movement.lean);
+  const padding = f?.groundPadding === undefined ? 3 * z : f.groundPadding * h;
+  ctx.translate(groundX, groundY + padding * (1 - support) - h * movement.up);
+  ctx.rotate(forwardX * movement.lean);
   ctx.scale(flip ? -1 : 1, posture * movement.squash);
-  if (f) drawFigure(ctx, f, h, enemy.nettedFor > 0 ? 'net' : enemy.threshold ? 'door' : 'live', frame.night, movement.flash, front, movement.signature);
+  if (f) drawFigure(ctx, f, h, enemy.nettedFor > 0 ? 'net' : enemy.threshold ? 'door' : 'live', frame.night, movement.flash, front, movement.signature, support);
   else {
     ctx.fillStyle = enemy.def.boss ? '#a8433a' : '#7d9a58';
     ctx.beginPath();
@@ -702,8 +717,8 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
     ctx.lineWidth = 1.2 * z;
     for (let i = 0; i < 3; i++) {
       ctx.beginPath();
-      ctx.moveTo(p.x - dir * 14 * z, p.y - (10 + i * 12) * z);
-      ctx.lineTo(p.x - dir * 24 * z, p.y - (10 + i * 12) * z);
+      ctx.moveTo(p.x - forwardX * 14 * z, p.y - (10 + i * 12 + forwardY * 14) * z);
+      ctx.lineTo(p.x - forwardX * 24 * z, p.y - (10 + i * 12 + forwardY * 24) * z);
       ctx.stroke();
     }
   }
@@ -736,7 +751,7 @@ export function drawFallen(ctx: CanvasRenderingContext2D, view: View, frame: Mom
   const age = body.age;
   const opacity = 1 - smoothstep(FALL_SECONDS - 0.62, FALL_SECONDS, age);
   if (opacity <= 0) return;
-  const { front, flip, dir, depth } = facing(view, body.fx, body.fy);
+  const { front, flip, forwardX, forwardY } = facing(view, body.fx, body.fy);
   const initialDepth = body.crawlDepth ?? 0;
   const low = initialDepth > 0;
   const enhanced = body.type === 'mower' || !!mobCycle(body.type);
@@ -754,28 +769,31 @@ export function drawFallen(ctx: CanvasRenderingContext2D, view: View, frame: Mom
   const landing = smoothstep(rollEnd, rollEnd + 0.18, age);
   const settle = Math.sin(Math.PI * landing);
   const slide = low ? 0.075 : enhanced && art.wheels ? 0.18 : enhanced && art.animal ? 0.16 : 0.115;
-  const x = p.x - dir * h * collapse * (reduced ? 0.03 : slide);
-  const prone = sprite('defense_mob_poses') ? smoothstep(recoilEnd, rollEnd + .17, age) : 0;
-  const y = p.y + view.zoom * 3 * (1 - prone) - depth * h * collapse * 0.07;
-  contactShadow(ctx, x, y - h * collapse * (1 - prone) * 0.075, h * (0.22 + 0.15 * collapse), h * (0.075 + 0.03 * collapse), 0.51 * opacity);
+  const distance = h * collapse * (reduced ? 0.03 : slide);
+  const x = p.x - forwardX * distance;
+  // A crawler is already grounded between its limbs when the resting painting arrives.
+  const prone = sprite('defense_mob_poses') ? low && pose === 'dead' ? 1 : smoothstep(recoilEnd, rollEnd + .17, age) : 0;
+  const support = cel.crawlMount ? smoothstep(0, 1, under) : 0;
+  const y = p.y + view.zoom * 3 * (1 - Math.max(support, prone)) - forwardY * distance;
+  contactShadow(ctx, x, y - h * collapse * (1 - Math.max(support, prone)) * 0.075, h * (0.22 + 0.15 * collapse), h * (0.075 + 0.03 * collapse), 0.51 * opacity);
   ctx.save();
   ctx.globalAlpha *= opacity;
   ctx.translate(x, y);
   if (low) {
     const tilt = art.animal ? -0.06 : 0.14;
-    ctx.rotate(reduced ? 0 : dir * tilt * (pose === 'dead' ? 1 - settle * 0.3 : buckle));
+    ctx.rotate(reduced ? 0 : forwardX * tilt * (pose === 'dead' ? 1 - settle * 0.3 : buckle));
   } else if (!reduced) {
-    if (!sprite('defense_mob_poses')) ctx.rotate(-dir * collapse * 1.35);
-    else if (pose !== 'dead') ctx.rotate(dir * (pose === 'hit' ? -0.08 : -buckle * (art.wheels ? 0.075 : 0.16)));
+    if (!sprite('defense_mob_poses')) ctx.rotate(-forwardX * collapse * 1.35);
+    else if (pose !== 'dead') ctx.rotate(forwardX * (pose === 'hit' ? -0.08 : -buckle * (art.wheels ? 0.075 : 0.16)));
   }
   const squash = pose === 'crawlGather' ? 1 - 0.28 * buckle : pose === 'fall' ? 1 - 0.22 * buckle : 1 - 0.045 * settle;
   const posture = low ? pose === 'dead' ? 0.80 : crawlHeight(art, front, under) : 1;
   ctx.scale(flip ? -1 : 1, posture * (reduced ? 1 : squash));
-  if (prone > 0) {
+  if (prone > 0 && !cel.crawlMount) {
     const [cx, cy] = RESTING_CENTRES[art.row]![front ? 0 : 1];
     const pixel = 2 * h / 224;
     ctx.translate((112 - cx) * pixel * prone, (144 - cy) * pixel * prone);
   }
-  drawFigure(ctx, cel, h, 'fallen', frame.night);
+  drawFigure(ctx, cel, h, 'fallen', frame.night, 0, front, undefined, support);
   ctx.restore();
 }

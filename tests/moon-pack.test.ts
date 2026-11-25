@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gatePassage } from '../src/core/moon-pack';
+import { CUB_CROSSING, gatePassage, PACK_CYCLE } from '../src/core/moon-pack';
 import { markEpic, packTrail } from '../src/core/epics';
 import { newGame, startNextDay } from '../src/core/game';
 import { NightSim } from '../src/core/night';
@@ -20,6 +20,17 @@ describe('moonlit gate', () => {
     expect(gatePassage(6.3, 7.0)).toBe('impact');
     expect(gatePassage(3.1, 11.4)).toBe('impact');
     expect(gatePassage(7.5, 7.5)).toBe('impact');
+  });
+  it('preserves a completed crossing when the next update also includes the impact', () => {
+    for (const cycle of [0, 1, 4]) {
+      const start = cycle * PACK_CYCLE;
+      expect(gatePassage(start + 5.79, start + 7.01)).toBe('impact');
+      expect(gatePassage(start + 5.79, start + 5.79 + CUB_CROSSING)).toBe('through');
+      for (const offset of [2.99, 5.80, 5.81, 7.15]) {
+        const opened = start + offset;
+        expect(gatePassage(opened, opened + CUB_CROSSING)).toBe('impact');
+      }
+    }
   });
 });
 

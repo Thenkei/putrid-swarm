@@ -37,7 +37,8 @@ export function patrolCel(ctx: CanvasRenderingContext2D, x: number, y: number, h
   const frame = Math.floor(time * 14) % gait.frames;
   const scale = height / gait.inkHeight;
   ctx.save();
-  ctx.translate(x, y); ctx.scale(facing * scale, scale);
+  // The front shambler painting steps to screen left.
+  ctx.translate(x, y); ctx.scale(-facing * scale, scale);
   ctx.drawImage(nightPatrol ?? atlas.img, (frame % gait.columns) * gait.cellWidth, Math.floor(frame / gait.columns) * gait.cellHeight,
     gait.cellWidth, gait.cellHeight, -gait.cellWidth / 2, -gait.cellHeight + 11, gait.cellWidth, gait.cellHeight);
   ctx.restore();

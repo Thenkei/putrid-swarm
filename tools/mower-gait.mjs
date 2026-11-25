@@ -178,23 +178,25 @@ async function render(view, layers, phase, charge, still) {
   const stride = charge ? gait.chargeStride : gait.walkStride;
   const w = cellWidth, h = cellHeight;
   const target = Buffer.alloc(w * h * 4);
-  const dx = (w - view.width) / 2, dy = h - standingHeight - 4;
+  const dx = (w - view.width) / 2, dy = h - standingHeight - gait.groundPadding;
+  const inCell = ([x, y]) => [x + dx, y + dy];
   const pulse = still ? 0 : Math.cos(4 * Math.PI * (phase - 0.1));
   const pressure = (charge ? 0.14 : 0.03) + pulse * (charge ? 0.029 : 0.018);
-  const bodyAt = (x, y) => [x + dx + view.direction * (view.gripY - y) * pressure, y + dy + (view.gripY - y) * pulse * 0.027];
+  const bodyAt = (x, y) => [x + view.direction * (view.gripY - y) * pressure, y + (view.gripY - y) * pulse * 0.027];
   const bar = [[view.width / 2, 0], [view.width / 2, view.gripY], [view.width / 2, body.height]];
   const bodyWidths = bar.map(() => view.width / 2);
   const machine = () => {
     const wheel = still ? mower : rollWheel(mower, view.wheel, -view.direction * phase);
     const axle = view.width / 2;
-    paint(target, wheel, [[axle, 0], [axle, wheel.height]], [[axle + dx, dy], [axle + dx, dy + wheel.height]], [axle, axle], []);
+    const wheelAxis = [[axle, 0], [axle, wheel.height]];
+    paint(target, wheel, wheelAxis, wheelAxis.map(inCell), [axle, axle], []);
   };
   if (view.side === 'back') machine();
   for (const [i, leg] of view.legs.entries()) {
     const { posed, twists } = legAt(leg, (phase + i * 0.5) % 1, view.direction, stride, charge, still, bodyAt);
-    paint(target, legs[i], leg.joints, posed, [34, 24, 20, 31], twists, leg.shade);
+    paint(target, legs[i], leg.joints, posed.map(inCell), [34, 24, 20, 31], twists, leg.shade);
   }
-  paint(target, body, bar, bar.map(([x, y]) => bodyAt(x, y)), bodyWidths, []);
+  paint(target, body, bar, bar.map(([x, y]) => inCell(bodyAt(x, y))), bodyWidths, []);
   if (view.side === 'front') machine();
   return sharp(target, { raw: { width: w, height: h, channels: 4 } })
     .resize(w * atlasScale, h * atlasScale).png().toBuffer();
