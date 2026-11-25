@@ -3,8 +3,9 @@ import { smoothstep } from '../core/math';
 import type { SectorId } from '../core/types';
 import { VISIBLE_DOORS } from '../house-layout';
 import { outsideSillDepth } from './house';
+import { sprite } from '../engine/assets';
 import { calmMotion } from './lighting';
-import { drawFallbackFrame, drawPaintedMoped } from './moped';
+import { drawFallbackFrame, drawPaintedMoped, mopedMount } from './moped';
 import { depthOf, project, type View } from './projection';
 
 export interface ParkedMoped {
@@ -68,8 +69,8 @@ export function parkedMopedDrawable(ctx: CanvasRenderingContext2D, view: View, m
   const start = mopedParkingSpot(moped.sector);
   const from = project(view, start.x, start.y);
   const depth = depthOf(view.rot, start.x, start.y);
-  const facing = Math.cos(angle) >= 0 ? 1 : -1;
-  const pitch = Math.asin(Math.sin(angle)) * .65;
+  const painted = !!sprite('epic_moped_art');
+  const mount = mopedMount(angle, painted);
   let beamAngle = angle;
   if (moped.previous && moped.aimAge < .48 && !calmMotion()) {
     const before = track(view, moped.previous).angle;
@@ -84,11 +85,11 @@ export function parkedMopedDrawable(ctx: CanvasRenderingContext2D, view: View, m
       ctx.scale(view.zoom, view.zoom);
       ctx.fillStyle = '#281b166e';
       ctx.beginPath();
-      ctx.ellipse(0, 3, 27, 6.5, facing * pitch * .75, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 27, 6.5, angle, 0, Math.PI * 2);
       ctx.fill();
       ctx.save();
-      // Lamp position on the registered painted vehicle cel, after its pitch and facing.
-      ctx.translate(facing * (21 * Math.cos(pitch) + 24 * Math.sin(pitch)), 21 * Math.sin(pitch) - 24 * Math.cos(pitch));
+      const lampX = painted ? 21 : 11, lampY = painted ? -24 : -13;
+      ctx.translate(mount[0] * lampX + mount[4], mount[1] * lampX + lampY + mount[5]);
       ctx.rotate(beamAngle);
       const light = ctx.createLinearGradient(0, 0, 110, 0);
       light.addColorStop(0, '#fff1bcb8');
@@ -99,8 +100,7 @@ export function parkedMopedDrawable(ctx: CanvasRenderingContext2D, view: View, m
       ctx.moveTo(0, -1.5); ctx.lineTo(110, -11); ctx.lineTo(110, 16); ctx.lineTo(0, 1.5);
       ctx.fill();
       ctx.restore();
-      ctx.scale(facing, 1);
-      ctx.rotate(pitch);
+      ctx.transform(...mount);
       if (!drawPaintedMoped(ctx)) drawFallbackFrame(ctx, 0);
       ctx.restore();
     },

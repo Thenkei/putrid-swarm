@@ -2,7 +2,7 @@ import type { Prop } from '../core/map';
 import type { Enemy } from '../core/night';
 import { drawAnimal, drawSmallProp } from './life-art';
 import { clamp01, smoothstep } from './noise';
-import { inView, project, type Rot, type View } from './projection';
+import { depthOf, inView, project, type Rot, type View } from './projection';
 
 export interface HomesteadLife {
   readonly day: number;
@@ -14,13 +14,20 @@ const DIVE_AT = .91;
 export const FROG_SPLASH_AT = 1.34;
 export const FROG_RETURNS_AT = 3.2;
 
+// Landmarks on the front and reverse paintings. The far rim is visible
+// behind the opening when looking back at the frog's perch.
+export const MAILBOX_PERCH = [[.605,.035], [.43,.035]] as const;
+const WELL_LIP = [[.30,.692], [.66,.555]] as const;
+export const WELL_WATER = [[.455,.668], [.50,.665]] as const;
+
 function shadow(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, alpha = .25): void {
   ctx.fillStyle = `rgba(41,28,16,${alpha})`;
   ctx.beginPath(); ctx.ellipse(x, y, size, size * .29, 0, 0, Math.PI * 2); ctx.fill();
 }
 
 function robin(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, horn: number, still: boolean, rot: Rot): void {
-  const x = w * (rot ? .52 : .48), y = h * .132;
+  const [u, v] = MAILBOX_PERCH[rot];
+  const x = w * u, y = h * v;
   const beakSide = rot ? 1 : -1;
   ctx.fillStyle = '#d1b275';
   ctx.fillRect(x + beakSide * 4.5, y - .8, 1.4, .8);
@@ -31,7 +38,7 @@ function robin(ctx: CanvasRenderingContext2D, w: number, h: number, time: number
     const t = leaving ? horn : (4.65 - horn) / 1.05;
     const f = smoothstep(0, .95, t);
     ctx.globalAlpha *= 1 - smoothstep(.65, .98, t);
-    drawAnimal(ctx, 0, 2 + Math.floor(horn * 12) % 2, x - 75 * f, y - 36 * Math.sin(f * 1.45), 30, !leaving);
+    drawAnimal(ctx, 0, 2 + Math.floor(horn * 12) % 2, x + beakSide * 75 * f, y - 36 * Math.sin(f * 1.45), 30, !leaving !== !!rot);
     return;
   }
   shadow(ctx, x, y, 3.7);
@@ -40,43 +47,47 @@ function robin(ctx: CanvasRenderingContext2D, w: number, h: number, time: number
   drawAnimal(ctx, 0, peck ? 1 : 0, x, y, 30, !!rot);
 }
 
-function squirrel(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, rot: Rot): void {
-  // From the corner of the timber stack to a cache in the loose earth and back again.
+function lifeTime(life: HomesteadLife, clock: number, still: boolean): number {
+  return still ? 1 : clock + ((life.day - 1) % 5) * 1.6;
+}
+
+/** The cache is in the soil and stays behind standing scenery as the squirrel retreats. */
+export function drawSquirrelCache(ctx: CanvasRenderingContext2D, prop: Prop, view: View, life: HomesteadLife, clock: number, still: boolean): void {
+  const t = lifeTime(life, clock, still) % 16;
+  if (t < 3.2) return;
+  const p = project(view, prop.x + 1.75, prop.y + .18);
+  ctx.save();
+  ctx.translate(p.x, p.y); ctx.scale(view.zoom, view.zoom);
+  ctx.fillStyle = '#68472c';
+  ctx.beginPath(); ctx.ellipse(0, -1, 2.7, 2.1, -.3, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#c79857'; ctx.fillRect(-1.2, -2.2, 1.7, 1.2);
+  const soil = smoothstep(3.65, 5.85, t);
+  ctx.fillStyle = '#806244';
+  ctx.beginPath(); ctx.ellipse(0, 0, 4.7 * soil, 3.3 * soil, .06, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function squirrel(ctx: CanvasRenderingContext2D, t: number, rot: Rot): void {
   const side = rot ? -1 : 1;
-  const t = time % 16;
-  const out = smoothstep(2.1, 3.2, t), back = smoothstep(7.65, 8.95, t);
-  const trip = out - back;
-  const x = w * (rot ? .22 : .78) + side * 27 * trip;
-  const y = h * .94 + 10 * trip;
   const running = t > 2.1 && t < 3.2 || t > 7.65 && t < 8.95;
   const digging = t >= 3.2 && t < 6.15;
   const beat = Math.sin(t * (digging ? 13 : 15));
   const height = running ? 5 * Math.abs(beat) : 0;
-  if (t >= 3.2) {
-    const cacheX = w * (rot ? .22 : .78) + side * 35;
-    const cacheY = h * .94 + 10;
-    ctx.fillStyle = '#68472c';
-    ctx.beginPath(); ctx.ellipse(cacheX, cacheY - 1, 2.7, 2.1, -.3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#c79857'; ctx.fillRect(cacheX - 1.2, cacheY - 2.2, 1.7, 1.2);
-    const soil = smoothstep(3.65, 5.85, t);
-    ctx.fillStyle = '#806244';
-    ctx.beginPath(); ctx.ellipse(cacheX, cacheY, 4.7 * soil, 3.3 * soil, .06, 0, Math.PI * 2); ctx.fill();
-  }
-  shadow(ctx, x, y, 6);
+  shadow(ctx, 0, 0, 6);
   const pose = running ? (beat > 0 ? 2 : 1) : digging ? 1 : t < 2.1 ? 0 : 3;
-  drawAnimal(ctx, 1, pose, x, y - height + (digging ? 1.1 * beat : 0), 34, (side < 0) !== (t > 7.6 && t < 11.5));
+  drawAnimal(ctx, 1, pose, 0, -height + (digging ? 1.1 * beat : 0), 34, (side < 0) !== (t > 7.6 && t < 11.5));
   if (digging) {
     for (let i = 0; i < 3; i++) {
       const f = (t * 2.7 + i / 3) % 1;
       ctx.fillStyle = i % 2 ? '#836446' : '#523d2c';
-      ctx.fillRect(x - side * (4 + 10 * f), y - 4 * Math.sin(f * Math.PI), 1.7, 1.3);
+      ctx.fillRect(-side * (4 + 10 * f), -4 * Math.sin(f * Math.PI), 1.7, 1.3);
     }
   }
 }
 
 function frog(ctx: CanvasRenderingContext2D, w: number, h: number, age: number, time: number, rot: Rot, still: boolean): void {
-  const lip = w * (rot ? .70 : .30), water = w * (rot ? .56 : .46);
-  const y = h * .744, surface = y - 5;
+  const lip = w * WELL_LIP[rot][0], y = h * WELL_LIP[rot][1];
+  const water = w * WELL_WATER[rot][0], surface = h * WELL_WATER[rot][1];
   if (age >= FROG_SPLASH_AT && age < FROG_RETURNS_AT) {
     const t = clamp01((age - FROG_SPLASH_AT) / .7);
     if (t < 1 && !still) {
@@ -102,31 +113,46 @@ function frog(ctx: CanvasRenderingContext2D, w: number, h: number, age: number, 
   }
 }
 
-function windfall(ctx: CanvasRenderingContext2D, w: number, h: number, time: number, rot: Rot): void {
-  const t = time % 21, side = rot ? -1 : 1;
+function windfall(ctx: CanvasRenderingContext2D, t: number, roll: number, rot: Rot): void {
+  const side = rot ? -1 : 1;
   const drop = clamp01((t - 3) / .76), bounce = clamp01((t - 3.76) / .82);
-  const roll = smoothstep(3.76, 5.55, t);
-  const x = w * (rot ? .25 : .77) + side * 23 * roll;
-  const ground = h * .96 + 4 * roll;
-  const lift = (1 - drop * drop) * h * .42 + 9 * Math.abs(Math.sin(2 * Math.PI * bounce)) * (1 - bounce);
+  const lift = (1 - drop * drop) * 63 + 9 * Math.abs(Math.sin(2 * Math.PI * bounce)) * (1 - bounce);
   // The fallen fruit is still in the grass for most of the cycle.
   ctx.globalAlpha *= smoothstep(0, .9, t) * (1 - smoothstep(18.9, 20.8, t));
-  shadow(ctx, x, ground, 4, .24 * (1 - lift / h));
-  ctx.translate(x, ground - lift - 3.6); ctx.rotate(side * (1.8 * roll + .32 * drop));
+  shadow(ctx, 0, 0, 4, .24 * (1 - lift / 150));
+  ctx.translate(0, -lift - 3.6); ctx.rotate(side * (1.8 * roll + .32 * drop));
   drawSmallProp(ctx, 0, -4.6, -5.3, 9.2, 10.6);
 }
 
-/** Called in the prop's own paint pass, after wind shear and before closer actors and scenery. */
+/** The animal and fallen fruit occupy specific patches of soil. Enqueue them at
+ * their own world depth so a tree or shelter can cross in front when turning. */
+export function groundLifeDrawable(ctx: CanvasRenderingContext2D, prop: Prop, view: View, life: HomesteadLife, clock: number, still: boolean) {
+  const woodpile = prop.kind === 'woodpile';
+  if (!woodpile && !(prop.kind === 'apple' && prop.x === 5)) return;
+  const time = lifeTime(life, clock, still);
+  const t = time % (woodpile ? 16 : 21);
+  const travel = woodpile ? smoothstep(2.1, 3.2, t) - smoothstep(7.65, 8.95, t) : smoothstep(3.76, 5.55, t);
+  const gx = prop.x + (woodpile ? .89 + .74 * travel : 1.28 + .49 * travel);
+  const gy = prop.y + (woodpile ? .42 - .11 * travel : -.02 - .23 * travel);
+  const root = project(view, gx, gy);
+  return { depth: depthOf(view.rot, gx, gy) + .4, draw() {
+    ctx.save();
+    ctx.translate(root.x, root.y); ctx.scale(view.zoom, view.zoom);
+    if (woodpile) squirrel(ctx, t, view.rot);
+    else windfall(ctx, t, travel, view.rot);
+    ctx.restore();
+  } };
+}
+
+/** Perched creatures follow the actual surface of the selected painting. */
 export function drawPropLife(ctx: CanvasRenderingContext2D, prop: Prop, rect: { x: number; y: number; w: number }, h: number, view: View, life: HomesteadLife, clock: number, still: boolean): void {
-  if (prop.kind !== 'woodpile' && prop.kind !== 'mailbox' && prop.kind !== 'well' && !(prop.kind === 'apple' && prop.x === 5)) return;
+  if (prop.kind !== 'mailbox' && prop.kind !== 'well') return;
   const w = rect.w / view.zoom, rot = view.rot;
-  const t = still ? 1 : clock + ((life.day - 1) % 5) * 1.6;
+  const t = lifeTime(life, clock, still);
   ctx.save();
   ctx.translate(rect.x, rect.y); ctx.scale(view.zoom, view.zoom);
-  if (prop.kind === 'woodpile') squirrel(ctx, w, h, t, rot);
   if (prop.kind === 'mailbox') robin(ctx, w, h, t, life.hornAge ?? -1, still, rot);
   if (prop.kind === 'well') frog(ctx, w, h, life.wellAge ?? -1, t, rot, still);
-  if (prop.kind === 'apple') windfall(ctx, w, h, t, rot);
   ctx.restore();
 }
 

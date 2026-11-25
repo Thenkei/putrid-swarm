@@ -76,6 +76,15 @@ interface Construction {
   age: number;
 }
 
+/** Cells between two pointer samples. Each step advances one tile on the longer grid axis. */
+function* fenceStroke(from: Cell, to: Cell): Generator<Cell> {
+  const dx = to.x - from.x, dy = to.y - from.y;
+  const count = Math.max(Math.abs(dx), Math.abs(dy));
+  for (let i = 1; i <= count; i++) {
+    yield { x: Math.round(from.x + dx * i / count), y: Math.round(from.y + dy * i / count) };
+  }
+}
+
 type Mode = { readonly kind: 'idle' } | { readonly kind: 'build'; readonly type: DeviceTypeId } | { readonly kind: 'repair' } | { readonly kind: 'dismantle' };
 
 const RECT = { x: 292, y: 56, w: 976, h: 652 } as const;
@@ -172,8 +181,6 @@ export class DayScene implements Scene {
   private drag: {
     x: number;
     y: number;
-    cx: number;
-    cy: number;
     moved: boolean;
     pan: boolean;
     /** Pressed with the secondary button: a press without a drag turns the piece. */
@@ -691,6 +698,7 @@ export class DayScene implements Scene {
 
   private showDoor(sector: SectorId, audible = true): void {
     const view = cameraView(sector, RECT, this.zoom);
+    this.endFenceStroke();
     if (audible) audio.play('camera');
     if (this.rot !== view.rot) {
       this.rot = view.rot;
@@ -856,6 +864,7 @@ export class DayScene implements Scene {
 
   private flip(): void {
     audio.play('camera');
+    this.endFenceStroke();
     this.rot = this.rot === 0 ? 1 : 0;
     this.ghostCache = null;
     this.refreshBuildArt();
@@ -1258,8 +1267,6 @@ export class DayScene implements Scene {
     this.drag = {
       x: pointer.x,
       y: pointer.y,
-      cx: this.cx,
-      cy: this.cy,
       moved: false,
       pan: event.button !== 0 || this.mode.kind === 'idle',
       secondary: event.button === 2,
@@ -1271,12 +1278,34 @@ export class DayScene implements Scene {
     // Palisades are drawn, not clicked one by one: the first goes down at once, the rest follow the pointer.
     if (!this.drag.pan && this.paintsLine()) {
       this.updateHover(pointer);
-      this.paint(true);
+      if (this.hover) this.paint(this.hover, true);
     }
   }
 
   private paintsLine(): boolean {
     return this.mode.kind === 'build' && DEVICES[this.mode.type].blocks;
+  }
+
+  private endFenceStroke(): void {
+    if (this.drag && !this.drag.pan && this.paintsLine()) this.drag = null;
+  }
+
+  private continueFenceStroke(pointer: Pointer): void {
+    const drag = this.drag;
+    const before = this.hover;
+    this.updateHover(pointer);
+    const target = this.hover;
+    if (!drag || drag.stopped || !target) return;
+    if (!before) {
+      drag.last = null;
+      drag.aligned = false;
+      this.paint(target);
+      return;
+    }
+    for (const cell of fenceStroke(before, target)) {
+      this.paint(cell, false, target);
+      if (drag.stopped) break;
+    }
   }
 
   /**
@@ -1285,17 +1314,17 @@ export class DayScene implements Scene {
    * daylight, or sealing a route, ends the line with the reason. The first cell is a plain click
    * and always answers.
    */
-  private paint(first = false): void {
+  private paint(at: Cell, first = false, toward: Cell = at): void {
     const drag = this.drag;
-    if (!drag || drag.stopped || this.mode.kind !== 'build' || !this.hover) return;
+    if (!drag || drag.stopped || this.mode.kind !== 'build') return;
     drag.painted = true;
-    const { x, y } = this.hover;
+    const { x, y } = at;
     if (!first) {
       const problem = placementProblem(this.state.yard, this.mode.type, x, y);
       if (problem?.code === 'occupied' || problem?.code === 'not_buildable') return;
-      this.alignToStroke(x, y);
+      this.alignToStroke(toward.x, toward.y);
     }
-    const id = this.placeDevice(this.mode.type, this.hover);
+    const id = this.placeDevice(this.mode.type, at);
     if (id !== null) drag.last = { x, y, id };
     else if (!first) drag.stopped = true;
   }
@@ -1329,22 +1358,21 @@ export class DayScene implements Scene {
       const dy = pointer.y - drag.y;
       if (Math.hypot(dx, dy) > 6) drag.moved = true;
       if (drag.moved && drag.pan) {
-        // Screen delta → grid delta, undoing the isometric projection.
-        const sign = this.rot === 0 ? 1 : -1;
-        const wx = dx / this.zoom;
-        const wy = dy / this.zoom;
-        const dvx = wy / 32 + wx / 64;
-        const dvy = wy / 32 - wx / 64;
-        this.cx = panLimit(drag.cx - dvx * sign, GRID_W);
-        this.cy = panLimit(drag.cy - dvy * sign, GRID_H);
+        // Use the current camera for both samples, including any zoom since the last move.
+        const view = this.view;
+        const before = unproject(view, drag.x, drag.y);
+        const now = unproject(view, pointer.x, pointer.y);
+        this.cx = panLimit(this.cx + before.gx - now.gx, GRID_W);
+        this.cy = panLimit(this.cy + before.gy - now.gy, GRID_H);
+        drag.x = pointer.x;
+        drag.y = pointer.y;
+        this.updateHover(pointer);
         this.app.canvas.dataset.yardCursor = 'pan';
         this.refundTag.hidden = true;
         return;
       }
       if (!drag.pan && this.paintsLine()) {
-        const before = this.hover;
-        this.updateHover(pointer);
-        if (this.hover && (this.hover.x !== before?.x || this.hover.y !== before?.y)) this.paint();
+        this.continueFenceStroke(pointer);
         return;
       }
     }
@@ -1353,8 +1381,9 @@ export class DayScene implements Scene {
 
   onPointerUp(pointer: Pointer): void {
     const drag = this.drag;
-    this.drag = null;
     if (!drag) return;
+    if (!drag.pan && this.paintsLine() && pointer.overCanvas) this.continueFenceStroke(pointer);
+    this.drag = null;
     this.updateHover(pointer, drag.moved && drag.pan);
     if (!pointer.overCanvas || !inView(this.view, pointer.x, pointer.y)) return;
     if ((drag.moved && drag.pan) || drag.painted) return;
@@ -1436,6 +1465,8 @@ export class DayScene implements Scene {
     this.cx = panLimit(this.cx + before.gx - after.gx, GRID_W);
     this.cy = panLimit(this.cy + before.gy - after.gy, GRID_H);
     this.updateHover(pointer, true);
+    // At the pan limits a zoom can put a different tile under the pointer.
+    if (this.hover?.x !== Math.floor(before.gx) || this.hover?.y !== Math.floor(before.gy)) this.endFenceStroke();
   }
 
   onKeyDown(code: string): void {

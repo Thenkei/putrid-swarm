@@ -31,6 +31,15 @@ export interface Fallen {
 
 export const FALL_SECONDS = 2.6;
 
+// Centre of the resting silhouettes in the 224×144 front/rear death cels, by actor row.
+// The standing boot anchor reaches the near edge of a prone body instead of its ground centre.
+const RESTING_CENTRES = [
+  [[112, 109], [110, 94]], [[107, 109], [112, 95]], [[110, 106], [109, 95]],
+  [[109, 90], [112, 91]], [[105, 96], [111, 92]], [[110, 107], [112, 107]],
+  [[113, 105], [115, 97]], [[105, 108], [118, 92]], [[112, 113], [113, 106]],
+  [[116, 115], [116, 108]], [[120, 112], [117, 99]],
+] as const;
+
 interface CharacterArt {
   readonly key: string;
   readonly row: number;
@@ -746,8 +755,9 @@ export function drawFallen(ctx: CanvasRenderingContext2D, view: View, frame: Mom
   const settle = Math.sin(Math.PI * landing);
   const slide = low ? 0.075 : enhanced && art.wheels ? 0.18 : enhanced && art.animal ? 0.16 : 0.115;
   const x = p.x - dir * h * collapse * (reduced ? 0.03 : slide);
-  const y = p.y + view.zoom * 3 - depth * h * collapse * 0.07;
-  contactShadow(ctx, x, y - h * collapse * 0.075, h * (0.22 + 0.15 * collapse), h * (0.075 + 0.03 * collapse), 0.51 * opacity);
+  const prone = sprite('defense_mob_poses') ? smoothstep(recoilEnd, rollEnd + .17, age) : 0;
+  const y = p.y + view.zoom * 3 * (1 - prone) - depth * h * collapse * 0.07;
+  contactShadow(ctx, x, y - h * collapse * (1 - prone) * 0.075, h * (0.22 + 0.15 * collapse), h * (0.075 + 0.03 * collapse), 0.51 * opacity);
   ctx.save();
   ctx.globalAlpha *= opacity;
   ctx.translate(x, y);
@@ -761,6 +771,11 @@ export function drawFallen(ctx: CanvasRenderingContext2D, view: View, frame: Mom
   const squash = pose === 'crawlGather' ? 1 - 0.28 * buckle : pose === 'fall' ? 1 - 0.22 * buckle : 1 - 0.045 * settle;
   const posture = low ? pose === 'dead' ? 0.80 : crawlHeight(art, front, under) : 1;
   ctx.scale(flip ? -1 : 1, posture * (reduced ? 1 : squash));
+  if (prone > 0) {
+    const [cx, cy] = RESTING_CENTRES[art.row]![front ? 0 : 1];
+    const pixel = 2 * h / 224;
+    ctx.translate((112 - cx) * pixel * prone, (144 - cy) * pixel * prone);
+  }
   drawFigure(ctx, cel, h, 'fallen', frame.night);
   ctx.restore();
 }

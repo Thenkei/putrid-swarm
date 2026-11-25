@@ -52,15 +52,24 @@ function wreckPlacement(view: View, sector: SectorId) {
   const travel = 1.05 / Math.hypot(dx, dy);
   const gx = end.x + dx * travel, gy = end.y + dy * travel;
   const point = project(view, gx, gy);
-  const facing = point.x >= project(view, sill.gx, sill.gy).x ? 1 : -1;
-  return { x: point.x, y: point.y, facing, depth: depthOf(view.rot, gx, gy) };
+  const from = project(view, sill.gx, sill.gy);
+  const angle = Math.atan2(point.y - from.y, point.x - from.x);
+  return { ...point, dx: Math.cos(angle), dy: Math.sin(angle), angle, depth: depthOf(view.rot, gx, gy) };
 }
+
+// The attached rear tyre rests 26 stage pixels back along the skid. Draw and hit-test
+// the broken frame about that tyre in its 370×320 crop.
+const chassisX = -86 * 53 / 370, chassisY = -315 * 24 / 320;
+const chassisTilt = .28;
 
 export function hitsMopedWreck(view: View, sector: SectorId, px: number, py: number): boolean {
   const p = wreckPlacement(view, sector);
-  const x = (px - p.x) * p.facing / view.zoom, y = (py - p.y) / view.zoom;
-  return (x >= -40 && x <= 13 && y >= -25 && y <= 6)
-    || ((x - 20) / 14) ** 2 + ((y - 3) / 8) ** 2 <= 1;
+  const x = (px - p.x) / view.zoom, y = (py - p.y) / view.zoom;
+  const cx = (x + 26 * p.dx) * Math.sign(p.dx), cy = y + 26 * p.dy;
+  const u = cx * Math.cos(chassisTilt) + cy * Math.sin(chassisTilt) - chassisX;
+  const v = cy * Math.cos(chassisTilt) - cx * Math.sin(chassisTilt) - chassisY;
+  return (u >= 0 && u <= 53 && v >= 0 && v <= 24)
+    || ((x - 20 * p.dx) / 14) ** 2 + ((y - 20 * p.dy + 12 * .36) / 8) ** 2 <= 1;
 }
 
 export function wreckDrawable(ctx: CanvasRenderingContext2D, view: View, sector: SectorId, age: number) {
@@ -75,15 +84,14 @@ export function wreckDrawable(ctx: CanvasRenderingContext2D, view: View, sector:
     const turn = roll * (13 - 6.5 * roll / 7);
     const fall = Math.max(0, Math.min(1, (t - 4.5) / 3));
     const height = 1 - .64 * fall + .09 * Math.sin(t * 9) * fall * (1 - fall);
-    const wheelY = 5 - 10 * height;
     ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.scale(view.zoom * p.facing, view.zoom);
+    ctx.scale(view.zoom, view.zoom);
     ctx.fillStyle = 'rgba(35,25,20,.45)';
-    ctx.beginPath(); ctx.ellipse(-5, 2, 33, 6, -.06, 0, Math.PI * 2); ctx.fill();
-    ctx.save(); ctx.translate(-10, -4); ctx.rotate(.28);
-    ctx.drawImage(chassis, -28, -18, 53, 24); ctx.restore();
-    ctx.translate(20, wheelY); ctx.scale(1, height); ctx.rotate(turn);
+    ctx.beginPath(); ctx.ellipse(-3 * p.dx, -3 * p.dy, 33, 6, p.angle, 0, Math.PI * 2); ctx.fill();
+    ctx.save(); ctx.translate(-26 * p.dx, -26 * p.dy); ctx.scale(Math.sign(p.dx), 1); ctx.rotate(chassisTilt);
+    ctx.drawImage(chassis, chassisX, chassisY, 53, 24); ctx.restore();
+    ctx.translate(20 * p.dx, 20 * p.dy - 12 * height); ctx.scale(Math.sign(p.dx), height); ctx.rotate(turn);
     ctx.drawImage(wheel, -12, -12, 24, 24); ctx.restore();
   } };
 }
