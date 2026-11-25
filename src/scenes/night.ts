@@ -27,7 +27,7 @@ import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/
 import { assetUrl } from '../engine/assets';
 import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours, line } from '../engine/i18n';
+import { S, decimalLabel, fmt, line } from '../engine/i18n';
 import { hush, LINES, pickLine, say, sayAny, sayOnce, type Moment, type VoiceId } from '../engine/voice';
 import { BarnMoth } from '../render/house-reactions';
 import { GateHedge } from '../render/gate-hedge';
@@ -362,7 +362,7 @@ export class NightScene implements Scene {
       sayOnce('night1', 'vo_night1', { subtitle: false });
     }
     if (this.hand && !handCoachSeen()) {
-      this.coachNote(fmt(s.night.hand.coachIntro, { s: hours(deskFor(this.state)?.crossSeconds ?? 0) }), 10);
+      this.coachNote(fmt(s.night.hand.coachIntro, { s: decimalLabel(deskFor(this.state)?.crossSeconds ?? 0) }), 10);
       say('vo_one_hand', { subtitle: false });
     }
     // Someone from the radio came to hold a door.

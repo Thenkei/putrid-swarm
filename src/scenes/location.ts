@@ -347,15 +347,24 @@ export class LocationScene implements Scene {
     const portrait = el('img', { class: 'portrait' });
     if (url) portrait.src = url;
     const hasGift = Object.keys(meeting.gift).length > 0;
+    let firstNote: HTMLElement | null = null;
+    if (meeting.first && meeting.neighbor === 'mower') {
+      const minutes = Math.round(meeting.hoursLost * 60);
+      if (minutes > 0) {
+        const loss = fmt(s.neighbor.mower.timeLost, { duration: durationLabel(meeting.hoursLost), minutes });
+        firstNote = el('p', { class: 'note' }, [el('strong', { text: loss }), ' ', lines.firstNote]);
+      }
+    } else if (meeting.first) {
+      firstNote = el('p', { class: 'note', text: lines.firstNote });
+    }
     const modal = el('div', { class: 'modal' }, [
       el('div', { class: 'card dialogue' }, [
         portrait,
         el('div', { class: 'body' }, [
           el('h2', { text: lines.name }),
           el('p', { text: meeting.first ? lines.first : lines.later }),
-          meeting.first ? el('p', { class: 'note', text: lines.firstNote }) : null,
+          firstNote,
           hasGift ? el('p', {}, [costLine(meeting.gift, undefined, '+')]) : null,
-          meeting.hoursLost > 0 ? el('p', { class: 'note', text: `− ${durationLabel(meeting.hoursLost)}` }) : null,
           el('div', { class: 'actions' }, [
             el('button', {
               class: 'btn btn-primary',

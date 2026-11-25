@@ -61,7 +61,7 @@ import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/
 import { assetUrl, sprite } from '../engine/assets';
 import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, durationLabel, fmt, getLang, hours, line } from '../engine/i18n';
+import { S, decimalLabel, durationLabel, fmt, getLang, line } from '../engine/i18n';
 import { say, sayAny, sayOnce } from '../engine/voice';
 import { onDriveway, WAGON_CONTACT } from '../core/driveway';
 import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, yardItemVisible, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
@@ -704,8 +704,7 @@ export class DayScene implements Scene {
     const s = S();
     if (brief.kind === 'chief') {
       const c = brief.chief;
-      const n = (v: number): string => hours(v);
-      return el('div', { class: 'brief', text: fmt(s.day.briefChief, { every: n(c.whistleEvery), haste: c.whistleHaste, secs: n(c.whistleSeconds), radius: n(c.auraRadius), aura: c.auraShield, self: c.selfShield }) });
+      return el('div', { class: 'brief', text: fmt(s.day.briefChief, { every: decimalLabel(c.whistleEvery), haste: c.whistleHaste, secs: decimalLabel(c.whistleSeconds), radius: decimalLabel(c.auraRadius), aura: c.auraShield, self: c.selfShield }) });
     }
     return el('div', { class: 'brief' }, [
       el('div', { text: s.day.briefTonight }),

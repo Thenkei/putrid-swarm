@@ -5,7 +5,7 @@ import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours } from '../engine/i18n';
+import { S, fmt, durationLabel } from '../engine/i18n';
 import { hush } from '../engine/voice';
 import { applyDayGrade, calmMotion } from '../render/lighting';
 import { drawPlate } from './common';
@@ -42,7 +42,7 @@ export class CrossingScene implements Scene {
       return el('small', { class: 'crossing-searches', text: count > 0 ? fmt(s.searches, { n: count }) : s.noSearches });
     };
     const wait = el('button', { class: 'btn btn-primary', data: { route: 'wait' }, onClick: () => this.choose('wait') }, [
-      s.wait, el('small', { text: fmt(s.waitNote, { place: location[this.planned].name, h: hours(HERD_WAIT_HOURS) }) }), estimate('wait'),
+      s.wait, el('small', { text: fmt(s.waitNote, { place: location[this.planned].name, duration: durationLabel(HERD_WAIT_HOURS) }) }), estimate('wait'),
     ]);
     const bypass = el('button', { class: 'btn', data: { route: 'garage' }, onClick: () => this.choose('garage') }, [
       s.detour, el('small', { text: s.detourNote }), estimate('garage'),

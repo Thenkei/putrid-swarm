@@ -47,10 +47,9 @@ export function fmt(template: string, params: Readonly<Record<string, string | n
     .replace(/\{(\w+)\}/g, (match, key: string) => (key in params ? String(params[key]) : match));
 }
 
-/** Hours as the game shows them: `0.5` → "0,5" in French, "0.5" in English. */
-export function hours(value: number): string {
-  const rounded = Math.round(value * 100) / 100;
-  const text = Number.isInteger(rounded) ? String(rounded) : String(rounded);
+/** A localized decimal for measurements such as seconds or distance. */
+export function decimalLabel(value: number): string {
+  const text = String(Math.round(value * 100) / 100);
   return current === 'fr' ? text.replace('.', ',') : text;
 }
 

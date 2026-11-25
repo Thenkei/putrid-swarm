@@ -44,7 +44,7 @@ import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours, line } from '../engine/i18n';
+import { S, fmt, durationLabel, line } from '../engine/i18n';
 import { endingsTally, rememberEnding as remember } from '../engine/progress';
 import { hush, say, sayAny, type VoiceId } from '../engine/voice';
 import { Atmosphere, drawArm } from './atmosphere';
@@ -506,7 +506,7 @@ export class RadioScene implements Scene {
       el('ol', { class: 'trail' }, o.trail.map((step) => el('li', { text: s.radio.step[step] }))),
       transcript.length > 0 ? el('div', { class: 'radio-heard' }, [el('b', { text: s.radio.heard }), el('ol', {}, transcript)]) : null,
       el('div', { class: 'radio-follows' }, [el('b', { text: s.radio.follows }), el('ul', {}, follows.map((line) => el('li', { text: line })))]),
-      el('p', { class: 'cost bad', text: fmt(s.radio.cost, { h: hours(result.hours) }) }),
+      el('p', { class: 'cost bad', text: fmt(s.radio.cost, { duration: durationLabel(result.hours) }) }),
       el('div', { class: 'actions' }, [
         el('span', { class: 'paths', text: fmt(s.radio.paths, { n: seen.seen, total: seen.total }) }),
         el('button', { class: 'btn btn-primary', text: fmt(s.radio.next, { n: state.day + 1 }), onClick: () => this.settle() }),
@@ -528,8 +528,8 @@ export class RadioScene implements Scene {
     if (has(after.gift)) lines.push(fmt(answer === 'landmark' ? s.radio.follow.fetched : s.radio.follow.gift, { list: describeCost(after.gift) }));
     if (has(after.pay)) lines.push(fmt(s.radio.follow.paid, { list: describeCost(after.pay) }));
     if (has(took)) lines.push(fmt(s.radio.follow.took, { who: call.caller.startsWith('dealer') ? s.radio.who.committee : s.radio.who.van, list: describeCost(took) }));
-    if (after.hours > 0) lines.push(fmt(s.radio.follow.hours, { h: hours(after.hours) }));
-    if (after.hours < 0) lines.push(fmt(s.radio.follow.helper, { h: hours(-after.hours) }));
+    if (after.hours > 0) lines.push(fmt(s.radio.follow.hours, { duration: durationLabel(after.hours) }));
+    if (after.hours < 0) lines.push(fmt(s.radio.follow.helper, { duration: durationLabel(-after.hours) }));
     if (after.ally) lines.push(fmt(s.radio.follow.ally, { name, sector: s.sector[after.ally.sector] }));
     if (after.guest) lines.push(fmt(s.radio.follow.guest, { name }));
     if (after.lookout) lines.push(sighted > 0 ? s.radio.follow.lookout : s.radio.follow.lookoutNone);
