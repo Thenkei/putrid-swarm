@@ -9,6 +9,7 @@ import { tsImport } from 'tsx/esm/api';
 import { BROWSER, launch } from './browser.mjs';
 
 const { newGame, travelTo } = await tsImport('../src/core/game.ts', import.meta.url);
+const { LOCATIONS } = await tsImport('../src/core/data/locations.ts', import.meta.url);
 const OUT = resolve(process.argv[2] ?? 'shots');
 const URL = process.argv[3] ?? process.env.PS_URL ?? 'http://localhost:5173/';
 mkdirSync(OUT, { recursive: true });
@@ -166,12 +167,29 @@ async function garage(profile) {
 // Resume at the garage after the puzzle, with known goods and an earlier road loss.
 async function mopedCargo(profile, packed, loaded = true) {
   const base = garageSave();
-  const save = { ...base, flags: { ...base.flags, 'epic.loaded': Number(loaded) }, outing: {
-    ...base.outing, trunk: { ...base.outing.trunk, scrap: 0, ...packed }, parted: { ...base.outing.parted, wire: 1 },
-  } };
+  const crossbow = LOCATIONS.garage.spots.findIndex(spot => spot.key === 'crossbow');
+  const save = {
+    ...base,
+    locations: { ...base.locations, garage: { ...base.locations.garage, searched: [crossbow] } },
+    flags: { ...base.flags, 'epic.loaded': Number(loaded) },
+    outing: {
+      ...base.outing, trunk: { ...base.outing.trunk, scrap: 0, ...packed }, parted: { ...base.outing.parted, wire: 1 },
+    },
+  };
   const { page, click, shot, finish } = await openSave(profile, save);
-  const bar = page.locator('.topbar .cost .res');
+  const bar = page.locator('.cargo-stock .res');
   await bar.first().waitFor();
+  await page.locator('.topbar .equipment-chip').waitFor();
+  for (const row of ['.topbar', '.location-readouts', '.cargo-stock .cost', '.stash .cost']) {
+    assert.ok(await page.locator(row).evaluate(element => {
+      const bounds = element.getBoundingClientRect();
+      const boxes = [...element.children].map(child => child.getBoundingClientRect());
+      const middle = boxes[0].top + boxes[0].height / 2;
+      return boxes.every(box =>
+        box.left >= bounds.left && box.right <= bounds.right && box.top >= bounds.top && box.bottom <= bounds.bottom &&
+        Math.abs(box.top + box.height / 2 - middle) < 1);
+    }), `${profile}: ${row} fits on one line`);
+  }
   const ids = ['wood','scrap','wire','springs','battery'];
   const have = id => loaded ? Math.floor(save.outing.trunk[id] / 2) : save.outing.trunk[id];
   for (const id of ids) {
@@ -243,7 +261,7 @@ async function mopedCargo(profile, packed, loaded = true) {
   await page.locator('.topbar').waitFor();
   assert.deepEqual((await read()).inventory,home.inventory);
   await finish();
-  console.log(profile+' cargo '+label+': topbar, illustration, full breakdown, stock and reload verified');
+  console.log(profile+' cargo '+label+': HUD, illustration, full breakdown, stock and reload verified');
 }
 
 async function arcade(profile, motion, armless = false) {

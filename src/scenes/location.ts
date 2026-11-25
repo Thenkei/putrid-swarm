@@ -120,9 +120,7 @@ export class LocationScene implements Scene {
       el('span', { text: clockLabel(state.hoursLeft) }),
       el('span', { class: 'meter' }, [el('i', { style: { width: `${(state.hoursLeft / DAY_HOURS) * 100}%` } })]),
       el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { h: hours(state.hoursLeft) }) }),
-      el('span', { class: 'grow' }),
       hasCrossbow(state) ? el('span', { class: 'equipment-chip', text: s.scavenge.crossbow.name }) : null,
-      ...returnCargoBar(state),
     ]);
     // What is already safe at home, to judge what this trip still has to bring back.
     const stash = el('div', { class: 'stash' }, [el('span', { class: 'muted', text: s.encounter.stash }), inventoryBar(state.inventory)]);
@@ -218,11 +216,14 @@ export class LocationScene implements Scene {
       s.loc.leave, el('small', { text: leaveNote }), dusk ? el('small', { class: 'road-warning', text: s.crossbowRoad.warning }) : null,
     ])]);
     const thought = lastSearchBeforeDusk ? el('p', { class: 'panel last-search-thought', text: s.crossbowRoad.lastSearch }) : null;
+    const status = el('div', { class: 'location-status' }, [
+      el('div', { class: 'location-readouts' }, [this.noiseGauge(), returnCargoBar(state), stash]),
+      thought,
+    ]);
 
-    this.hud.replaceChildren(topbar, stash, this.noiseGauge(), ...spots.filter(spot => spot !== null), title, leave);
+    this.hud.replaceChildren(topbar, status, ...spots.filter(spot => spot !== null), title, leave);
     const curiosity = !this.concealing && !this.stop && epicObject(this.app, () => this.refresh());
     if (curiosity) this.hud.append(curiosity);
-    if (thought) this.hud.append(thought);
   }
 
   private showSpringReceipt(): void {

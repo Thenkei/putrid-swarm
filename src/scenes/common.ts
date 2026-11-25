@@ -119,14 +119,14 @@ export function inventoryBar(inventory: Inventory): HTMLElement {
   );
 }
 
-export function returnCargoBar(state: GameState): HTMLElement[] {
-  if (!state.outing) return [];
+export function returnCargoBar(state: GameState): HTMLElement | null {
+  if (!state.outing) return null;
   const withMoped = epicFlag(state, 'loaded');
   const s = S();
-  return [
+  return el('div', { class: 'cargo-stock' }, [
     el('span', { class: 'muted', text: withMoped ? s.encounter.arrival.withMoped : s.loc.trunk }),
     inventoryBar(withMoped ? mopedCargo(state.outing.trunk).kept : state.outing.trunk),
-  ];
+  ]);
 }
 
 export function describeCost(cost: Cost): string {
