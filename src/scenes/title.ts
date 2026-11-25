@@ -410,8 +410,8 @@ export class IntroScene implements Scene {
       this.caption,
       el('div', { class: 'skip', text: s.title.skip }),
     ]);
+    desk.mountNote(this.root);
     this.app.ui.append(this.root);
-    desk.mount(this.app.ui);
   }
 
   private next(): void {

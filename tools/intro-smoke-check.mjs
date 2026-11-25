@@ -16,7 +16,7 @@ try {
     await page.locator('.menu button').first().waitFor({ state: 'attached' });
     await page.evaluate(async () => {
       const { sprite } = await import('/src/engine/assets.ts');
-      window.introArtReady = () => !!sprite('plate_smoke') && !!sprite('fx_smoke');
+      window.introArtReady = () => !!sprite('plate_title_desk') && !!sprite('plate_smoke') && !!sprite('fx_smoke');
     });
     await page.waitForFunction(() => window.introArtReady());
     const hashes = [];
@@ -40,7 +40,9 @@ try {
           Math.random = () => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);
           const scene = new IntroScene(fixture);
           scene.enter();
+          if (!ui.querySelector('.desk-note')) throw new Error('The post-it is missing during the news');
           scene.onKeyDown('Space');
+          if (ui.querySelector('.desk-note')) throw new Error('The post-it is still visible after the news');
           function advance(seconds, target = scene) {
             for (let frame = 0; frame < Math.round(seconds * hz); frame++) target.update((frame + 1) / hz - frame / hz);
           }
@@ -55,7 +57,10 @@ try {
           const clean = ctx.getImageData(640, 360, 1, 1).data.join(',');
           ui.replaceChildren();
           const cut = new IntroScene(fixture);
-          cut.enter(); cut.onKeyDown('Enter'); advance(4.9, cut);
+          cut.enter();
+          for (let seconds = 0; seconds < 60 && ui.querySelector('.news'); seconds++) cut.update(1);
+          if (ui.querySelector('.news, .desk-note')) throw new Error('The news and post-it should be gone after the automatic cut');
+          advance(4.9, cut);
           const before = !ui.querySelector('.later');
           advance(.2, cut); const automatic = !!ui.querySelector('.later');
           count = 0; cut.render(ctx); const automaticClouds = count;
