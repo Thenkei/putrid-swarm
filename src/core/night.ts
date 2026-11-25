@@ -205,8 +205,21 @@ export interface HandView {
 }
 
 export const rowOf = (press: DeskPress): HandRow => (press.kind === 'look' ? 'cameras' : 'traps');
-const samePress = (a: DeskPress, b: DeskPress): boolean =>
-  a.kind === b.kind && (a.kind === 'look' ? a.sector === (b as typeof a).sector : a.kind === 'key' ? a.slot === (b as typeof a).slot : a.deviceId === (b as typeof a).deviceId);
+/** The camera the desk will show once it has carried out all waiting camera changes. */
+export const cameraAwaitingHand = (hand: Pick<HandView, 'queue'> | null): SectorId | null =>
+  hand?.queue.reduce<SectorId | null>((last, press) => press.kind === 'look' ? press.sector : last, null) ?? null;
+
+function alreadyQueued(hand: Pick<HandView, 'queue'>, camera: SectorId, press: DeskPress): boolean {
+  if (press.kind === 'fire') return hand.queue.some(p => p.kind === 'fire' && p.deviceId === press.deviceId);
+  const nextCamera = cameraAwaitingHand(hand);
+  if (press.kind === 'look') return nextCamera === press.sector;
+  const targetCamera = nextCamera ?? camera;
+  for (const waiting of hand.queue) {
+    if (waiting.kind === 'look') camera = waiting.sector;
+    else if (waiting.kind === 'key' && waiting.slot === press.slot && camera === targetCamera) return true;
+  }
+  return false;
+}
 
 const CHIEF_FOOTSTEP = 0.45;
 
@@ -480,7 +493,7 @@ export class NightSim {
       return 'waiting';
     }
     // Hammering a key while the hand is on its way changes nothing.
-    if (hand.queue.some((waiting) => samePress(waiting, press))) return 'waiting';
+    if (alreadyQueued(hand, this.camera, press)) return 'waiting';
     if (hand.queue.length >= this.oneHand.queueLimit) {
       this.events.push({ type: 'hand_full' });
       return 'refused';
@@ -1768,7 +1781,7 @@ export class NightSim {
     return {
       ...previous,
       houseHp: Math.max(0, Math.round(this.houseHp)),
-      devices: this.devices.map((d) => ({ id: d.id, type: d.type, x: d.x, y: d.y, facing: d.facing, hp: Math.max(0, Math.round(d.hp)), broken: d.state === 'broken' })),
+      devices: this.devices.map((d) => ({ id: d.id, type: d.type, x: d.x, y: d.y, facing: d.facing, hp: d.hp, broken: d.state === 'broken' })),
       barricades: {
         portail: { level: this.barricades.portail.level, hp: Math.round(this.barricades.portail.hp) },
         grange: { level: this.barricades.grange.level, hp: Math.round(this.barricades.grange.hp) },

@@ -40,11 +40,12 @@ function withFacing(devices: readonly DeviceInstance[]): DeviceInstance[] {
   });
 }
 
-/** A day a device says it was laid on is only kept if it is one: anything else is a piece that has always been there. */
-function withBuiltDay(devices: readonly DeviceInstance[]): DeviceInstance[] {
-  return devices.map((d) => {
+function restoreDevices(devices: readonly DeviceInstance[]): DeviceInstance[] {
+  return withFacing(devices).map((d) => {
     const { builtDay, ...rest } = d;
-    return isNumber(builtDay) && Number.isInteger(builtDay) && builtDay >= 1 ? d : rest;
+    const saved = isNumber(builtDay) && Number.isInteger(builtDay) && builtDay >= 1 ? d : rest;
+    // Older dawns rounded a survivor's last fraction of HP to zero. Its working state survived the save.
+    return saved.hp === 0 && saved.broken === false ? { ...saved, hp: 1 } : saved;
   });
 }
 
@@ -312,7 +313,7 @@ export function deserialize(raw: string): GameState | null {
   const reported: GameState = { ...chaptered, fate: parseFate(data, chaptered) };
   // Outside the day nobody is out: the trip, if a save still carries one, is over.
   const trip = reported.fate === 'lift' ? { where: 'garage' as const, outing: null, encounter: null, people: parsePeople(data['people']) } : parseTrip(data, parsed.phase === 'day' ? parsed.where : 'home');
-  const state: GameState = { ...reported, ...trip, yard: { ...reported.yard, devices: withBuiltDay(withFacing(reported.yard.devices)) } };
+  const state: GameState = { ...reported, ...trip, yard: { ...reported.yard, devices: restoreDevices(reported.yard.devices) } };
   if (state.phase !== 'night') return state;
   // The desk saves immediately when the single-use moped leaves. Rewind the night's
   // unfinished encounter alongside its simulation, preserving the spent moped and earlier nights.

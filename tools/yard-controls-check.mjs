@@ -45,6 +45,37 @@ try {
   };
 
   for (const rot of [0, 1]) {
+    const [x, y] = rot === 0 ? [10, 8] : [11, 13];
+    await day(rot, x + 0.5, y + 0.5);
+    const previewPixels = await page.evaluate(async ({ x, y }) => {
+      const { drawWorld, project } = await import('/src/render/world.ts');
+      const { scene, state } = window.__app;
+      const canvas = document.createElement('canvas');
+      canvas.width = 1280;
+      canvas.height = 720;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const p = project(scene.view, x + 0.5, y + 0.5);
+      const sample = ghost => {
+        drawWorld(ctx, scene.view, { time: 2, night: false, carPresent: true, houseHpRatio: 1,
+          enemies: [], particles: [], decals: [], barricades: state.yard.barricades, devices: [],
+          showBuildable: true, hoverCell: ghost, ghost });
+        return ctx.getImageData(p.x - 40, p.y - 34, 80, 60).data;
+      };
+      const before = sample(null);
+      const after = sample({ x, y, type: 'spikes', ok: true, facing: 0 });
+      let changed = 0;
+      for (let i = 0; i < before.length; i += 4) {
+        if ([0, 1, 2].some(c => Math.abs(before[i + c] - after[i + c]) > 8)) changed++;
+      }
+      return changed;
+    }, { x, y });
+    assert.ok(previewPixels > 150, `Covered spikes preview disappeared in view ${rot}: ${previewPixels} pixels`);
+    await page.keyboard.press('Digit2');
+    await moveTo(x, y);
+    await page.mouse.down();
+    await page.mouse.up();
+    assert.deepEqual(await built(), [[x, y, 0]]);
+
     await day(rot, 7.5, 15.5);
     await page.keyboard.press('Digit1');
     await moveTo(5, 16);
@@ -260,6 +291,52 @@ try {
       return [raised, scene.hoverDevice === null];
     });
     assert.deepEqual(landing, [true, true]);
+
+    // Both points are on the upright lamp head, outside its tile and the broken painting.
+    await page.evaluate(async rot => {
+      const { newGame } = await import('/src/core/game.ts');
+      const { DayScene } = await import('/src/scenes/day.ts');
+      const app = window.__app, game = newGame(5);
+      const lamp = { id: 71, type: 'floodlight', facing: 0, x: 10, y: rot ? 4 : 17, hp: 0, broken: true };
+      const inventory = Object.fromEntries(Object.keys(game.inventory).map(key => [key, 12]));
+      app.state = { ...game, day: 2, inventory, yard: { ...game.yard, devices: [lamp] } };
+      app.swap(new DayScene(app));
+      Object.assign(app.scene, { rot, cx: lamp.x + .5, cy: lamp.y + .5, zoom: 1.35 });
+      app.scene.root.querySelector('.tool-row.quick button.btn-alert').focus();
+    }, rot);
+    await page.mouse.move(rot ? 776.5 : 770.5, 282.5);
+    assert.equal(await page.evaluate(() => window.__app.scene.hoverDevice?.id), 71);
+    await page.mouse.down();
+    await page.mouse.up();
+    assert.equal(await page.evaluate(() => window.__app.state.yard.devices[0].broken), false,
+      'Releasing over the displayed lamp repairs it even though pressing the canvas blurred the preview button');
+
+    const damage = await page.evaluate(async rot => {
+      const { NightScene } = await import('/src/scenes/night.ts');
+      const app = window.__app;
+      app.state = { ...app.state, phase: 'night' };
+      const strike = (fraction, age) => {
+        app.swap(new NightScene(app));
+        const scene = app.scene, sim = scene.sim, lamp = sim.device(71);
+        scene.switchCam(rot ? 'arriere' : 'portail');
+        sim.time = 10;
+        scene.defenseMotion.update(sim);
+        sim.damageDevice(lamp, Math.floor(lamp.hp * fraction));
+        scene.defenseMotion.update(sim);
+        sim.time += age;
+        return scene;
+      };
+      const point = (x, y) => ({ x, y, down: false, overCanvas: true });
+      const recoil = rot ? point(462.5, 255.5) : point(384.5, 235.5);
+      const hit = strike(.78, .025);
+      hit.onPointerDown(recoil, { button: 0 });
+      const fired = hit.sim.device(71).state;
+      const scene = strike(1, .13);
+      const former = rot ? point(440.5, 251.5) : point(400.5, 232.5);
+      const wreck = rot ? point(421.5, 271.5) : point(380.5, 279.5);
+      return [fired, scene.manualDeviceAt(former)?.id, scene.manualDeviceAt(wreck)?.id ?? null];
+    }, rot);
+    assert.deepEqual(damage, ['active', 71, null], 'The feed picks the recoiling head and follows the fracture into the wreck');
   }
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
@@ -282,7 +359,7 @@ try {
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.waitForFunction(() => window.__app.scale === 1);
 
-  const controls = await page.evaluate(async () => {
+  const nightControls = oneHand => page.evaluate(async oneHand => {
     const { newGame, startNight } = await import('/src/core/game.ts');
     const { build } = await import('/src/core/yard.ts');
     const { NightScene } = await import('/src/scenes/night.ts');
@@ -296,6 +373,11 @@ try {
       if (!result.ok) throw new Error(JSON.stringify(result.error));
       state = result.value;
     }
+    if (oneHand) {
+      const extra = build(state, 'barrier', 10, 17, 1);
+      if (!extra.ok) throw new Error(JSON.stringify(extra.error));
+      state = { ...extra.value, day: 5, orchard: 'maimed' };
+    }
     app.state = startNight(state).value;
     app.swap(new NightScene(app));
     return ['portail', 'grange', 'arriere', 'verger'].map((sector, index) => {
@@ -303,7 +385,8 @@ try {
       const view = app.scene.viewFor(sector, { x: 12, y: 54, w: 884, h: 497 }, 1.22);
       return { sector, id: device.id, point: project(view, device.x + 0.5, device.y + 0.5) };
     });
-  });
+  }, oneHand);
+  const controls = await nightControls(false);
   for (const index of [2, 0, 1, 3]) {
     const { sector, id, point } = controls[index];
     await page.mouse.move(point.x, point.y);
@@ -353,6 +436,29 @@ try {
     return [away, back, retuned, frame.hoverCell, frame.devices.some(d => d.label)];
   });
   assert.deepEqual(trip, [null, { x: 5, y: 10 }, true, null, false]);
+  const [gate] = await nightControls(true);
+  await page.keyboard.press('KeyW');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  const queuedCamera = () => page.evaluate(() => window.__app.scene.sim.handView().queue[0].sector);
+  assert.equal(await queuedCamera(), 'arriere');
+  await page.keyboard.press('Shift+Tab');
+  assert.equal(await queuedCamera(), 'grange');
+  await page.mouse.move(gate.point.x, gate.point.y);
+  await page.mouse.down();
+  const pinned = await page.evaluate(async gateId => {
+    const { trapKeyLabels } = await import('/src/engine/keys.ts');
+    const scene = window.__app.scene;
+    const waitForHand = () => { for (let i = 0; i < 65; i++) scene.update(1 / 60); };
+    waitForHand();
+    const label = scene.hand.queue.textContent;
+    const correctChip = label === '1·' + trapKeyLabels()[0];
+    const feed = scene.cam;
+    waitForHand();
+    return [feed, correctChip, scene.sim.device(gateId).state, scene.sim.manualDevicesIn('grange')[0].state];
+  }, gate.id);
+  await page.mouse.up();
+  assert.deepEqual(pinned, ['grange', true, 'active', 'armed'], 'A queued click retains the original camera and trap while held');
   const timberHits = await page.evaluate(async () => {
     const { pickDevice, cameraView, project } = await import('/src/render/world.ts');
     const hits = [];

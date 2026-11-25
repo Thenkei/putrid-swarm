@@ -3,12 +3,15 @@
 // NightSim's (`act`, `handView`); this only makes them readable, so a press that waits never looks lost.
 
 import type { DeskPress, HandRow, HandView, NightSim } from '../core/night';
+import { sectorOf } from '../core/map';
 import type { SectorId } from '../core/types';
 import { SECTOR_IDS } from '../core/types';
 import { assetUrl } from '../engine/assets';
 import { el } from '../engine/dom';
 import { S } from '../engine/i18n';
 import { trapKeyLabels } from '../engine/keys';
+
+export { cameraAwaitingHand } from '../core/night';
 
 const COACH_KEY = 'putrid-swarm.coach-hand';
 
@@ -30,7 +33,7 @@ export function markHandCoachSeen(): void {
 }
 
 /** What the desk will do for each waiting press, as the key that was pressed for it. */
-function keyOf(press: DeskPress, sim: NightSim): string {
+function keyOf(press: DeskPress, sim: NightSim, camera: SectorId): string {
   switch (press.kind) {
     case 'look':
       return String(SECTOR_IDS.indexOf(press.sector) + 1);
@@ -38,9 +41,11 @@ function keyOf(press: DeskPress, sim: NightSim): string {
       return trapKeyLabels()[press.slot] ?? '?';
     case 'fire': {
       const device = sim.device(press.deviceId);
-      const sector = SECTOR_IDS.find((s) => sim.manualDevicesIn(s).some((d) => d.id === press.deviceId));
-      const slot = sector ? sim.manualDevicesIn(sector).findIndex((d) => d.id === press.deviceId) : -1;
-      return (slot >= 0 ? trapKeyLabels()[slot] : undefined) ?? (device ? S().device[device.type].name.slice(0, 1) : '?');
+      if (!device) return '?';
+      const sector = sectorOf(device.x, device.y);
+      const slot = sim.manualDevicesIn(sector).findIndex(d => d.id === device.id);
+      const label = trapKeyLabels()[slot] ?? S().device[device.type].name.slice(0, 1);
+      return sector === camera ? label : `${SECTOR_IDS.indexOf(sector) + 1}·${label}`;
     }
   }
 }
@@ -63,10 +68,6 @@ export function trapsAwaitingHand(view: HandView | null, sim: NightSim): Set<num
   }
   return ids;
 }
-
-/** The camera a waiting press will switch to, if any: the last one asked for. */
-export const cameraAwaitingHand = (view: HandView | null): SectorId | null =>
-  view?.queue.reduce<SectorId | null>((last, press) => (press.kind === 'look' ? press.sector : last), null) ?? null;
 
 /** Where the hand is drawn along the gauge: 0 over the traps, 1 over the cameras, ½ when it is free for either. */
 function position(view: HandView): number {
@@ -117,7 +118,11 @@ export class HandGauge {
     // From the middle of one pad to the middle of the other.
     this.glyph.style.left = `${25 + position(view) * 50}%`;
     this.meter.style.width = `${(free ? 1 : view.ready) * 100}%`;
-    const keys = view.queue.map((press) => keyOf(press, sim));
+    let camera = sim.camera;
+    const keys = view.queue.map(press => {
+      if (press.kind === 'look') camera = press.sector;
+      return keyOf(press, sim, camera);
+    });
     const signature = keys.join(' ');
     if (signature !== this.signature) {
       this.signature = signature;

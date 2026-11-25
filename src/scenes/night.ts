@@ -925,7 +925,8 @@ export class NightScene implements Scene {
     }
     if (code === 'Tab') {
       event.preventDefault();
-      this.switchCam(SECTOR_IDS[(SECTOR_IDS.indexOf(this.cam) + (event.shiftKey ? SECTOR_IDS.length - 1 : 1)) % SECTOR_IDS.length] as SectorId);
+      const from = cameraAwaitingHand(this.sim.handView()) ?? this.cam;
+      this.switchCam(SECTOR_IDS[(SECTOR_IDS.indexOf(from) + (event.shiftKey ? SECTOR_IDS.length - 1 : 1)) % SECTOR_IDS.length] as SectorId);
       return;
     }
     if (code === 'Space') {
@@ -966,7 +967,8 @@ export class NightScene implements Scene {
   private manualDeviceAt(pointer: Pointer): DeviceVisual | null {
     if (!pointer.overCanvas || this.sim.awayFromDesk || this.isDark(this.cam)) return null;
     const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
-    const picked = pickDevice(view, this.deviceVisuals(this.cam), pointer.x, pointer.y, true, this.sim.houseHp / HOUSE_MAX_HP);
+    const picked = pickDevice(view, this.deviceVisuals(this.cam), pointer.x, pointer.y, true, this.sim.houseHp / HOUSE_MAX_HP,
+      { time: this.sim.time, defenseMotion: this.defenseMotion });
     return picked && isManual(picked.type) ? picked : null;
   }
 

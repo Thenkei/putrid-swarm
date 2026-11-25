@@ -829,13 +829,22 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   }
 
   // Placement ghost.
+  let coveredPlacement = false;
   if (frame.ghost) {
     const ghost = frame.ghost;
     const p = project(view, ghost.x + 0.5, ghost.y + 0.5);
+    const depth = depthOf(view.rot, ghost.x + 0.5, ghost.y + 0.5) + 0.31;
+    coveredPlacement = !!frame.showBuildable && !yardItemVisible(view, p.x, p.y, depth, frame.houseHpRatio, frame.time, frame.devices);
     drawables.push({
-      depth: depthOf(view.rot, ghost.x + 0.5, ghost.y + 0.5) + 0.31,
+      depth: coveredPlacement ? Infinity : depth,
       draw: () => {
         ctx.save();
+        if (coveredPlacement) {
+          ctx.setLineDash([4 * z, 3 * z]);
+          drawBuildTile(ctx, view, ghost, ghost);
+          ctx.setLineDash([]);
+          ctx.globalAlpha *= 0.7;
+        }
         ctx.globalAlpha *= ghost.ok ? 0.75 : 0.4;
         drawDevice(ctx, view, frame, { ...ghost, id: -1, state: 'idle', hpRatio: 1 }, p);
         ctx.restore();
@@ -905,7 +914,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   }
   if (frame.packTrail) yardPackTrail(ctx, view, frame.packTrail);
   if (frame.departingCar) drawHeadlightPools(ctx, view, frame.departingCar);
-  drawGroundOverlays(ctx, view, frame);
+  drawGroundOverlays(ctx, view, frame, coveredPlacement);
   if (frame.parkedMoped) {
     drawMopedTracks(ctx, view, frame.parkedMoped);
     drawables.push(parkedMopedDrawable(ctx, view, frame.parkedMoped));
@@ -1072,7 +1081,17 @@ function paintLeaf(ctx: CanvasRenderingContext2D, x: number, y: number, leaf: Ya
   ctx.restore();
 }
 
-function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): void {
+function drawBuildTile(ctx: CanvasRenderingContext2D, view: View, cell: Cell, ghost: WorldFrame['ghost']): void {
+  diamond(ctx, view, cell.x, cell.y, 0.03);
+  const tone = !ghost ? 'none' : !ghost.ok ? 'bad' : ghost.idle ? 'idle' : 'good';
+  ctx.fillStyle = { none: 'rgba(255,240,200,0.22)', bad: 'rgba(220,70,50,0.45)', idle: 'rgba(240,180,60,0.4)', good: 'rgba(160,220,110,0.4)' }[tone];
+  ctx.fill();
+  ctx.strokeStyle = { none: 'rgba(255,240,200,0.6)', bad: '#ff6a50', idle: '#ffc24a', good: '#c8f08a' }[tone];
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame, coveredPlacement: boolean): void {
   const z = view.zoom;
   // A cue identifies the trigger's footprint. The hovered trap still shows its full area of effect.
   for (const d of frame.devices) {
@@ -1085,15 +1104,7 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
     ctx.stroke();
   }
 
-  if (frame.showBuildable && frame.hoverCell) {
-    diamond(ctx, view, frame.hoverCell.x, frame.hoverCell.y, 0.03);
-    const tone = !frame.ghost ? 'none' : !frame.ghost.ok ? 'bad' : frame.ghost.idle ? 'idle' : 'good';
-    ctx.fillStyle = { none: 'rgba(255,240,200,0.22)', bad: 'rgba(220,70,50,0.45)', idle: 'rgba(240,180,60,0.4)', good: 'rgba(160,220,110,0.4)' }[tone];
-    ctx.fill();
-    ctx.strokeStyle = { none: 'rgba(255,240,200,0.6)', bad: '#ff6a50', idle: '#ffc24a', good: '#c8f08a' }[tone];
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }
+  if (frame.showBuildable && frame.hoverCell && !coveredPlacement) drawBuildTile(ctx, view, frame.hoverCell, frame.ghost);
 
   const { hoverCell, hoverRadius, inspectionSpot } = frame;
   const centre = inspectionSpot ?? (hoverRadius && hoverCell ? { x: hoverCell.x + .5, y: hoverCell.y + .5 } : null);
@@ -1301,6 +1312,18 @@ function deviceBounds(art: DefenseArt) {
   return { top: f + Math.min(0, 200 * b), bottom: f + Math.max(0, 200 * b) + 200 * d };
 }
 
+type DeviceFrame = Pick<WorldFrame, 'time' | 'defenseMotion'>;
+
+function drawDevicePose(ctx: CanvasRenderingContext2D, x: number, y: number, view: View, p: { x: number; y: number },
+  frame: DeviceFrame, device: DeviceVisual, art: DefenseArt, logLayer?: LogLayer): boolean {
+  return drawDefense(ctx, x, y, view.zoom, {
+    kind: device.type, art, rot: view.rot, previous: pose => deviceArt(device.type, device.facing, pose, view.rot), id: device.id,
+    hpRatio: device.hpRatio, state: device.state, activeAge: device.activeAge ?? 0, rearm: device.rearm ?? 0,
+    time: frame.time, motion: frame.defenseMotion, ...(logLayer && { logLayer }),
+    ...(device.logTarget && { aim: logAim(view, p, art, device.logTarget, false, device.hpRatio) }),
+  });
+}
+
 function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame, device: DeviceVisual, p: { x: number; y: number }, logLayer?: LogLayer): void {
   const z = view.zoom;
   const state = devicePose(device);
@@ -1324,12 +1347,7 @@ function drawDevice(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame
     ctx.save();
     ctx.globalAlpha *= 0.78;
   }
-  const drawn = drawDefense(ctx, p.x, baseY, z, {
-    kind: device.type, art, rot: view.rot, previous: (pose) => deviceArt(device.type, device.facing, pose, view.rot), id: device.id,
-    hpRatio: device.hpRatio, state: device.state, activeAge: device.activeAge ?? 0, rearm: device.rearm ?? 0,
-    time: frame.time, motion: frame.defenseMotion, ...(logLayer && { logLayer }),
-    ...(device.logTarget && { aim: logAim(view, p, art, device.logTarget, false, device.hpRatio) }),
-  });
+  const drawn = drawDevicePose(ctx, p.x, baseY, view, p, frame, device, art, logLayer);
   if (device.repairPreview) ctx.restore();
   if (logLayer === 'far') return;
   if (!drawn) placeholder(ctx, p.x, baseY, 34 * z, 34 * z, state === 'broken' ? '#4a3a2a' : '#b98a3a', device.type);
@@ -1583,7 +1601,7 @@ function drawTopOverlays(ctx: CanvasRenderingContext2D, view: View, frame: World
 let poseSample: CanvasRenderingContext2D | null | undefined;
 
 /** An operating mechanism can move outside its source painting. Sample only the pointer pixel. */
-function movingPixel(device: DeviceVisual, view: View, p: { x: number; y: number }, art: DefenseArt, dx: number, dy: number, logLayer?: LogLayer): boolean {
+function movingPixel(device: DeviceVisual, view: View, p: { x: number; y: number }, art: DefenseArt, dx: number, dy: number, frame: DeviceFrame, logLayer?: LogLayer): boolean {
   if (poseSample === undefined) {
     const surface = document.createElement('canvas');
     surface.width = surface.height = 1;
@@ -1591,25 +1609,24 @@ function movingPixel(device: DeviceVisual, view: View, p: { x: number; y: number
   }
   if (!poseSample) return false;
   poseSample.clearRect(0, 0, 1, 1);
-  drawDefense(poseSample, 0.5 - dx * view.zoom, 0.5 - dy * view.zoom, view.zoom, {
-    ...device, kind: device.type, rot: view.rot, art, time: 0, motion: undefined, ...(logLayer && { logLayer }),
-    previous: pose => deviceArt(device.type, device.facing, pose, view.rot),
-    ...(device.logTarget && { aim: logAim(view, p, art, device.logTarget, false, device.hpRatio) }),
-  });
+  drawDevicePose(poseSample, .5 - dx * view.zoom, .5 - dy * view.zoom, view, p, frame, device, art, logLayer);
   return poseSample.getImageData(0, 0, 1, 1).data[3]! > 64;
 }
 
-function devicePixel(device: DeviceVisual, view: View, p: { x: number; y: number }, art: DefenseArt, dx: number, dy: number, logLayer?: LogLayer): boolean {
+function devicePixel(device: DeviceVisual, view: View, p: { x: number; y: number }, art: DefenseArt, dx: number, dy: number, frame: DeviceFrame, logLayer?: LogLayer): boolean {
   const image = sprite(art.key);
   if (!image) return logLayer !== 'far' && dx * dx + (dy + 17) ** 2 <= 17 ** 2;
-  if (device.state === 'active' || device.state === 'rearming') {
+  const wear = frame.defenseMotion?.at(device.id);
+  const reacting = wear && !calmMotion() && (frame.time - wear.hitAt < .36 || frame.time - wear.brokeAt < .7
+    || (device.type === 'fence' && Math.abs(wear.pullX) + Math.abs(wear.pullY) > .001));
+  if (device.state === 'active' || device.state === 'rearming' || reacting) {
     // Allow one painting around the rig and the path to an aimed log's victim.
     const reach = art.h * Math.max(1, image.w / image.h) + 8;
     const target = device.logTarget ? project(view, device.logTarget.x, device.logTarget.y) : p;
     const tx = (target.x - p.x) / view.zoom, ty = (target.y - p.y) / view.zoom;
     if (dx < Math.min(0, tx) - reach || dx > Math.max(0, tx) + reach ||
         dy < Math.min(0, ty) - reach || dy > Math.max(0, ty) + reach) return false;
-    return movingPixel(device, view, p, art, dx, dy, logLayer);
+    return movingPixel(device, view, p, art, dx, dy, frame, logLayer);
   }
   let localX = art.flip ? -dx : dx, localY = dy;
   if (device.type !== 'fence' && device.hpRatio > 0 && device.hpRatio < 0.64) {
@@ -1627,7 +1644,7 @@ function devicePixel(device: DeviceVisual, view: View, p: { x: number; y: number
   return !!source && paintedPixel(image, u, v, source, image.w);
 }
 
-function frontDevicePaint(view: View, devices: readonly DeviceVisual[], sx: number, sy: number, nightControls: boolean) {
+function frontDevicePaint(view: View, devices: readonly DeviceVisual[], sx: number, sy: number, nightControls: boolean, frame: DeviceFrame = { time: 0 }) {
   let best: DeviceVisual | null = null;
   let bestDepth = -Infinity;
   for (const device of devices) {
@@ -1649,10 +1666,10 @@ function frontDevicePaint(view: View, devices: readonly DeviceVisual[], sx: numb
         && Math.abs(dx - TRAP_KEY.x) <= half && Math.abs(dy - (pipY - TRAP_KEY.lift * grow)) <= half);
     }
     const paintY = dy + (device.placementLift ?? 0);
-    if (!control && !devicePixel(device, view, p, art, dx, paintY, splitLog ? 'near' : undefined)) {
+    if (!control && !devicePixel(device, view, p, art, dx, paintY, frame, splitLog ? 'near' : undefined)) {
       if (!splitLog) continue;
       depth = logLayerDepth(centre, art, 'far');
-      if (depth < bestDepth || !devicePixel(device, view, p, art, dx, paintY, 'far')) continue;
+      if (depth < bestDepth || !devicePixel(device, view, p, art, dx, paintY, frame, 'far')) continue;
     }
     bestDepth = depth;
     best = device;
@@ -1661,9 +1678,9 @@ function frontDevicePaint(view: View, devices: readonly DeviceVisual[], sx: numb
 }
 
 /** Visible paint and controls receive the pointer in painter's order, then the occupied ground tile. */
-export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: number, sy: number, nightControls = false, houseHpRatio = 1): DeviceVisual | null {
+export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: number, sy: number, nightControls = false, houseHpRatio = 1, frame?: DeviceFrame): DeviceVisual | null {
   if (!inView(view, sx, sy)) return null;
-  const front = frontDevicePaint(view, devices, sx, sy, nightControls);
+  const front = frontDevicePaint(view, devices, sx, sy, nightControls, frame);
   if (front && !behindScenery(view, sx, sy, front.depth, houseHpRatio)) return front.device;
   const g = unproject(view, sx, sy);
   const tile = devices.find(d => d.x === Math.floor(g.gx) && d.y === Math.floor(g.gy));
