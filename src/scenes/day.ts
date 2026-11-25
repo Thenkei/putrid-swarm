@@ -55,7 +55,7 @@ import {
 } from '../core/yard';
 import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/app';
 import { assetUrl, sprite } from '../engine/assets';
-import { audio } from '../engine/audio';
+import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, getLang, hours, line } from '../engine/i18n';
 import { say, sayAny, sayOnce } from '../engine/voice';
@@ -748,7 +748,7 @@ export class DayScene implements Scene {
       class: 'btn icon-btn',
       text: '▲',
       title: `${s.doorReinforce} · ${describeCost(BARRICADE.reinforceCost)} · ${fmt(s.time, { h: hours(BARRICADE.reinforceHours) })}`,
-      onClick: () => this.apply(reinforceBarricade(this.state, sector), s.repaired, 'build'),
+      onClick: () => this.apply(reinforceBarricade(this.state, sector), s.upgraded, 'bolt_seat'),
     });
     button.setAttribute('aria-label', `${s.doorReinforce} · ${S().sector[sector]}`);
     this.reinforceButtons.set(sector, button);
@@ -992,7 +992,7 @@ export class DayScene implements Scene {
   }
 
   /** Commits a state transition or explains why it was refused. */
-  private apply(result: Result<GameState, YardError>, okMessage: string, sound: 'build' | 'click' | null, at?: Cell): boolean {
+  private apply(result: Result<GameState, YardError>, okMessage: string, sound: Sfx | null, at?: Cell): boolean {
     if (!result.ok) {
       audio.play('deny');
       this.app.toast(yardErrorText(result.error), 'error');
