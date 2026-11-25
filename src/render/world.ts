@@ -23,6 +23,7 @@ import type { GateHedge } from './gate-hedge';
 import { foxHedge } from './fox-passage';
 import { DOOR_OPENINGS, THRESHOLDS, VISIBLE_DOORS, damagedFacade, doorStance, facadeForStage, hingedLeaves, houseDamageStage, outsideSillDepth, paintHouse, type HouseDoor } from './house';
 import { drawMopedScorch, mopedBlastDrawable, mopedRideDrawable, mopedStruckPose } from './moped';
+import { drawMowerClippings, drawMowerTrails, drawMowerWarning } from './mower-trail';
 import { drawMopedTracks, mopedParkingSpot, parkedMopedDrawable, trackOpacity, type ParkedMoped } from './parked-moped';
 import { mopedPath, type PackTrail } from '../core/epics';
 import { yardPackTrail } from './pack-tracks';
@@ -157,7 +158,7 @@ export interface WorldFrame {
   readonly routes?: readonly (readonly Cell[])[];
   /** Predicted footfall per cell (grid index → number of routes), painted as worn ground under the routes. */
   readonly traffic?: ReadonlyMap<number, number>;
-  readonly lanes?: readonly { readonly cells: readonly Cell[]; readonly seconds: number }[];
+  readonly lanes?: Readonly<ReturnType<NightSim['telegraphedLanes']>>;
   readonly hoverCell?: Cell | null;
   readonly hoverRadius?: number;
   /** Exact ground point marked by the morning report, including a sill between cell centres. */
@@ -547,6 +548,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   const passage = calmMotion() ? undefined : frame.brushPassage;
   const drawables: Drawable[] = [];
   drawGround(ctx, view, frame.time, passage, drawables);
+  drawMowerTrails(ctx, view, frame.decals);
   /** Shadows go down before anything stands on them; they are collected as the scene is. */
   const contacts: { gx: number; gy: number; rx: number; ry: number; alpha: number }[] = [];
   const casts: (() => void)[] = [];
@@ -876,6 +878,9 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   for (const enemy of actors) {
     let depth = depthOf(view.rot, enemy.x, enemy.y);
     if (enemy.threshold && VISIBLE_DOORS[view.rot].includes(enemy.threshold)) depth = Math.max(depth, outsideWall);
+    if (enemy.type === 'mower' && enemy.action === 'charge' && !calmMotion()) {
+      drawables.push({ depth, draw: () => drawMowerClippings(ctx, view, enemy) });
+    }
     drawables.push({ depth, draw: () => drawEnemy(ctx, view, frame, enemy, chief) });
   }
 
@@ -1166,29 +1171,9 @@ function drawGroundOverlays(ctx: CanvasRenderingContext2D, view: View, frame: Wo
     ctx.setLineDash([]);
   }
 
-  // Mower lanes: telegraphed before the charge.
   for (const lane of frame.lanes ?? []) {
-    const pulse = 0.45 + 0.35 * Math.sin(frame.time * 14);
-    for (const cell of lane.cells) {
-      diamond(ctx, view, cell.x, cell.y, 0.08);
-      ctx.fillStyle = `rgba(242,165,49,${(lane.seconds > 0 ? pulse : 0.25) * 0.55})`;
-      ctx.fill();
-    }
-    const first = lane.cells[0];
-    const last = lane.cells[lane.cells.length - 1];
-    if (first && last) {
-      const a = project(view, first.x + 0.5, first.y + 0.5);
-      const b = project(view, last.x + 0.5, last.y + 0.5);
-      ctx.setLineDash([10 * z, 8 * z]);
-      ctx.lineDashOffset = -frame.time * 60 * z;
-      ctx.strokeStyle = 'rgba(255,205,90,0.9)';
-      ctx.lineWidth = 2.5 * z;
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
+    const mower = frame.enemies.find(enemy => enemy.alive && enemy.type === 'mower' && enemy.boss?.sector === lane.sector);
+    drawMowerWarning(ctx, view, lane, frame.time, calmMotion(), mower);
   }
 
   for (const particle of frame.particles) {

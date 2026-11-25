@@ -10,62 +10,33 @@ import { groundMatrix, project, type View } from './projection';
 const stamps = new Map<number, HTMLCanvasElement>();
 const SIZE = 96;
 
-function groundStamp(kind: 'debris' | 'mown', variant: number): HTMLCanvasElement {
-  const key = variant + (kind === 'mown' ? 4 : 0);
-  const cached = stamps.get(key);
+function debrisStamp(variant: number): HTMLCanvasElement {
+  const cached = stamps.get(variant);
   if (cached) return cached;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = SIZE;
   const c = canvas.getContext('2d')!;
-  const random = seeded(key + 775);
-  if (kind === 'mown') {
-    // The cut swath is continuous down the lane; the two wheels press darker tracks into it.
-    const cut = c.createLinearGradient(0, 0, SIZE, 0);
-    cut.addColorStop(0, 'rgba(138,153,75,0)');
-    cut.addColorStop(0.12, 'rgba(133,150,69,0.38)');
-    cut.addColorStop(0.52, 'rgba(155,166,84,0.43)');
-    cut.addColorStop(0.89, 'rgba(127,144,64,0.36)');
-    cut.addColorStop(1, 'rgba(127,144,64,0)');
-    c.fillStyle = cut;
-    c.fillRect(0, 0, SIZE, SIZE);
-    for (const x of [17, 73]) {
-      c.fillStyle = 'rgba(59,55,36,0.44)';
-      c.fillRect(x, 0, 6, SIZE);
-      c.fillStyle = 'rgba(192,180,109,0.42)';
-      c.fillRect(x + 6, 0, 2, SIZE);
-    }
-    for (let i = 0; i < 34; i++) {
-      const x = 5 + random() * 85;
-      const y = random() * SIZE;
-      c.strokeStyle = i % 3 ? 'rgba(181,176,111,0.53)' : 'rgba(79,82,49,0.55)';
-      c.lineWidth = 1.5;
-      c.beginPath();
-      c.moveTo(x, y);
-      c.lineTo(x + 2, y + 2.2 + random() * 3);
-      c.stroke();
-    }
-  } else {
-    for (let i = 0; i < 8; i++) {
-      const length = 5 + random() * 19;
-      const width = 1.5 + random() * 3;
-      c.save();
-      c.translate(19 + random() * 58, 19 + random() * 58);
-      c.rotate(random() * Math.PI);
-      c.fillStyle = 'rgba(42,33,24,0.5)';
-      c.fillRect(-1, 1.6, length, width);
-      c.fillStyle = i % 2 ? '#987348' : '#78563a';
-      c.beginPath();
-      c.moveTo(-1, 0);
-      c.lineTo(length, -width * 0.3);
-      c.lineTo(length - 4, width);
-      c.lineTo(1, width * 0.8);
-      c.fill();
-      c.fillStyle = '#c4a379';
-      c.fillRect(1, 0, length * 0.7, 0.9);
-      c.restore();
-    }
+  const random = seeded(variant + 775);
+  for (let i = 0; i < 8; i++) {
+    const length = 5 + random() * 19;
+    const width = 1.5 + random() * 3;
+    c.save();
+    c.translate(19 + random() * 58, 19 + random() * 58);
+    c.rotate(random() * Math.PI);
+    c.fillStyle = 'rgba(42,33,24,0.5)';
+    c.fillRect(-1, 1.6, length, width);
+    c.fillStyle = i % 2 ? '#987348' : '#78563a';
+    c.beginPath();
+    c.moveTo(-1, 0);
+    c.lineTo(length, -width * 0.3);
+    c.lineTo(length - 4, width);
+    c.lineTo(1, width * 0.8);
+    c.fill();
+    c.fillStyle = '#c4a379';
+    c.fillRect(1, 0, length * 0.7, 0.9);
+    c.restore();
   }
-  stamps.set(key, canvas);
+  stamps.set(variant, canvas);
   return canvas;
 }
 
@@ -76,6 +47,7 @@ export function drawDecals(ctx: CanvasRenderingContext2D, view: View, decals: re
   ctx.save();
   ctx.transform(...groundMatrix(view));
   for (const decal of decals) {
+    if (decal.kind === 'mown') continue;
     // Entry cells cannot hold devices. Their debris comes from the barricade at the painted sill.
     const breach = decal.kind === 'debris' && isEntryCell(decal.x, decal.y) ? sectorOf(decal.x, decal.y) : undefined;
     const sector = breach ?? decal.at?.threshold;
@@ -100,11 +72,7 @@ export function drawDecals(ctx: CanvasRenderingContext2D, view: View, decals: re
         ctx.drawImage(stain.img, -size / 2, -size / 2, size, size);
       }
     } else {
-      if (decal.kind === 'mown') {
-        const sector = sectorOf(decal.x, decal.y);
-        if (sector === 'grange' || sector === 'verger') ctx.rotate(Math.PI / 2);
-      }
-      ctx.drawImage(groundStamp(decal.kind, Math.floor(variation * 4)), -0.5, -0.5, 1, 1);
+      ctx.drawImage(debrisStamp(Math.floor(variation * 4)), -0.5, -0.5, 1, 1);
     }
     ctx.restore();
   }
