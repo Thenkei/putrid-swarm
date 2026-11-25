@@ -141,6 +141,20 @@ describe('the desk with one hand', () => {
     expect(desk.fired()).toEqual([desk.log('grange')]);
   });
 
+  it('queues the same trap key separately on either side of a camera change', () => {
+    const desk = new Desk(HAND).press(look('grange'), key(0), look('arriere'), key(0), key(0));
+    expect(desk.sim.handView()?.queue).toEqual([key(0), look('arriere'), key(0)]);
+    desk.wait(3 * HAND.crossSeconds + 0.1);
+    expect(desk.fired()).toEqual([desk.log('grange'), desk.log('arriere')]);
+  });
+
+  it('still counts repeat presses once when the queued camera is the same feed', () => {
+    const desk = new Desk(HAND).press(look('grange'), key(0), look('grange'), key(0));
+    expect(desk.sim.handView()?.queue).toEqual([key(0), look('grange')]);
+    desk.wait(2 * HAND.crossSeconds + 0.1);
+    expect(desk.fired()).toEqual([desk.log('grange')]);
+  });
+
   it('refuses a press when too much is already waiting, and says so', () => {
     const desk = new Desk(HAND);
     desk.press(look('grange'), key(0), key(1), { kind: 'fire', deviceId: desk.log('arriere') });

@@ -371,6 +371,33 @@ describe('turning a device', () => {
     expect(facingAt(6, 16)).toBe(0);
     expect(loaded?.yard.devices.every((d) => d.facing === 0 || d.facing === 1)).toBe(true);
   });
+
+  it('keeps fractional damage and facing through dawn, reload and the next night', () => {
+    const night = unwrap(startNight(unwrap(build(rich(newGame(5)), 'horn', 6, 15, 1))));
+    const sim = new NightSim(1, night.yard, night.seed);
+    const fence = sim.devices.find(d => d.type === 'fence')!, horn = sim.devices.find(d => d.type === 'horn')!;
+    fence.hp = DEVICES.fence.maxHp / 2 + .4;
+    horn.hp = 1 / 3;
+    sim.outcome = 'survived';
+    const day = startNextDay(deserialize(serialize(concludeNight(night, sim)))!);
+    const next = new NightSim(day.day, day.yard, day.seed);
+    expect(next.device(fence.id)).toMatchObject({ hp: fence.hp, state: 'passive' });
+    expect(next.device(horn.id)).toMatchObject({ hp: horn.hp, state: 'armed', facing: 1 });
+    const repaired = unwrap(repairDevice(day, horn.id));
+    expect(repaired.yard.devices.find(d => d.id === horn.id)).toMatchObject({ hp: DEVICES.horn.maxHp, facing: 1 });
+    const salvaged = unwrap(dismantle(day, horn.id));
+    expect(salvaged.inventory.battery - day.inventory.battery).toBe(1);
+    expect(salvaged.inventory.scrap - day.inventory.scrap).toBe(1);
+  });
+
+  it('recovers an explicitly working device rounded to zero in an older save and keeps a wreck broken', () => {
+    const state = newGame(5);
+    const damaged = state.yard.devices.slice(0, 2).map((d, i) => ({ ...d, hp: 0, broken: i === 1 }));
+    const saved = { ...state, yard: { ...state.yard, devices: damaged } };
+    const devices = deserialize(serialize(saved))!.yard.devices;
+    expect(devices).toEqual([{ ...damaged[0], hp: 1 }, damaged[1]]);
+    expect(refundOf(devices[1]!)).toEqual({});
+  });
 });
 
 describe('night simulation', () => {

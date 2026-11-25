@@ -57,7 +57,7 @@ import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/
 import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours, line } from '../engine/i18n';
+import { S, fmt, getLang, hours, line } from '../engine/i18n';
 import { say, sayAny, sayOnce } from '../engine/voice';
 import { breaksUnderWagon, onDriveway } from '../core/driveway';
 import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, yardItemVisible, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
@@ -194,6 +194,8 @@ export class DayScene implements Scene {
     moved: boolean;
     pan: boolean;
     button: number;
+    /** Keep the focused repair forecast through the canvas press that blurs its button. */
+    repairs: ReadonlyMap<number, DeviceInstance> | undefined;
     painted: boolean;
     stopped: boolean;
     /** A lone post keeps its chosen facing until another post joins it. */
@@ -820,8 +822,10 @@ export class DayScene implements Scene {
     const device = this.hoverDevice;
     if (device) {
       const def = DEVICES[device.type];
+      const format = new Intl.NumberFormat(getLang(), { maximumFractionDigits: 2 });
+      const hp = device.hp > 0 && device.hp < .01 ? `< ${format.format(.01)}` : format.format(device.hp);
       const lines: (HTMLElement | string)[] = [el('b', { text: `${s.device[device.type].name}${device.broken ? ` · ${s.day.broken}` : ''}` })];
-      lines.push(`${device.hp} / ${def.maxHp}`);
+      lines.push(`${hp} / ${def.maxHp}`);
       const tally = tallyOf(this.state, device);
       if (tally && !device.broken) {
         // What the night made of it: the one honest review of where it stands.
@@ -834,7 +838,7 @@ export class DayScene implements Scene {
         lines.push(el('div', { class: tally.fired === 0 ? 'tally silent' : 'tally', text }));
       }
       if (device.broken || device.hp < def.maxHp) {
-        lines.push(el('div', {}, [fmt(s.day.repairHp, { from: device.hp, to: def.maxHp }), ' · ', costLine(repairCostOf(device.type), this.state.inventory), ` · ${fmt(s.day.time, { h: hours(def.buildHours / 2) })}`]));
+        lines.push(el('div', {}, [fmt(s.day.repairHp, { from: hp, to: def.maxHp }), ' · ', costLine(repairCostOf(device.type), this.state.inventory), ` · ${fmt(s.day.time, { h: hours(def.buildHours / 2) })}`]));
       }
       const fresh = isFresh(device, this.state.day);
       const refund = refundOf(device, this.state.day);
@@ -1002,6 +1006,19 @@ export class DayScene implements Scene {
     return 5 * 4 * rebound * (1 - rebound);
   }
 
+  /** Painting and picking share the current placement and the repair forecast. */
+  private deviceVisuals(hoverId?: number, marksSilent = false) {
+    const state = this.state;
+    const repairs = this.repairPreview?.devices ?? (this.drag?.moved ? undefined : this.drag?.repairs);
+    return state.yard.devices.map(d => {
+      const repaired = repairs?.get(d.id);
+      return {
+        ...dayDeviceVisual(repaired ?? d, d.id === hoverId, marksSilent && wasSilent(state, d)),
+        placementLift: this.placementLift(d.id), repairPreview: repaired !== undefined,
+      };
+    });
+  }
+
   // ───────────────────────────── Derived view data ─────────────────────────────
 
   private currentGhost(): { ghost: Ghost | null; problem: YardError | null } {
@@ -1147,14 +1164,7 @@ export class DayScene implements Scene {
     const ghost = placing ? { ...placing, idle: this.ghostIdle() } : null;
     const hoverId = this.mode.kind === 'repair' || this.mode.kind === 'dismantle' ? this.hoverDevice?.id : undefined;
     const marksSilent = this.showRoutes && this.mode.kind !== 'build';
-    const devices = state.yard.devices.map(d => {
-      const repaired = this.repairPreview?.devices.get(d.id);
-      return {
-        ...dayDeviceVisual(repaired ?? d, d.id === hoverId, marksSilent && wasSilent(state, d)),
-        placementLift: this.placementLift(d.id),
-        repairPreview: repaired !== undefined,
-      };
-    });
+    const devices = this.deviceVisuals(hoverId, marksSilent);
     const def = this.mode.kind === 'build' ? DEVICES[this.mode.type] : null;
     // Out of build mode, the trap under the pointer shows how far it reaches.
     const reaching = !def && this.hoverDevice && isTrap(this.hoverDevice.type) && !this.hoverDevice.broken ? this.hoverDevice : null;
@@ -1249,8 +1259,7 @@ export class DayScene implements Scene {
     const inside = pointer.overCanvas && inView(view, pointer.x, pointer.y);
     const wreck = wreckSector(this.state);
     const whistle = whistleInGrass(this.state);
-    const visuals = inside && this.mode.kind !== 'build'
-      ? this.state.yard.devices.map(d => ({ ...dayDeviceVisual(d), placementLift: this.placementLift(d.id) })) : [];
+    const visuals = inside && this.mode.kind !== 'build' ? this.deviceVisuals() : [];
     const health = this.state.yard.houseHp / HOUSE_MAX_HP;
     const visible = (depth: number) => yardItemVisible(view, pointer.x, pointer.y, depth, health, this.time, visuals);
     this.hoverWhistle = !inspected && inside && this.mode.kind === 'idle' && !!whistle && hitsWhistle(view, whistle, pointer.x, pointer.y, visible);
@@ -1296,6 +1305,7 @@ export class DayScene implements Scene {
       moved: false,
       pan: event.button !== 0 || this.mode.kind === 'idle',
       button: event.button,
+      repairs: event.button === 0 ? this.repairPreview?.devices : undefined,
       painted: false,
       stopped: false,
       firstFence: null,
@@ -1403,8 +1413,8 @@ export class DayScene implements Scene {
     const drag = this.drag;
     if (!drag) return;
     if (!drag.pan && this.paintsLine() && pointer.overCanvas) this.continueFenceStroke(pointer);
-    this.drag = null;
     this.updateHover(pointer, drag.moved && drag.pan);
+    this.drag = null;
     if (!pointer.overCanvas || !inView(this.view, pointer.x, pointer.y)) return;
     if ((drag.moved && drag.pan) || drag.painted) return;
     if (drag.button === 2) this.turn();
