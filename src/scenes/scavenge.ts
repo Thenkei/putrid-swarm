@@ -9,7 +9,7 @@ import { circuitTiles, PORTS, scaleWeights, shuffled, traceCircuit, turnTile, ty
 import { RECORD_DECOY_NOISE, rummageNoise } from '../core/street-noise';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { fmt, hours, S } from '../engine/i18n';
+import { fmt, S, durationLabel } from '../engine/i18n';
 import { assetUrl } from '../engine/assets';
 
 export class ScavengePanel {
@@ -17,6 +17,7 @@ export class ScavengePanel {
   private readonly board = el('div', { class: 'salvage-board' });
   private readonly status = el('div', { class: 'salvage-status' });
   private readonly instruction = el('p', { class: 'salvage-instruction' });
+  private readonly returnPreview = el('small', { class: 'search-return' });
   private advance: ((dt: number) => void) | null = null;
 
   private started = false;
@@ -32,10 +33,13 @@ export class ScavengePanel {
      * backing out included (see core/street-noise.ts); a failure's own noise is the caller's.
      */
     private readonly onNoise: (amount: number) => void = () => {},
+    returnClock?: string,
   ) {
     const s = S().scavenge;
+    this.setReturnClock(returnClock);
+    const cost = el('small', { text: fmt(s.cost, { duration: durationLabel(SEARCH_HOURS) }) });
     const photo = el('aside', { class: 'salvage-photo', style: { backgroundPosition: `${spot.x * 100}% ${spot.y * 100}%` } }, [
-      el('div', { class: 'salvage-caption' }, [el('strong', { text: spotName }), el('small', { text: fmt(s.cost, { h: hours(SEARCH_HOURS) }) })]),
+      el('div', { class: 'salvage-caption' }, [el('strong', { text: spotName }), cost, this.returnPreview]),
     ]);
     const closeUp = puzzle.kind === 'records' ? 'plate_records' : spot.fatalMiss === 'lift' ? 'plate_lift_raised' : null;
     const url = (closeUp && assetUrl(closeUp)) || assetUrl(plate);
@@ -55,7 +59,7 @@ export class ScavengePanel {
     this.root.append(el('div', { class: fairground ? 'salvage-case vachette-case' : 'salvage-case' }, [fairground ? null : photo, el('div', { class: 'salvage-sheet' }, [
       el('h2', { text: puzzle.title }), el('p', { class: 'salvage-clue', text: puzzle.clue }),
       spot.fatalMiss ? el('strong', { class: 'salvage-danger', text: s.liftWarning }) : null,
-      fairground ? el('small', { class: 'vachette-cost', text: fmt(s.cost, { h: hours(SEARCH_HOURS) }) }) : null,
+      fairground ? el('div', { class: 'vachette-cost' }, [cost, this.returnPreview]) : null,
       this.instruction, this.board, this.status,
       el('button', { class: 'salvage-back', text: s.back, onClick: cancel }),
     ])]));
@@ -78,13 +82,19 @@ export class ScavengePanel {
     this.onStart();
   }
 
-  showFailure(message: string, retry: (() => void) | null): void {
+  private setReturnClock(clock?: string): void {
+    this.returnPreview.textContent = clock ? fmt(S().loc.afterSearch, { clock }) : '';
+    this.returnPreview.hidden = !clock;
+  }
+
+  showFailure(message: string, retry: (() => void) | null, retryClock?: string): void {
     const s = S().scavenge;
-    this.board.replaceChildren(el('strong', { text: fmt(s.spent, { h: hours(SEARCH_HOURS) }) }));
+    this.setReturnClock(retryClock);
+    this.board.replaceChildren(el('strong', { text: fmt(s.spent, { duration: durationLabel(SEARCH_HOURS) }) }));
     this.board.className = 'salvage-board';
     this.status.textContent = message;
     if (retry) {
-      const button = el('button', { class: 'salvage-piece salvage-retry', text: fmt(s.retry, { h: hours(SEARCH_HOURS) }), onClick: () => {
+      const button = el('button', { class: 'salvage-piece salvage-retry', text: fmt(s.retry, { duration: durationLabel(SEARCH_HOURS) }), onClick: () => {
         if (!button.isConnected || button.disabled) return;
         button.disabled = true;
         retry();

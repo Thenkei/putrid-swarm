@@ -98,8 +98,11 @@ export function tripLine(moment: 'car' | 'home', state: Pick<GameState, 'day' | 
 
 export function resourceChip(id: ResourceId, amount: number | string, extraClass = ''): HTMLElement {
   const url = assetUrl(`icons_${id}`);
-  const icon = url ? el('img', {}) : el('span', { text: '▪' });
-  if (url) (icon as HTMLImageElement).src = url;
+  const icon = url ? new Image() : el('span', { text: amount === '' ? S().res[id] : '▪' });
+  if (icon instanceof HTMLImageElement && url) {
+    icon.src = url;
+    icon.alt = S().res[id];
+  }
   return el('span', { class: `res ${extraClass}`.trim(), title: S().res[id] }, [icon, String(amount)]);
 }
 

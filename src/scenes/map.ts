@@ -2,14 +2,14 @@
 
 import { DAY_HOURS, HOME_PIN, LOCATIONS } from '../core/data/locations';
 import { clockLabel, isUnlocked, neighborStatus, planVisit, remainingSearches, roundTripHours, travelTo } from '../core/game';
-import { hasUnclaimedPlanque } from '../core/planque';
+import { hasUnclaimedPlanque, spotRevealed } from '../core/planque';
 import type { GameState, LocationId } from '../core/types';
-import { LOCATION_IDS } from '../core/types';
+import { LOCATION_IDS, RESOURCE_IDS } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours } from '../engine/i18n';
-import { drawPlate, inventoryBar, platePoint } from './common';
+import { S, durationLabel, fmt } from '../engine/i18n';
+import { drawPlate, inventoryBar, platePoint, resourceChip } from './common';
 import { drawClockPigeons } from '../render/clock-pigeons';
 import { calmMotion } from '../render/lighting';
 import { shouldPlayCrossing } from '../core/crossing';
@@ -55,7 +55,7 @@ export class MapScene implements Scene {
       el('span', { class: 'sep' }),
       el('span', { text: clockLabel(state.hoursLeft) }),
       el('span', { class: 'meter' }, [el('i', { style: { width: `${(state.hoursLeft / DAY_HOURS) * 100}%` } })]),
-      el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { h: hours(state.hoursLeft) }) }),
+      el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { duration: durationLabel(state.hoursLeft) }) }),
       inventoryBar(state.inventory),
     ]);
 
@@ -66,11 +66,14 @@ export class MapScene implements Scene {
       const left = remainingSearches(state, location);
       const sub = !unlocked ? fmt(s.map.locked, { n: location.unlockDay }) : left > 0 ? fmt(s.map.left, { n: left }) : s.map.empty;
       const cache = id === 'shed' && hasUnclaimedPlanque(state);
+      const neighbor = location.neighbor;
+      const note = neighbor && unlocked && neighborStatus(neighbor, state.day) === 'gone' ? s.neighbor[neighbor].gone : '';
       const pin = el(
         'button',
         {
           class: `pin ${unlocked ? '' : 'locked'} ${this.selected === id ? 'sel' : ''}`,
           data: { pin: id },
+          title: [note, cache ? s.scavenge.directoryCache : ''].filter(Boolean).join('\n'),
           style: { left: `${p.x}px`, top: `${p.y}px` },
           onClick: () => {
             audio.play('click');
@@ -103,49 +106,47 @@ export class MapScene implements Scene {
     const s = S();
     const state = this.state;
     const back = el('button', { class: 'btn', text: s.map.home, onClick: () => goDay(this.app) });
-    if (!this.selected) return el('div', { class: 'panel map-card' }, [el('p', { class: 'muted', text: s.day.hint2 }), back]);
+    if (!this.selected) return el('div', { class: 'panel map-card' }, [el('p', { text: s.map.choose }), back]);
 
     const location = LOCATIONS[this.selected];
     const id = location.id;
     const unlocked = isUnlocked(location, state.day);
     const enough = state.hoursLeft + 1e-9 >= roundTripHours(location);
-    const neighbor = location.neighbor;
-    const lines: (HTMLElement | string)[] = [
+    const spots = location.spots.filter((spot, index) =>
+      spotRevealed(state, spot) && !state.locations[id].searched.includes(index));
+    const loot = RESOURCE_IDS.filter(resource => spots.some(spot => spot.loot[resource]));
+    const lines: HTMLElement[] = [
       el('h3', { text: s.location[id].name }),
-      el('p', {}, [
-        s.location[id].hint,
-        el('br'),
-        el('span', { class: 'muted', text: `${fmt(s.map.travel, { h: hours(location.travelHours) })} · ${fmt(s.map.roundTrip, { h: hours(roundTripHours(location)) })}` }),
+      el('div', { class: 'map-loot' }, [
+        el('span', { class: 'muted', text: s.map.loot }),
+        ...(loot.length ? loot.map(resource => resourceChip(resource, '')) : [s.map.noMaterials]),
       ]),
+      el('span', { class: 'map-route', text: fmt(s.map.roundTrip, { duration: durationLabel(roundTripHours(location)) }) }),
     ];
-    if (neighbor && unlocked && neighborStatus(neighbor, state.day) === 'gone') lines.push(el('p', { class: 'muted', text: s.neighbor[neighbor].gone }));
-    if (id === 'shed' && hasUnclaimedPlanque(state)) lines.push(el('p', { class: 'map-cache', text: s.scavenge.directoryCache }));
     const reason = !unlocked ? fmt(s.map.locked, { n: location.unlockDay }) : !enough ? s.map.noTime : '';
     if (reason) lines.push(el('p', { style: { color: '#ff8a78' }, text: reason }));
     else {
       const { searches, hoursAfterReturn } = planVisit(state, location);
-      const clock = clockLabel(hoursAfterReturn);
       const atDusk = hoursAfterReturn < 1e-9;
-      lines.push(el('p', {}, [
-        searches > 0 ? fmt(s.map.searchBudget, { n: searches }) : s.map.noSearches,
-        el('br'),
-        el('span', {
-          class: atDusk ? 'return-at-dusk' : 'muted',
-          text: atDusk
-            ? fmt(s.map.returnAtDusk, { clock })
-            : fmt(s.map.returnEstimate, { clock, h: hours(hoursAfterReturn) }),
-        }),
+      const clockIcon = el('span', { class: 'map-return-icon', text: '↶◷' });
+      clockIcon.setAttribute('aria-hidden', 'true');
+      lines.push(el('section', { class: 'map-plan' }, [
+        el('h4', { text: searches ? fmt(s.map.searchBudget, { n: searches }) : s.map.noSearches }),
+        el('dl', { class: atDusk ? 'return-at-dusk' : '' }, [
+          el('div', {}, [el('dt', { text: s.map.returnEstimate }), el('dd', {}, [clockIcon, clockLabel(hoursAfterReturn)])]),
+          el('div', {}, [el('dt', { text: s.map.prepTime }), el('dd', { text: atDusk ? s.map.dusk : durationLabel(hoursAfterReturn) })]),
+        ]),
       ]));
     }
-    lines.push(
+    lines.push(el('div', { class: 'map-actions' }, [
       el('button', {
         class: 'btn btn-primary',
         text: s.map.drive,
         disabled: !unlocked || !enough,
         onClick: () => this.drive(id),
       }),
-    );
-    lines.push(el('div', { style: { height: '8px' } }), back);
+      back,
+    ]));
     return el('div', { class: 'panel map-card' }, lines);
   }
 
@@ -178,7 +179,7 @@ export class MapScene implements Scene {
       // The village illustration in the rotation depends on the destination.
       plate: LOCATION_IDS.indexOf(id) % 2 === 0 ? 'plate_village' : 'plate_town',
       title: s.location[id].name,
-      sub: fmt(s.map.travel, { h: hours(LOCATIONS[id].travelHours) }),
+      sub: fmt(s.map.travel, { duration: durationLabel(LOCATIONS[id].travelHours) }),
       departure,
       next,
     });

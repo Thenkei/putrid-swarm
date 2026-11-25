@@ -10,7 +10,7 @@ import { units } from '../core/encounters';
 import { arriveHome, type NeighborMeeting } from '../core/game';
 import type { GameState, LocationId } from '../core/types';
 import type { App, Scene } from '../engine/app';
-import { S, fmt, hours } from '../engine/i18n';
+import { S, fmt, durationLabel } from '../engine/i18n';
 import { tripLine } from './common';
 import { DayScene, type DayOptions } from './day';
 import { EndScene, type EndOptions } from './end';
@@ -87,7 +87,7 @@ export function goHomeStretch(app: App, sub = '', ignitionAt?: number): void {
   goTravel(app, {
     plate: !moped && units(cargo) > 0 ? 'plate_trunk' : 'plate_return',
     title: s.location.home,
-    sub: sub || (moped ? fmt(s.loc.leaveCost, { h: hours(LOCATIONS[outing.to].travelHours) }) : ''),
+    sub: sub || (moped ? fmt(s.loc.leaveCost, { duration: durationLabel(LOCATIONS[outing.to].travelHours) }) : ''),
     ...(ignitionAt !== undefined && { ignitionAt }),
     loot: cargo,
     lost: outing.parted,

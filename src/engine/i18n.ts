@@ -53,3 +53,14 @@ export function hours(value: number): string {
   const text = Number.isInteger(rounded) ? String(rounded) : String(rounded);
   return current === 'fr' ? text.replace('.', ',') : text;
 }
+
+/** A daylight budget or travel duration, distinct from a clock time such as 10:15. */
+export function durationLabel(hours: number): string {
+  const total = Math.round(hours * 60);
+  const whole = Math.floor(total / 60);
+  const minutes = total % 60;
+  if (!whole) return `${minutes} min`;
+  const hourPart = current === 'fr' ? `${whole} h` : `${whole}h`;
+  if (!minutes) return hourPart;
+  return current === 'fr' ? `${hourPart} ${minutes}` : `${hourPart} ${minutes}m`;
+}
