@@ -1,27 +1,51 @@
 import { expect, it, vi } from 'vitest';
 import { newGame, startNight } from '../src/core/game';
 import { NightSim, type SimEvent } from '../src/core/night';
+import { ORCHARD, outageFor } from '../src/core/orchard';
 import { rattleForNight, rigRattle } from '../src/core/rattle';
 import { deserialize, serialize } from '../src/core/save';
 import { cameraView } from '../src/render/projection';
 import { drawRattle } from '../src/render/rattle';
 
-it('pays once, survives a reload and is offered again the next day', () => {
-  const state = newGame(42);
+vi.mock('../src/engine/assets', () => ({ sprite: (key: string) => ({ img: key, w: 60, h: 144 }) }));
+vi.mock('../src/render/shadows', () => ({ castShadow: vi.fn() }));
+
+it('offers the wire only for the failing camera and charges once', () => {
+  const fresh = newGame(42);
+  expect(rigRattle(fresh, 'verger')).toBeNull();
+  const state = { ...fresh, day: ORCHARD.night };
   expect(rattleForNight(state)).toBeNull();
-  expect(rigRattle({ ...state, hoursLeft: 0.2 }, 'grange')).toBeNull();
-  expect(rigRattle({ ...state, where: 'garage' }, 'grange')).toBeNull();
-  expect(rigRattle({ ...state, inventory: { ...state.inventory, wire: 0 } }, 'grange')).toBeNull();
-  const rigged = rigRattle(state, 'grange')!;
+  expect(rigRattle(state, 'grange')).toBeNull();
+  expect(rigRattle({ ...state, hoursLeft: 0.2 }, 'verger')).toBeNull();
+  expect(rigRattle({ ...state, where: 'garage' }, 'verger')).toBeNull();
+  expect(rigRattle({ ...state, inventory: { ...state.inventory, wire: 0 } }, 'verger')).toBeNull();
+  const rigged = rigRattle(state, 'verger')!;
   expect(rigged.hoursLeft).toBe(state.hoursLeft - 0.25);
   expect(rigged.inventory.wire).toBe(state.inventory.wire - 1);
-  expect(rigRattle(rigged, 'portail')).toBeNull();
+  expect(rigRattle(rigged, 'verger')).toBeNull();
   const evening = startNight(rigged);
   if (!evening.ok) throw new Error('The night could not start');
-  expect(rattleForNight(deserialize(serialize(evening.value))!)).toBe('grange');
-  const tomorrow = { ...rigged, day: 2 };
+  expect(rattleForNight(deserialize(serialize(evening.value))!)).toBe('verger');
+  const tomorrow = { ...rigged, day: state.day + 1 };
   expect(rattleForNight(tomorrow)).toBeNull();
-  expect(rigRattle(tomorrow, 'portail')).not.toBeNull();
+  expect(rigRattle(tomorrow, 'verger')).toBeNull();
+});
+
+it('warns on the first orchard entry after signal loss despite earlier orchard entries', () => {
+  const state = { ...newGame(42), day: ORCHARD.night };
+  const sim = new NightSim(state.day, state.yard, state.seed, outageFor(state), null, null, null, 'verger');
+  const events: SimEvent[] = [];
+  while (sim.outcome === 'ongoing' && sim.time < 120) {
+    sim.step(1 / 60);
+    events.push(...sim.drainEvents());
+  }
+  const loss = events.findIndex(event => event.type === 'camera_lost');
+  const isEntry = (event: SimEvent) => event.type === 'spawn' && event.sector === 'verger';
+  expect(events.slice(0, loss).some(isEntry)).toBe(true);
+  const afterLoss = events.slice(loss + 1);
+  expect(afterLoss.filter(isEntry).length).toBeGreaterThan(1);
+  expect(events.filter(event => event.type === 'rattle')).toHaveLength(1);
+  expect(afterLoss[afterLoss.findIndex(isEntry) - 1]).toEqual({ type: 'rattle', sector: 'verger' });
 });
 
 it('sounds once on the rigged hedge, even if a prowler flanks towards another door', () => {
@@ -49,14 +73,15 @@ it('keeps the tin tied to the wire before and after a strike in both yard views'
     const tilt: number[] = [];
     for (const camera of ['portail', 'arriere'] as const) {
       const ctx = {
-        save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(), stroke: vi.fn(), fillRect: vi.fn(),
+        save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(), stroke: vi.fn(), drawImage: vi.fn(),
         scale: vi.fn(), translate: vi.fn<(x: number, y: number) => void>(), rotate: vi.fn<(a: number) => void>(),
         moveTo: vi.fn<(x: number, y: number) => void>(), lineTo: vi.fn(),
         quadraticCurveTo: vi.fn<(cx: number, cy: number, x: number, y: number) => void>(),
       };
       const view = cameraView(camera, { x: 40, y: 10, w: 640, h: 480 }, 1.22);
       drawRattle(ctx as unknown as CanvasRenderingContext2D, view, { sector: 'grange', struckAt }, .27);
-      const [, startY] = ctx.moveTo.mock.calls[2]!;
+      expect(ctx.drawImage.mock.calls.map(call => call[0])).toEqual(['rattle_stake', 'rattle_stake', 'rattle_tins']);
+      const [, startY] = ctx.moveTo.mock.calls[0]!;
       const [, controlY, endX, endY] = ctx.quadraticCurveTo.mock.calls[0]!;
       const [tieX, tieY] = ctx.translate.mock.calls[1]!;
       const t = tieX / endX;

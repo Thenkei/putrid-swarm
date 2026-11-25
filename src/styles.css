@@ -1343,6 +1343,13 @@ button:disabled {
   cursor: pointer;
   color: var(--cream);
 }
+.rattle-plan summary img {
+  width: 22px;
+  height: 24px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-right: 5px;
+}
 .rattle-plan p {
   margin: 5px 0;
 }
@@ -1356,17 +1363,10 @@ button:disabled {
   gap: 5px;
   flex-wrap: wrap;
 }
-.rattle-controls select, .rattle-controls .btn {
+.rattle-controls .btn {
   padding: 3px 6px;
   min-height: 30px;
   font-size: 15px;
-}
-.rattle-controls select {
-  font-family: inherit;
-  color: var(--cream);
-  background: #252116;
-  border: 1px solid #806141;
-  border-radius: 4px;
 }
 
 .siren-forecast {
