@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CONCEAL_HOURS, LOCATIONS } from '../src/core/data/locations';
 import { act } from '../src/core/encounters';
 import { arriveHome, concealableSpots, concealSpot, leaveLocation, newGame, noticeChiefEscort, planVisit, prepareSearch, remainingSearches, searchAttemptKey, searchSpot, searchStop, travelTo, visitSearchesLeft } from '../src/core/game';
-import { RUMMAGE } from '../src/core/rummage';
+import { PUZZLE_CURVE, PUZZLE_LEVELS } from '../src/core/difficulty';
 import { deserialize, serialize } from '../src/core/save';
 import { FAILED_ATTEMPT_NOISE, makeNoise, NOISE_PER_LOST_SEARCH, RECORD_DECOY_NOISE, rummageNoise, searchesLostToNoise, streetNoise } from '../src/core/street-noise';
 import type { GameState, LocationId, Result } from '../src/core/types';
@@ -44,9 +44,13 @@ describe('street noise', () => {
 
   it('prices the loud puzzle outcomes', () => {
     expect(RECORD_DECOY_NOISE).toEqual([0, 2]);
-    expect(rummageNoise(RUMMAGE.noise - 2)).toBe(0);
-    expect(rummageNoise(RUMMAGE.noise - 1)).toBe(1);
-    expect(rummageNoise(RUMMAGE.noise)).toBe(1);
+    // A rummage is heard once it has spent all but one of its level's noise.
+    for (const level of PUZZLE_LEVELS) {
+      const budget = PUZZLE_CURVE[level].rummage.noise;
+      expect(rummageNoise(budget - 2, budget)).toBe(0);
+      expect(rummageNoise(budget - 1, budget)).toBe(1);
+      expect(rummageNoise(budget, budget)).toBe(1);
+    }
   });
 
   it('takes one search off the visit for every threshold crossed', () => {
@@ -127,7 +131,8 @@ describe('street noise', () => {
     // backing out (the back button or Escape) leaves that state as it is.
     const spot = openSpot(town);
     const attempt = unwrap(prepareSearch(town, spot));
-    const heard = rummageNoise(RUMMAGE.noise);
+    const { noise } = PUZZLE_CURVE[0].rummage;
+    const heard = rummageNoise(noise, noise);
     const backedOut = makeNoise(attempt.paid, heard);
     expect(streetNoise(backedOut)).toBe(heard);
     expect(backedOut.locations.hardware.searched).not.toContain(spot);

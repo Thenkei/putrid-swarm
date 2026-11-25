@@ -44,7 +44,8 @@ export const scavengeEn: typeof scavengeFr = {
     clear: 'She’s in the pen. The prize stall is clear.',
   },
   rows: { 3: ['top', 'middle', 'bottom'], 4: ['top', 'second', 'third', 'bottom'] }, circuitEnds: 'In on the left, {a} row; out on the right, {b} row.',
-  rummage: 'Every test makes noise, twice as much for a noisy container. Find the two good ones before you are heard. A wrong grab ends the attempt.', rummageLoud: 'Noisy',
+  rummageTimes: { 2: 'twice as much', 3: 'three times as much' },
+  rummage: 'Every test makes noise, {times} for a noisy container. Find the two good ones before you are heard. A wrong grab ends the attempt.', rummageLoud: 'Noisy',
   rummageTake: 'Take', rummageUnknown: '?', rummageNoise: 'Noise {n}/{max}', rummageFound: '{n} / {total} found',
   rummageQuiet: 'No more noise to spare: take what you know.', rummageWrong: '{item}: {what}. Wrong pick.',
   spots: {

@@ -4,7 +4,7 @@ import { GATE_HALF_ANGLE, Padlock } from '../core/padlock';
 import { catchBands, inBand, NEEDLE_PACE, needleAt } from '../core/catch';
 import { PUZZLE_CURVE, type PuzzleLevel } from '../core/difficulty';
 import type { Rng } from '../core/rng';
-import { probeCost, Rummage, RUMMAGE } from '../core/rummage';
+import { Rummage, RUMMAGE, type RummageShape } from '../core/rummage';
 import { circuitTiles, PORTS, scaleWeights, shuffled, traceCircuit, turnTile, type CatchMotion, type CircuitShape, type Puzzle, type ScaleShape } from '../core/scavenge';
 import { RECORD_DECOY_NOISE, rummageNoise } from '../core/street-noise';
 import { audio } from '../engine/audio';
@@ -65,7 +65,7 @@ export class ScavengePanel {
       case 'circuit': this.circuit(tuning.circuit, rng); break;
       case 'padlock': this.padlock(tuning.ringPace, rng); break;
       case 'timing': this.timing(puzzle.action, puzzle.motion, tuning.catchWidth, rng); break;
-      case 'rummage': this.rummage(puzzle, rng); break;
+      case 'rummage': this.rummage(puzzle, tuning.rummage, rng); break;
       case 'records': this.records(puzzle, rng); break;
       case 'directory': this.directory(puzzle.entries, rng); break;
       case 'vachette': this.vachette(); break;
@@ -437,9 +437,11 @@ export class ScavengePanel {
     }));
   }
 
-  private rummage(puzzle: Extract<Puzzle, { kind: 'rummage' }>, rng: Rng): void {
+  private rummage(puzzle: Extract<Puzzle, { kind: 'rummage' }>, shape: RummageShape, rng: Rng): void {
     const s = S().scavenge;
-    const pile = new Rummage(rng);
+    const pile = new Rummage(rng, shape);
+    this.instruction.textContent = fmt(s.rummage, { times: s.rummageTimes[shape.loudCost] });
+    const heard = (): number => rummageNoise(pile.noiseUsed, shape.noise);
     const meter = el('span', { class: 'rummage-noise' });
     const grid = el('div', { class: 'rummage-pile' });
     const said = (item: number): string => {
@@ -449,12 +451,13 @@ export class ScavengePanel {
     const cards = pile.order.map(item => {
       const name = puzzle.items[item]!;
       const reveal = el('small', { class: 'rummage-reveal', text: s.rummageUnknown });
-      const loud = probeCost(item) > 1;
+      const cost = pile.cost(item);
+      const loud = cost > 1;
       // A loud container's cost rides on its tag, not its button: the button stays one line at every width.
       const probe = this.button(puzzle.probe, () => {
-        const heard = rummageNoise(RUMMAGE.noise - pile.noiseLeft);
+        const before = heard();
         if (!pile.probe(item)) return;
-        const louder = rummageNoise(RUMMAGE.noise - pile.noiseLeft) - heard;
+        const louder = heard() - before;
         if (louder > 0) this.onNoise(louder);
         // The spot's own gesture, louder for the containers the game calls loud.
         audio.play(`probe_${puzzle.sound}`, loud ? 0.7 : 0.5);
@@ -471,7 +474,7 @@ export class ScavengePanel {
       probe.setAttribute('aria-label', `${puzzle.probe} · ${name}${loud ? ` · ${s.rummageLoud}` : ''}`);
       take.setAttribute('aria-label', `${s.rummageTake} · ${name}`);
       const card = el('div', { class: loud ? 'rummage-item loud' : 'rummage-item' }, [
-        el('strong', { text: name }), loud ? el('em', { class: 'rummage-loud', text: `${s.rummageLoud} ${'●'.repeat(probeCost(item))}` }) : null, reveal,
+        el('strong', { text: name }), loud ? el('em', { class: 'rummage-loud', text: `${s.rummageLoud} ${'●'.repeat(cost)}` }) : null, reveal,
         el('div', { class: 'rummage-actions' }, [probe, take]),
       ]);
       return { item, card, reveal, probe, take };
@@ -485,9 +488,8 @@ export class ScavengePanel {
         // Something already heard to be junk is not worth a grab.
         take.disabled = pile.isTaken(item) || (known && !pile.reveal(item).good);
       }
-      const left = pile.noiseLeft;
-      const used = RUMMAGE.noise - left;
-      meter.textContent = `${fmt(s.rummageNoise, { n: used, max: RUMMAGE.noise })} ${'●'.repeat(used)}${'○'.repeat(left)}`;
+      const used = pile.noiseUsed;
+      meter.textContent = `${fmt(s.rummageNoise, { n: used, max: shape.noise })} ${'●'.repeat(used)}${'○'.repeat(pile.noiseLeft)}`;
       const stuck = cards.every(({ item }) => !pile.canProbe(item));
       this.status.textContent = `${fmt(s.rummageFound, { n: pile.found, total: RUMMAGE.wanted })}${stuck ? ` · ${s.rummageQuiet}` : ''}`;
     };

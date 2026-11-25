@@ -8,7 +8,6 @@
 // - Hiding a stash (`concealSpot` in core/game.ts) is quiet work, not a search: it makes no noise,
 //   costs no search, and stays possible after noise (or the Chief) has ended searching on the visit.
 
-import { RUMMAGE } from './rummage';
 import type { GameState, LocationId } from './types';
 
 /** Every this much noise costs the visit one search. */
@@ -23,12 +22,16 @@ export const FAILED_ATTEMPT_NOISE = 1;
  */
 export const RECORD_DECOY_NOISE = [0, 2] as const;
 
-/** A rummage that spends all but one of its noise budget is heard from the road. */
-const RUMMAGE_HEARD_AT = RUMMAGE.noise - 1;
+/** A rummage that spends all but this much of its noise budget is heard from the road. */
+const RUMMAGE_HEARD_WITHIN = 1;
 const RUMMAGE_HEARD_NOISE = 1;
 
-/** The street noise a rummage has made once `used` of its budget is spent. */
-export const rummageNoise = (used: number): number => (used >= RUMMAGE_HEARD_AT ? RUMMAGE_HEARD_NOISE : 0);
+/**
+ * The street noise a rummage has made once `used` of its `budget` is spent. The budget is the level's
+ * (`PUZZLE_CURVE[level].rummage.noise`), so the threshold moves with it.
+ */
+export const rummageNoise = (used: number, budget: number): number =>
+  (budget - used <= RUMMAGE_HEARD_WITHIN ? RUMMAGE_HEARD_NOISE : 0);
 
 const noiseKey = (state: GameState, id: LocationId): string => `noise:${id}:${state.day}:${state.locations[id].visits}`;
 
