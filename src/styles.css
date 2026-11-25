@@ -1532,6 +1532,14 @@ button:disabled {
   white-space: nowrap;
 }
 
+.loot-clean {
+  display: block;
+  margin-top: 2px;
+  color: var(--green);
+  font-size: 0.8em;
+  text-align: center;
+}
+
 @keyframes loot-rise {
   0% {
     opacity: 0;
