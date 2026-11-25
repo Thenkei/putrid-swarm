@@ -6,6 +6,7 @@ import { ShopLife } from './shop-life';
 import { MechanicVisit } from './mechanic-visit';
 import { ChiefStation } from './chief-station';
 import { CONCEAL_HOURS, DAY_HOURS, HARDWARE_SPRING_BIN, LOCATIONS, SEARCH_HOURS, SPRING_RECEIPT_OFFER } from '../core/data/locations';
+import { gradeFinish, type Finish } from '../core/finish';
 import { clockLabel, concealableSpots, concealSpot, leaveLocation, neighborStatus, noticeChiefEscort, prepareSearch, searchAttemptKey, searchStop, takeSpringReceipt, type NeighborMeeting, type SearchOutcome, type SearchStop } from '../core/game';
 import { hasViceLeftovers } from '../core/garage-vice';
 import { spotRng, type Puzzle } from '../core/scavenge';
@@ -410,6 +411,7 @@ export class LocationScene implements Scene {
       this.hud.querySelector<HTMLButtonElement>(`[data-spot="${index}"]`)?.focus();
     };
     const attempt = result.value;
+    const puzzle = puzzles[spot.key]!;
     // Outcomes were prepared before the attempt. Carry the noise already saved into them.
     let heard = 0;
     const withNoise = (state: GameState): GameState => {
@@ -418,10 +420,12 @@ export class LocationScene implements Scene {
       return next;
     };
     this.puzzle = new ScavengePanel(
-      puzzles[spot.key]!, names[spot.key]!, spot, heroArt(location.plate, oneArmed(this.state)), spotRng(this.state.seed, this.id, spot.key, searchAttemptKey(this.state)), puzzleLevel(this.state),
+      puzzle, names[spot.key]!, spot, heroArt(location.plate, oneArmed(this.state)), spotRng(this.state.seed, this.id, spot.key, searchAttemptKey(this.state)), puzzleLevel(this.state),
       () => {
         close();
-        this.collect({ ...attempt.success, state: withNoise(attempt.success.state) }, at);
+        const finish = gradeFinish(puzzle.kind, { slipped: attempt.slipped, heard });
+        const success = attempt.graded(finish);
+        this.collect({ ...success, state: withNoise(success.state) }, at, finish);
         this.noticeLostSearch(attempt.paid);
         this.checkEscort();
       },
@@ -494,7 +498,7 @@ export class LocationScene implements Scene {
     return gauge;
   }
 
-  private collect(result: SearchOutcome, at: { x: number; y: number }): void {
+  private collect(result: SearchOutcome, at: { x: number; y: number }, finish: Finish = 'plain'): void {
     const foundCrossbow = !hasCrossbow(this.state) && hasCrossbow(result.state);
     const foundDetector = !hasDetector(this.state) && hasDetector(result.state);
     const foundSiren = !hasSiren(this.state) && hasSiren(result.state);
@@ -519,7 +523,9 @@ export class LocationScene implements Scene {
       this.revealCrossbow();
       return;
     }
-    const pop = found && el('div', { class: 'loot-pop', style: { left: `${at.x}px`, top: `${at.y - 34}px` } }, [costLine(result.loot, undefined, '+')]);
+    // A clean finish says so, so the top of the range reads as earned rather than lucky.
+    const clean = finish === 'clean' ? el('small', { class: 'loot-clean', text: S().scavenge.cleanJob }) : null;
+    const pop = found && el('div', { class: 'loot-pop', style: { left: `${at.x}px`, top: `${at.y - 34}px` } }, [costLine(result.loot, undefined, '+'), clean]);
     if (pop) {
       this.hud.append(pop);
       window.setTimeout(() => pop.remove(), 1900);

@@ -4,6 +4,7 @@ import type { scavengeFr } from './scavenge-fr';
 export const scavengeEn: typeof scavengeFr = {
   back: 'Leave it', cost: '{h} h per attempt · paid on your first move', loaded: 'Total',
   retry: 'Retry · {h} h', spent: 'Attempt lost · {h} h spent.', routeTest: 'Test the route', routeBroken: 'The line breaks before the exit.',
+  cleanJob: 'Clean job · the best of the lot',
   liftWarning: 'Fatal risk · A mistimed pull drops the car on you.',
   crossbow: {
     name: 'The Quiet Rider',

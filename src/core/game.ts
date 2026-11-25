@@ -17,6 +17,7 @@ import { acquaintance } from './encounters';
 import { createRng, type Rng } from './rng';
 import { spotRevealed } from './planque';
 import { FAILED_ATTEMPT_NOISE, makeNoise, searchesLostToNoise } from './street-noise';
+import { hasSlipped, lootFor, recordSlip, type Finish } from './finish';
 import { unloadMoped } from './epics';
 import type { Cost, DeviceInstance, GameState, Inventory, LocationId, LocationProgress, NeighborId, NightReport, OutingMark, ResourceId, Result } from './types';
 import { LOCATION_IDS, RESOURCE_IDS, err, ok } from './types';
@@ -339,7 +340,12 @@ export interface SearchAttempt {
   readonly paid: GameState;
   /** A miss is heard in the street (see core/street-noise.ts). */
   readonly failure: GameState;
+  /** The usual roll: what a headless caller, or a puzzle that cannot be done well or badly, gets. */
   readonly success: SearchOutcome;
+  /** An earlier attempt at this spot failed during the current visit (see core/finish.ts). */
+  readonly slipped: boolean;
+  /** The success as graded by the puzzle. Every finish leaves the same RNG state behind. */
+  readonly graded: (finish: Finish) => SearchOutcome;
 }
 
 export function prepareSearch(state: GameState, spotIndex: number): Result<SearchAttempt, DayError> {
@@ -366,13 +372,15 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
   const visitKey = visitKeyFor(state, location.id);
   const searchesThisVisit = state.flags[visitKey] ?? 0;
 
+  // Rolled once whatever the finish, so the campaign RNG advances the same way for all of them.
   const rng = createRng(state.rng);
-  const loot: Partial<Record<ResourceId, number>> = {};
+  const rolls: { id: ResourceId; range: readonly [number, number]; roll: number }[] = [];
   for (const id of RESOURCE_IDS) {
     if (opened && id === 'battery') continue;
     const range = spot.loot[id];
-    if (range) loot[id] = rng.int(range[0], range[1]);
+    if (range) rolls.push({ id, range, roll: rng.int(range[0], range[1]) });
   }
+  const rngAfter = rng.state();
   const paid: GameState = {
     ...state,
     hoursLeft: state.hoursLeft - searchHours,
@@ -382,15 +390,15 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
       ...(!opened && isGarageVice(location.id, spotIndex) ? { [VICE_ATTEMPT_DAY]: state.day } : {}),
     },
   };
-  const failed = makeNoise(paid, FAILED_ATTEMPT_NOISE);
-  return ok({
-    paid,
-    failure: spot.fatalMiss ? { ...failed, phase: 'lost', fate: spot.fatalMiss, outing: null, encounter: null } : failed,
-    success: {
+  const failed = recordSlip(makeNoise(paid, FAILED_ATTEMPT_NOISE), location.id, spotIndex);
+  const graded = (finish: Finish): SearchOutcome => {
+    const loot: Partial<Record<ResourceId, number>> = {};
+    for (const { id, range, roll } of rolls) loot[id] = lootFor(finish, range, roll);
+    return {
       loot,
       state: {
         ...paid,
-        rng: rng.state(),
+        rng: rngAfter,
         outing: { ...outing, trunk: gain(outing.trunk, loot) },
         locations: {
           ...state.locations,
@@ -398,7 +406,14 @@ export function prepareSearch(state: GameState, spotIndex: number): Result<Searc
         },
         totals: { ...state.totals, searches: state.totals.searches + 1 },
       },
-    },
+    };
+  };
+  return ok({
+    paid,
+    failure: spot.fatalMiss ? { ...failed, phase: 'lost', fate: spot.fatalMiss, outing: null, encounter: null } : failed,
+    success: graded('plain'),
+    slipped: hasSlipped(state, location.id, spotIndex),
+    graded,
   });
 }
 
