@@ -1067,6 +1067,10 @@ button:disabled {
 }
 
 /* The window onto the yard: an edge like the panels', and the dark of the desk creeping in at its rim. */
+#stage:has(.yard-frame) #game {
+  touch-action: none;
+}
+
 .yard-frame {
   position: absolute;
   border-radius: 8px;

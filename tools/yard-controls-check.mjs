@@ -1,6 +1,6 @@
 // Run against the Vite dev server: node tools/yard-controls-check.mjs [baseUrl]
 import assert from 'node:assert/strict';
-import { launch } from './browser.mjs';
+import { BROWSER, launch } from './browser.mjs';
 
 const browser = await launch();
 try {
@@ -26,9 +26,9 @@ try {
     const { project } = await import('/src/render/world.ts');
     return project(window.__app.scene.view, gx + 0.5, gy + 0.5);
   }, [x, y]);
-  const moveTo = async (x, y) => {
+  const moveTo = async (x, y, steps = 1) => {
     const p = await screen(x, y);
-    await page.mouse.move(p.x, p.y);
+    await page.mouse.move(p.x, p.y, { steps });
   };
   const built = () => page.evaluate(() => window.__app.state.yard.devices.map(d => [d.x, d.y, d.facing]));
   const mouseWorld = () => page.evaluate(async () => {
@@ -45,6 +45,33 @@ try {
   };
 
   for (const rot of [0, 1]) {
+    await day(rot, 7.5, 15.5);
+    await page.keyboard.press('Digit1');
+    await moveTo(5, 16);
+    await page.mouse.down();
+    await moveTo(7, 16, 12);
+    await moveTo(7, 14, 12);
+    await moveTo(9, 16, 12);
+    await page.mouse.up();
+    const bentFence = await built();
+
+    await day(rot, 7.5, 15.5, 1);
+    await stroke([7, 16], [7, 14]);
+    const singleFence = await built();
+
+    await day(rot, 7.5, 15.5);
+    await page.keyboard.press('Digit1');
+    await moveTo(5, 16);
+    await page.mouse.down();
+    await page.keyboard.press('Backspace');
+    await moveTo(7, 16);
+    await page.mouse.up();
+    const undone = await built();
+    assert.deepEqual({ bentFence, singleFence, undone }, {
+      bentFence: [[5, 16, 0], [6, 16, 0], [7, 16, 0], [7, 15, 1], [7, 14, 1], [8, 15, 3], [9, 16, 3]],
+      singleFence: [[7, 16, 0]], undone: [],
+    });
+
     await day(rot, 5.5, 2.5);
     await page.keyboard.press('Digit2');
     await moveTo(5, 2);
@@ -150,6 +177,70 @@ try {
     const moved = await mouseWorld();
     await page.mouse.up({ button: 'right' });
     assert.ok(Math.hypot(original.gx - moved.gx, original.gy - moved.gy) < 0.025, JSON.stringify({ rot, original, moved }));
+  }
+  if (BROWSER === 'chrome') {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+    const touch = (type, ...points) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: points });
+    for (const [rot, viewport] of [[0, { width: 960, height: 800 }], [1, { width: 1536, height: 720 }]]) {
+      await page.setViewportSize(viewport);
+      await day(rot, 7.5, 16.5);
+      const rect = await page.locator('#game').boundingBox();
+      const cell = async x => {
+        const p = await screen(x, 16);
+        return { x: rect.x + p.x * rect.width / 1280, y: rect.y + p.y * rect.height / 720 };
+      };
+      const first = await cell(5), last = await cell(9);
+      await page.keyboard.press('Digit1');
+      await touch('touchStart', first);
+      for (let x = 6; x <= 9; x++) await touch('touchMove', await cell(x));
+      await touch('touchEnd');
+      assert.deepEqual(await built(), [5, 6, 7, 8, 9].map(x => [x, 16, 0]));
+      assert.equal(await page.evaluate(() => window.__app.scene.hover), null);
+
+      // The screen receives the whole gesture after implicit capture, including the letterbox.
+      await day(rot, 7.5, 16.5);
+      await page.keyboard.press('Digit1');
+      await touch('touchStart', first);
+      await touch('touchMove', { x: 3, y: 3 });
+      assert.equal(await page.evaluate(() => window.__app.pointer.overCanvas), false);
+      await touch('touchMove', last);
+      await touch('touchEnd');
+      assert.deepEqual(await built(), [[5, 16, 0], [9, 16, 0]]);
+
+      await day(rot, 7.5, 16.5);
+      await page.keyboard.press('Digit1');
+      await touch('touchStart', { ...first, id: 1 });
+      await touch('touchStart', { ...first, id: 1 }, { ...last, id: 2 });
+      await touch('touchMove', { ...first, id: 1 }, { ...await cell(8), id: 2 });
+      await touch('touchCancel');
+      assert.deepEqual(await built(), [[5, 16, 0]]);
+      assert.equal(await page.evaluate(() => window.__app.pointer.down), false);
+      await touch('touchStart', last);
+      await touch('touchEnd');
+      assert.deepEqual(await built(), [[5, 16, 0], [9, 16, 0]]);
+
+      // Release just inside the opaque door panel, over an otherwise buildable cell.
+      await day(rot, 7.5, 16.5);
+      await page.keyboard.press('Digit2');
+      const edge = await page.evaluate(async () => {
+        const { unproject } = await import('/src/render/projection.ts');
+        const app = window.__app, scene = app.scene, canvas = app.canvas.getBoundingClientRect();
+        const panel = document.querySelector('.door-chips').getBoundingClientRect(), y = panel.top + 20;
+        const g = unproject(scene.view, (panel.left - canvas.left) * 1280 / canvas.width, (y - canvas.top) * 720 / canvas.height);
+        scene.cx += 8.5 - g.gx;
+        scene.cy += 8.5 - g.gy;
+        return { outside: { x: panel.left - 3, y }, inside: { x: panel.left + 3, y } };
+      });
+      await touch('touchStart', edge.outside);
+      await touch('touchMove', edge.inside);
+      await touch('touchEnd');
+      assert.deepEqual(await built(), []);
+    }
+    await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+    await cdp.detach();
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.waitForFunction(() => window.__app.scale === 1);
   }
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   for (const rot of [0, 1]) {

@@ -7,7 +7,7 @@ import { pinnedInvoice } from '../core/mechanic-invoice';
 import { whistleInGrass } from '../core/chief-whistle';
 import { prepareWhistlePaintings } from './chief-whistle';
 import { bossOfNight, startNextDay } from '../core/game';
-import { ENTRIES, sectorOf } from '../core/map';
+import { sectorOf } from '../core/map';
 import { silentTraps } from '../core/yard';
 import type { DefenseTake } from '../core/cassette';
 import type { GameState, NightHighlight } from '../core/types';
@@ -17,6 +17,7 @@ import { audio } from '../engine/audio';
 import { sprite } from '../engine/assets';
 import { el } from '../engine/dom';
 import { S, fmt, line } from '../engine/i18n';
+import { THRESHOLDS } from '../house-layout';
 import { calmMotion } from '../render/lighting';
 import { MorningGarden } from '../render/morning-garden';
 import { paintedPackTrail } from '../render/pack-tracks';
@@ -165,17 +166,17 @@ export class MorningScene implements Scene {
   private headline(highlight: NightHighlight | DefenseTake): HTMLElement | null {
     const s = S();
     const yard = this.state.yard;
-    const device = 'sector' in highlight ? null : yard.devices.find((d) => d.id === highlight.deviceId);
-    const cell = 'sector' in highlight ? ENTRIES[highlight.sector] : device;
-    if (!cell) return null;
-    const sector = 'sector' in highlight ? highlight.sector : sectorOf(cell.x, cell.y);
+    const device = 'deviceId' in highlight ? yard.devices.find(d => d.id === highlight.deviceId) : undefined;
+    const sector = 'sector' in highlight ? highlight.sector : device && sectorOf(device.x, device.y);
+    if (!sector) return null;
+    const spot = device ? { x: device.x + .5, y: device.y + .5 } : { x: THRESHOLDS[sector].gx, y: THRESHOLDS[sector].gy };
     const label = device ? `${s.sector[sector]} · ${s.device[device.type].name}` : s.sector[sector];
     const detail = highlight.kind === 'catch' ? fmt(s.morning.caught, { n: highlight.kills }) : s.morning[highlight.kind];
 
     // Keep the morning open while the player looks around, including on a chapter morning.
     const view = cameraView(sector, { x: 20, y: 28, w: 766, h: STAGE_H - 56 }, 1.2);
     this.inspection = {
-      view: { ...view, cx: cell.x + 0.5, cy: cell.y + 0.5 },
+      view: { ...view, cx: spot.x, cy: spot.y },
       overview: view,
       frame: {
         time: 0,
@@ -194,7 +195,7 @@ export class MorningScene implements Scene {
           ...d, state: d.broken ? 'broken' : 'idle', hpRatio: d.hp / DEVICES[d.type].maxHp, highlight: d.id === device?.id,
         })),
         doorHighlight: 'sector' in highlight ? sector : null,
-        hoverCell: cell,
+        inspectionSpot: spot,
       },
     };
 

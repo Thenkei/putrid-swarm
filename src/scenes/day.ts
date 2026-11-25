@@ -24,6 +24,7 @@ import { canPlanSiren, scheduleSiren, SIREN_COST, sirenForNight } from '../core/
 import { bossOfNight, clockLabel, startNight } from '../core/game';
 import { ENTRIES, GRID_H, GRID_W, MAILBOX, SPAWN_CELLS, idx, sectorOf } from '../core/map';
 import { computeField, traceRoute } from '../core/pathing';
+import { TH, TW } from '../render/projection';
 import type { Cell, Cost, DeviceInstance, DeviceTypeId, Facing, GameState, Result, SectorId } from '../core/types';
 import { DEVICE_TYPE_IDS, RESOURCE_IDS, SECTOR_IDS, ok } from '../core/types';
 import {
@@ -83,6 +84,13 @@ function* fenceStroke(from: Cell, to: Cell): Generator<Cell> {
   for (let i = 1; i <= count; i++) {
     yield { x: Math.round(from.x + dx * i / count), y: Math.round(from.y + dy * i / count) };
   }
+}
+
+/** Choose the closest of the four fence axes in grid space, independently of camera rotation. */
+function fenceFacing(dx: number, dy: number): Facing {
+  const ax = Math.abs(dx), ay = Math.abs(dy);
+  if (Math.min(ax, ay) > Math.max(ax, ay) * Math.tan(Math.PI / 8)) return dx * dy > 0 ? 3 : 2;
+  return ax > ay ? 0 : 1;
 }
 
 type Mode = { readonly kind: 'idle' } | { readonly kind: 'build'; readonly type: DeviceTypeId } | { readonly kind: 'repair' } | { readonly kind: 'dismantle' };
@@ -188,9 +196,9 @@ export class DayScene implements Scene {
     button: number;
     painted: boolean;
     stopped: boolean;
-    /** Last palisade laid by this stroke, to know which way the line runs. */
-    last: { x: number; y: number; id: number } | null;
-    aligned: boolean;
+    /** A lone post keeps its chosen facing until another post joins it. */
+    firstFence: number | null;
+    strokeCell: Cell | null;
   } | null = null;
 
   private root!: HTMLElement;
@@ -893,6 +901,7 @@ export class DayScene implements Scene {
 
   /** Takes back the last piece laid today, whole: materials and daylight. */
   private undo(): void {
+    this.drag = null;
     const result = undoLastBuild(this.state);
     if (!result.ok) {
       audio.play('deny');
@@ -960,9 +969,12 @@ export class DayScene implements Scene {
     return true;
   }
 
-  private placeDevice(type: DeviceTypeId, at: Cell): number | null {
+  private placeDevice(type: DeviceTypeId, at: Cell, facing = this.facing, alignFirst: number | null = null): number | null {
     const id = this.state.yard.nextDeviceId;
-    if (!this.apply(build(this.state, type, at.x, at.y, this.facing), '', null)) return null;
+    let result = build(this.state, type, at.x, at.y, facing);
+    if (result.ok && alignFirst !== null) result = turnDevice(result.value, alignFirst, facing);
+    if (result.ok) this.facing = facing;
+    if (!this.apply(result, '', null)) return null;
     this.dismantling = this.dismantling.filter(({ device }) => device.x !== at.x || device.y !== at.y);
     if (calmMotion()) audio.play('build');
     else this.construction.set(id, { at, age: 0 });
@@ -1262,7 +1274,7 @@ export class DayScene implements Scene {
       } else {
         const picked = pickDevice(view, visuals, pointer.x, pointer.y, false, health);
         this.hoverDevice = picked ? (this.state.yard.devices.find((d) => d.id === picked.id) ?? null) : null;
-        this.hoverDoor = this.hoverDevice ? null : pickDoor(view, pointer.x, pointer.y);
+        this.hoverDoor = this.hoverDevice ? null : pickDoor(view, pointer.x, pointer.y, health, this.time);
       }
     }
     let cursor = '';
@@ -1286,12 +1298,13 @@ export class DayScene implements Scene {
       button: event.button,
       painted: false,
       stopped: false,
-      last: null,
-      aligned: false,
+      firstFence: null,
+      strokeCell: null,
     };
     // Palisades are drawn, not clicked one by one: the first goes down at once, the rest follow the pointer.
     if (!this.drag.pan && this.paintsLine()) {
       this.updateHover(pointer);
+      this.drag.strokeCell = this.hover;
       if (this.hover) this.paint(this.hover, true);
     }
   }
@@ -1302,18 +1315,38 @@ export class DayScene implements Scene {
 
   private continueFenceStroke(pointer: Pointer): void {
     const drag = this.drag;
-    const before = this.hover;
     this.updateHover(pointer);
-    const target = this.hover;
-    if (!drag || drag.stopped || !target) return;
+    if (!drag || drag.stopped) return;
+    const before = drag.strokeCell;
+    const view = this.view;
+    const from = unproject(view, drag.x, drag.y);
+    const to = unproject(view, pointer.x, pointer.y);
+    drag.x = pointer.x;
+    drag.y = pointer.y;
+    let target = this.hover;
+    if (!target) {
+      drag.strokeCell = null;
+      drag.firstFence = null;
+      return;
+    }
     if (!before) {
-      drag.last = null;
-      drag.aligned = false;
+      drag.strokeCell = target;
       this.paint(target);
       return;
     }
+    const dx = to.gx - from.gx, dy = to.gy - from.gy;
+    if (dx === 0 && dy === 0) return;
+    const facing = fenceFacing(dx, dy);
+    // At a shared vertex, rounding a pointer coordinate can briefly enter a third tile.
+    // Finish the approach and wait for the pointer to cross before charging for another post.
+    const vertexX = Math.round(to.gx), vertexY = Math.round(to.gy);
+    const tolerance = (1 / TW + 1 / TH) / view.zoom;
+    if (facing >= 2 && Math.abs(to.gx - vertexX) <= tolerance && Math.abs(to.gy - vertexY) <= tolerance) {
+      target = { x: dx > 0 ? vertexX - 1 : vertexX, y: dy > 0 ? vertexY - 1 : vertexY };
+    }
+    drag.strokeCell = target;
     for (const cell of fenceStroke(before, target)) {
-      this.paint(cell, false, target);
+      this.paint(cell, false, facing);
       if (drag.stopped) break;
     }
   }
@@ -1324,7 +1357,7 @@ export class DayScene implements Scene {
    * daylight, or sealing a route, ends the line with the reason. The first cell is a plain click
    * and always answers.
    */
-  private paint(at: Cell, first = false, toward: Cell = at): void {
+  private paint(at: Cell, first = false, facing?: Facing): void {
     const drag = this.drag;
     if (!drag || drag.stopped || this.mode.kind !== 'build') return;
     drag.painted = true;
@@ -1332,33 +1365,10 @@ export class DayScene implements Scene {
     if (!first) {
       const problem = placementProblem(this.state.yard, this.mode.type, x, y);
       if (problem?.code === 'occupied' || problem?.code === 'not_buildable') return;
-      this.alignToStroke(toward.x, toward.y);
     }
-    const id = this.placeDevice(this.mode.type, at);
-    if (id !== null) drag.last = { x, y, id };
+    const id = this.placeDevice(this.mode.type, at, facing, drag.firstFence);
+    if (id !== null) drag.firstFence = facing === undefined ? id : null;
     else if (!first) drag.stopped = true;
-  }
-
-  /**
-   * A drawn line of palisades runs the way it is drawn: once the stroke has a direction, the piece
-   * in hand is turned to it, and so is the first palisade, which was laid before the direction was known.
-   */
-  private alignToStroke(x: number, y: number): void {
-    const drag = this.drag;
-    if (!drag?.last || drag.aligned) return;
-    const dx = x - drag.last.x;
-    const dy = y - drag.last.y;
-    if (dx === 0 && dy === 0) return;
-    drag.aligned = true;
-    // Corner to corner: x and y moving together run toward the viewer, against each other run level.
-    const along: Facing = Math.abs(dx) === Math.abs(dy) ? (dx * dy > 0 ? 3 : 2) : Math.abs(dx) > Math.abs(dy) ? 0 : 1;
-    if (along === this.facing) return;
-    this.facing = along;
-    const realigned = turnDevice(this.state, drag.last.id, along);
-    if (realigned.ok) {
-      this.app.state = realigned.value;
-      this.app.save();
-    }
   }
 
   onPointerMove(pointer: Pointer): void {

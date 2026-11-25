@@ -5,7 +5,7 @@ import { defensePaintMatrix, deviceArt } from '../src/render/defenses';
 import { hitsWhistle } from '../src/render/fallen-whistle';
 import { hitsInvoice, invoiceNail } from '../src/render/pinned-invoice';
 import { depthOf, project, type Rot, type View } from '../src/render/projection';
-import { pickDevice, yardItemVisible, type DeviceVisual } from '../src/render/world';
+import { pickDevice, pickDoor, yardItemVisible, type DeviceVisual } from '../src/render/world';
 import { SECTOR_IDS } from '../src/core/types';
 import { mopedPath } from '../src/core/epics';
 import { VISIBLE_DOORS } from '../src/house-layout';
@@ -15,12 +15,13 @@ const masks = new Map<HTMLImageElement, { width: number; height: number; data: U
 
 beforeAll(async () => {
   const devices = ['', 'back_'].flatMap(side => ['spikes_resting', 'spikes_armed', 'net_resting', 'barrier_armed'].map(pose => `dev_${side}${pose}`));
-  for (const key of [...devices, 'obj_car_front', 'obj_car_back', 'obj_house_front', 'obj_house_back', 'obj_trees_apple', 'yard_rear_apple']) {
+  for (const key of [...devices, 'obj_car_front', 'obj_car_back', 'obj_house_front', 'obj_house_back', 'obj_trees_apple', 'yard_rear_apple', 'yard_rear_oak']) {
     const file = sharp(`public/assets/sprites/${key}.webp`);
     const { width: w, height: h } = await file.metadata();
     if (!w || !h) throw new Error(`Missing dimensions for ${key}`);
     const img = {} as HTMLImageElement;
-    const { info, data } = await file.resize(64, Math.round(64 * h / w)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const width = key.startsWith('dev_') || key.startsWith('obj_house_') ? 64 : w;
+    const { info, data } = await file.resize(width, Math.round(width * h / w)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
     sprites.set(key, { img, w, h });
     masks.set(img, { width: info.width, height: info.height, data });
   }
@@ -39,6 +40,19 @@ afterAll(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 const yard = (rot: Rot, zoom: number): View => ({ rot, zoom, cx: 16.5, cy: 10.5, x: 0, y: 0, w: 640, h: 480 });
 
 describe('yard pointer targets', () => {
+  it('repairs exposed approaches while leaving the foreground wagon and trees selectable on their own', () => {
+    const yard = { x: 292, y: 56, w: 976, h: 652, cx: 11, cy: 11, zoom: 1.35 };
+    const front = { ...yard, rot: 0 as const }, rear = { ...yard, rot: 1 as const };
+    // At the barn, the visible roofline crosses the edge of the entry target.
+    expect(pickDoor(front, 874.5, 453.5, 1, 4)).toBeNull();
+    expect(pickDoor(front, 842.5, 415.5, 1, 4)).toBe('grange');
+    expect(pickDoor(front, 628.5, 393.5, 1, 4)).toBe('portail');
+    expect(pickDoor(rear, 890.5, 421.5, 1, 4)).toBeNull();
+    expect(pickDoor(rear, 704.5, 425.5, 1, 4)).toBeNull();
+    expect(pickDoor(rear, 858.5, 413.5, 1, 4)).toBe('verger');
+    expect(pickDoor(rear, 608.5, 399.5, 1, 4)).toBe('arriere');
+  });
+
   it('only inspects the whistle from the side where the house exposes it', () => {
     const at = { x: 11.54, y: 8.54 };
     for (const rot of [0, 1] as const) for (const zoom of [.62, 1.5]) {
