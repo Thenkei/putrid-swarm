@@ -188,6 +188,12 @@ export function planVisit(state: GameState, location: LocationDef): { searches: 
   return { searches: free + timed, hoursAfterReturn: Math.max(0, time - timed * SEARCH_HOURS) };
 }
 
+/**
+ * Lots the player can still cover on this visit. Covering is not a search: it is silent, it does not
+ * count against the Chief's allowance, and neither search stop (`searchStop`) closes it, so a visit
+ * that the street or the Chief has ended can still protect what it leaves behind. Only daylight, a
+ * dispute in progress and the one-cover-at-a-time rule limit it.
+ */
 export function concealableSpots(state: GameState): readonly number[] {
   const { where, outing, encounter } = state;
   if (state.phase !== 'day' || where === 'home' || where === 'road' || outing?.to !== where) return [];
@@ -195,8 +201,6 @@ export function concealableSpots(state: GameState): readonly number[] {
   if (state.hoursLeft + 1e-9 < CONCEAL_HOURS + location.travelHours) return [];
   if (encounter?.kind === 'dispute' && encounter.stage !== 'open' && encounter.stage !== 'refused') return [];
   const { covered, searched } = state.locations[where];
-  const visitKey = visitKeyFor(state, where);
-  if ((state.flags[visitKey] ?? 0) >= visitSearchLimit(location, state.day)) return [];
   if (covered.some((index) => !searched.includes(index))) return [];
   return location.spots.flatMap((spot, index) => {
     const claimed = encounter?.kind === 'dispute' && encounter.spot === index;
