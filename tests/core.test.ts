@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { COMBAT, DEVICES } from '../src/core/data/devices';
+import { BOSS } from '../src/core/data/enemies';
 import { CONCEAL_HOURS, LOCATIONS } from '../src/core/data/locations';
 import { GARAGE_WORKBENCH, hasViceLeftovers } from '../src/core/garage-vice';
 import { NIGHTS } from '../src/core/data/waves';
@@ -395,12 +396,15 @@ describe('night simulation', () => {
   // door, the first device and the biggest catch are the ones kept. `seen` is the order of events
   // that makes each night a test of that rule, so a rebalance that changes the night fails here by name.
   it.each([
-    { why: 'nothing was lost', night: 1, tier: 0, kind: 'catch', seen: ['catch'], never: ['door', 'device'] },
-    { why: 'a device was lost between two catches', night: 1, tier: 3, kind: 'broken', seen: ['catch', 'device', 'catch'], never: ['door'] },
-    { why: 'a device was lost, then a door', night: 2, tier: 2, kind: 'breach', seen: ['catch', 'device', 'door'], never: [] },
-    { why: 'two doors were lost, then a device', night: 2, tier: 0, kind: 'breach', seen: ['door', 'door', 'device'], never: [] },
-  ] as const)('remembers a night for its $kind when $why', ({ night, tier, kind, seen, never }) => {
-    const sim = new NightSim(night, layout(newGame(11), tier).yard, 11);
+    { why: 'nothing was lost', night: 1, tier: 0, seed: 11, kind: 'catch', seen: ['catch'], never: ['door', 'device'] },
+    { why: 'a device was lost between two catches', night: 1, tier: 3, seed: 11, kind: 'broken', seen: ['catch', 'device', 'catch'], never: ['door'] },
+    { why: 'a device was lost, then a door', night: 2, tier: 2, seed: 9, kind: 'breach', seen: ['catch', 'device', 'door'], never: [] },
+    { why: 'two doors were lost, then a device', night: 2, tier: 0, seed: 11, kind: 'breach', seen: ['door', 'door', 'device'], never: [] },
+  ] as const)('remembers a night for its $kind when $why', ({ night, tier, seed, kind, seen, never }) => {
+    let state = layout(newGame(seed), tier);
+    // The mower can flatten a palisade in one pass.
+    if (night === 2) state = unwrap(build(rich(state), 'fence', 10, 19));
+    const sim = new NightSim(night, state.yard, seed);
     run(sim, 900, operate);
     const events = sim.drainEvents();
     const order = events.flatMap((event) => (event.type === 'breach' ? ['door'] : event.type === 'device_broken' ? ['device'] : event.type === 'trigger' && event.kills > 0 ? ['catch'] : []));
@@ -625,11 +629,14 @@ describe('night simulation', () => {
     const log = state.yard.devices.find((d) => d.x === 10 && d.y === 18)!;
     const sim = new NightSim(2, state.yard, 1);
     let mown = false;
+    let firstPassHp: number | undefined;
     run(sim, 200, (s) => {
       mown ||= s.decals.some((d) => d.kind === 'mown' && d.x === 10 && d.y === 17);
+      if (mown && firstPassHp === undefined) firstPassHp = s.device(log.id)?.hp;
     });
     expect(mown).toBe(true);
     expect(sim.device(fence.id)?.state).toBe('broken');
+    expect(firstPassHp).toBeCloseTo(DEVICES.log.maxHp * (1 - BOSS.mower.laneDamage));
     const mauled = sim.device(log.id)!;
     expect(mauled.hp).toBeLessThan(DEVICES.log.maxHp);
   });
@@ -651,6 +658,33 @@ describe('night simulation', () => {
   });
 
   describe('trap effects', () => {
+    it.each(['shambler', 'deer'] as const)('keeps a raised barrier in the path of a horn-lured %s', type => {
+      const base = newGame(1);
+      let state = rich({ ...base, yard: { ...base.yard, devices: [] } });
+      state = unwrap(build(state, 'barrier', 17, 8));
+      state = unwrap(build(state, 'horn', 17, 6));
+      const sim = new NightSim(3, state.yard, 11);
+      while (!sim.enemies.some(e => e.type === type) && sim.outcome === 'ongoing') sim.step(1 / 60);
+      const enemy = sim.enemies.find(e => e.type === type)!;
+      const [barrier, horn] = sim.devices;
+      enemy.x = 17.5;
+      enemy.y = 9.55;
+      expect(sim.trigger(barrier!.id).ok).toBe(true);
+      expect(sim.trigger(horn!.id).ok).toBe(true);
+      run(sim, 3.5);
+      expect(enemy.lureDevice).toBe(horn!.id);
+      const jumped = sim.drainEvents().some(e => e.type === 'jump' && e.x === 17.5 && e.y === 8.5);
+      if (type === 'deer') {
+        expect(jumped).toBe(true);
+        expect(enemy.y).toBeLessThan(8);
+      } else {
+        expect(jumped).toBe(false);
+        expect(enemy.y).toBeGreaterThanOrEqual(9);
+        expect(enemy.gripTarget).toBe(barrier!.id);
+        expect(barrier!.hp).toBeLessThan(DEVICES.barrier.maxHp);
+      }
+    });
+
     /** A yard with one extra device, and the first villager of night 1 walked up to `reach` cells from it. */
     const scenario = (type: 'horn' | 'floodlight' | 'barrier' | 'log', x: number, y: number, reach: number) => {
       const state = unwrap(build(rich({ ...newGame(1), yard: { ...newGame(1).yard, devices: [] } }), type, x, y));

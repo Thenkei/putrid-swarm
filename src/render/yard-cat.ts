@@ -5,8 +5,9 @@ import { clamp01, smoothstep } from './noise';
 import { project, type Point, type View } from './projection';
 
 interface Perch extends Point { readonly lift: number }
-const rack = { x: PARKED_CAR.x + 1.44, y: PARKED_CAR.y + 1.30, lift: 76 };
-const bonnet = { x: PARKED_CAR.x + 1, y: PARKED_CAR.y + 2.55, lift: 39 };
+// The timber and bonnet surfaces were measured in both wagon paintings.
+const rack = { x: PARKED_CAR.x + 1.25, y: PARKED_CAR.y + 1.11, lift: 70 };
+const bonnet = { x: PARKED_CAR.x + .97, y: PARKED_CAR.y + 2.52, lift: 38 };
 const gravel = { x: PARKED_CAR.x + 1.26, y: PARKED_CAR.y + 3.86, lift: 0 };
 const verge = { x: PARKED_CAR.x + .72, y: PARKED_CAR.y + 4.75, lift: 0 };
 
@@ -83,6 +84,7 @@ export function drawYardCat(ctx: CanvasRenderingContext2D, view: View, cat: Yard
   const height = 32 * cat.stretch * z;
   ctx.save();
   ctx.translate(paw.x, paw.y - cat.lift * z - height * .28);
+  if (view.rot === 1) ctx.scale(-1, 1);
   ctx.rotate(cat.tilt);
   ctx.drawImage(art.img, cat.cel % 4 * w, Math.floor(cat.cel / 4) * h, w, h,
     -24 * z, -height * (.875 - .28), 48 * z, height);

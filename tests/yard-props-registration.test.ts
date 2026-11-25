@@ -1,8 +1,10 @@
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
+import { PARKED } from '../src/core/car-path';
 import { propMount } from '../src/render/registration';
-import { TH, TW, type Rot } from '../src/render/projection';
+import { TH, TW, world, type Rot } from '../src/render/projection';
 import { propSpriteKey } from '../src/render/world';
+import { CAT_BONNET_AT, sampleYardCat } from '../src/render/yard-cat';
 
 type Pixel = readonly [number, number];
 
@@ -52,5 +54,22 @@ describe('paired yard paintings', () => {
     }
     // Boarding uses the original front sheet, drawn 112px tall about its wheelbase.
     expect(propMount('car', 0, 112)).toEqual({ h: 112, foot: [.5, .76] });
+  });
+
+  it.each([
+    [0, [204, 29], [87, 138]],
+    [1, [116, 24], [233, 46]],
+  ] as const)('rests the cat on the painted roof timber and bonnet in view %s', async (rot, rack, bonnet) => {
+    const { data, info } = await sharp(`public/assets/sprites/${propSpriteKey('car', rot)}.webp`).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const mount = propMount('car', rot, 112), centre = world(rot, PARKED.x, PARKED.y);
+    for (const [time, [paintX, paintY]] of [[-1, rack], [CAT_BONNET_AT, bonnet]] as const) {
+      expect(data[(paintY * info.width + paintX) * 4 + 3]).toBeGreaterThan(240);
+      const cat = sampleYardCat(time), root = world(rot, cat.x, cat.y);
+      const dx = root.x - centre.x, dy = root.y - centre.y - cat.lift;
+      const scale = mount.h / info.height;
+      const x = mount.foot[0] * info.width + dx / scale;
+      const y = mount.foot[1] * info.height + (dy - dx * (mount.fit?.shearY ?? 0)) / scale;
+      expect(Math.hypot(x - paintX, y - paintY)).toBeLessThan(3);
+    }
   });
 });

@@ -2,6 +2,7 @@
 // One renderer serves the daytime yard and all four night cameras, so the views cannot disagree.
 
 import { BARRICADE, DEVICES } from '../core/data/devices';
+import { PARKED } from '../core/car-path';
 import { ENTRIES, GRID_H, GRID_W, HOUSE_CENTER, PROPS, propAt, sectorOf, type PropKind } from '../core/map';
 import type { DeviceRuntimeState, Enemy, LogTarget, NightSim } from '../core/night';
 import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, SectorId } from '../core/types';
@@ -40,7 +41,7 @@ import type { NightOwl } from '../scenes/night-wildlife';
 import { owlDrawable } from './night-owl';
 import { drawYardCat, type YardCatPose } from './yard-cat';
 import { drawGlowworms, drawPropLife, drawSquirrelCache, groundLifeDrawable, MAILBOX_PERCH, WELL_WATER, type HomesteadLife } from './homestead-life';
-import { dawnCel, firstSwallows, flowerPose, gateHare, sunlight } from './sunrise';
+import { dawnCel, firstSwallows, flowerPose, gateHare, projectSwallow, sunlight } from './sunrise';
 import { drawRattle, rattlePoint, type RattleVisual } from './rattle';
 
 export { TH, TW, cameraView, inView, project, unproject, type Rot, type View } from './projection';
@@ -715,7 +716,9 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
 
   if (frame.yardCat) {
     const cat = frame.yardCat;
-    drawables.push({ depth: depthOf(view.rot, cat.x, cat.y) + .42, draw: () => drawYardCat(ctx, view, cat) });
+    const depth = depthOf(view.rot, cat.x, cat.y);
+    const surfaceDepth = cat.shadow.lift > 0 ? Math.max(depth, depthOf(view.rot, PARKED.x, PARKED.y)) : depth;
+    drawables.push({ depth: surfaceDepth + .42, draw: () => drawYardCat(ctx, view, cat) });
   }
   // The same daisies stand at the mailbox through the night, the inspection and the playable day.
   for (const [gx, gy, width] of [[12.85, 19.78, 27], [12.62, 19.94, 20]] as const) {
@@ -739,13 +742,14 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       }
     }
     for (const bird of firstSwallows(frame.sunriseAge, calmMotion())) {
-      const p = project(view, bird.x, bird.y);
-      const up = { x: p.x, y: p.y - bird.height * z };
-      if (!onScreen(up, 32)) continue;
-      contacts.push({ gx: bird.x - .35, gy: bird.y + .35, rx: .24, ry: .10, alpha: .20 * bird.alpha });
+      const { breast, shadow } = projectSwallow(view, bird);
+      if (onScreen(shadow, 12)) {
+        casts.push(() => contactShadow(ctx, shadow.x, shadow.y, 9 * z, 3.5 * z, .20 * bird.alpha * shade));
+      }
+      if (!onScreen(breast, 32)) continue;
       drawables.push({ depth: depthOf(view.rot, bird.x, bird.y), draw: () => {
         ctx.save(); ctx.globalAlpha *= bird.alpha;
-        dawnCel(ctx, 'swallow', bird.pose, up.x, up.y, 42 * z, view.rot === 1);
+        dawnCel(ctx, 'swallow', bird.pose, breast.x, breast.y, 42 * z, view.rot === 1);
         ctx.restore();
       } });
     }

@@ -8,7 +8,7 @@ export const packPhase = (time: number): number => time % PACK_CYCLE;
 
 /** A gap cannot be carried into the next cycle. Both instants belong to this opening. */
 export function gatePassage(openedAt: number, now: number): 'impact' | 'crossing' | 'through' {
-  const opened = packPhase(openedAt);
-  if (opened < PACK_GAP || opened + now - openedAt >= PACK_RETURN) return 'impact';
-  return now - openedAt >= CUB_CROSSING ? 'through' : 'crossing';
+  const returnsAt = Math.floor(openedAt / PACK_CYCLE) * PACK_CYCLE + PACK_RETURN;
+  if (packPhase(openedAt) < PACK_GAP || now >= returnsAt) return 'impact';
+  return now >= openedAt + CUB_CROSSING ? 'through' : 'crossing';
 }

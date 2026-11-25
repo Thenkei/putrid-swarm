@@ -1034,23 +1034,6 @@ export class NightSim {
       return;
     }
 
-    const stepIndex = idx(step.x, step.y);
-    const obstacle = this.obstacleAt(stepIndex);
-    if (obstacle) {
-      if (e.def.jumps) {
-        if (!e.trampled.has(-obstacle.id)) {
-          e.trampled.add(-obstacle.id);
-          const approach = Math.hypot(step.x + 0.5 - e.x, step.y + 0.5 - e.y);
-          e.vault = { start: e.travel, length: approach + 0.52 };
-          this.events.push({ type: 'jump', x: step.x + 0.5, y: step.y + 0.5 });
-        }
-      } else {
-        this.attackDevice(e, obstacle, dt);
-        return;
-      }
-    }
-
-    e.windup = 0;
     this.followStep(e, step, dt);
   }
 
@@ -1081,6 +1064,21 @@ export class NightSim {
   }
 
   private followStep(e: Enemy, step: Cell, dt: number): void {
+    // Doors and horns both lead through the same yard. A raised barrier intercepts either route.
+    const obstacle = this.obstacleAt(idx(step.x, step.y));
+    if (obstacle) {
+      if (!e.def.jumps) {
+        this.attackDevice(e, obstacle, dt);
+        return;
+      }
+      if (!e.trampled.has(-obstacle.id)) {
+        e.trampled.add(-obstacle.id);
+        const approach = Math.hypot(step.x + 0.5 - e.x, step.y + 0.5 - e.y);
+        e.vault = { start: e.travel, length: approach + 0.52 };
+        this.events.push({ type: 'jump', x: step.x + 0.5, y: step.y + 0.5 });
+      }
+    }
+    e.windup = 0;
     const cx = Math.floor(e.x);
     const cy = Math.floor(e.y);
     // Duck through intact rigs even while the winch hoists the load. A rig in
@@ -1276,7 +1274,7 @@ export class NightSim {
   }
 
   private trample(e: Enemy): void {
-    if (!e.def.tramples) return;
+    if (!e.def.tramples || (e.type === 'mower' && e.boss?.phase === 'charge')) return;
     const cx = Math.floor(e.x);
     const cy = Math.floor(e.y);
     for (const device of this.devices) {
@@ -1355,6 +1353,7 @@ export class NightSim {
           const raisedBarrier = device.type === 'barrier' && device.state === 'active';
           // Palisades and raised barriers are mown flat; a trap lying in the lane is mauled, not erased.
           const flattened = raisedBarrier || DEVICES[device.type].blocks;
+          e.trampled.add(device.id);
           this.damageDevice(device, flattened ? Infinity : DEVICES[device.type].maxHp * BOSS.mower.laneDamage);
           if (raisedBarrier) {
             // Blades meet a striped wall: the wall loses, but so does the momentum.

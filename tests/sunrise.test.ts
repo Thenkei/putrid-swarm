@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { firstSwallows, flowerPose, gateHare, sunlight, SUNRISE_SECONDS } from '../src/render/sunrise';
+import { firstSwallows, flowerPose, gateHare, projectSwallow, sunlight, SUNRISE_SECONDS } from '../src/render/sunrise';
+import { project } from '../src/render/projection';
+import { SHADOW_REACH } from '../src/render/shadows';
 
 describe('the return of daylight', () => {
   it('reaches full light before the handoff, including a night cleared ahead of the clock', () => {
@@ -18,6 +20,18 @@ describe('the return of daylight', () => {
     expect(new Set(Array.from({ length: 80 }, (_, i) => flight(i / 20)[0]?.pose).filter(p => p !== undefined)).size).toBe(4);
     expect(flight(SUNRISE_SECONDS)).toHaveLength(0);
     expect([...firstSwallows(2, true)]).toHaveLength(0);
+  });
+
+  it.each([0, 1] as const)('casts the swooping birds along the painted light in view %s', rot => {
+    for (const zoom of [.75, 1.5]) {
+      const view = { rot, zoom, cx: 10, cy: 15, x: 40, y: 80, w: 400, h: 300 };
+      for (const t of [.7, 1.6, 2.4, 3.1]) for (const bird of firstSwallows(t, false)) {
+        const floor = project(view, bird.x, bird.y), { breast, shadow } = projectSwallow(view, bird);
+        expect(floor.y - breast.y).toBeCloseTo(bird.height * zoom);
+        expect(shadow.x - floor.x).toBeCloseTo(SHADOW_REACH.x * bird.height * zoom);
+        expect(shadow.y - floor.y).toBeCloseTo(SHADOW_REACH.y * bird.height * zoom);
+      }
+    }
   });
 
   it('gives the hare a pause on both feet before it bounds into cover', () => {
