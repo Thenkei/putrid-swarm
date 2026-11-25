@@ -2,12 +2,15 @@ import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import manifest from '../public/assets/manifest.json';
 import { ENEMIES } from '../src/core/data/enemies';
-import { HIT_REACTION_SECONDS, type Enemy } from '../src/core/night';
-import type { EnemyTypeId } from '../src/core/types';
+import { newGame } from '../src/core/game';
+import { ENTRIES } from '../src/core/map';
+import { HIT_REACTION_SECONDS, NightSim, type Enemy } from '../src/core/night';
+import { SECTOR_IDS, type EnemyTypeId } from '../src/core/types';
+import { DOOR_OUTWARD, doorStance } from '../src/house-layout';
 import { drawEnemy, drawFallen, shoulderAt } from '../src/render/infected';
 import { mobCycle, mobGaitSheets } from '../src/render/mob-cycles';
 import mowerGait from '../src/render/mower-gait.json';
-import { unproject, type Rot, type View } from '../src/render/projection';
+import { project, unproject, type Rot, type View } from '../src/render/projection';
 
 const assets = vi.hoisted(() => new Map<string, { w: number; h: number; img: { key: string; naturalWidth: number; naturalHeight: number } }>());
 const shadow = vi.hoisted(() => vi.fn<(ctx: unknown, x: number, y: number) => void>());
@@ -63,6 +66,48 @@ function capture() {
 }
 
 describe('infected registration on the yard', () => {
+  it.each(SECTOR_IDS)('knocks toward the painted %s door and walks away from its sill', sector => {
+    const sim = new NightSim(5, newGame(421).yard, 421);
+    const e = actor('mail'), entry = ENTRIES[sector], [nx, ny] = DOOR_OUTWARD[sector];
+    e.x = entry.x + .5 + .8 * nx;
+    e.y = entry.y + .5 + .8 * ny;
+    e.target = sector;
+    e.boss = { phase: 'advance', timer: 0, sector, knocks: 0, ability: 0, laneIndex: 0, waypoints: [], speechTarget: null };
+    sim.barricades[sector].hp = 100;
+    sim.enemies.push(e);
+    let previous = doorStance(e), knocks = 0, gripping = false, departing = false;
+    for (let tick = 0; tick < 480; tick++) {
+      sim.step(1 / 60);
+      const posed = doorStance(e), grip = e.gripTarget === sector;
+      if (grip) {
+        expect(posed.fx).toBeCloseTo(-nx, 8);
+        expect(posed.fy).toBeCloseTo(-ny, 8);
+      }
+      if (!gripping && grip) {
+        knocks++;
+        for (const rot of views) {
+          const view = camera(rot), actual = capture(), inward = capture();
+          drawEnemy(actual.ctx, view, frame, posed);
+          drawEnemy(inward.ctx, view, frame, { ...posed, fx: -nx, fy: -ny, gripTarget: null });
+          const cel = actual.blits[0]!, reference = inward.blits[0]!;
+          expect(cel.key).toBe(reference.key);
+          expect(cel.pixel(cel.left, cel.top)).toEqual(reference.pixel(reference.left, reference.top));
+        }
+      }
+      gripping = grip;
+      if (e.target !== sector) {
+        departing = true;
+        const view = camera(0), p = project(view, posed.x, posed.y), last = project(view, previous.x, previous.y);
+        expect(Math.hypot(p.x - last.x, p.y - last.y) / view.zoom).toBeLessThan(6);
+        if (!posed.threshold) break;
+      }
+      previous = posed;
+    }
+    expect(knocks).toBe(2);
+    expect(departing).toBe(true);
+    expect(doorStance(e).threshold).toBeUndefined();
+  });
+
   it.each(['stride', 'vault'] as const)('keeps the deer facing along its path through every %s pose', async action => {
     const e = actor('deer'), stride = mobCycle('deer')!.stride;
     const keys = action === 'stride' ? ['mob_gait_deer'] :

@@ -24,7 +24,7 @@ import { canPlanSiren, scheduleSiren, SIREN_COST, sirenForNight } from '../core/
 import { bossOfNight, clockLabel, startNight } from '../core/game';
 import { ENTRIES, GRID_H, GRID_W, MAILBOX, SPAWN_CELLS, idx, sectorOf } from '../core/map';
 import { computeField, traceRoute } from '../core/pathing';
-import { TH, TW } from '../render/projection';
+import { TH, TW, type Point } from '../render/projection';
 import type { Cell, Cost, DeviceInstance, DeviceTypeId, Facing, GameState, Result, SectorId } from '../core/types';
 import { DEVICE_TYPE_IDS, RESOURCE_IDS, SECTOR_IDS, ok } from '../core/types';
 import {
@@ -77,13 +77,26 @@ interface Construction {
   age: number;
 }
 
-/** Cells between two pointer samples. Each step advances one tile on the longer grid axis. */
-function* fenceStroke(from: Cell, to: Cell): Generator<Cell> {
+/** Sample the path before building refreshes the HUD. A covered sample breaks the line. */
+function fenceStroke(from: Cell, to: Cell, start: Point, end: Point, canvas: HTMLCanvasElement): (Cell | null)[] {
   const dx = to.x - from.x, dy = to.y - from.y;
   const count = Math.max(Math.abs(dx), Math.abs(dy));
+  const rect = count > 1 ? canvas.getBoundingClientRect() : null;
+  const cells: (Cell | null)[] = [];
   for (let i = 1; i <= count; i++) {
-    yield { x: Math.round(from.x + dx * i / count), y: Math.round(from.y + dy * i / count) };
+    const t = i / count;
+    // The endpoint already passed the pointer hit test. A fast swipe may skip a panel in between.
+    if (rect && i < count) {
+      const x = rect.left + (start.x + (end.x - start.x) * t) * rect.width / STAGE_W;
+      const y = rect.top + (start.y + (end.y - start.y) * t) * rect.height / STAGE_H;
+      if (document.elementFromPoint(x, y) !== canvas) {
+        cells.push(null);
+        continue;
+      }
+    }
+    cells.push({ x: Math.round(from.x + dx * t), y: Math.round(from.y + dy * t) });
   }
+  return cells;
 }
 
 /** Choose the closest of the four fence axes in grid space, independently of camera rotation. */
@@ -209,6 +222,7 @@ export class DayScene implements Scene {
   private bakerVisit: ReturnType<typeof bakerMorning> | null = null;
   private invoice: ReturnType<typeof invoiceDetail> | null = null;
   private whistle: WhistleDawn | null = null;
+  private cancelNight: (() => void) | null = null;
   private refundTag!: HTMLElement;
   private readonly buildIcons = new Map<DeviceTypeId, HTMLImageElement>();
   private routeCache: { key: string; forecast: Forecast } | null = null;
@@ -471,7 +485,7 @@ export class DayScene implements Scene {
     const outOfTime = state.hoursLeft < 0.25;
     const actions = el('div', { class: 'day-actions' }, [
       el('button', { class: `btn ${outOfTime ? '' : 'btn-primary'}`, disabled: state.hoursLeft < 0.5, onClick: () => goMap(this.app) }, [s.day.takeCar]),
-      el('button', { class: `btn ${outOfTime ? 'btn-primary' : ''}`, onClick: () => this.askNight() }, [s.day.waitNight]),
+      el('button', { class: `btn ${outOfTime ? 'btn-primary' : ''}`, onClick: event => this.askNight(event.currentTarget as HTMLElement) }, [s.day.waitNight]),
     ]);
 
     this.info = el('div', { class: 'panel info-card' });
@@ -930,7 +944,8 @@ export class DayScene implements Scene {
     this.apply(ok(result.value.state), left > 0 ? fmt(s.day.repairedSome, { n: repaired, left }) : fmt(s.day.repairedAll, { n: repaired }), 'build');
   }
 
-  private askNight(): void {
+  private askNight(opener: HTMLElement): void {
+    if (this.cancelNight) return;
     const s = S();
     const proceed = (): void => {
       const result = startNight(this.state);
@@ -943,16 +958,36 @@ export class DayScene implements Scene {
       proceed();
       return;
     }
+    const stay = el('button', { class: 'btn', text: s.day.waitNo, onClick: () => this.cancelNight?.() });
+    const leave = el('button', { class: 'btn btn-primary', text: s.day.waitYes, onClick: proceed });
+    const prompt = el('p', { text: fmt(s.day.waitNightConfirm, { h: hours(this.state.hoursLeft) }) });
+    prompt.id = 'wait-night-question';
     const modal = el('div', { class: 'modal' }, [
       el('div', { class: 'card', style: { width: '520px', padding: '20px 24px' } }, [
-        el('p', { text: fmt(s.day.waitNightConfirm, { h: hours(this.state.hoursLeft) }) }),
-        el('div', { class: 'actions' }, [
-          el('button', { class: 'btn', text: s.day.waitNo, onClick: () => modal.remove() }),
-          el('button', { class: 'btn btn-primary', text: s.day.waitYes, onClick: proceed }),
-        ]),
+        prompt, el('div', { class: 'actions' }, [stay, leave]),
       ]),
     ]);
-    this.root.append(modal);
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', prompt.id);
+    modal.addEventListener('keydown', event => {
+      if (event.code !== 'Tab') return;
+      event.preventDefault();
+      (document.activeElement === stay ? leave : stay).focus();
+    });
+    const overlay = el('div', {}, [modal]);
+    this.cancelNight = () => {
+      overlay.remove();
+      this.cancelNight = null;
+      this.root.inert = false;
+      opener.focus({ preventScroll: true });
+      this.app.refreshPointer();
+    };
+    this.drag = null;
+    this.root.inert = true;
+    this.app.ui.append(overlay);
+    this.app.refreshPointer();
+    stay.focus();
   }
 
   /** Commits a state transition or explains why it was refused. */
@@ -1281,7 +1316,7 @@ export class DayScene implements Scene {
         this.hoverDevice = null;
         this.hoverDoor = null;
       } else {
-        const picked = pickDevice(view, visuals, pointer.x, pointer.y, false, health);
+        const picked = pickDevice(view, visuals, pointer.x, pointer.y, false, health, { time: this.time });
         this.hoverDevice = picked ? (this.state.yard.devices.find((d) => d.id === picked.id) ?? null) : null;
         this.hoverDoor = this.hoverDevice ? null : pickDoor(view, pointer.x, pointer.y, health, this.time);
       }
@@ -1329,7 +1364,8 @@ export class DayScene implements Scene {
     if (!drag || drag.stopped) return;
     const before = drag.strokeCell;
     const view = this.view;
-    const from = unproject(view, drag.x, drag.y);
+    const start = { x: drag.x, y: drag.y };
+    const from = unproject(view, start.x, start.y);
     const to = unproject(view, pointer.x, pointer.y);
     drag.x = pointer.x;
     drag.y = pointer.y;
@@ -1355,8 +1391,15 @@ export class DayScene implements Scene {
       target = { x: dx > 0 ? vertexX - 1 : vertexX, y: dy > 0 ? vertexY - 1 : vertexY };
     }
     drag.strokeCell = target;
-    for (const cell of fenceStroke(before, target)) {
-      this.paint(cell, false, facing);
+    let startsLine = false;
+    for (const cell of fenceStroke(before, target, start, pointer, this.app.canvas)) {
+      if (!cell) {
+        drag.firstFence = null;
+        startsLine = true;
+        continue;
+      }
+      this.paint(cell, false, startsLine ? undefined : facing);
+      startsLine = false;
       if (drag.stopped) break;
     }
   }
@@ -1502,6 +1545,10 @@ export class DayScene implements Scene {
   }
 
   onKeyDown(code: string): void {
+    if (this.cancelNight) {
+      if (code === 'Escape') this.cancelNight();
+      return;
+    }
     if (this.whistle) return;
     if (code === 'KeyR') this.flip();
     else if (code === 'KeyF') this.turn();

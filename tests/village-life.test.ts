@@ -3,10 +3,11 @@ import { audio } from '../src/engine/audio';
 import { drawAnimal } from '../src/render/life-art';
 import { wagonLeaves } from '../src/render/car-departure';
 import { drawClockPigeons } from '../src/render/clock-pigeons';
+import { defenseTapeView } from '../src/render/cassette';
 import { drawGlowworms, drawPropLife, drawSquirrelCache, FROG_SPLASH_AT, FROG_RETURNS_AT, groundLifeDrawable } from '../src/render/homestead-life';
 import { ShopLife } from '../src/scenes/shop-life';
 import type { Enemy } from '../src/core/night';
-import { depthOf, unproject, type View } from '../src/render/projection';
+import { cameraView, depthOf, unproject, type View } from '../src/render/projection';
 
 vi.mock('../src/engine/audio', () => ({ audio: { play: vi.fn() } }));
 vi.mock('../src/render/life-art', () => ({ drawAnimal: vi.fn(), drawSmallProp: vi.fn() }));
@@ -114,6 +115,22 @@ describe('life in the homestead and shops', () => {
     expect(near.length).toBeGreaterThan(0);
     expect(draw([{ ...visitor, x: 16 }])).toEqual(orchard);
     expect(draw([{ ...visitor, alive: false }])).toEqual(orchard);
+  });
+
+  it('keeps the visible part of the orchard glow at the edges of the CCTV and defense replay', () => {
+    const halos = (v: View) => {
+      const ctx = canvas();
+      drawGlowworms(ctx, v, [], 3.4, false);
+      return vi.mocked(ctx.fillRect).mock.calls;
+    };
+    for (const v of [cameraView('portail', { x: 12, y: 54, w: 884, h: 497 }, 1.22),
+      defenseTapeView('verger', .35, 1.22 * 320 / 884, false)]) {
+      const wide = { ...v, x: v.x - 40, y: v.y - 40, w: v.w + 80, h: v.h + 80 };
+      const clipped = halos(wide).filter(([x, y, w, h]) => x < v.x + v.w && x + w > v.x && y < v.y + v.h && y + h > v.y);
+      expect(clipped.some(([x, y, w, h]) => x + w / 2 < v.x || x + w / 2 >= v.x + v.w ||
+        y + h / 2 < v.y || y + h / 2 >= v.y + v.h)).toBe(true);
+      expect(halos(v)).toEqual(clipped);
+    }
   });
 
   it('jingles the hardware keys once per swing, including when the player closes a search', () => {

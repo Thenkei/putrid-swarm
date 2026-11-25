@@ -16,7 +16,7 @@ import { sirenForNight } from '../core/siren';
 import { detectContact, hasDetector, SCAN_RANGE, SCAN_SECONDS } from '../core/dead-channel';
 import { concludeNight } from '../core/game';
 import { MOPED_BLAST_RADIUS, wreckSector } from '../core/epics';
-import { HOUSE, sectorOf } from '../core/map';
+import { HOUSE, sectorOf, type Prop } from '../core/map';
 import { HOUSE_RETURN_SECONDS, NightSim, hoistAge, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
 import { deskFor, outageFor } from '../core/orchard';
 import { allyFor } from '../core/radio';
@@ -42,7 +42,7 @@ import { calmMotion, drawRetune, floodlightOutput } from '../render/lighting';
 import { smoothstep } from '../render/noise';
 import { SUNRISE_SECONDS, SWALLOW_CALL_AT, sunlight } from '../render/sunrise';
 import { LogReactions } from '../render/log-sweep';
-import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, indoorShotLights, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
+import { applyCctv, applyNight, cameraView, drawWorld, FALL_SECONDS, houseLights, indoorShotLights, inView, pickDevice, prepareWorld, type DeviceVisual, type Fallen, type Light, type Particle, type Rot, type View, type WorldFrame } from '../render/world';
 import { DIGIT_CODES, NUMPAD_CODES, TRAP_KEY_CODES, trapKeyLabels } from '../engine/keys';
 import { drawPlate, oneArmed } from './common';
 import { goFinale, goMorning, goNight, goTitle } from './flow';
@@ -51,6 +51,8 @@ import { PauseMenu } from './pause';
 
 const MAIN = { x: 12, y: 54, w: 884, h: 497 } as const;
 const MINI = { x: 906, w: 362, h: 159, ys: [54, 223, 392] } as const;
+// Keep the full VHS frame behind each thumbnail. The desk shows a shallower centre crop.
+const MINI_FEED_H = MINI.w * TAPE.height / TAPE.width;
 const MAIN_ZOOM = 1.22;
 const STEP = 1 / 60;
 const MAX_STEPS_PER_FRAME = 5;
@@ -126,6 +128,7 @@ export class NightScene implements Scene {
   private readonly siren: SirenSector | null;
   private readonly brushPassage = new BrushPassage();
   private readonly defenseMotion = new DefenseMotion();
+  private readonly revealedProps = new Set<Prop>();
   private camperDoor: CamperDoorFeed | null = null;
   private camperTurnedAt = Infinity;
   private rearEntryAt = -Infinity;
@@ -144,7 +147,6 @@ export class NightScene implements Scene {
   private readonly logReactions = new LogReactions();
   private readonly impactFeedback: SimEvent[] = [];
   private readonly houseBreaks: HouseBreak[] = [];
-  private hoverFeedDevice: number | null = null;
   private hoverDevice: number | null = null;
   private focusedBarrier: DeviceRuntime | null = null;
 
@@ -319,7 +321,7 @@ export class NightScene implements Scene {
       minis.push(root);
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(MINI.w * miniPixelRatio);
-      canvas.height = Math.round(MINI.h * miniPixelRatio);
+      canvas.height = Math.ceil(MINI_FEED_H * canvas.width / MINI.w);
       this.minis.set(sector, canvas);
     }
 
@@ -524,10 +526,9 @@ export class NightScene implements Scene {
     // Its thumbnail was off screen while the main monitor followed this sector.
     this.renderMini(this.cam);
     this.cam = sector;
-    this.hoverFeedDevice = null;
+    this.revealedProps.clear();
     this.retuneAt = this.time;
     this.layoutMinis();
-    this.onPointerMove(this.app.pointer);
     this.syncHud(true);
   }
 
@@ -750,7 +751,8 @@ export class NightScene implements Scene {
       this.buildTrapBar();
     }
     const canAim = !away && !this.ending;
-    this.hoverDevice = canAim ? this.hoverFeedDevice : null;
+    // A moving mechanism can enter or leave a stationary pointer between two frames.
+    this.hoverDevice = canAim ? this.manualDeviceAt(this.app.pointer)?.id ?? null : null;
     for (const [id, button] of this.trapButtons) {
       if (canAim && button.root.matches(':hover')) {
         this.hoverDevice = id;
@@ -939,7 +941,7 @@ export class NightScene implements Scene {
     if (trapIndex >= 0) this.press({ kind: 'key', slot: trapIndex });
   }
 
-  private deviceVisuals(sector: SectorId | null): DeviceVisual[] {
+  private deviceVisuals(sector: SectorId | null, showCues = true): DeviceVisual[] {
     const labels = trapKeyLabels();
     const keyed = sector && !this.sim.awayFromDesk && !this.ending ? this.sim.manualDevicesIn(sector).slice(0, TRAP_KEY_CODES.length) : [];
     return this.sim.devices.map((d) => {
@@ -958,7 +960,7 @@ export class NightScene implements Scene {
         hpRatio: Math.max(0, d.hp / def.maxHp),
         rearm: d.state === 'rearming' ? 1 - d.timer / def.rearmSeconds : 0,
         highlight: sector !== null && d.id === this.hoverDevice,
-        cue: slot >= 0 && sector !== null && !this.isDark(sector) && this.sim.opportunity(d.id).now,
+        cue: showCues && slot >= 0 && sector !== null && !this.isDark(sector) && this.sim.opportunity(d.id).now,
         ...(label ? { label } : {}),
       };
     });
@@ -967,14 +969,10 @@ export class NightScene implements Scene {
   private manualDeviceAt(pointer: Pointer): DeviceVisual | null {
     if (!pointer.overCanvas || this.sim.awayFromDesk || this.isDark(this.cam)) return null;
     const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
-    const picked = pickDevice(view, this.deviceVisuals(this.cam), pointer.x, pointer.y, true, this.sim.houseHp / HOUSE_MAX_HP,
-      { time: this.sim.time, defenseMotion: this.defenseMotion });
+    if (!inView(view, pointer.x, pointer.y)) return null;
+    const picked = pickDevice(view, this.deviceVisuals(this.cam, false), pointer.x, pointer.y, true, this.sim.houseHp / HOUSE_MAX_HP,
+      { time: this.sim.time, defenseMotion: this.defenseMotion, revealedProps: this.revealedProps });
     return picked && isManual(picked.type) ? picked : null;
-  }
-
-  onPointerMove(pointer: Pointer): void {
-    if (this.paused || this.ending) return;
-    this.hoverFeedDevice = this.manualDeviceAt(pointer)?.id ?? null;
   }
 
   onPointerDown(pointer: Pointer, event: PointerEvent): void {
@@ -1113,7 +1111,6 @@ export class NightScene implements Scene {
           this.flash = 0.5;
           break;
         case 'house_defense':
-          this.hoverFeedDevice = null;
           this.houseEffortPending = true;
           this.coachNoteUntil = 0;
           this.coachEl.className = 'coach';
@@ -1172,8 +1169,7 @@ export class NightScene implements Scene {
           audio.play('signal_lost');
           this.remark('vo_cam_lost', 60, true);
           this.banner(fmt(s.night.cameraLost, { i: String(SECTOR_IDS.indexOf(event.sector) + 1).padStart(2, '0'), name: s.sector[event.sector] }), 'bad');
-          if (event.sector === this.cam) this.hoverFeedDevice = null;
-          else this.renderMini(event.sector);
+          if (event.sector !== this.cam) this.renderMini(event.sector);
           this.lostAt = this.time;
           this.lastSignalClock = this.cameraTimestamp(this.deskClock());
           this.syncHud(true);
@@ -1186,7 +1182,7 @@ export class NightScene implements Scene {
         case 'outcome':
           this.ending = { survived: event.survived, t: 0 };
           this.root.inert = true;
-          this.hoverFeedDevice = null;
+          this.hoverDevice = null;
           this.coach = null;
           this.coachEl.className = 'coach';
           audio.setMusic('none');
@@ -1456,7 +1452,7 @@ export class NightScene implements Scene {
     if (!mctx) return;
     const ratio = canvas.width / MINI.w;
     mctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    const rect = { x: 0, y: 0, w: MINI.w, h: MINI.h };
+    const rect = { x: 0, y: 0, w: MINI.w, h: MINI_FEED_H };
     this.drawCameraFeed(mctx, sector, this.viewFor(sector, rect, (MAIN_ZOOM * MINI.w) / MAIN.w));
   }
 
@@ -1480,11 +1476,12 @@ export class NightScene implements Scene {
 
     // Main feed.
     if (this.isDark(this.cam)) {
+      this.revealedProps.clear();
       drawNoSignal(ctx, MAIN, this.time, S().night.noSignal, 34, Math.max(0, 1 - (this.time - this.lostAt) / 0.9));
     } else {
       const view = this.viewFor(this.cam, MAIN, MAIN_ZOOM);
       const frame = this.frame(this.cam, true);
-      drawWorld(ctx, view, frame);
+      drawWorld(ctx, view, frame, this.revealedProps);
       applyNight(ctx, view, this.lights(view.rot), frame.time, sunlight(frame.sunriseAge));
       applyCctv(ctx, view, frame.time, 0.85);
       if (this.epic.mopedSector === this.cam) drawMopedTarget(ctx, view, this.cam, this.epic.mopedGroup);
@@ -1517,7 +1514,10 @@ export class NightScene implements Scene {
     }
     others.forEach((sector, slot) => {
       const canvas = this.minis.get(sector);
-      if (canvas) ctx.drawImage(canvas, MINI.x, MINI.ys[slot] as number, MINI.w, MINI.h);
+      if (!canvas) return;
+      const ratio = canvas.width / MINI.w;
+      ctx.drawImage(canvas, 0, (MINI_FEED_H - MINI.h) * ratio / 2, canvas.width, MINI.h * ratio,
+        MINI.x, MINI.ys[slot] as number, MINI.w, MINI.h);
     });
 
     if (!this.paused && this.sim.night < LAST_NIGHT) {
@@ -1541,7 +1541,8 @@ export class NightScene implements Scene {
             x, y, TAPE.width, TAPE.height);
         } else {
           const feed = this.minis.get(id);
-          if (feed) into.drawImage(feed, x, y, TAPE.width, TAPE.height);
+          if (feed) into.drawImage(feed, 0, 0, feed.width, MINI_FEED_H * feed.width / MINI.w,
+            x, y, TAPE.width, TAPE.height);
         }
       });
     }

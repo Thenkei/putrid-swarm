@@ -335,6 +335,17 @@ export interface Drawable {
   draw(): void;
 }
 
+/** The planted legs of an intact log straddle the crossing during placement, use and removal. */
+function queueDeviceLayers(drawables: Drawable[], view: View, device: DeviceVisual, draw: (layer?: LogLayer) => void, inFront = false): void {
+  const centre = depthOf(view.rot, device.x + .5, device.y + .5);
+  if (device.type === 'log' && device.state !== 'broken') {
+    const art = deviceArt(device.type, device.facing, devicePose(device), view.rot);
+    for (const layer of ['far', 'near'] as const) {
+      drawables.push({ depth: inFront ? Infinity : logLayerDepth(centre, art, layer), draw: () => draw(layer) });
+    }
+  } else drawables.push({ depth: inFront ? Infinity : centre + .3, draw });
+}
+
 /** Anything `drawImage` takes, with the size it is meant to be read at. */
 interface Picture {
   readonly img: CanvasImageSource;
@@ -520,7 +531,8 @@ function prepareRearPaintings(health: number): void {
 }
 
 /** Return the positioned actors so the porch view can target the frame it just painted. */
-export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame): readonly Enemy[] {
+export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: WorldFrame, revealedProps?: Set<Prop>): readonly Enemy[] {
+  revealedProps?.clear();
   prepareRearPaintings(frame.houseHpRatio);
   const z = view.zoom;
   ctx.save();
@@ -687,6 +699,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       const height = art.h * z;
       const canopyY = p.y + height * (0.38 - foot[1]);
       opacity = canopyOpacity(p.x, canopyY, height * 0.53, height * 0.45, centreDepth);
+      // A fighting figure can reveal a device through this canopy on the live camera.
+      if (opacity < .75) revealedProps?.add(prop);
     }
     drawables.push({
       depth: centreDepth,
@@ -787,17 +801,15 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   for (const device of frame.devices) {
     const p = project(view, device.x + 0.5, device.y + 0.5);
     if (!onScreen(p, 125)) continue;
-    const depth = depthOf(view.rot, device.x + 0.5, device.y + 0.5);
     const broken = device.state === 'broken';
-    if (device.type === 'log' && !broken) {
-      // The outer planted feet span the crossing. An actor keeps its own ground
-      // depth as it passes the far frame, the suspended timber, then the near legs.
-      const art = deviceArt('log', device.facing, 'armed', view.rot);
-      drawables.push(
-        { depth: logLayerDepth(depth, art, 'far'), draw: () => drawDevice(ctx, view, frame, device, p, 'far') },
-        { depth: logLayerDepth(depth, art, 'near'), draw: () => drawDevice(ctx, view, frame, device, p, 'near') },
-      );
-    } else drawables.push({ depth: depth + 0.3, draw: () => drawDevice(ctx, view, frame, device, p) });
+    // The morning close-up keeps the recorded camera angle, even behind the farmhouse.
+    const cutaway = !!frame.inspectionSpot && !!device.highlight && !yardItemVisible(view, p.x, p.y,
+      depthOf(view.rot, device.x + .5, device.y + .5) + .3, frame.houseHpRatio, frame.time, frame.devices.filter(other => other.id !== device.id));
+    queueDeviceLayers(drawables, view, device, layer => {
+      if (cutaway) { ctx.save(); ctx.globalAlpha *= .8; }
+      drawDevice(ctx, view, frame, device, p, layer);
+      if (cutaway) ctx.restore();
+    }, cutaway);
     contacts.push({ gx: device.x + 0.5, gy: device.y + 0.5, rx: 0.56, ry: 0.56, alpha: device.type === 'fence' ? 0.3 : broken ? 0.3 : 0.42 });
     const wear = broken ? frame.defenseMotion?.at(device.id) : undefined;
     const remaining = wear && !calmMotion() ? Math.max(0, 1 - (frame.time - wear.brokeAt) / 0.52) : 0;
@@ -816,15 +828,13 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   for (const { device, progress } of frame.dismantling ?? []) {
     const foot = project(view, device.x + 0.5, device.y + 0.5);
     if (!onScreen(foot, 125)) continue;
-    drawables.push({
-      depth: depthOf(view.rot, device.x + 0.5, device.y + 0.5) + 0.3,
-      draw: () => {
-        ctx.save();
-        ctx.globalAlpha *= 1 - smoothstep(0.16, 1, progress);
-        const lift = 22 * (1 - (1 - progress) ** 2) * z;
-        drawDevice(ctx, view, frame, device, { x: foot.x, y: foot.y - lift });
-        ctx.restore();
-      },
+    const lift = 22 * (1 - (1 - progress) ** 2) * z;
+    const raised = { x: foot.x, y: foot.y - lift };
+    queueDeviceLayers(drawables, view, device, layer => {
+      ctx.save();
+      ctx.globalAlpha *= 1 - smoothstep(0.16, 1, progress);
+      drawDevice(ctx, view, frame, device, raised, layer);
+      ctx.restore();
     });
   }
 
@@ -835,21 +845,18 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const p = project(view, ghost.x + 0.5, ghost.y + 0.5);
     const depth = depthOf(view.rot, ghost.x + 0.5, ghost.y + 0.5) + 0.31;
     coveredPlacement = !!frame.showBuildable && !yardItemVisible(view, p.x, p.y, depth, frame.houseHpRatio, frame.time, frame.devices);
-    drawables.push({
-      depth: coveredPlacement ? Infinity : depth,
-      draw: () => {
-        ctx.save();
-        if (coveredPlacement) {
-          ctx.setLineDash([4 * z, 3 * z]);
-          drawBuildTile(ctx, view, ghost, ghost);
-          ctx.setLineDash([]);
-          ctx.globalAlpha *= 0.7;
-        }
-        ctx.globalAlpha *= ghost.ok ? 0.75 : 0.4;
-        drawDevice(ctx, view, frame, { ...ghost, id: -1, state: 'idle', hpRatio: 1 }, p);
-        ctx.restore();
-      },
-    });
+    const device: DeviceVisual = { ...ghost, id: -1, state: 'idle', hpRatio: 1 };
+    queueDeviceLayers(drawables, view, device, layer => {
+      ctx.save();
+      if (coveredPlacement && layer !== 'near') {
+        ctx.setLineDash([4 * z, 3 * z]);
+        drawBuildTile(ctx, view, ghost, ghost);
+        ctx.setLineDash([]);
+      }
+      ctx.globalAlpha *= (ghost.ok ? 0.75 : 0.4) * (coveredPlacement ? 0.7 : 1);
+      drawDevice(ctx, view, frame, device, p, layer);
+      ctx.restore();
+    }, coveredPlacement);
   }
 
   const rattle = frame.rattle;
@@ -1312,7 +1319,7 @@ function deviceBounds(art: DefenseArt) {
   return { top: f + Math.min(0, 200 * b), bottom: f + Math.max(0, 200 * b) + 200 * d };
 }
 
-type DeviceFrame = Pick<WorldFrame, 'time' | 'defenseMotion'>;
+type DeviceFrame = Pick<WorldFrame, 'time' | 'defenseMotion'> & { readonly revealedProps?: ReadonlySet<Prop> };
 
 function drawDevicePose(ctx: CanvasRenderingContext2D, x: number, y: number, view: View, p: { x: number; y: number },
   frame: DeviceFrame, device: DeviceVisual, art: DefenseArt, logLayer?: LogLayer): boolean {
@@ -1681,10 +1688,11 @@ function frontDevicePaint(view: View, devices: readonly DeviceVisual[], sx: numb
 export function pickDevice(view: View, devices: readonly DeviceVisual[], sx: number, sy: number, nightControls = false, houseHpRatio = 1, frame?: DeviceFrame): DeviceVisual | null {
   if (!inView(view, sx, sy)) return null;
   const front = frontDevicePaint(view, devices, sx, sy, nightControls, frame);
-  if (front && !behindScenery(view, sx, sy, front.depth, houseHpRatio)) return front.device;
+  const time = frame?.time ?? 0;
+  if (front && !behindScenery(view, sx, sy, front.depth, houseHpRatio, time, frame?.revealedProps)) return front.device;
   const g = unproject(view, sx, sy);
   const tile = devices.find(d => d.x === Math.floor(g.gx) && d.y === Math.floor(g.gy));
-  if (!tile || behindScenery(view, sx, sy, depthOf(view.rot, g.gx, g.gy), houseHpRatio)) return null;
+  if (!tile || behindScenery(view, sx, sy, depthOf(view.rot, g.gx, g.gy), houseHpRatio, time, frame?.revealedProps)) return null;
   return tile;
 }
 
@@ -1702,7 +1710,7 @@ function propPaintedAt(view: View, prop: Prop, sx: number, sy: number, lean = 0)
 }
 
 /** Solid scenery covers devices behind it. Swaying canopies fade to reveal yard targets. */
-function behindScenery(view: View, sx: number, sy: number, depth: number, houseHpRatio: number, daylightTime?: number): boolean {
+function behindScenery(view: View, sx: number, sy: number, depth: number, houseHpRatio: number, daylightTime?: number, revealedProps?: ReadonlySet<Prop>): boolean {
   if (depth < houseDepth(view.rot)) {
     const key = HOUSE_ART[view.rot].key;
     const art = sprite(key);
@@ -1716,6 +1724,7 @@ function behindScenery(view: View, sx: number, sy: number, depth: number, houseH
     }
   }
   return PROPS.some(prop => (daylightTime !== undefined || !SWAYS.has(prop.kind))
+    && !revealedProps?.has(prop)
     && depth < propDepth(view.rot, prop.x + prop.w / 2, prop.y + prop.h / 2)
     && propPaintedAt(view, prop, sx, sy, daylightTime === undefined ? 0 : propLean(prop, daylightTime, view.rot)));
 }

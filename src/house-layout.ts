@@ -36,9 +36,21 @@ export const DOOR_REACH = 1.3;
  * to the painted boards, leaving pathfinding, collision and trap targeting in simulation space. */
 export function doorStance<T extends EnemyImpact & { boss?: { sector: SectorId } | null }>(e: T): T & { threshold?: SectorId } {
   const mower = e.type === 'mower', sector = mower && e.boss ? e.boss.sector : e.target;
+  const foot = approachDoor(e, sector, mower ? 0.12 : DOOR_REACH);
+  const exit = e.mailExit;
+  if (!exit || e.travel === undefined) return foot;
+  const weight = 1 - smoothstep(0, 1.37, e.travel - exit.atTravel);
+  if (weight <= 0) return foot;
+  const knocking = e.gripTarget === exit.sector;
+  const [nx, ny] = DOOR_OUTWARD[exit.sector];
+  return { ...foot, x: foot.x + exit.dx * weight, y: foot.y + exit.dy * weight,
+    fx: knocking ? -nx : foot.fx, fy: knocking ? -ny : foot.fy, threshold: foot.threshold ?? exit.sector };
+}
+
+function approachDoor<T extends EnemyImpact>(e: T, sector: SectorId, contactDistance: number): T & { threshold?: SectorId } {
   const entry = ENTRIES[sector];
   const distance = Math.hypot(e.x - entry.x - 0.5, e.y - entry.y - 0.5);
-  const contactDistance = mower ? 0.12 : DOOR_REACH, approach = 0.92;
+  const approach = 0.92;
   if (distance >= contactDistance + approach || e.lureDevice !== null || e.crawlDepth > 0 ||
     (distance > contactDistance && e.action !== 'walk' && e.action !== 'charge')) return e;
   const door = THRESHOLDS[sector], [nx, ny] = DOOR_OUTWARD[sector];

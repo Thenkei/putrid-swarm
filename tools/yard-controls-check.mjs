@@ -196,6 +196,51 @@ try {
     const switchedView = await built();
     assert.deepEqual({ middleClick, switchedTool, switchedView }, { middleClick: [], switchedTool: [], switchedView: [] });
 
+    // Chrome reports the first button's release as a pointermove while another one is held.
+    for (const tool of ['Digit1', 'Digit2']) {
+      await day(rot, 7.5, 16.5);
+      await page.keyboard.press(tool);
+      await moveTo(5, 16);
+      await page.mouse.down();
+      await page.mouse.down({ button: 'right' });
+      await page.mouse.up();
+      assert.deepEqual(await built(), [[5, 16, 0]]);
+      await moveTo(9, 16);
+      await page.mouse.up({ button: 'right' });
+      assert.deepEqual(await built(), [[5, 16, 0]]);
+    }
+    await moveTo(5, 16);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.down();
+    await page.mouse.up({ button: 'right' });
+    assert.equal(await page.evaluate(() => window.__app.scene.facing), 1);
+    await moveTo(9, 16);
+    await page.mouse.up();
+    assert.deepEqual(await built(), [[5, 16, 0]]);
+
+    const waitButton = page.locator('.day-actions button').last();
+    const nightPrompt = page.getByRole('dialog');
+    await waitButton.click();
+    assert.equal(await nightPrompt.locator('button').first().evaluate(el => el === document.activeElement), true);
+    for (const key of ['r', 'f', 't', 'Digit1', 'Backspace']) await page.keyboard.press(key);
+    assert.equal(await page.evaluate(() => window.__app.scene.rot), rot);
+    assert.deepEqual(await built(), [[5, 16, 0]]);
+    const next = await screen(9, 16);
+    await page.mouse.click(next.x, next.y);
+    assert.deepEqual(await built(), [[5, 16, 0]], 'The backdrop shields the yard');
+    await page.keyboard.press('Escape');
+    assert.equal(await nightPrompt.count(), 0);
+    assert.equal(await waitButton.evaluate(el => el === document.activeElement), true);
+    assert.deepEqual(await page.evaluate(() => window.__app.scene.hover), { x: 9, y: 16 });
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Tab');
+    assert.equal(await nightPrompt.locator('button').last().evaluate(el => el === document.activeElement), true);
+    await page.keyboard.press('Shift+Tab');
+    await page.keyboard.press('Enter');
+    assert.equal(await nightPrompt.count(), 0);
+    await page.keyboard.press('Backspace');
+    assert.deepEqual(await built(), []);
+
     await day(rot, 11, 11);
     const centre = await screen(11, 11);
     await page.mouse.move(centre.x, centre.y);
@@ -251,6 +296,18 @@ try {
       await touch('touchEnd');
       assert.deepEqual(await built(), [[5, 16, 0], [9, 16, 0]]);
 
+      // A hardware keyboard can switch the view or palette with one finger still down.
+      for (const key of ['r', 'Digit2']) {
+        await day(rot, 7.5, 16.5);
+        await page.keyboard.press('Digit1');
+        await touch('touchStart', first);
+        await page.keyboard.press(key);
+        await touch('touchMove', last);
+        await touch('touchEnd');
+        assert.deepEqual(await built(), [[5, 16, 0]]);
+        assert.equal(await page.evaluate(() => window.__app.pointer.down), false);
+      }
+
       // Release just inside the opaque door panel, over an otherwise buildable cell.
       await day(rot, 7.5, 16.5);
       await page.keyboard.press('Digit2');
@@ -267,6 +324,30 @@ try {
       await touch('touchMove', edge.inside);
       await touch('touchEnd');
       assert.deepEqual(await built(), []);
+
+      // The same track skirts the upper left corner of the door panel, then crosses behind it.
+      for (const steps of [1, 40]) {
+        await day(rot, 7.5, 16.5);
+        await page.keyboard.press('Digit1');
+        const [start, end] = await page.evaluate(async () => {
+          const { unproject } = await import('/src/render/projection.ts');
+          const app = window.__app, scene = app.scene, canvas = app.canvas.getBoundingClientRect();
+          const panel = document.querySelector('.door-chips').getBoundingClientRect(), scale = canvas.width / 1280;
+          const a = { x: panel.left - 75 * scale, y: panel.top + 101 * scale };
+          const b = { x: panel.left + 140 * scale, y: panel.top - 6 * scale };
+          const g = unproject(scene.view, ((a.x + b.x) / 2 - canvas.left) / scale, ((a.y + b.y) / 2 - canvas.top) / scale);
+          scene.cx += 7.5 - g.gx;
+          scene.cy += 16.5 - g.gy;
+          return [a, b];
+        });
+        await touch('touchStart', start);
+        for (let i = 1; i <= steps; i++) {
+          await touch('touchMove', { x: start.x + (end.x - start.x) * i / steps, y: start.y + (end.y - start.y) * i / steps });
+        }
+        await touch('touchEnd');
+        const rows = rot === 0 ? [19, 18, 17, 13] : [13, 14, 15, 19];
+        assert.deepEqual(await built(), rows.map(y => [7, y, 1]), `Fence swipe with ${steps} samples in view ${rot}`);
+      }
     }
     await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false });
     await cdp.detach();
@@ -334,9 +415,16 @@ try {
       const scene = strike(1, .13);
       const former = rot ? point(440.5, 251.5) : point(400.5, 232.5);
       const wreck = rot ? point(421.5, 271.5) : point(380.5, 279.5);
-      return [fired, scene.manualDeviceAt(former)?.id, scene.manualDeviceAt(wreck)?.id ?? null];
+      Object.assign(app.pointer, former);
+      scene.syncHud();
+      const held = scene.hoverDevice;
+      const beforeWreck = scene.manualDeviceAt(wreck)?.id ?? null;
+      scene.sim.time += 1;
+      scene.defenseMotion.update(scene.sim);
+      scene.syncHud();
+      return [fired, held, beforeWreck, scene.hoverDevice];
     }, rot);
-    assert.deepEqual(damage, ['active', 71, null], 'The feed picks the recoiling head and follows the fracture into the wreck');
+    assert.deepEqual(damage, ['active', 71, null, null], 'A stationary pointer follows the lamp through recoil and into the wreck');
   }
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
@@ -392,13 +480,13 @@ try {
     await page.mouse.move(point.x, point.y);
     await page.keyboard.press(`Digit${index + 1}`);
     await page.waitForFunction(expected => window.__app.scene.cam === expected, sector);
-    assert.equal(await page.evaluate(() => window.__app.scene.hoverFeedDevice), id);
+    assert.equal(await page.evaluate(() => window.__app.scene.hoverDevice), id);
     // An opaque slat on the adjacent fence covers the barrier from either side.
     const slat = { x: point.x + (index < 2 ? 18 : 28), y: point.y - (index < 2 ? 4 : 5) };
     await page.keyboard.press('p');
     await page.mouse.move(slat.x, slat.y);
     await page.keyboard.press('p');
-    assert.equal(await page.evaluate(() => window.__app.scene.hoverFeedDevice), null);
+    assert.equal(await page.evaluate(() => window.__app.scene.hoverDevice), null);
     await page.mouse.click(slat.x, slat.y);
     for (const button of ['middle', 'right']) await page.mouse.click(point.x, point.y, { button });
     const trapState = () => page.evaluate(id => window.__app.scene.sim.device(id).state, id);
@@ -410,7 +498,7 @@ try {
         sim.outage = { sector: 'portail', wave: 1, delay: 0 };
         sim.outageAt = sim.time;
         scene.update(.08);
-        return [sim.cameraLost, scene.hoverFeedDevice, before !== mini.toDataURL()];
+        return [sim.cameraLost, scene.hoverDevice, before !== mini.toDataURL()];
       });
       assert.deepEqual(hoverAfterOutage, ['portail', id, true]);
     }
@@ -459,6 +547,43 @@ try {
   }, gate.id);
   await page.mouse.up();
   assert.deepEqual(pinned, ['grange', true, 'active', 'armed'], 'A queued click retains the original camera and trap while held');
+  const timberLayers = await page.evaluate(async () => {
+    const { drawWorld } = await import('/src/render/world.ts');
+    const { newGame } = await import('/src/core/game.ts');
+    const canvas = document.createElement('canvas');
+    canvas.width = 360; canvas.height = 270;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const frame = { time: 4, night: false, carPresent: true, houseHpRatio: 1, barricades: newGame(3).yard.barricades,
+      enemies: [], particles: [], decals: [], devices: [], showBuildable: true };
+    const counts = [];
+    for (const [rot, x, y] of [[0, 17, 13], [1, 13, 8]]) for (const zoom of [.62, 1.5]) {
+      const view = { rot, zoom, cx: x + .5, cy: y + .5, x: 0, y: 0, w: 360, h: 270 };
+      const log = { id: 43, type: 'log', x, y, facing: 0, hpRatio: 1, state: 'idle' };
+      const sample = additions => {
+        drawWorld(ctx, view, { ...frame, ...additions });
+        // The gallows above the ground diamond, beside the wagon or the rear farmhouse.
+        return ctx.getImageData(90, 0, 180, Math.floor(135 - 20 * zoom)).data;
+      };
+      const empty = sample({}), built = sample({ devices: [log] });
+      for (const other of [sample({ dismantling: [{ device: log, progress: 0 }] }),
+        ...[true, false].map(ok => sample({ hoverCell: { x, y }, ghost: { ...log, ok } }))]) {
+        let exposed = 0, covered = 0;
+        for (let i = 0; i < empty.length; i += 4) {
+          const delta = bytes => Math.max(...[0, 1, 2].map(k => Math.abs(bytes[i + k] - empty[i + k])));
+          if (delta(other) > 18) {
+            if (delta(built) === 0) covered++;
+            else exposed++;
+          }
+        }
+        counts.push([exposed, covered]);
+      }
+    }
+    return counts;
+  });
+  for (const [exposed, covered] of timberLayers) {
+    assert.ok(exposed > 3, 'The exposed part of the log frame stays visible');
+    assert.equal(covered, 0, 'A construction or removal preview cannot paint over the scenery covering the installed frame');
+  }
   const timberHits = await page.evaluate(async () => {
     const { pickDevice, cameraView, project } = await import('/src/render/world.ts');
     const hits = [];
@@ -493,6 +618,38 @@ try {
     });
   });
   assert.deepEqual(porchTargets, [0, 0, 0, 0], 'Porch targeting follows the figure standing at each painted sill');
+  const throughLeaves = await page.evaluate(async () => {
+    const { NightScene } = await import('/src/scenes/night.ts');
+    const { newGame, startNight } = await import('/src/core/game.ts');
+    const { build } = await import('/src/core/yard.ts');
+    const app = window.__app, game = newGame(11);
+    const rich = { ...game, yard: { ...game.yard, devices: [] },
+      inventory: Object.fromEntries(Object.keys(game.inventory).map(k => [k, 16])) };
+    const placed = build(rich, 'horn', 5, 9, 0).value;
+    app.state = startNight(placed).value;
+    app.swap(new NightScene(app));
+    const scene = app.scene, horn = scene.sim.devices[0];
+    scene.switchCam('verger');
+    Object.assign(app.pointer, { x: 388.5, y: 293.5, down: false, overCanvas: true });
+    const hovered = () => {
+      scene.render(app.canvas.getContext('2d'));
+      scene.syncHud();
+      return scene.hoverDevice === horn.id;
+    };
+    const opaque = hovered();
+    scene.onPointerDown(app.pointer, { button: 0 });
+    const first = horn.state;
+    const enemy = scene.sim.spawn('shambler', 'verger', false);
+    Object.assign(enemy, { x: 5.5, y: 9.5 });
+    const faded = hovered();
+    scene.switchCam('portail');
+    scene.switchCam('verger');
+    const returned = hovered();
+    scene.onPointerDown(app.pointer, { button: 0 });
+    return [opaque, first, faded, returned, horn.state];
+  });
+  assert.deepEqual(throughLeaves, [false, 'armed', true, true, 'active'],
+    'The orchard horn follows the visible canopy when a figure arrives and when the camera returns');
   assert.deepEqual(errors, []);
   console.log('Yard controls passed in both yard views and all four CCTV feeds.');
 } finally {

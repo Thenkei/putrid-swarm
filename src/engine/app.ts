@@ -57,7 +57,7 @@ export class App {
   private fade = 0;
   private fadeTarget = 0;
   private pendingScene: (() => Scene) | null = null;
-  private canvasPointer: number | null = null;
+  private canvasPointer: { id: number; button: number; buttons: number } | null = null;
   private clientPointer: { x: number; y: number } | null = null;
 
   constructor() {
@@ -87,19 +87,11 @@ export class App {
       if (this.pendingScene || !event.isPrimary || this.canvasPointer !== null) return;
       audio.unlock();
       toStage(event);
-      this.canvasPointer = event.pointerId;
+      this.canvasPointer = { id: event.pointerId, button: event.button, buttons: event.buttons };
       this.pointer.down = true;
       this.scene?.onPointerDown?.(this.pointer, event);
     });
-    window.addEventListener('pointermove', (event) => {
-      if (!event.isPrimary || (this.canvasPointer !== null && this.canvasPointer !== event.pointerId)) return;
-      // A mouse can be released outside this window and return without a pointerup.
-      if (this.canvasPointer !== null && event.buttons === 0) this.cancelPointer();
-      toStage(event);
-      if (!this.pendingScene) this.scene?.onPointerMove?.(this.pointer);
-    });
-    window.addEventListener('pointerup', (event) => {
-      if (event.pointerId !== this.canvasPointer) return;
+    const finishPointer = (event: PointerEvent) => {
       toStage(event);
       this.canvasPointer = null;
       this.pointer.down = false;
@@ -108,9 +100,29 @@ export class App {
         this.pointer.overCanvas = false;
         if (!this.pendingScene) this.scene?.onPointerMove?.(this.pointer);
       }
+    };
+    window.addEventListener('pointermove', (event) => {
+      const held = this.canvasPointer;
+      if (!event.isPrimary || (held && held.id !== event.pointerId)) return;
+      if (held && !(event.buttons & held.buttons)) {
+        // Releasing the initiating button while another is down generates pointermove.
+        if (event.button === held.button && event.buttons !== 0) {
+          finishPointer(event);
+          return;
+        }
+        // A mouse can be released outside this window and return without a pointerup.
+        this.cancelPointer();
+      }
+      toStage(event);
+      if (!this.pendingScene) this.scene?.onPointerMove?.(this.pointer);
+    });
+    window.addEventListener('pointerup', (event) => {
+      if (event.pointerId !== this.canvasPointer?.id) return;
+      if (event.button === this.canvasPointer.button) finishPointer(event);
+      else this.cancelPointer();
     });
     const cancel = (event: PointerEvent) => {
-      if (event.pointerId === this.canvasPointer) this.cancelPointer();
+      if (event.pointerId === this.canvasPointer?.id) this.cancelPointer();
     };
     window.addEventListener('pointercancel', cancel);
     this.canvas.addEventListener('lostpointercapture', cancel);

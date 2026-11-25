@@ -1,7 +1,7 @@
 // The morning after: what the night cost, told by the yard itself.
 
 import { epicFlag, markEpic, packTrail, wreckSector, type PackTrail } from '../core/epics';
-import { BARRICADE, DEVICES, HOUSE_MAX_HP } from '../core/data/devices';
+import { BARRICADE, HOUSE_MAX_HP } from '../core/data/devices';
 import { chapterWaiting } from '../core/chapters';
 import { pinnedInvoice } from '../core/mechanic-invoice';
 import { whistleInGrass } from '../core/chief-whistle';
@@ -22,7 +22,7 @@ import { calmMotion } from '../render/lighting';
 import { MorningGarden } from '../render/morning-garden';
 import { paintedPackTrail } from '../render/pack-tracks';
 import { smoothstep } from '../render/noise';
-import { cameraView, drawWorld, type View, type WorldFrame } from '../render/world';
+import { cameraView, dayDeviceVisual, drawWorld, type View, type WorldFrame } from '../render/world';
 import { drawPlate, heroArt, oneArmed } from './common';
 import { CassettePlayer } from './cassette';
 import { invoiceDetail } from './mechanic-invoice';
@@ -191,9 +191,7 @@ export class MorningScene implements Scene {
         decals: yard.decals,
         enemies: [],
         particles: [],
-        devices: yard.devices.map((d) => ({
-          ...d, state: d.broken ? 'broken' : 'idle', hpRatio: d.hp / DEVICES[d.type].maxHp, highlight: d.id === device?.id,
-        })),
+        devices: yard.devices.map(d => dayDeviceVisual(d, d.id === device?.id)),
         doorHighlight: 'sector' in highlight ? sector : null,
         inspectionSpot: spot,
       },
