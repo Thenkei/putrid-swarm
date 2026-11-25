@@ -34,7 +34,7 @@ import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours } from '../engine/i18n';
+import { S, fmt, durationLabel } from '../engine/i18n';
 import { endingsTally, rememberEnding as remember } from '../engine/progress';
 import { hush, say, type VoiceId } from '../engine/voice';
 import { Atmosphere, drawArm } from './atmosphere';
@@ -454,7 +454,7 @@ export class OrchardScene implements Scene {
     const s = S();
     const text = s.orchard.ending[ending];
     const seen = endingsTally('orchard');
-    const cost = ending === 'maimed' ? fmt(text.cost, { faint: hours(ORCHARD.faintHours + ORCHARD.dressingHours), dressing: hours(ORCHARD.dressingHours) }) : text.cost;
+    const cost = ending === 'maimed' ? fmt(text.cost, { faint: durationLabel(ORCHARD.faintHours + ORCHARD.dressingHours), dressing: durationLabel(ORCHARD.dressingHours) }) : text.cost;
     const card = el('div', { class: `card orchard-card ${ending}` }, [
       el('h2', { text: text.title }),
       el('p', { text: text.text }),

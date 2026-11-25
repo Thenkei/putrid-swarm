@@ -45,7 +45,7 @@ import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours, line } from '../engine/i18n';
+import { S, fmt, durationLabel, line } from '../engine/i18n';
 import { hush, pickLine, say, sayAny, type VoiceId } from '../engine/voice';
 import { Atmosphere, drawArm } from './atmosphere';
 import { goDay, goEnd, goTitle } from './flow';
@@ -617,7 +617,7 @@ export class ShedScene implements Scene {
           : s.shed.learned.tonight,
     );
     if (this.shed.fragments > 0) learned.push(fmt(s.shed.learned.first, { n: this.shed.fragments }));
-    const cost = fmt(text.cost, { h: hours(result.hours), n: SHED.delivery.wood ?? 0, upkeep: hours(SHED.upkeepHours) });
+    const cost = fmt(text.cost, { duration: durationLabel(result.hours), n: SHED.delivery.wood ?? 0, upkeep: durationLabel(SHED.upkeepHours) });
     const card = el('div', { class: `card orchard-card shed-card ${ending}` }, [
       el('h2', { text: text.title }),
       el('p', { text: text.text }),

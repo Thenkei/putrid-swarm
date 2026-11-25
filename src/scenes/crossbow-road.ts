@@ -6,7 +6,7 @@ import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/
 import { sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours } from '../engine/i18n';
+import { S, fmt, durationLabel } from '../engine/i18n';
 import { costLine, drawPlate } from './common';
 import { goHomeStretch, goTitle } from './flow';
 import { PauseMenu } from './pause';
@@ -186,7 +186,7 @@ export class CrossbowRoadScene implements Scene {
     const resultLine = el('p', { class: 'road-note' }, [
       fmt(s.tally, { n: this.hits, total: ROAD_BOLTS }),
       units(result.lost) ? el('span', {}, [' · ', s.lost, ' ', costLine(result.lost, undefined, '−')]) : null,
-      result.hours > 0 ? ` · ${fmt(s.delay, { h: hours(result.hours) })}` : null,
+      result.hours > 0 ? ` · ${fmt(s.delay, { duration: durationLabel(result.hours) })}` : null,
     ]);
     this.enterBeat('outro',
       el('h2', { text: this.hits === ROAD_BOLTS ? s.clear : s.escape }),

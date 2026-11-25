@@ -27,7 +27,7 @@ import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { assetUrl } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, hours, durationLabel } from '../engine/i18n';
+import { S, fmt, durationLabel } from '../engine/i18n';
 import { costLine, drawPlate, returnCargoBar, lootSfx, oneArmed, resourceChip } from './common';
 import { goHomeStretch } from './flow';
 import { WashersBoard, type Landing, type Side } from './washers';
@@ -255,7 +255,7 @@ export class EncounterPanel {
   private timeLabel(choice: Choice): string {
     const s = S().encounter;
     if (choice.maxHours <= 0) return s.free;
-    return choice.hours === choice.maxHours ? fmt(s.hours, { h: hours(choice.hours) }) : fmt(s.upTo, { h: hours(choice.maxHours) });
+    return choice.hours === choice.maxHours ? durationLabel(choice.hours) : fmt(s.upTo, { duration: durationLabel(choice.maxHours) });
   }
 
   private blockedLine(choice: Choice): HTMLElement | null {
@@ -263,7 +263,7 @@ export class EncounterPanel {
     const blocked = choice.blocked;
     if (!blocked) return null;
     if (blocked.code === 'cannot_pay') return el('span', { class: 'why' }, [s.blocked.cannot_pay, ' ', costLine(blocked.missing)]);
-    return el('span', { class: 'why', text: fmt(this.state.where === 'road' ? s.blocked.no_time_road : s.blocked.no_time, { h: hours(blocked.needed) }) });
+    return el('span', { class: 'why', text: fmt(this.state.where === 'road' ? s.blocked.no_time_road : s.blocked.no_time, { duration: durationLabel(blocked.needed) }) });
   }
 
   /** One way out, with everything it costs and brings written on it. */
@@ -407,10 +407,10 @@ export class EncounterPanel {
 
   private moveHint(move: MovePreview, fight: Fight, kind: Encounter['kind']): string {
     const s = S().encounter.move;
-    const blowHours = hours(ENCOUNTER.hours.blow * move.blows);
+    const blowDuration = durationLabel(ENCOUNTER.hours.blow * move.blows);
     if (move.move === 'yield') return kind === 'dispute' ? s.yieldDispute : s.yieldAmbush;
-    if (move.wins) return move.blows > 0 ? fmt(s.winsBlows, { n: move.blows, h: blowHours }) : s.wins;
-    if (move.opening) return fmt(s.opening, { h: blowHours });
+    if (move.wins) return move.blows > 0 ? fmt(s.winsBlows, { n: move.blows, duration: blowDuration }) : s.wins;
+    if (move.opening) return fmt(s.opening, { duration: blowDuration });
     if (move.splits) return kind === 'dispute' ? s.splitDispute : s.splitAmbush;
     return fmt(s.wait, { n: ENCOUNTER.exchanges - fight.exchange - 1 });
   }
@@ -442,7 +442,7 @@ export class EncounterPanel {
         ' · ',
         fmt(s.fight.blows, { n: fight.blows }),
         ' · ',
-        fmt(s.fight.spent, { h: hours(fightHours(fight.blows)) }),
+        fmt(s.fight.spent, { duration: durationLabel(fightHours(fight.blows)) }),
       ]),
       feedback ? el('p', { class: 'note', text: feedback }) : null,
       witness ? el('p', { class: 'memory', text: witness }) : null,
@@ -568,7 +568,7 @@ export class EncounterPanel {
       row(s.result.gained, resolution.gained, '+'),
       row(s.result.lost, resolution.lost, '−'),
       row(fmt(s.result.theirs, { name }), resolution.theirs, ''),
-      resolution.hours > 0 ? el('p', { class: 'note', text: fmt(s.result.time, { h: hours(resolution.hours) }) }) : null,
+      resolution.hours > 0 ? el('p', { class: 'note', text: fmt(s.result.time, { duration: durationLabel(resolution.hours) }) }) : null,
       memory ? el('p', { class: 'memory', text: memory }) : null,
       el('div', { class: 'actions' }, [el('button', { class: 'btn btn-primary', text: s.ok, onClick: close })]),
     ];
