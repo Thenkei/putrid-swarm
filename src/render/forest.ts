@@ -1,10 +1,11 @@
 import { carManeuver, MANEUVER_SECONDS } from '../core/car-path';
 import { GRID_H, GRID_W, roadCentre } from '../core/map';
 import { sprite } from '../engine/assets';
-import { depthOf, project, unproject, viewX, viewY, world, type Rot, type View } from './projection';
+import { depthOf, project, unproject, viewX, viewY, world, type Point, type Rot, type View } from './projection';
 import { PROP_FEET, spriteRect, type Foot } from './registration';
 import { DEPTH_SORTED_TREES, isDepthSortedTree, treesIn, type Tree } from './scenery';
 import { castShadow, contactShadow } from './shadows';
+import { foliageAt } from './painted-pixel';
 import { windAt } from './wind';
 import { vegetationView } from './vegetation';
 import type { Drawable } from './world';
@@ -24,7 +25,15 @@ export interface Stand {
 }
 interface Stamp { tree: Tree; s: Stand }
 interface Crown extends Stamp { x: number; y: number; w: number; h: number; cover: HTMLCanvasElement | null }
-interface ForestTile { picture: HTMLCanvasElement; crowns: Crown[]; foreground: Stamp[]; pixels: number }
+interface ForestTile {
+  picture: HTMLCanvasElement;
+  crowns: Crown[];
+  foreground: Stamp[];
+  backdrop: Stamp[];
+  all: Stamp[];
+  shadows?: HTMLCanvasElement;
+  pixels: number;
+}
 const movingCrown = (t: Tree): boolean => t.trait > 0.835 && !isDepthSortedTree(t);
 const hinge = (s: Stand): number => s.y - s.h * 0.59;
 
@@ -85,6 +94,11 @@ export function drawStand(ctx: CanvasRenderingContext2D, stand: Stand, lean = 0,
   ctx.restore();
 }
 
+export function standAt(s: Stand, point: Point, lean = 0, pivotY = s.rootY): boolean {
+  const dx = point.x - s.x + lean * (point.y - pivotY);
+  return foliageAt(s.image, .5 + (s.mirror ? -dx : dx) / s.w, 1 + (point.y - s.y) / s.h, s.w / s.h);
+}
+
 function fixedStand(ctx: CanvasRenderingContext2D, {s, tree}: Stamp): void {
   if (isDepthSortedTree(tree)) return;
   if (!movingCrown(tree)) { drawStand(ctx, s); return; }
@@ -93,9 +107,18 @@ function fixedStand(ctx: CanvasRenderingContext2D, {s, tree}: Stamp): void {
   drawStand(ctx, s); ctx.restore();
 }
 
+function crownShear(tree: Tree, time: number, rot: Rot): number {
+  return windAt(time, tree.gx, tree.gy, tree.trait, rot) * (tree.key.includes('fir') ? .042 : .064);
+}
+
+function stampAt({s, tree}: Stamp, point: Point, time: number, rot: Rot): boolean {
+  if (point.y < s.y - s.h || point.y > s.y || Math.abs(point.x - s.x) > s.w / 2 + 8) return false;
+  if (point.y < hinge(s) && movingCrown(tree)) return standAt(s, point, crownShear(tree, time, rot), hinge(s));
+  return standAt(s, point);
+}
+
 function crownInWind(ctx: CanvasRenderingContext2D, { s, tree }: Stamp, time: number, rot: Rot): void {
-  const wind = windAt(time, tree.gx, tree.gy, tree.trait, rot);
-  const shear = wind * (tree.key.includes('fir') ? .042 : .064);
+  const shear = crownShear(tree, time, rot);
   ctx.transform(1, 0, -shear, 1, shear * hinge(s), 0);
   drawStand(ctx, s);
 }
@@ -125,6 +148,13 @@ function interactiveDepth(rot: Rot, tx: number, ty: number): number {
   return depths.get(tx + '/' + ty) ?? Infinity;
 }
 
+function drawStampShadows(c: CanvasRenderingContext2D, stamps: Stamp[]): void {
+  for (const {tree, s} of stamps) {
+    contactShadow(c, s.rootX, s.rootY, s.w * 0.36, s.w * 0.14, 0.49);
+    castShadow(c, s.key, s.rootX, s.rootY, s.h, s.mirror, tree.row < 2 ? 0.27 : 0.19, 0.8, s.foot);
+  }
+}
+
 function bakeTile(rot: Rot, tx: number, ty: number): ForestTile | null {
   const v: View = { rot, cx: viewX(rot, 0), cy: viewY(rot, 0), x: -tx * TILE, y: -ty * TILE, w: 0, h: 0, zoom: 1 };
   // Include feet beyond the tile: a canopy, its cast shadow or both can cross a tile seam.
@@ -141,10 +171,7 @@ function bakeTile(rot: Rot, tx: number, ty: number): ForestTile | null {
   const c = canvas.getContext('2d');
   if (!c) return null;
   c.translate(PAD, PAD);
-  for (const {tree, s} of visible) {
-    contactShadow(c, s.rootX, s.rootY, s.w * 0.36, s.w * 0.14, 0.49);
-    castShadow(c, s.key, s.rootX, s.rootY, s.h, s.mirror, tree.row < 2 ? 0.27 : 0.19, 0.8, s.foot);
-  }
+  drawStampShadows(c, visible);
   visible.sort((a,b) => depthOf(rot,a.tree.gx,a.tree.gy) - depthOf(rot,b.tree.gx,b.tree.gy));
   const split = interactiveDepth(rot, tx, ty);
   const foreground = visible.filter(({ tree, s }) => !isDepthSortedTree(tree) && depthOf(rot, tree.gx, tree.gy) >= split &&
@@ -176,7 +203,7 @@ function bakeTile(rot: Rot, tx: number, ty: number): ForestTile | null {
     }
     crowns.push({ ...stamp, x, y, w, h, cover });
   }
-  return { picture: canvas, crowns, foreground, pixels };
+  return { picture: canvas, crowns, foreground, backdrop, all: visible, pixels };
 }
 
 function tile(rot: Rot, tx: number, ty: number): ForestTile | null {
@@ -191,6 +218,7 @@ function tile(rot: Rot, tx: number, ty: number): ForestTile | null {
       if (evicted) {
         residentPixels -= evicted.pixels;
         evicted.picture.width = evicted.picture.height = 0;
+        if (evicted.shadows) evicted.shadows.width = evicted.shadows.height = 0;
         for (const c of evicted.crowns) if (c.cover) c.cover.width = c.cover.height = 0;
       }
       tiles.delete(oldest);
@@ -219,8 +247,35 @@ export function prepareForest(view: View): void {
   }
 }
 
+/** A hovered tree may be baked on one side of a tile seam and depth-sorted on the other. */
+function drawTileStand(ctx: CanvasRenderingContext2D, stamp: Stamp, time: number, rot: Rot, opacity: number): void {
+  ctx.save();
+  ctx.globalAlpha *= opacity;
+  fixedStand(ctx, stamp);
+  if (movingCrown(stamp.tree)) {
+    ctx.beginPath();
+    ctx.rect(-PAD, -PAD, TILE + 2 * PAD, Math.max(0, hinge(stamp.s) + PAD));
+    ctx.clip();
+    crownInWind(ctx, stamp, time, rot);
+  }
+  ctx.restore();
+}
+
+function shadowLayer(chunk: ForestTile): HTMLCanvasElement {
+  if (chunk.shadows) return chunk.shadows;
+  const layer = document.createElement('canvas');
+  layer.width = layer.height = TILE + 2 * PAD;
+  const ctx = layer.getContext('2d')!;
+  ctx.translate(PAD, PAD);
+  drawStampShadows(ctx, chunk.all);
+  chunk.shadows = layer;
+  chunk.pixels += layer.width * layer.height;
+  residentPixels += layer.width * layer.height;
+  return layer;
+}
+
 /** Transparent canopy tiles sit over the continuous forest floor, with identical border stamps. */
-export function drawForest(ctx: CanvasRenderingContext2D, view: View, time = 0, foreground?: Drawable[]): void {
+export function drawForest(ctx: CanvasRenderingContext2D, view: View, time = 0, foreground?: Drawable[], pointer?: Point | null): void {
   const { left, top, x0, y0, x1, y1 } = forestBounds(view);
   const z = view.zoom;
   const transform = ctx.getTransform();
@@ -239,12 +294,19 @@ export function drawForest(ctx: CanvasRenderingContext2D, view: View, time = 0, 
         ctx.beginPath(); ctx.rect(tileLeft, tileTop, w, h); ctx.clip();
         ctx.translate(x, y); ctx.scale(z, z);
       };
+      const point = pointer ? { x: (pointer.x - x) / z, y: (pointer.y - y) / z } : null;
+      const hovered = point ? chunk.backdrop.filter(stamp => stampAt(stamp, point, time, view.rot)) : [];
       ctx.save(); tileSpace();
-      ctx.drawImage(chunk.picture, -PAD, -PAD);
-      for (const crown of chunk.crowns) {
-        ctx.save(); ctx.beginPath(); ctx.rect(crown.x, crown.y, crown.w, Math.min(crown.h, hinge(crown.s)-crown.y)); ctx.clip();
-        crownInWind(ctx, crown, time, view.rot); ctx.restore();
-        if (crown.cover) ctx.drawImage(crown.cover, crown.x, crown.y);
+      if (hovered.length) {
+        ctx.drawImage(shadowLayer(chunk), -PAD, -PAD);
+        for (const stamp of chunk.backdrop) drawTileStand(ctx, stamp, time, view.rot, hovered.includes(stamp) ? .5 : 1);
+      } else {
+        ctx.drawImage(chunk.picture, -PAD, -PAD);
+        for (const crown of chunk.crowns) {
+          ctx.save(); ctx.beginPath(); ctx.rect(crown.x, crown.y, crown.w, Math.min(crown.h, hinge(crown.s)-crown.y)); ctx.clip();
+          crownInWind(ctx, crown, time, view.rot); ctx.restore();
+          if (crown.cover) ctx.drawImage(crown.cover, crown.x, crown.y);
+        }
       }
       ctx.restore();
       for (const stamp of chunk.foreground) {
@@ -256,11 +318,7 @@ export function drawForest(ctx: CanvasRenderingContext2D, view: View, time = 0, 
           ctx.save();
           if (crossesEdge) tileSpace();
           else { ctx.translate(x, y); ctx.scale(z, z); }
-          fixedStand(ctx, stamp);
-          if (movingCrown(stamp.tree)) {
-            ctx.beginPath(); ctx.rect(-PAD, -PAD, TILE + 2 * PAD, Math.max(0, hinge(stamp.s) + PAD)); ctx.clip();
-            crownInWind(ctx, stamp, time, view.rot);
-          }
+          drawTileStand(ctx, stamp, time, view.rot, point && stampAt(stamp, point, time, view.rot) ? .5 : 1);
           ctx.restore();
         };
         if (foreground) foreground.push({ depth: depthOf(view.rot, stamp.tree.gx, stamp.tree.gy), draw });

@@ -34,7 +34,7 @@ const wait = (ms) => page.waitForTimeout(ms);
 const day = (tier, hoursLeft, dayNumber = 3) =>
   page.evaluate(
     async ([t, h, d]) => {
-      localStorage.setItem('putrid-swarm.hint.v2', '1');
+      localStorage.setItem('putrid-swarm.hint.v3', '1');
       localStorage.setItem('putrid-swarm.coach', '1');
       const game = await import('/src/core/game.ts');
       const op = await import('/tests/operator.ts');

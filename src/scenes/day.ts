@@ -25,7 +25,7 @@ import { canRigRattle, rattleForNight, RATTLE_COST, RATTLE_HOURS, rigRattle } fr
 import { LAST_NIGHT, planForNight, SIREN_SECTORS, sirenPackFor, type SirenSector } from '../core/data/waves';
 import { canPlanSiren, scheduleSiren, SIREN_COST, sirenForNight } from '../core/siren';
 import { bossOfNight, clockLabel, startNight } from '../core/game';
-import { ENTRIES, GRID_H, GRID_W, MAILBOX, SPAWN_CELLS, idx, sectorOf } from '../core/map';
+import { ENTRIES, GRID_H, GRID_W, SPAWN_CELLS, idx, sectorOf } from '../core/map';
 import { computeField, traceRoute } from '../core/pathing';
 import { TH, TW, type Point } from '../render/projection';
 import type { Cell, Cost, DeviceInstance, DeviceTypeId, Facing, GameState, Result, SectorId } from '../core/types';
@@ -65,6 +65,7 @@ import { S, durationLabel, fmt, getLang, hours, line } from '../engine/i18n';
 import { say, sayAny, sayOnce } from '../engine/voice';
 import { onDriveway, WAGON_CONTACT } from '../core/driveway';
 import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, yardItemVisible, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
+import { mailboxPaper } from '../render/mailbox-paper';
 import { deviceArt } from '../render/defenses';
 import { FROG_RETURNS_AT, FROG_SPLASH_AT, SquirrelMotion } from '../render/homestead-life';
 import { calmMotion } from '../render/lighting';
@@ -124,14 +125,13 @@ function fenceFacing(dx: number, dy: number): Facing {
   return ax > ay ? 0 : 1;
 }
 
-type Mode = { readonly kind: 'idle' } | { readonly kind: 'build'; readonly type: DeviceTypeId } | { readonly kind: 'repair' } | { readonly kind: 'dismantle' };
+type Mode = { readonly kind: 'idle' } | { readonly kind: 'build'; readonly type: DeviceTypeId } | { readonly kind: 'dismantle' };
 
 const RECT = { x: 292, y: 56, w: 976, h: 652 } as const;
 /** Corner radius of the yard's frame; `.yard-frame` in the stylesheet has the same. */
 const FRAME_RADIUS = 8;
 const MIN_ZOOM = 0.62;
 const MAX_ZOOM = 1.5;
-const HINT_KEY = 'putrid-swarm.hint.v2';
 
 /** The view can be centred anywhere on the lot but its outermost cells: past them there is only wood to look at. */
 const PAN_INSET = 2;
@@ -201,6 +201,7 @@ export class DayScene implements Scene {
   private hoverWreck = false;
   private hoverKindling = false;
   private hoverInvoice = false;
+  private hoverMail = false;
   private hoverWhistle = false;
   private panelDoor: SectorId | null = null;
   private previewHp: number | undefined;
@@ -228,6 +229,7 @@ export class DayScene implements Scene {
     button: number;
     /** Keep the focused repair forecast through the canvas press that blurs its button. */
     repairs: ReadonlyMap<number, DeviceInstance> | undefined;
+    mail: boolean;
     painted: boolean;
     stopped: boolean;
     /** A lone post keeps its chosen facing until another post joins it. */
@@ -238,7 +240,10 @@ export class DayScene implements Scene {
 
   private root!: HTMLElement;
   private info!: HTMLElement;
-  private deliverySlip: HTMLDetailsElement | null = null;
+  private buildWheel: HTMLElement | null = null;
+  private deliverySlip: HTMLElement | null = null;
+  private mailboxButton: HTMLButtonElement | null = null;
+  private closeGuide: (() => void) | null = null;
   private bakerVisit: ReturnType<typeof bakerMorning> | null = null;
   private invoice: ReturnType<typeof invoiceDetail> | null = null;
   private whistle: WhistleDawn | null = null;
@@ -285,7 +290,7 @@ export class DayScene implements Scene {
     delete this.app.canvas.dataset.yardCursor;
   }
 
-  onBlur(): void { this.whistle?.pause(); }
+  onBlur(): void { this.closeBuildWheel(); this.whistle?.pause(); }
 
   private openWhistle(): void {
     if (this.whistle || !whistleInGrass(this.state)) return;
@@ -366,34 +371,25 @@ export class DayScene implements Scene {
           onLeave: () => this.updateInfo(),
         },
         [
-          img,
+          el('span', { class: 'device-thumb' }, [
+            img,
+            el('small', { class: 'stock-count', text: `×${count}`, title: fmt(s.day.affordable, { n: count }) }),
+          ]),
           el('span', { class: 'name' }, [
+            el('kbd', { text: String(i + 1) }),
             s.device[type].name,
-            el('span', {}, [
-              // How many of them the stock and the daylight still pay for: the answer to "can I close this gap?".
-              count > 0 ? el('i', { class: 'stock-count', text: `×${count}`, title: fmt(s.day.affordable, { n: count }) }) : null,
-              durationLabel(def.buildHours),
-            ]),
+            el('time', { text: durationLabel(def.buildHours) }),
           ]),
           el('span', { class: 'meta' }, [costLine(def.cost, state.inventory), el('span', { class: `tag tag-${def.mode}`, text: tag })]),
         ],
       );
+      button.setAttribute('aria-pressed', String(selected));
+      button.setAttribute('aria-keyshortcuts', String(i + 1));
       button.addEventListener('focus', () => this.showDeviceInfo(type));
       button.addEventListener('blur', () => this.updateInfo());
       return button;
     });
     this.refreshBuildArt();
-    const tool = (kind: 'repair' | 'dismantle', label: string, icon: string): HTMLButtonElement => {
-      const selected = this.mode.kind === kind;
-      const button = el('button', {
-        class: `btn yard-tool ${selected ? 'sel' : ''}`,
-        onClick: () => this.setMode(selected ? { kind: 'idle' } : { kind }),
-      }, [yardActionIcon(icon), label]);
-      button.setAttribute('aria-pressed', String(selected));
-      return button;
-    };
-    // The two chores that come back every day, each in one click: take back the piece just laid, and put
-    // everything the night broke back on its feet.
     const fresh = lastFresh(state);
     const broken = brokenDevices(yard);
     const wrecks = broken.length;
@@ -420,25 +416,26 @@ export class DayScene implements Scene {
         });
       }
     }
-    const quick = el('div', { class: 'tool-row quick' }, [
-      el('button', {
+    const guideButton = el('button', { class: 'guide-toggle', text: s.day.guide, onClick: () => this.openGuide(guideButton) });
+    guideButton.setAttribute('aria-haspopup', 'dialog');
+    const panel = el('div', { class: 'panel build-panel' }, [
+      el('div', { class: 'build-heading' }, [el('h3', { text: s.day.build }), guideButton]),
+      ...cards,
+      el('h3', { text: s.day.tools }),
+      el('div', { class: 'tool-row' }, [
+        el('button', {
+          class: `btn ${this.mode.kind === 'dismantle' ? 'sel' : ''}`,
+          onClick: () => this.setMode({ kind: this.mode.kind === 'dismantle' ? 'idle' : 'dismantle' }),
+        }, [yardActionIcon(dismantleIcon), s.day.dismantle]),
+        repairAllButton,
+      ]),
+      el('div', { class: 'tool-row' }, [el('button', {
         class: 'btn',
         text: s.day.undo,
         disabled: !fresh,
         title: fresh ? fmt(s.day.undoTitle, { name: s.device[fresh.type].name }) : s.day.undoNone,
         onClick: () => this.undo(),
-      }),
-      repairAllButton,
-    ]);
-    const panel = el('div', { class: 'panel build-panel' }, [
-      el('h3', { text: s.day.build }),
-      ...cards,
-      el('h3', { text: s.day.tools }),
-      el('div', { class: 'tool-row' }, [
-        tool('repair', s.day.repair, repairIcon),
-        tool('dismantle', s.day.dismantle, dismantleIcon),
-      ]),
-      quick,
+      })]),
     ]);
 
     // Doors and house. Each door also says how many working traps stand on the way to it.
@@ -523,13 +520,31 @@ export class DayScene implements Scene {
     this.refundTag = el('div', { class: 'yard-refund' });
     frame.append(this.refundTag);
     // The clock runs from 07:00 to 19:00. The slip turns up after noon.
-    this.deliverySlip = state.day === BOSS.mail.deliveryNight - 1 && state.hoursLeft <= 7
-      ? el('details', { class: 'delivery-slip postal-paper' }, [
-          el('summary', { text: s.registeredLetter.slip }),
+    if (state.day === BOSS.mail.deliveryNight - 1 && state.hoursLeft <= 7) {
+      if (!this.deliverySlip) {
+        this.deliverySlip = el('section', { class: 'delivery-slip postal-paper' }, [
+          el('strong', { text: s.registeredLetter.slip }),
           el('p', { text: s.registeredLetter.notice }),
-        ])
-      : null;
-    if (this.deliverySlip) frame.append(this.deliverySlip);
+          el('button', { class: 'btn', text: s.registeredLetter.putAway, onClick: () => {
+            if (this.deliverySlip) this.deliverySlip.hidden = true;
+            this.positionMailboxButton();
+            this.mailboxButton?.focus({ preventScroll: true });
+          } }),
+        ]);
+        this.deliverySlip.hidden = true;
+      }
+      panel.append(this.deliverySlip);
+      this.mailboxButton = el('button', {
+        class: 'mailbox-read', title: s.registeredLetter.readSlip, onClick: () => this.readDeliverySlip(),
+      });
+      this.mailboxButton.setAttribute('aria-label', s.registeredLetter.readSlip);
+      frame.append(this.mailboxButton);
+      this.positionMailboxButton();
+    } else {
+      this.deliverySlip = null;
+      this.mailboxButton = null;
+    }
+
     let curiosity = epicObject(this.app, () => this.refresh(), (sector, previous) => {
       this.mopedAimAt = this.time;
       this.previousMopedAim = previous;
@@ -562,10 +577,10 @@ export class DayScene implements Scene {
     if (curiosity) frame.append(curiosity);
     // One column: the doors' panel grows a line taller with every door that needs a nail, and the card under it follows.
     const side = el('div', { class: 'day-side' }, [doors, tonight]);
+    this.closeBuildWheel();
     this.root.replaceChildren(frame, topbar, panel, viewTools, side, actions, this.info);
     this.panelDoor = SECTOR_IDS.find((_, index) => doorRows[index]?.matches(':hover')) ?? null;
     this.updateHover(this.app.pointer, true);
-    this.maybeHint();
   }
 
   private rattlePanel(): HTMLElement {
@@ -705,34 +720,66 @@ export class DayScene implements Scene {
     ]);
   }
 
-  private maybeHint(): void {
-    if (this.state.day !== 1 || this.reveal > 0) return;
-    let seen = false;
-    try {
-      seen = localStorage.getItem(HINT_KEY) === '1';
-    } catch {
-      seen = false;
-    }
-    if (seen) return;
+  private openGuide(opener: HTMLButtonElement): void {
+    if (this.closeGuide) return;
+    this.closeBuildWheel();
+    this.drag = null;
     const s = S();
-    const card = el('div', { class: 'card hint' }, [
-      el('ol', {}, [el('li', { text: s.day.hint1 }), el('li', { text: s.day.hint2 }), el('li', { text: s.day.hint3 })]),
-      el('div', { class: 'actions' }, [
-        el('button', {
-          class: 'btn btn-primary',
-          text: s.day.gotIt,
-          onClick: () => {
-            try {
-              localStorage.setItem(HINT_KEY, '1');
-            } catch {
-              // Non-fatal: the hint will simply show again.
-            }
-            card.remove();
-          },
-        }),
+    const title = el('h2', { text: s.day.guideTitle });
+    title.id = 'yard-guide-title';
+    const sections = s.day.guideSections.map(section => el('section', {}, [
+      el('h3', { text: section.title }),
+      el('dl', {}, section.controls.flatMap(({ gesture, action }) => [
+        el('dt', {}, [el('kbd', { text: gesture })]), el('dd', { text: action }),
+      ])),
+    ]));
+    const close = (): void => {
+      dialog.remove();
+      this.closeGuide = null;
+      this.root.inert = false;
+      opener.focus({ preventScroll: true });
+      this.app.refreshPointer();
+    };
+    const resume = el('button', { class: 'btn btn-primary', text: s.day.guideResume, onClick: close });
+    const dialog = el('div', { class: 'modal yard-guide-overlay' }, [
+      el('div', { class: 'yard-guide-sheet' }, [
+        el('header', {}, [title, el('span', { text: s.night.paused })]),
+        el('div', { class: 'yard-guide-sections' }, sections),
+        el('footer', {}, [resume]),
       ]),
     ]);
-    this.root.append(card);
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', title.id);
+    this.closeGuide = close;
+    this.root.inert = true;
+    this.app.ui.append(dialog);
+    this.app.refreshPointer();
+    resume.focus();
+  }
+
+  private positionMailboxButton(): void {
+    if (!this.mailboxButton) return;
+    this.mailboxButton.hidden = !this.deliverySlip?.hidden;
+    const { x, y, width, height } = mailboxPaper(this.view);
+    const style = this.mailboxButton.style;
+    style.left = `${x - RECT.x}px`;
+    style.top = `${y - RECT.y}px`;
+    style.width = `${width}px`;
+    style.height = `${height}px`;
+  }
+
+  private overDeliverySlip(pointer: Pointer): boolean {
+    if (!this.deliverySlip?.hidden) return false;
+    const paper = mailboxPaper(this.view);
+    return pointer.x >= paper.x - 2 && pointer.x <= paper.x + paper.width + 2
+      && pointer.y >= paper.y - 2 && pointer.y <= paper.y + paper.height + 2;
+  }
+
+  private readDeliverySlip(): void {
+    if (!this.deliverySlip) return;
+    this.deliverySlip.hidden = false;
+    this.deliverySlip.querySelector('button')?.focus({ preventScroll: true });
   }
 
   private showDeviceInfo(type: DeviceTypeId): boolean {
@@ -743,14 +790,20 @@ export class DayScene implements Scene {
       s.device[type].desc,
       el('div', {}, [costLine(def.cost, this.state.inventory), el('span', { class: 'muted', text: `  ·  ${durationLabel(def.buildHours)}` })]),
     );
+    const shortage = this.buildShortage(type);
+    if (shortage) this.info.append(el('div', { class: 'bad', text: shortage }));
+    return !shortage;
+  }
+
+  private buildShortage(type: DeviceTypeId): string {
+    const def = DEVICES[type];
+    const s = S();
     const missing = describeCost(missingFor(this.state.inventory, def.cost));
     const timeShort = def.buildHours - this.state.hoursLeft;
-    const reasons = [
+    return [
       missing && fmt(s.err.cannot_afford, { list: missing }),
       timeShort > 1e-9 && fmt(s.err.missingDaylight, { duration: durationLabel(timeShort) }),
-    ].filter(Boolean);
-    if (reasons.length) this.info.append(el('div', { class: 'bad', text: reasons.join(' · ') }));
-    return reasons.length === 0;
+    ].filter(Boolean).join(' · ');
   }
 
   private inspectDoor(sector: SectorId | null): void {
@@ -793,7 +846,7 @@ export class DayScene implements Scene {
   }
 
   private get inspectedDoor(): SectorId | null {
-    return this.panelDoor ?? (this.mode.kind === 'repair' || this.mode.kind === 'idle' ? this.hoverDoor : null);
+    return this.panelDoor ?? (this.mode.kind === 'idle' ? this.hoverDoor : null);
   }
 
   private updateInfo(): void {
@@ -811,6 +864,10 @@ export class DayScene implements Scene {
       return;
     }
     const sector = this.inspectedDoor;
+    if (this.hoverMail) {
+      this.info.replaceChildren(el('b', { text: s.registeredLetter.slip }), s.registeredLetter.readSlip);
+      return;
+    }
     if (this.hoverWhistle) {
       this.info.replaceChildren(el('b', { text: line('Le sifflet du Chef', 'The Chief’s whistle') }), line('Cliquer pour examiner', 'Click to examine'));
       return;
@@ -889,6 +946,7 @@ export class DayScene implements Scene {
       if (device.broken || device.hp < def.maxHp) {
         lines.push(el('div', {}, [fmt(s.day.repairHp, { from: hp, to: def.maxHp }), ' · ', costLine(repairCostOf(device.type), this.state.inventory), ` · ${durationLabel(def.buildHours / 2)}`]));
       }
+      if (this.mode.kind === 'idle' && this.quickRepair) lines.push(s.day.repairHint);
       const fresh = isFresh(device, this.state.day);
       const refund = refundOf(device, this.state.day);
       const timeBack = daylightRefund(device, this.state);
@@ -907,12 +965,103 @@ export class DayScene implements Scene {
         }
       }
       if (fresh) lines.push(el('div', { class: 'tally', text: s.day.freshNote }));
-      lines.push(el('div', { class: 'muted', text: s.day.turnHint }));
+      lines.push(el('div', { class: 'muted', text: s.day.placedTurnHint }));
       this.info.replaceChildren(...lines);
       return;
     }
-    const hint = this.mode.kind === 'repair' ? s.day.repairHint : this.mode.kind === 'dismantle' ? s.day.dismantleHint : s.day.selectHint;
+    const hint = this.mode.kind === 'dismantle' ? s.day.dismantleHint : s.day.selectHint;
     this.info.replaceChildren(el('span', { class: 'muted', text: hint }));
+  }
+
+  private openBuildWheel(pointer: Pointer): void {
+    const s = S();
+    const radius = 142;
+    const cx = Math.max(RECT.x + radius, Math.min(RECT.x + RECT.w - radius, pointer.x));
+    const cy = Math.max(RECT.y + radius, Math.min(RECT.y + RECT.h - radius, pointer.y));
+    const layer = el('div', { class: 'build-wheel-layer' });
+    const wheel = el('div', { class: 'build-wheel', style: {
+      left: `${cx - radius}px`, top: `${cy - radius}px`, width: `${2 * radius}px`, height: `${2 * radius}px`,
+    } });
+    wheel.setAttribute('role', 'group');
+    wheel.setAttribute('aria-label', s.day.build);
+    const preview = el('div', { class: 'wheel-preview', style: {
+      left: `${cx - radius}px`,
+      ...(cy + radius + 100 <= RECT.y + RECT.h ? { top: `${cy + radius + 4}px` } : { bottom: `${STAGE_H - cy + radius + 4}px` }),
+    } });
+    preview.id = 'yard-wheel-preview';
+    preview.hidden = true;
+    const inspect = (button: HTMLButtonElement, type?: DeviceTypeId): void => {
+      wheel.querySelector('.inspected')?.classList.remove('inspected');
+      button.classList.add('inspected');
+      preview.hidden = !type;
+      if (!type) return;
+      const def = DEVICES[type];
+      const shortage = this.buildShortage(type);
+      const count = affordableCount(this.state.inventory, type, this.state.hoursLeft);
+      preview.replaceChildren(
+        el('div', { class: 'wheel-price' }, [
+          el('strong', { text: s.device[type].name }), costLine(def.cost, this.state.inventory),
+          el('time', { text: durationLabel(def.buildHours) }),
+        ]),
+        el('div', { class: shortage ? 'bad' : '', text: shortage || fmt(s.day.buildCapacity, { n: count }) }),
+      );
+    };
+    for (const [i, type] of DEVICE_TYPE_IDS.entries()) {
+      const bearing = i * 360 / DEVICE_TYPE_IDS.length;
+      const angle = bearing * Math.PI / 180;
+      const selected = this.mode.kind === 'build' && this.mode.type === type;
+      const count = affordableCount(this.state.inventory, type, this.state.hoursLeft);
+      const button = el('button', {
+        class: `wheel-choice ${selected ? 'sel' : ''} ${count ? '' : 'poor'}`,
+        style: { left: `${radius + 90 * Math.sin(angle)}px`, top: `${radius - 90 * Math.cos(angle)}px` },
+        onClick: () => this.setMode({ kind: 'build', type }),
+      }, [el('span', { class: 'wheel-piece' }, [
+        this.buildIcons.get(type)?.cloneNode(true),
+        el('span', {}, [el('kbd', { text: String(i + 1) }), s.device[type].name]),
+      ])]);
+      button.style.setProperty('--bearing', `${bearing}deg`);
+      button.setAttribute('aria-label', s.device[type].name);
+      button.setAttribute('aria-pressed', String(selected));
+      button.setAttribute('aria-describedby', preview.id);
+      button.addEventListener('mouseenter', () => inspect(button, type));
+      button.addEventListener('focus', () => inspect(button, type));
+      wheel.append(button);
+    }
+    const hand = el('button', { class: 'wheel-hand', text: s.day.freeHand, onClick: () => this.setMode({ kind: 'idle' }) });
+    hand.addEventListener('mouseenter', () => inspect(hand));
+    hand.addEventListener('focus', () => inspect(hand));
+    wheel.append(hand);
+    wheel.addEventListener('keydown', event => {
+      const keys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Tab'];
+      if (!keys.includes(event.key)) return;
+      event.preventDefault();
+      const buttons = Array.from(wheel.querySelectorAll('button'));
+      const current = buttons.indexOf(document.activeElement as HTMLButtonElement);
+      const back = event.key === 'ArrowLeft' || event.key === 'ArrowUp' || (event.key === 'Tab' && event.shiftKey);
+      buttons[(current + (back ? -1 : 1) + buttons.length) % buttons.length]?.focus();
+    });
+    layer.append(wheel, preview);
+    layer.addEventListener('click', event => {
+      if (!(event.target instanceof Element && event.target.closest('button'))) this.closeBuildWheel();
+    });
+    // Windows delivers the opening click's contextmenu after pointerup, over the new wheel.
+    let closeOnContextMenu = false;
+    layer.addEventListener('pointerdown', event => {
+      closeOnContextMenu = event.button === 2;
+    });
+    layer.addEventListener('contextmenu', event => {
+      event.preventDefault();
+      if (closeOnContextMenu) this.closeBuildWheel();
+    });
+    this.buildWheel = layer;
+    this.root.append(layer);
+    wheel.querySelector<HTMLButtonElement>('.sel, .wheel-hand')?.focus({ preventScroll: true });
+  }
+
+  private closeBuildWheel(): void {
+    if (!this.buildWheel) return;
+    this.buildWheel.remove();
+    this.buildWheel = null;
   }
 
   private setMode(mode: Mode): void {
@@ -935,10 +1084,10 @@ export class DayScene implements Scene {
   }
 
   /** Turns the piece in hand, or the placed device under the pointer when nothing is being built. */
-  private turn(): void {
+  private turn(direction: 1 | -1 = 1): void {
     if (this.mode.kind === 'build') {
       audio.play('click');
-      this.facing = turned(this.mode.type, this.facing);
+      this.facing = turned(this.mode.type, this.facing, direction);
       this.ghostCache = null;
       this.refreshBuildArt();
       this.updateInfo();
@@ -1193,6 +1342,7 @@ export class DayScene implements Scene {
   // ───────────────────────────── Loop ─────────────────────────────
 
   update(dt: number): void {
+    if (this.closeGuide) return;
     if (this.whistle) { this.whistle.update(dt); return; }
     const previousTime = this.time;
     this.time += dt;
@@ -1210,7 +1360,6 @@ export class DayScene implements Scene {
     if (this.reveal > 0) {
       this.reveal = Math.max(0, this.reveal - dt);
       if (this.reveal === 0) {
-        this.maybeHint();
         sayOnce('day1', 'vo_day1');
       }
     }
@@ -1236,7 +1385,7 @@ export class DayScene implements Scene {
     const overlay = focus ? forecast?.byDoor[focus] : forecast;
     const placing = this.currentGhost().ghost;
     const ghost = placing ? { ...placing, idle: this.ghostIdle() } : null;
-    const hoverId = this.mode.kind === 'repair' || this.mode.kind === 'dismantle' ? this.hoverDevice?.id : undefined;
+    const hoverId = (this.mode.kind === 'idle' && this.quickRepair) || this.mode.kind === 'dismantle' ? this.hoverDevice?.id : undefined;
     const marksSilent = this.showRoutes && this.mode.kind !== 'build';
     const devices = this.deviceVisuals(hoverId, marksSilent);
     const def = this.mode.kind === 'build' ? DEVICES[this.mode.type] : null;
@@ -1248,6 +1397,8 @@ export class DayScene implements Scene {
     const frame: WorldFrame = {
       time: this.time,
       night: false,
+      mailboxSlip: this.deliverySlip?.hidden === true,
+      treePointer: this.app.pointer.overCanvas && !this.buildWheel && inView(this.view, this.app.pointer.x, this.app.pointer.y) ? this.app.pointer : null,
       mopedWreck: wreckSector(state),
       bakerKindling: this.bakerVisit?.freed === true,
       pinnedInvoice: this.invoice?.sector,
@@ -1292,11 +1443,7 @@ export class DayScene implements Scene {
     ctx.roundRect(RECT.x, RECT.y, RECT.w, RECT.h, FRAME_RADIUS);
     ctx.clip();
     drawWorld(ctx, this.view, frame);
-    if (this.deliverySlip) {
-      const point = project(this.view, MAILBOX.x + 0.5, MAILBOX.y + 0.5);
-      this.deliverySlip.style.left = `${point.x - RECT.x}px`;
-      this.deliverySlip.style.top = `${point.y - RECT.y - 42 * this.zoom}px`;
-    }
+    this.positionMailboxButton();
     // The hour it is: the light warms as the daylight runs out, and the lamps come on before dark.
     applyDaylight(ctx, this.view, 1 - state.hoursLeft / DAY_HOURS, houseLights(this.rot, frame.barricades, frame.houseHpRatio), this.time);
     ctx.restore();
@@ -1321,7 +1468,7 @@ export class DayScene implements Scene {
   // ───────────────────────────── Input ─────────────────────────────
 
   private get quickRepair(): boolean {
-    if (this.hoverDevice) return this.hoverDevice.broken;
+    if (this.hoverDevice) return this.hoverDevice.broken || this.hoverDevice.hp < DEVICES[this.hoverDevice.type].maxHp;
     if (!this.hoverDoor) return false;
     const door = this.state.yard.barricades[this.hoverDoor];
     return door.hp < barricadeMaxHp(door.level);
@@ -1329,10 +1476,11 @@ export class DayScene implements Scene {
 
   private updateHover(pointer: Pointer, refreshInfo = false, inspected?: SectorId): void {
     const view = this.view;
-    const before = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverWreck},${this.hoverKindling},${this.hoverInvoice},${this.hoverWhistle}`;
+    const before = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverMail},${this.hoverWreck},${this.hoverKindling},${this.hoverInvoice},${this.hoverWhistle}`;
     const inside = pointer.overCanvas && inView(view, pointer.x, pointer.y);
     const wreck = wreckSector(this.state);
     const whistle = whistleInGrass(this.state);
+    this.hoverMail = !inspected && inside && this.overDeliverySlip(pointer);
     const visuals = inside && this.mode.kind !== 'build' ? this.deviceVisuals() : [];
     const health = this.state.yard.houseHp / HOUSE_MAX_HP;
     const visible = (depth: number) => yardItemVisible(view, pointer.x, pointer.y, depth, health, this.time, visuals);
@@ -1362,22 +1510,25 @@ export class DayScene implements Scene {
     }
     let cursor = '';
     if (inside) {
-      if (this.mode.kind === 'repair' || this.mode.kind === 'dismantle') cursor = this.mode.kind;
+      if (this.hoverMail) cursor = 'inspect';
+      else if (this.mode.kind === 'dismantle') cursor = this.mode.kind;
       else if (this.mode.kind === 'idle' && this.quickRepair) cursor = 'repair';
       else if (this.hoverWhistle || this.hoverInvoice || this.hoverKindling || (this.hoverWreck && !epicFlag(this.state, 'wreckSeen'))) cursor = 'inspect';
     }
     if (this.app.canvas.dataset.yardCursor !== cursor) this.app.canvas.dataset.yardCursor = cursor;
-    const after = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverWreck},${this.hoverKindling},${this.hoverInvoice},${this.hoverWhistle}`;
+    const after = `${this.hover?.x},${this.hover?.y},${this.hoverDevice?.id},${this.inspectedDoor},${this.hoverMail},${this.hoverWreck},${this.hoverKindling},${this.hoverInvoice},${this.hoverWhistle}`;
     if (refreshInfo || before !== after) this.updateInfo();
   }
 
   onPointerDown(pointer: Pointer, event: PointerEvent): void {
     if (!inView(this.view, pointer.x, pointer.y)) return;
+    const mail = event.button === 0 && this.overDeliverySlip(pointer);
     this.drag = {
+      mail,
       x: pointer.x,
       y: pointer.y,
       moved: false,
-      pan: event.button !== 0 || this.mode.kind === 'idle',
+      pan: mail || event.button !== 0 || this.mode.kind === 'idle',
       button: event.button,
       repairs: event.button === 0 ? this.repairPreview?.devices : undefined,
       painted: false,
@@ -1465,6 +1616,7 @@ export class DayScene implements Scene {
   }
 
   onPointerMove(pointer: Pointer): void {
+    if (this.closeGuide) return;
     const drag = this.drag;
     if (drag && pointer.down) {
       const dx = pointer.x - drag.x;
@@ -1500,7 +1652,9 @@ export class DayScene implements Scene {
     this.drag = null;
     if (!pointer.overCanvas || !inView(this.view, pointer.x, pointer.y)) return;
     if ((drag.moved && drag.pan) || drag.painted) return;
-    if (drag.button === 2) this.turn();
+    if (drag.mail) {
+      if (this.overDeliverySlip(pointer)) this.readDeliverySlip();
+    } else if (drag.button === 2) this.openBuildWheel(pointer);
     else if (drag.button === 0) this.click();
   }
 
@@ -1518,7 +1672,7 @@ export class DayScene implements Scene {
       this.placeDevice(type, this.hover);
       return;
     }
-    if (this.mode.kind === 'repair' || (this.mode.kind === 'idle' && this.quickRepair)) {
+    if (this.mode.kind === 'idle' && this.quickRepair) {
       if (this.hoverDevice) this.apply(repairDevice(state, this.hoverDevice.id), s.day.repaired, 'build', this.hoverDevice);
       else if (this.hoverDoor) this.apply(repairBarricade(state, this.hoverDoor), s.day.repaired, 'build');
       return;
@@ -1560,7 +1714,7 @@ export class DayScene implements Scene {
   private poke(): void {
     const health = this.state.yard.houseHp / HOUSE_MAX_HP;
     if (this.deliverySlip && pickProp(this.view, ['mailbox'], this.app.pointer.x, this.app.pointer.y, health)) {
-      this.deliverySlip.open = !this.deliverySlip.open;
+      this.readDeliverySlip();
       return;
     }
     const prop = pickProp(this.view, ['car', 'well'], this.app.pointer.x, this.app.pointer.y, health);
@@ -1573,6 +1727,10 @@ export class DayScene implements Scene {
 
   onWheel(deltaY: number, pointer: Pointer): void {
     if (!inView(this.view, pointer.x, pointer.y)) return;
+    if (this.mode.kind === 'build' && !this.drag?.painted && !this.drag?.pan) {
+      if (deltaY !== 0) this.turn(deltaY > 0 ? 1 : -1);
+      return;
+    }
     const before = unproject(this.view, pointer.x, pointer.y);
     this.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, this.zoom * Math.exp(-deltaY * 0.0015)));
     const after = unproject(this.view, pointer.x, pointer.y);
@@ -1584,12 +1742,24 @@ export class DayScene implements Scene {
       && (this.hover?.x !== Math.floor(before.gx) || this.hover?.y !== Math.floor(before.gy))) this.drag = null;
   }
 
-  onKeyDown(code: string): void {
+  onKeyDown(code: string, event: KeyboardEvent): void {
+    if (this.closeGuide) {
+      if (code === 'Escape') this.closeGuide();
+      if (code === 'Tab') {
+        event.preventDefault();
+        this.app.ui.querySelector<HTMLButtonElement>('.yard-guide-overlay button')?.focus();
+      }
+      return;
+    }
     if (this.cancelNight) {
       if (code === 'Escape') this.cancelNight();
       return;
     }
     if (this.whistle) return;
+    if (this.buildWheel) {
+      if (code === 'Escape') this.closeBuildWheel();
+      if (!code.startsWith('Digit')) return;
+    }
     if (code === 'KeyR') this.flip();
     else if (code === 'KeyF') this.turn();
     else if (code === 'KeyT') this.toggleRoutes();

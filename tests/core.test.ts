@@ -325,7 +325,7 @@ describe('turning a device', () => {
       state = unwrap(turnDevice(state, fence));
       seen.push(state.yard.devices.find((d) => d.id === fence)?.facing as number);
     }
-    expect(seen).toEqual([1, 2, 3, 0]);
+    expect(seen).toEqual([3, 1, 2, 0]);
   });
 
   it('refuses a diagonal facing for anything but a palisade', () => {

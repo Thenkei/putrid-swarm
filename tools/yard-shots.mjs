@@ -16,7 +16,7 @@ const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, locale: LANG === 'en' ? 'en-GB' : 'fr-FR' });
 await page.addInitScript((lang) => {
   localStorage.setItem('putrid-swarm.warned', '1');
-  localStorage.setItem('putrid-swarm.hint.v2', '1');
+  localStorage.setItem('putrid-swarm.hint.v3', '1');
   localStorage.setItem('putrid-swarm.lang', lang);
 }, LANG);
 const errors = [];

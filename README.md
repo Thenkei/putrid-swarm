@@ -29,16 +29,19 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 
 | When | Input | Action |
 | --- | --- | --- |
-| Day | click a device, then a tile | build |
+| Day | right-click for the build wheel or pick a device in the sidebar, then left-click a tile | build |
 | Day | hold and drag with the palisade selected | draw a line of palisades (they turn to follow the stroke, diagonals included) |
-| Day | `F` or right click | turn the piece in hand, or the placed device under the pointer |
+| Day | `F` | turn the piece in hand, or the placed device under the pointer |
 | Day | `1`–`7` | pick a device |
+| Build wheel | hover or use the arrow keys, then click or press Enter | preview costs and daylight, then select |
 | Day | `R` | look at the lot from the other side |
 | Day | `T` | show or hide the predicted walking routes, and the "zz" over the traps that never went off last night |
-| Day | `Backspace`, or "Reprendre" | take back the last piece laid today: materials and daylight come back whole |
+| Day | `Backspace`, or "Annuler la dernière construction" | take back the last piece laid today: materials and daylight come back whole |
 | Day | "Tout réparer" | repair every broken device the stock and the daylight allow |
 | Day | point at a trap | what it did last night, and how far it reaches |
-| Day | wheel, drag | zoom, pan |
+| Day | wheel | rotate the piece in hand, or zoom while panning, drawing a fence, or using an empty hand |
+| Day | right-drag | pan |
+| Day | left-click a damaged device or door with an empty hand | repair |
 | Outing | click a spot | read the clue for free. The first move spends half an hour. Solve the puzzle to load the find into the boot. Click a face to talk about a claimed lot. |
 | Scavenging | click or use `Tab` and `Enter` | a failed attempt gives no loot. Retry for another half-hour if the drive home still fits. Leaving with `Esc` keeps any time already spent. A missed pull beneath the garage lift ends the run. The street hears a failed attempt, a broken window or a rummage that spends nearly all its noise: every third noise costs one search on that visit (the top bar shows the gauge), and the next visit starts quiet. Backing out of a panel keeps the noise already made. Hiding a stash is silent, is not a search, and stays possible once the noise or the Chief has ended searching. |
 | Encounter | `1`–`6` | pick a way out (each shows what it costs before it is chosen) |

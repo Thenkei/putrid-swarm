@@ -74,6 +74,61 @@ try {
   });
   assert.ok(result.behind > 5 && result.ahead > 5, 'Sample leaves on both sides of the oak');
   assert.deepEqual(result.errors, []);
+  const canopyChecks = await page.evaluate(async () => {
+    const { drawForest, projectStand } = await import('/src/render/forest.ts');
+    const { treesIn } = await import('/src/render/scenery.ts');
+    const { drawWorld, propSpriteKey } = await import('/src/render/world.ts');
+    const { sprite, paintingImage } = await import('/src/engine/assets.ts');
+    const { project } = await import('/src/render/projection.ts');
+    const { PROPS } = await import('/src/core/map.ts');
+    const canvas = document.createElement('canvas');
+    canvas.width = 450; canvas.height = 360;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const draw = ctx.drawImage.bind(ctx);
+    let watch, alpha, phase;
+    ctx.drawImage = (image, ...args) => {
+      if (watch(image)) alpha.push([phase, ctx.globalAlpha]);
+      draw(image, ...args);
+    };
+    const frame = { time: 3.2, night: false, carPresent: true, houseHpRatio: 1, devices: [], enemies: [], particles: [], decals: [],
+      barricades: Object.fromEntries(['portail', 'grange', 'arriere', 'verger'].map(s => [s, { hp: 100, level: 0 }])) };
+    let checked = 0;
+    for (const rot of [0, 1]) for (const zoom of [.69, 1.3]) {
+      const far = rot ? 32 : -12;
+      const [gx,gy] = rot ? [26.097, 6.200] : [30.500,14.251];
+      const roadside = treesIn(gx-.02, gy-.02, gx+.02, gy+.02)[0];
+      const background = treesIn(far-2, far-2, far+2, far+2).find(t => t.trait < .83);
+      for (const [label, tree] of [['roadside', roadside], ['backdrop', background], ['oak'], ['apple'], ['bush']]) {
+        const prop = tree ? null : PROPS.find(p => p.kind === label);
+        const cx = tree?.gx ?? prop.x+prop.w/2, cy = tree?.gy ?? prop.y+prop.h/2;
+        const view = { rot, zoom, cx, cy, x: 0, y: 0, w: canvas.width, h: canvas.height };
+        const stand = tree && projectStand(view, tree);
+        const art = prop && sprite(propSpriteKey(label, rot));
+        watch = image => tree ? image === stand.image : image === art.img || image === paintingImage(art);
+        const root = project(view, cx, cy);
+        const point = tree ? { x: stand.x, y: stand.y - stand.h * .53 }
+          : { x: root.x, y: root.y - ({oak:78,apple:65,bush:20}[label])*zoom };
+        function sample(pointer) {
+          ctx.clearRect(0,0,canvas.width,canvas.height); alpha = []; phase = 'backdrop';
+          if (tree) {
+            const foreground = [];
+            drawForest(ctx,view,frame.time,foreground,pointer);
+            phase = 'roadside';
+            for (const item of foreground.sort((a,b) => a.depth-b.depth)) item.draw();
+          } else drawWorld(ctx,view,{ ...frame, treePointer: pointer });
+          return ctx.getImageData(point.x-10,point.y-10,20,20).data;
+        }
+        const before = sample(null), hovered = sample(point);
+        if (!alpha.some(([pass,opacity]) => opacity === .5 && (!tree || pass === label))) throw Error('Missing half opacity: '+[label,rot,zoom]);
+        if (!before.some((v,i)=>Math.abs(v-hovered[i])>3)) throw Error('No visible change: '+[label,rot,zoom]);
+        const after = sample(null);
+        if (!before.every((v,i)=>v===after[i])) throw Error('Hover did not restore: '+[label,rot,zoom]);
+        checked++;
+      }
+    }
+    return checked;
+  });
+  console.log(canopyChecks+' canopy hover/leave checks passed.');
   console.log('Leaf depth and flower facing passed in both views at two zoom levels.', result);
 } finally {
   await browser.close();

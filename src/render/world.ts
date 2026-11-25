@@ -9,8 +9,9 @@ import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, GroundContact, 
 import { SECTOR_IDS } from '../core/types';
 import { wreckDrawable } from './moped-wreck';
 import { kindlingDrawable } from './baker-kindling';
-import { paintedPixel } from './painted-pixel';
+import { foliageAt, paintedPixel } from './painted-pixel';
 import { drawPinnedInvoice } from './pinned-invoice';
+import { drawMailboxPaper } from './mailbox-paper';
 import { whistleDrawable } from './fallen-whistle';
 import sillCamperUrl from '../assets/camper-sill-figure.webp';
 import { paintingImage, preparePaintings, sprite, type Sprite } from '../engine/assets';
@@ -33,7 +34,7 @@ import { hash2, smoothstep } from './noise';
 import { TH, TW, depthOf, groundMatrix, inView, project, unproject, viewX, viewY, type Rot, type View } from './projection';
 import { BOTTOM_CENTRE, HOUSE_PAINT_SCALE, houseOffset, propMount, propRoot, spriteRect, type Foot } from './registration';
 import { DEPTH_SORTED_TREES } from './scenery';
-import { drawStand, prepareForest, projectStand } from './forest';
+import { drawStand, prepareForest, projectStand, standAt } from './forest';
 import { windAt } from './wind';
 import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
@@ -112,6 +113,8 @@ export interface SceneryAction {
 }
 
 export interface WorldFrame {
+  readonly mailboxSlip?: boolean;
+  readonly treePointer?: { readonly x: number; readonly y: number } | null;
   readonly indoorPassage?: IndoorPassage;
   readonly barnMoth?: BarnMoth;
   readonly foxAge?: number | null;
@@ -547,7 +550,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
 
   const passage = calmMotion() ? undefined : frame.brushPassage;
   const drawables: Drawable[] = [];
-  drawGround(ctx, view, frame.time, passage, drawables);
+  drawGround(ctx, view, frame.time, passage, drawables, frame.treePointer);
   drawMowerTrails(ctx, view, frame.decals);
   /** Shadows go down before anything stands on them; they are collected as the scene is. */
   const contacts: { gx: number; gy: number; rx: number; ry: number; alpha: number }[] = [];
@@ -614,7 +617,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const wind = windAt(frame.time, tree.gx, tree.gy, tree.trait, view.rot);
     const lean = wind * (stand.key.includes('fir') ? 0.024 : 0.034);
     const part = (passage?.bend(tree.gx, tree.gy, view.rot, frame.time) ?? 0) * 0.24;
-    const opacity = canopyOpacity(stand.x, stand.y - stand.h * 0.54, stand.w * 0.57, stand.h * 0.56, depth);
+    let opacity = canopyOpacity(stand.x, stand.y - stand.h * 0.54, stand.w * 0.57, stand.h * 0.56, depth);
+    if (frame.treePointer && standAt(stand, frame.treePointer, lean)) opacity = Math.min(.5, opacity);
     drawables.push({ depth, draw: () => drawStand(ctx, stand, lean, opacity, part) });
   }
 
@@ -709,6 +713,14 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       // A fighting figure can reveal a device through this canopy on the live camera.
       if (opacity < .75) revealedProps?.add(prop);
     }
+    if (frame.treePointer && SWAYS.has(prop.kind)) {
+      const image = sprite(key);
+      if (image) {
+        const dy = frame.treePointer.y - p.y, height = art.h * z, aspect = image.w / image.h;
+        const u = foot[0] + (frame.treePointer.x - p.x + lean * dy) / (height * aspect);
+        if (foliageAt(image.img, u, foot[1] + dy / height, aspect)) opacity = Math.min(.5, opacity);
+      }
+    }
     drawables.push({
       depth: centreDepth,
       draw: () => {
@@ -721,8 +733,11 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           // Apply the same registration to the prop and its attached effects about the foot.
           ctx.transform(1, fit.shearY, 0, fit.scaleY, 0, p.y * (1 - fit.scaleY) - fit.shearY * p.x);
         }
+        const hasEnvelope = frame.mailboxSlip && prop.kind === 'mailbox';
+        if (hasEnvelope && view.rot === 1) drawMailboxPaper(ctx, view);
         const drawn = drawSprite(ctx, key, p.x, p.y, art.h * z, false, opacity, lean, foot);
         if (!drawn) placeholder(ctx, p.x, p.y, 40 * z, 40 * z, '#5a6a4a', prop.kind);
+        if (hasEnvelope && view.rot === 0) drawMailboxPaper(ctx, view);
         if (drawn && frame.homesteadLife) drawPropLife(ctx, prop, drawn, art.h, view, frame.homesteadLife, frame.time, calmMotion());
         if (drawn && prop.kind === 'car' && frame.exhaustAge !== undefined) {
           drawExhaust(ctx, drawn, view.rot, z, frame.exhaustAge);

@@ -146,8 +146,14 @@ export const DEVICES: Readonly<Record<DeviceTypeId, DeviceDef>> = {
 /** How many ways a device can be turned: palisades also follow the diagonals, everything else has two sides. */
 export const facingsOf = (type: DeviceTypeId): 2 | 4 => (DEVICES[type].blocks ? 4 : 2);
 
-/** The next facing when a device is turned. */
-export const turned = (type: DeviceTypeId, facing: Facing): Facing => ((facing + 1) % facingsOf(type)) as Facing;
+// Clockwise on either camera: level, descending slope, end-on, ascending slope.
+// Facing IDs are also stored in saves and used when aligning a dragged fence.
+const FENCE_ROTATION: readonly Facing[] = [2, 0, 3, 1];
+export function turned(type: DeviceTypeId, facing: Facing, direction: 1 | -1 = 1): Facing {
+  if (type !== 'fence') return facing === 0 ? 1 : 0;
+  const index = FENCE_ROTATION.indexOf(facing);
+  return FENCE_ROTATION[(index + direction + FENCE_ROTATION.length) % FENCE_ROTATION.length]!;
+}
 
 export const isManual = (type: DeviceTypeId): boolean => DEVICES[type].mode === 'manual';
 export const isAuto = (type: DeviceTypeId): boolean => DEVICES[type].mode === 'auto';

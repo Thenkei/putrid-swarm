@@ -14,7 +14,7 @@ const browser = await launch();
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, locale: 'fr-FR' });
 await page.addInitScript(() => {
   localStorage.setItem('putrid-swarm.warned', '1');
-  localStorage.setItem('putrid-swarm.hint.v2', '1');
+  localStorage.setItem('putrid-swarm.hint.v3', '1');
 });
 const errors = [];
 page.on('console', (m) => {

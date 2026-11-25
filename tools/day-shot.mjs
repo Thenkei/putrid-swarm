@@ -12,7 +12,7 @@ page.on('pageerror', (e) => errors.push(e.message));
 await page.goto(process.env.PS_URL ?? 'http://localhost:5173/');
 await page.waitForTimeout(2500);
 await page.evaluate(async () => {
-  localStorage.setItem('putrid-swarm.hint', '1');
+  localStorage.setItem('putrid-swarm.hint.v3', '1');
   const game = await import('/src/core/game.ts');
   const op = await import('/tests/operator.ts');
   const flow = await import('/src/scenes/flow.ts');

@@ -9,7 +9,6 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(() => {
     localStorage.setItem('putrid-swarm.warned', '1');
-    localStorage.setItem('putrid-swarm.hint.v2', '1');
   });
   await page.goto(process.argv[2] ?? process.env.PS_URL ?? 'http://localhost:5173/');
   await page.waitForFunction(() => window.__app, null, { timeout: 90000 });
@@ -43,6 +42,33 @@ try {
     await moveTo(...end);
     await page.mouse.up();
   };
+
+  await day(0, 10, 10);
+  await page.keyboard.press('Digit1');
+  const guideButton = page.locator('.guide-toggle');
+  const guide = page.locator('.yard-guide-overlay');
+  await guideButton.click();
+  await guide.waitFor();
+  const snapshot = () => page.evaluate(() => {
+    const { scene, state } = window.__app;
+    return [scene.time, scene.rot, scene.zoom, scene.mode, scene.facing, state.hoursLeft, state.yard.devices.length];
+  });
+  const paused = await snapshot();
+  await page.keyboard.press('KeyR');
+  await page.keyboard.press('Digit2');
+  await page.mouse.click(290, 78);
+  await page.mouse.wheel(0, 120);
+  await page.keyboard.press('Tab');
+  assert.equal(await guide.locator('button').evaluate(b => b === document.activeElement), true);
+  assert.deepEqual(await snapshot(), paused, 'Reading controls freezes the yard and blocks construction input');
+  await page.keyboard.press('Escape');
+  await guide.waitFor({ state: 'detached' });
+  assert.equal(await guideButton.evaluate(b => b === document.activeElement), true);
+  await page.waitForFunction(time => window.__app.scene.time > time, paused[0]);
+  assert.deepEqual((await snapshot()).slice(1), paused.slice(1));
+  await guideButton.click();
+  await guide.locator('button').click();
+  await guide.waitFor({ state: 'detached' });
 
   for (const rot of [0, 1]) {
     const [x, y] = rot === 0 ? [10, 8] : [11, 13];
@@ -178,7 +204,21 @@ try {
     const middleClick = await built();
     await page.mouse.down({ button: 'right' });
     await page.mouse.up({ button: 'right' });
-    assert.equal(await page.evaluate(() => window.__app.scene.facing), 1);
+    await page.locator('.build-wheel').waitFor();
+    assert.equal(await page.evaluate(() => window.__app.scene.facing), 0);
+    await page.keyboard.press('Escape');
+
+    const placement = await screen(7, 16);
+    await page.mouse.move(placement.x, placement.y);
+    for (const [delta, cycle] of [[120, [3, 1, 2, 0]], [-120, [2, 1, 3, 0]]]) {
+      for (const facing of cycle) {
+        await page.mouse.wheel(0, delta);
+        await page.waitForFunction(f => window.__app.scene.currentGhost().ghost?.facing === f, facing);
+        await page.mouse.click(placement.x, placement.y);
+        assert.deepEqual(await built(), [[7, 16, facing]]);
+        await page.keyboard.press('Backspace');
+      }
+    }
 
     await day(rot, 7.5, 16.5);
     await moveTo(7, 16);
@@ -213,7 +253,9 @@ try {
     await page.mouse.down({ button: 'right' });
     await page.mouse.down();
     await page.mouse.up({ button: 'right' });
-    assert.equal(await page.evaluate(() => window.__app.scene.facing), 1);
+    await page.locator('.build-wheel').waitFor();
+    assert.equal(await page.evaluate(() => window.__app.scene.facing), 0);
+    await page.keyboard.press('Escape');
     await moveTo(9, 16);
     await page.mouse.up();
     assert.deepEqual(await built(), [[5, 16, 0]]);
@@ -383,7 +425,7 @@ try {
       app.state = { ...game, day: 2, inventory, yard: { ...game.yard, devices: [lamp] } };
       app.swap(new DayScene(app));
       Object.assign(app.scene, { rot, cx: lamp.x + .5, cy: lamp.y + .5, zoom: 1.35 });
-      app.scene.root.querySelector('.tool-row.quick button.btn-alert').focus();
+      app.scene.root.querySelector('.tool-row button.btn-alert').focus();
     }, rot);
     await page.mouse.move(rot ? 776.5 : 770.5, 282.5);
     assert.equal(await page.evaluate(() => window.__app.scene.hoverDevice?.id), 71);
