@@ -1523,6 +1523,12 @@
     "seconds": 2.273,
     "gain": 1
   },
+  "vo_car_placement": {
+    "file": "vo_car_placement.mp3",
+    "kind": "voice",
+    "seconds": 2.795,
+    "gain": 1
+  },
   "vo_car_2": {
     "file": "vo_car_2.mp3",
     "kind": "voice",

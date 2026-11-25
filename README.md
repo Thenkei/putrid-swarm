@@ -109,7 +109,7 @@ After the second search at the police station, a desk lamp catches the Chief's e
 ## The loop as built
 
 1. **Day — 12 hours.** Driving, searching and building all draw on the same daylight. The car must be home before dark, so an outing is refused if the drive back no longer fits.
-   On the barn track, the wagon breaks log traps, floodlights and nets in its path. It can shove a horn onto a free neighbouring tile and rolls safely over stakes. The placement hint shows which tiles the car crosses.
+   On the barn track, the wagon crushes palisades, log traps, nets, barriers and floodlights in its path. It rolls safely over retracted stakes. A horn is pushed onto a free shoulder tile or crushed if it has nowhere to go. The placement hint shows what will happen.
    [Watch the walk from the house to the driver's seat.](docs/previews/hero-car-departure.mp4)
    **What is found is not yet brought home.** A search loads the boot; the refuge's stock only grows when the break pulls into the yard. Between the two, someone may want the same thing:
    - **A disputed lot.** Where no neighbour minds the place any more, a survivor may already be standing at the best spot left. That spot cannot be searched behind their back; it is settled with them: share it, trade for it from the boot, wager it on three washers, insist, come to blows over it, or leave it. The rest of the place can be searched first, which is how the boot gets something to trade. Driving off leaves them the lot.

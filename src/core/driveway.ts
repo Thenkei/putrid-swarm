@@ -58,26 +58,26 @@ function shoulder(device: DeviceInstance, contact: Contact, occupied: Set<number
   return undefined;
 }
 
-export function breaksUnderWagon(type: DeviceTypeId): boolean {
-  return type === 'log' || type === 'net' || type === 'floodlight';
-}
+export const WAGON_CONTACT = {
+  fence: 'break', spikes: 'rollOver', net: 'break', log: 'break',
+  barrier: 'break', horn: 'push', floodlight: 'break',
+} as const satisfies Record<DeviceTypeId, 'break' | 'rollOver' | 'push'>;
 
 export function drivewayImpacts(yard: YardState): DrivewayImpact[] {
   const contacts = yard.devices.flatMap(before => {
     const contact = swept.get(idx(before.x, before.y));
-    return contact && !before.broken && (breaksUnderWagon(before.type) || before.type === 'horn') ? [{ before, contact }] : [];
+    return contact && !before.broken && WAGON_CONTACT[before.type] !== 'rollOver' ? [{ before, contact }] : [];
   }).sort((a, b) => a.contact.at - b.contact.at || a.before.id - b.before.id);
   const occupied = new Set(yard.devices.map(d => idx(d.x, d.y)));
   const impacts: DrivewayImpact[] = [];
   for (const { before, contact } of contacts) {
     let after: DeviceInstance;
-    if (breaksUnderWagon(before.type)) {
-      after = { ...before, broken: true, hp: 0 };
-    } else {
-      const to = shoulder(before, contact, occupied);
-      if (!to) continue;
+    const to = WAGON_CONTACT[before.type] === 'push' ? shoulder(before, contact, occupied) : undefined;
+    if (to) {
       occupied.add(idx(to.x, to.y));
       after = { ...before, ...to };
+    } else {
+      after = { ...before, broken: true, hp: 0 };
     }
     impacts.push({ before, after, at: contact.at });
   }

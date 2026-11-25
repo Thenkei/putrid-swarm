@@ -59,7 +59,7 @@ import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
 import { S, fmt, getLang, hours, line } from '../engine/i18n';
 import { say, sayAny, sayOnce } from '../engine/voice';
-import { breaksUnderWagon, onDriveway } from '../core/driveway';
+import { onDriveway, WAGON_CONTACT } from '../core/driveway';
 import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, yardItemVisible, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
 import { deviceArt } from '../render/defenses';
 import { FROG_RETURNS_AT, FROG_SPLASH_AT } from '../render/homestead-life';
@@ -213,6 +213,7 @@ export class DayScene implements Scene {
     stopped: boolean;
     /** A lone post keeps its chosen facing until another post joins it. */
     firstFence: number | null;
+    drivewayRemarked: boolean;
     strokeCell: Cell | null;
   } | null = null;
 
@@ -247,6 +248,7 @@ export class DayScene implements Scene {
   enter(): void {
     audio.setAmbience('day');
     audio.setMusic('day');
+    void audio.prepareSample('vo_car_placement');
     // Painted while the screen is still dark from the scene change, not during the first frame.
     prepareWorld({ ...this.view, rot: this.rot === 0 ? 1 : 0 }, this.view);
     this.root = el('div');
@@ -827,9 +829,8 @@ export class DayScene implements Scene {
         const idle = this.ghostIdle();
         this.info.append(el('div', { style: { color: idle ? '#ffc24a' : '#c8f08a', marginTop: '4px' }, text: idle ? s.day.offRoute : s.day.onRoute }));
       } else if (DEVICES[this.mode.type].blocks) this.info.append(el('div', { class: 'muted', style: { marginTop: '4px' }, text: s.day.dragHint }));
-      const carHints: Partial<Record<DeviceTypeId, string>> = { horn: s.day.drivewayHorn, spikes: s.day.drivewaySpikes };
-      if (breaksUnderWagon(this.mode.type)) carHints[this.mode.type] = s.day.drivewayBreak;
-      const carHint = ghost && !problem && onDriveway(ghost.x, ghost.y) ? carHints[ghost.type] : undefined;
+      const carHints = { break: s.day.drivewayBreak, push: s.day.drivewayHorn, rollOver: s.day.drivewaySpikes };
+      const carHint = ghost && !problem && onDriveway(ghost.x, ghost.y) ? carHints[WAGON_CONTACT[ghost.type]] : undefined;
       this.info.append(el('div', { class: 'muted', style: { marginTop: '4px' }, text: carHint ?? s.day.turnHint }));
       return;
     }
@@ -1014,6 +1015,10 @@ export class DayScene implements Scene {
     if (result.ok && alignFirst !== null) result = turnDevice(result.value, alignFirst, facing);
     if (result.ok) this.facing = facing;
     if (!this.apply(result, '', null)) return null;
+    if (onDriveway(at.x, at.y) && !this.drag?.drivewayRemarked) {
+      const spoken = say('vo_car_placement');
+      if (this.drag) this.drag.drivewayRemarked = spoken > 0;
+    }
     this.dismantling = this.dismantling.filter(({ device }) => device.x !== at.x || device.y !== at.y);
     if (calmMotion()) audio.play('build');
     else this.construction.set(id, { at, age: 0 });
@@ -1344,6 +1349,7 @@ export class DayScene implements Scene {
       painted: false,
       stopped: false,
       firstFence: null,
+      drivewayRemarked: false,
       strokeCell: null,
     };
     // Palisades are drawn, not clicked one by one: the first goes down at once, the rest follow the pointer.

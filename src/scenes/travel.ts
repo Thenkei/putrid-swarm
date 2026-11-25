@@ -314,7 +314,7 @@ export class TravelScene implements Scene {
           x: device.x + .5, y: device.y + .5, age, life: .4, radius: .62,
         });
         const visual = dayDeviceVisual(hit.after);
-        if (device.type === 'horn' && age < .32) {
+        if (!hit.after.broken && age < .32) {
           const t = 1 - (1 - age / .32) ** 2;
           return { ...visual, x: device.x + (visual.x - device.x) * t, y: device.y + (visual.y - device.y) * t,
             placementLift: 9 * Math.sin(Math.PI * t) };
