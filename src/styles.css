@@ -58,11 +58,11 @@ body {
 }
 
 #game[data-yard-cursor='repair'] {
-  cursor: url('./cursors/repair.svg') 2 2, crosshair;
+  cursor: url('./cursors/repair.png') 2 2, crosshair;
 }
 
 #game[data-yard-cursor='dismantle'] {
-  cursor: url('./cursors/dismantle.svg') 2 2, crosshair;
+  cursor: url('./cursors/dismantle.png') 2 2, crosshair;
 }
 
 #game[data-yard-cursor='inspect'] {
