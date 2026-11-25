@@ -39,7 +39,7 @@ import { drawApproachWindow, drawApproachingHero, type ApproachingHero } from '.
 import type { NightOwl } from '../scenes/night-wildlife';
 import { owlDrawable } from './night-owl';
 import { drawYardCat, type YardCatPose } from './yard-cat';
-import { drawGlowworms, drawPropLife, type HomesteadLife } from './homestead-life';
+import { drawGlowworms, drawPropLife, drawSquirrelCache, groundLifeDrawable, MAILBOX_PERCH, WELL_WATER, type HomesteadLife } from './homestead-life';
 import { dawnCel, firstSwallows, flowerPose, gateHare, sunlight } from './sunrise';
 import { drawRattle, rattlePoint, type RattleVisual } from './rattle';
 
@@ -379,8 +379,7 @@ function drawSceneryAction(ctx: CanvasRenderingContext2D, kind: SceneryAction['k
     return;
   }
 
-  const mouthX = w * (rot === 0 ? 0.47 : 0.50);
-  const mouthY = h * (rot === 0 ? 0.65 : 0.67);
+  const mouthX = w * WELL_WATER[rot][0], mouthY = h * WELL_WATER[rot][1];
   if (age < 0.48) {
     const t = age / 0.48;
     // The washer comes in under the roof and passes behind the near lip of the masonry.
@@ -658,12 +657,17 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const { foot, fit } = art;
     const key = propSpriteKey(prop.kind, view.rot);
     const centreDepth = depthOf(view.rot, gx, gy) + 0.4;
+    if (frame.homesteadLife) {
+      if (prop.kind === 'woodpile') drawSquirrelCache(ctx, prop, view, frame.homesteadLife, frame.time, calmMotion());
+      const visitor = groundLifeDrawable(ctx, prop, view, frame.homesteadLife, frame.time, calmMotion());
+      if (visitor) drawables.push(visitor);
+    }
     if (prop.kind === 'mailbox' && frame.nightOwl) {
       const mailbox = sprite(key);
       if (mailbox) {
         const rect = spriteRect(p, art.h * z * mailbox.w / mailbox.h, art.h * z, foot, false);
         drawables.push(owlDrawable(ctx, view, frame.nightOwl, gx, gy,
-          rect.x + rect.w * (view.rot ? .52 : .48), rect.y + art.h * z * .132, calmMotion()));
+          rect.x + rect.w * MAILBOX_PERCH[view.rot][0], rect.y + art.h * z * MAILBOX_PERCH[view.rot][1], calmMotion()));
       }
     }
     const lean = SWAYS.has(prop.kind) ? windAt(frame.time, prop.x, prop.y, hash2(prop.x, prop.y, 3), view.rot) * (prop.kind === 'bush' ? 0.092 : 0.035) : 0;

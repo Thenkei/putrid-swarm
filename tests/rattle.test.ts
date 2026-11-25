@@ -1,8 +1,10 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import { newGame, startNight } from '../src/core/game';
 import { NightSim, type SimEvent } from '../src/core/night';
 import { rattleForNight, rigRattle } from '../src/core/rattle';
 import { deserialize, serialize } from '../src/core/save';
+import { cameraView } from '../src/render/projection';
+import { drawRattle } from '../src/render/rattle';
 
 it('pays once, survives a reload and is offered again the next day', () => {
   const state = newGame(42);
@@ -40,4 +42,29 @@ it('sounds once on the rigged hedge, even if a prowler flanks towards another do
   expect(events.filter(event => event.type === 'rattle')).toEqual([{ type: 'rattle', sector: 'verger' }]);
   expect(sim.rattleAt).not.toBeNull();
   expect(sim.enemies.some(enemy => enemy.type === 'dog' && enemy.target === 'arriere')).toBe(true);
+});
+
+it('keeps the tin tied to the wire before and after a strike in both yard views', () => {
+  for (const struckAt of [null, 0]) {
+    const tilt: number[] = [];
+    for (const camera of ['portail', 'arriere'] as const) {
+      const ctx = {
+        save: vi.fn(), restore: vi.fn(), beginPath: vi.fn(), stroke: vi.fn(), fillRect: vi.fn(),
+        scale: vi.fn(), translate: vi.fn<(x: number, y: number) => void>(), rotate: vi.fn<(a: number) => void>(),
+        moveTo: vi.fn<(x: number, y: number) => void>(), lineTo: vi.fn(),
+        quadraticCurveTo: vi.fn<(cx: number, cy: number, x: number, y: number) => void>(),
+      };
+      const view = cameraView(camera, { x: 40, y: 10, w: 640, h: 480 }, 1.22);
+      drawRattle(ctx as unknown as CanvasRenderingContext2D, view, { sector: 'grange', struckAt }, .27);
+      const [, startY] = ctx.moveTo.mock.calls[2]!;
+      const [, controlY, endX, endY] = ctx.quadraticCurveTo.mock.calls[0]!;
+      const [tieX, tieY] = ctx.translate.mock.calls[1]!;
+      const t = tieX / endX;
+      expect(t).toBeGreaterThan(0);
+      expect(t).toBeLessThan(1);
+      expect(tieY).toBeCloseTo((1 - t) ** 2 * startY + 2 * (1 - t) * t * controlY + t ** 2 * endY);
+      tilt.push(ctx.rotate.mock.calls[0]![0]);
+    }
+    expect(tilt[0]! + tilt[1]!).toBeCloseTo(0);
+  }
 });

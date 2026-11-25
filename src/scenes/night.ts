@@ -525,6 +525,7 @@ export class NightScene implements Scene {
     this.hoverFeedDevice = null;
     this.retuneAt = this.time;
     this.layoutMinis();
+    this.onPointerMove(this.app.pointer);
     this.syncHud(true);
   }
 

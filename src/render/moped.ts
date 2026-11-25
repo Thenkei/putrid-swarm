@@ -14,6 +14,18 @@ const STEEL = '#b7ada0';
 const BLAST_WIDTH = MOPED_BLAST_RADIUS * Math.SQRT2 * TW;
 const paintedCels: HTMLCanvasElement[] = [];
 
+/** The tyre bottoms in the 480×320 painting are (86,315) and (401,315).
+ * Lay their common baseline along the projected lane and keep height vertical. */
+const paintedTyres = { rear: -31 + 86 * 62 / 480, front: -31 + 401 * 62 / 480, y: -34 + 315 * 41.33 / 320 };
+const fallbackTyres = { rear: -11, front: 12, y: 6 };
+
+export function mopedMount(angle: number, painted: boolean) {
+  const dx = Math.cos(angle), dy = Math.sin(angle);
+  const tyres = painted ? paintedTyres : fallbackTyres;
+  const centre = (tyres.rear + tyres.front) / 2;
+  return [dx, dy, 0, 1, -centre * dx, -centre * dy - tyres.y] as const;
+}
+
 function compressFork(ctx: CanvasRenderingContext2D, kick: number) {
   ctx.translate(4, 0);
   ctx.transform(1 - .07 * kick, -.17 * kick, 0, 1, 0, 0);
@@ -208,7 +220,7 @@ export function mopedRideDrawable(ctx: CanvasRenderingContext2D, view: View, rid
   const origin = project(view, start.x, start.y);
   const end = project(view, next.x, next.y);
   const facing = end.x >= origin.x ? 1 : -1;
-  const pitch = Math.atan2(end.y - origin.y, Math.abs(end.x - origin.x));
+  const angle = Math.atan2(end.y - origin.y, end.x - origin.x);
   const depth = depthOf(view.rot, gx, gy);
   return {
     depth: front ? outsideSillDepth(view.rot, depth) : depth,
@@ -216,15 +228,18 @@ export function mopedRideDrawable(ctx: CanvasRenderingContext2D, view: View, rid
       ctx.save();
       ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
       if (front && age < 1.05) clipAtSill(ctx, view, ride.sector, facing);
-      ctx.translate(x, y); ctx.scale(view.zoom * facing, view.zoom); ctx.rotate(pitch * .65);
-      drawRiderlessMoped(ctx, age, progress, emergence, kick, contactAge);
+      ctx.translate(x, y); ctx.scale(view.zoom, view.zoom);
+      const painted = !!sprite('epic_moped_art');
+      ctx.transform(...mopedMount(angle, painted));
+      drawRiderlessMoped(ctx, age, progress, emergence, kick, contactAge, painted);
       ctx.restore();
     },
   };
 }
 
-function drawRiderlessMoped(ctx: CanvasRenderingContext2D, age: number, progress: number, emergence: number, kick: number, contactAge: number) {
+function drawRiderlessMoped(ctx: CanvasRenderingContext2D, age: number, progress: number, emergence: number, kick: number, contactAge: number, painted: boolean) {
   const still = calmMotion();
+  const tyres = painted ? paintedTyres : fallbackTyres;
   // Exhaust and kick-up stay low enough to leave the infected visible on every feed.
   if (!still) {
     for (let i = 0; i < 4; i++) {
@@ -237,21 +252,17 @@ function drawRiderlessMoped(ctx: CanvasRenderingContext2D, age: number, progress
   }
   ctx.fillStyle = '#17141078';
   ctx.beginPath();
-  ctx.ellipse(0, 3, 18, 3.8, 0, 0, Math.PI * 2);
+  ctx.ellipse((tyres.rear + tyres.front) / 2, tyres.y, 18, 3.8, 0, 0, Math.PI * 2);
   ctx.fill();
 
   const roll = age - .46;
   const lift = !still && roll > 0 && roll < .38 ? -.16 * Math.sin(Math.PI * roll / .38) : 0;
-  ctx.rotate(lift);
-  if (kick > 0) {
-    // Brace the rear tyre against the ground. The fork dips first, then recoils;
-    // the headlight and its cone follow the same steering motion as the front end.
-    ctx.translate(-16, 0);
-    ctx.rotate(Math.sin(contactAge * 26) * kick * .13);
-    ctx.translate(16, 0);
+  if (lift || kick > 0) {
+    ctx.translate(tyres.rear, tyres.y);
+    ctx.rotate(lift + (kick > 0 ? Math.sin(contactAge * 26) * kick * .13 : 0));
+    ctx.translate(-tyres.rear, -tyres.y);
   }
   // A headlamp illuminates the path long enough for the player to follow a single launch.
-  const painted = sprite('epic_moped_art');
   const lampX = painted ? 21 : 11, lampY = painted ? -24 : -13;
   ctx.save();
   if (kick) compressFork(ctx, kick);
@@ -338,15 +349,23 @@ export function drawMopedScorch(ctx: CanvasRenderingContext2D, view: View, secto
   }
   const impact = mopedImpact(sector);
   const p = project(view, impact.x, impact.y);
-  ctx.drawImage(scorch, p.x - 83 * view.zoom, p.y - 27 * view.zoom, 166 * view.zoom, 54 * view.zoom);
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  const scale = view.zoom * (view.rot ? -1 : 1);
+  ctx.scale(scale, scale);
+  ctx.drawImage(scorch, -83, -27, 166, 54);
+  ctx.restore();
 }
 
-function blastCel(ctx: CanvasRenderingContext2D, cel: number, width: number,
-  alpha: number, x = 0, footY = 0) {
+// The third painting leans into the wind; its plume starts well left of the cel centre.
+const blastFeet = [[188, 346], [177, 352], [128, 354]] as const;
+function blastCel(ctx: CanvasRenderingContext2D, cel: 0 | 1 | 2, width: number,
+  alpha: number, drift = 0, lift = 0) {
   if (!blastArt?.complete || !blastArt.naturalWidth || alpha <= 0) return;
+  const [x, y] = blastFeet[cel];
   ctx.globalAlpha = Math.min(1, alpha);
   ctx.drawImage(blastArt, (cel % 2) * 384, Math.floor(cel / 2) * 384, 384, 384,
-    x - width / 2, footY - width, width, width);
+    drift - x * width / 384, -lift - y * width / 384, width, width);
   ctx.globalAlpha = 1;
 }
 
@@ -357,7 +376,7 @@ function drawBlast(ctx: CanvasRenderingContext2D, view: View, x: number, y: numb
   const still = calmMotion();
   ctx.save();
   ctx.beginPath(); ctx.rect(view.x, view.y, view.w, view.h); ctx.clip();
-  ctx.translate(x, y); ctx.scale(view.zoom, view.zoom);
+  ctx.translate(x, y); ctx.scale(view.rot ? -view.zoom : view.zoom, view.zoom);
 
   if (age < 2.75) {
     const light = still ? .36 : Math.max(0, 1 - age / 1.1);
@@ -373,14 +392,14 @@ function drawBlast(ctx: CanvasRenderingContext2D, view: View, x: number, y: numb
     }
     if (still) {
       // Fixed silhouettes and a steady local glow replace expansion, flying cinders and drift.
-      blastCel(ctx, age < 1 ? 1 : 2, width * .64, age < 1 ? .9 : .62, 0, width * .055);
+      blastCel(ctx, age < 1 ? 1 : 2, width * .64, age < 1 ? .9 : .62);
     } else {
       const swell = Math.min(1, age / .33);
-      blastCel(ctx, 0, width * (.42 + .32 * swell), Math.max(0, 1 - age / .30), 0, width * .06);
+      blastCel(ctx, 0, width * (.42 + .32 * swell), Math.max(0, 1 - age / .30));
       const fire = Math.min(1, age / .16) * Math.max(0, Math.min(1, (1.05 - age) / .50));
-      blastCel(ctx, 1, width * (.49 + .39 * swell), fire, 0, width * .09);
+      blastCel(ctx, 1, width * (.49 + .39 * swell), fire);
       const smoke = Math.min(1, Math.max(0, (age - .47) / .51)) * Math.min(1, (2.75 - age) / 1.48);
-      blastCel(ctx, 2, width * (.55 + Math.min(age, 2) * .105), smoke * .81, age * 5, width * .04 - age * 5);
+      blastCel(ctx, 2, width * (.55 + Math.min(age, 2) * .105), smoke * .81, age * 5, age * 5);
     }
   }
   ctx.restore();
