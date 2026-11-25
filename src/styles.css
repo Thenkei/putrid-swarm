@@ -1388,39 +1388,34 @@ button:disabled {
 
 .build-heading { display: flex; align-items: center; justify-content: space-between; }
 .guide-toggle {
-  background: transparent;
-  color: var(--cream-dim);
-  border: 0;
-  padding: 3px 5px;
-  font-size: 16px;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.build-guide {
-  position: relative;
-  border-left: 2px solid var(--amber);
-  padding: 5px 8px;
-  background: #33291f;
-  font-size: 17px;
-  line-height: 1.2;
-}
-.guide-step { margin: 0 0 5px; color: var(--cream); }
-.build-guide details { display: inline-block; color: var(--cream-dim); }
-.build-guide summary { cursor: pointer; }
-.build-guide ul {
-  position: absolute;
-  z-index: 2;
-  left: calc(100% + 16px);
-  bottom: 0;
-  width: 310px;
-  margin: 0;
-  padding: 12px 14px 12px 30px;
+  padding: 3px 9px;
   border: 1px solid var(--edge);
-  border-radius: 6px;
-  background: var(--panel);
+  border-radius: 4px;
+  color: var(--cream);
+  background: #32291e;
+  font-size: 16px;
 }
-.build-guide li + li { margin-top: 5px; }
-.build-guide .guide-toggle { float: right; }
+.guide-toggle:hover, .guide-toggle:focus-visible { border-color: var(--amber); }
+#ui > .yard-guide-overlay { pointer-events: auto; }
+.yard-guide-sheet {
+  width: 870px;
+  padding: 26px 32px 22px;
+  color: var(--cream);
+  background: #261f17;
+  border: 2px solid #806541;
+  border-radius: 9px;
+  box-shadow: 0 16px 56px #000a;
+}
+.yard-guide-sheet header, .yard-guide-sheet footer { display: flex; align-items: center; justify-content: space-between; }
+.yard-guide-sheet header { padding-bottom: 16px; border-bottom: 1px solid var(--edge); }
+.yard-guide-sheet h2 { margin: 0; font-size: 34px; }
+.yard-guide-sheet header span { color: var(--amber); font-size: 18px; }
+.yard-guide-sections { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.yard-guide-sections h3 { margin: 18px 0 10px; color: var(--amber); font-size: 22px; }
+.yard-guide-sections dl { display: grid; grid-template-columns: max-content 1fr; gap: 12px; align-items: baseline; margin: 0; }
+.yard-guide-sections dd { margin: 0; font-size: 19px; line-height: 1.18; }
+.yard-guide-sections kbd { padding: 2px 6px; border: 1px solid #77664f; border-bottom-width: 2px; border-radius: 4px; background: #342c22; font: inherit; font-size: 17px; white-space: nowrap; }
+.yard-guide-sheet footer { justify-content: flex-end; border-top: 1px solid var(--edge); margin-top: 20px; padding-top: 14px; }
 #ui .mailbox-read {
   position: absolute;
   pointer-events: none;

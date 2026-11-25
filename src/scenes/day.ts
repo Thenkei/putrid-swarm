@@ -132,7 +132,6 @@ const RECT = { x: 292, y: 56, w: 976, h: 652 } as const;
 const FRAME_RADIUS = 8;
 const MIN_ZOOM = 0.62;
 const MAX_ZOOM = 1.5;
-const HINT_KEY = 'putrid-swarm.hint.v3';
 
 /** The view can be centred anywhere on the lot but its outermost cells: past them there is only wood to look at. */
 const PAN_INSET = 2;
@@ -244,12 +243,7 @@ export class DayScene implements Scene {
   private buildWheel: HTMLElement | null = null;
   private deliverySlip: HTMLElement | null = null;
   private mailboxButton: HTMLButtonElement | null = null;
-  private guideOpen = false;
-  private guideTurned = false;
-  private guideDone = false;
-  private guide!: HTMLElement;
-  private guideButton!: HTMLButtonElement;
-  private guideText!: HTMLElement;
+  private closeGuide: (() => void) | null = null;
   private bakerVisit: ReturnType<typeof bakerMorning> | null = null;
   private invoice: ReturnType<typeof invoiceDetail> | null = null;
   private whistle: WhistleDawn | null = null;
@@ -283,10 +277,6 @@ export class DayScene implements Scene {
     prepareWorld({ ...this.view, rot: this.rot === 0 ? 1 : 0 }, this.view);
     this.root = el('div');
     this.app.ui.append(this.root);
-    if (this.state.day === 1) {
-      try { this.guideOpen = localStorage.getItem(HINT_KEY) !== '1'; }
-      catch { this.guideOpen = true; }
-    }
     this.refresh();
     if (whistleInGrass(this.state)) {
       prepareWhistlePaintings();
@@ -426,28 +416,10 @@ export class DayScene implements Scene {
         });
       }
     }
-    this.guideButton = el('button', { class: 'guide-toggle', text: s.day.guide, onClick: () => {
-      if (!this.guide.hidden) this.finishGuide();
-      else {
-        if (this.deliverySlip) this.deliverySlip.hidden = true;
-        this.guideOpen = true;
-        this.guideTurned = false;
-        this.guideDone = false;
-        this.refresh();
-      }
-    } });
-    this.guideText = el('p', { class: 'guide-step' });
-    this.guideText.setAttribute('aria-live', 'polite');
-    this.guide = el('div', { class: 'build-guide' }, [
-      this.guideText,
-      el('details', {}, [
-        el('summary', { text: s.day.guideTips }),
-        el('ul', {}, [s.day.guideTree, s.day.guideRepair, s.day.hint1, s.day.hint2, s.day.hint3].map(text => el('li', { text }))),
-      ]),
-      el('button', { class: 'guide-toggle', text: this.guideDone ? s.day.gotIt : s.day.guideSkip, onClick: () => this.finishGuide() }),
-    ]);
+    const guideButton = el('button', { class: 'guide-toggle', text: s.day.guide, onClick: () => this.openGuide(guideButton) });
+    guideButton.setAttribute('aria-haspopup', 'dialog');
     const panel = el('div', { class: 'panel build-panel' }, [
-      el('div', { class: 'build-heading' }, [el('h3', { text: s.day.build }), this.guideButton]),
+      el('div', { class: 'build-heading' }, [el('h3', { text: s.day.build }), guideButton]),
       ...cards,
       el('h3', { text: s.day.tools }),
       el('div', { class: 'tool-row' }, [
@@ -464,7 +436,6 @@ export class DayScene implements Scene {
         title: fresh ? fmt(s.day.undoTitle, { name: s.device[fresh.type].name }) : s.day.undoNone,
         onClick: () => this.undo(),
       })]),
-      this.guide,
     ]);
 
     // Doors and house. Each door also says how many working traps stand on the way to it.
@@ -556,7 +527,6 @@ export class DayScene implements Scene {
           el('p', { text: s.registeredLetter.notice }),
           el('button', { class: 'btn', text: s.registeredLetter.putAway, onClick: () => {
             if (this.deliverySlip) this.deliverySlip.hidden = true;
-            this.updateGuide();
             this.positionMailboxButton();
             this.mailboxButton?.focus({ preventScroll: true });
           } }),
@@ -574,7 +544,7 @@ export class DayScene implements Scene {
       this.deliverySlip = null;
       this.mailboxButton = null;
     }
-    this.updateGuide();
+
     let curiosity = epicObject(this.app, () => this.refresh(), (sector, previous) => {
       this.mopedAimAt = this.time;
       this.previousMopedAim = previous;
@@ -750,24 +720,42 @@ export class DayScene implements Scene {
     ]);
   }
 
-  private updateGuide(): void {
-    this.guide.hidden = !this.guideOpen || this.reveal > 0 || this.deliverySlip?.hidden === false;
-    this.guideButton.setAttribute('aria-expanded', String(!this.guide.hidden));
-    if (this.guide.hidden) return;
-    const s = S().day;
-    const step = this.guideDone ? s.guideUndo : this.buildWheel ? s.guideChoose
-      : this.mode.kind !== 'build' ? s.guideOpen : this.guideTurned ? s.guidePlace : s.guideTurn;
-    if (this.guideText.textContent !== step) this.guideText.textContent = step;
-  }
-
-  private finishGuide(): void {
-    this.guideOpen = false;
-    this.rememberGuide();
-    this.refresh();
-  }
-
-  private rememberGuide(): void {
-    try { localStorage.setItem(HINT_KEY, '1'); } catch { /* Still applies to this visit. */ }
+  private openGuide(opener: HTMLButtonElement): void {
+    if (this.closeGuide) return;
+    this.closeBuildWheel();
+    this.drag = null;
+    const s = S();
+    const title = el('h2', { text: s.day.guideTitle });
+    title.id = 'yard-guide-title';
+    const sections = s.day.guideSections.map(section => el('section', {}, [
+      el('h3', { text: section.title }),
+      el('dl', {}, section.controls.flatMap(({ gesture, action }) => [
+        el('dt', {}, [el('kbd', { text: gesture })]), el('dd', { text: action }),
+      ])),
+    ]));
+    const close = (): void => {
+      dialog.remove();
+      this.closeGuide = null;
+      this.root.inert = false;
+      opener.focus({ preventScroll: true });
+      this.app.refreshPointer();
+    };
+    const resume = el('button', { class: 'btn btn-primary', text: s.day.guideResume, onClick: close });
+    const dialog = el('div', { class: 'modal yard-guide-overlay' }, [
+      el('div', { class: 'yard-guide-sheet' }, [
+        el('header', {}, [title, el('span', { text: s.night.paused })]),
+        el('div', { class: 'yard-guide-sections' }, sections),
+        el('footer', {}, [resume]),
+      ]),
+    ]);
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.setAttribute('aria-labelledby', title.id);
+    this.closeGuide = close;
+    this.root.inert = true;
+    this.app.ui.append(dialog);
+    this.app.refreshPointer();
+    resume.focus();
   }
 
   private positionMailboxButton(): void {
@@ -791,7 +779,6 @@ export class DayScene implements Scene {
   private readDeliverySlip(): void {
     if (!this.deliverySlip) return;
     this.deliverySlip.hidden = false;
-    this.updateGuide();
     this.deliverySlip.querySelector('button')?.focus({ preventScroll: true });
   }
 
@@ -1068,7 +1055,6 @@ export class DayScene implements Scene {
     });
     this.buildWheel = layer;
     this.root.append(layer);
-    this.updateGuide();
     wheel.querySelector<HTMLButtonElement>('.sel, .wheel-hand')?.focus({ preventScroll: true });
   }
 
@@ -1076,14 +1062,12 @@ export class DayScene implements Scene {
     if (!this.buildWheel) return;
     this.buildWheel.remove();
     this.buildWheel = null;
-    this.updateGuide();
   }
 
   private setMode(mode: Mode): void {
     audio.play('click');
     this.drag = null;
     this.mode = mode;
-    this.guideTurned = false;
     // A facing only palisades have does not carry over to a trap.
     if (mode.kind === 'build' && this.facing >= facingsOf(mode.type)) this.facing = 0;
     this.ghostCache = null;
@@ -1104,8 +1088,6 @@ export class DayScene implements Scene {
     if (this.mode.kind === 'build') {
       audio.play('click');
       this.facing = turned(this.mode.type, this.facing, direction);
-      this.guideTurned = true;
-      this.updateGuide();
       this.ghostCache = null;
       this.refreshBuildArt();
       this.updateInfo();
@@ -1223,12 +1205,6 @@ export class DayScene implements Scene {
     this.dismantling = this.dismantling.filter(({ device }) => device.x !== at.x || device.y !== at.y);
     if (calmMotion()) audio.play('build');
     else this.construction.set(id, { at, age: 0 });
-    if (this.guideOpen && !this.guideDone) {
-      this.guideDone = true;
-      this.updateGuide();
-      this.guide.querySelector('button')!.textContent = S().day.gotIt;
-      this.rememberGuide();
-    }
     return id;
   }
 
@@ -1366,6 +1342,7 @@ export class DayScene implements Scene {
   // ───────────────────────────── Loop ─────────────────────────────
 
   update(dt: number): void {
+    if (this.closeGuide) return;
     if (this.whistle) { this.whistle.update(dt); return; }
     const previousTime = this.time;
     this.time += dt;
@@ -1383,7 +1360,6 @@ export class DayScene implements Scene {
     if (this.reveal > 0) {
       this.reveal = Math.max(0, this.reveal - dt);
       if (this.reveal === 0) {
-        this.updateGuide();
         sayOnce('day1', 'vo_day1');
       }
     }
@@ -1640,6 +1616,7 @@ export class DayScene implements Scene {
   }
 
   onPointerMove(pointer: Pointer): void {
+    if (this.closeGuide) return;
     const drag = this.drag;
     if (drag && pointer.down) {
       const dx = pointer.x - drag.x;
@@ -1765,7 +1742,15 @@ export class DayScene implements Scene {
       && (this.hover?.x !== Math.floor(before.gx) || this.hover?.y !== Math.floor(before.gy))) this.drag = null;
   }
 
-  onKeyDown(code: string): void {
+  onKeyDown(code: string, event: KeyboardEvent): void {
+    if (this.closeGuide) {
+      if (code === 'Escape') this.closeGuide();
+      if (code === 'Tab') {
+        event.preventDefault();
+        this.app.ui.querySelector<HTMLButtonElement>('.yard-guide-overlay button')?.focus();
+      }
+      return;
+    }
     if (this.cancelNight) {
       if (code === 'Escape') this.cancelNight();
       return;
