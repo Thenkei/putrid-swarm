@@ -11,7 +11,7 @@ try {
     localStorage.setItem('putrid-swarm.warned', '1');
     localStorage.setItem('putrid-swarm.hint.v2', '1');
   });
-  await page.goto(process.argv[2] ?? 'http://localhost:5173/');
+  await page.goto(process.argv[2] ?? process.env.PS_URL ?? 'http://localhost:5173/');
   await page.waitForFunction(() => window.__app, null, { timeout: 90000 });
 
   const day = (rot, cx, cy, wood = 50) => page.evaluate(async args => {
