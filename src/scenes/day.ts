@@ -330,7 +330,7 @@ export class DayScene implements Scene {
 
     const daylight = el('span', { class: 'meter' }, [el('i', { style: { width: `${(state.hoursLeft / DAY_HOURS) * 100}%` } })]);
     const houseMeter = el('span', { class: `meter house ${yard.houseHp <= 35 ? 'low' : ''}` }, [el('i', { style: { width: `${(yard.houseHp / HOUSE_MAX_HP) * 100}%` } })]);
-    const topbar = el('div', { class: 'topbar' }, [
+    const topbar = el('div', { class: 'topbar day-top' }, [
       el('span', { class: 'label-strong', text: fmt(s.day.day, { n: state.day }) }),
       el('span', { class: 'sep' }),
       el('span', { text: clockLabel(state.hoursLeft) }),
@@ -339,7 +339,6 @@ export class DayScene implements Scene {
       hasLeftArm(state) ? null : el('span', { class: 'chip-arm', text: s.day.oneArm, title: fmt(s.day.oneArmNote, { h: hours(ORCHARD.dressingHours) }) }),
       state.shed === 'freed' ? el('span', { class: 'chip-arm chip-shed good', text: s.day.shedFreed, title: fmt(s.day.shedFreedNote, { n: SHED.delivery.wood ?? 0 }) }) : null,
       state.shed === 'chained' ? el('span', { class: 'chip-arm chip-shed', text: s.day.shedChained, title: fmt(s.day.shedChainedNote, { h: hours(SHED.upkeepHours) }) }) : null,
-      el('span', { class: 'grow' }),
       inventoryBar(state.inventory),
       el('span', { class: 'sep' }),
       el('span', { text: s.day.house }),
