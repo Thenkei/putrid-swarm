@@ -12,11 +12,12 @@ const said = new Set<string>();
 const decks = new Decks<VoiceId>();
 
 const numbered = (stem: string, count: number): readonly VoiceId[] => Array.from({ length: count }, (_, i) => (i === 0 ? stem : `${stem}_${i + 1}`) as VoiceId);
+const QUIET_HOME_LINES: readonly VoiceId[] = ['vo_home_4', 'vo_home_10'];
 
 /** Moments that come back day after day have several lines, so the same one is not heard every time. */
 export const LINES = {
   car: numbered('vo_car', 10),
-  home: numbered('vo_home', 10),
+  home: numbered('vo_home', 10).filter(line => !QUIET_HOME_LINES.includes(line)),
   nightfall: numbered('vo_nightfall', 4),
   dawn: numbered('vo_dawn', 4),
   houseVictory: ['vo_house_victory_1', 'vo_house_victory_2', 'vo_house_victory_3', 'vo_house_victory_4'],
@@ -49,11 +50,12 @@ const ONE_ARMED: Partial<Record<Moment, { readonly add: readonly VoiceId[]; read
   dawn: { add: numbered('vo_dawn_arm', 3) },
 };
 
-/** The lines a moment can be spoken with, with both arms or with one. */
-export function linesFor(moment: Moment, oneArmed = false): readonly VoiceId[] {
+/** The lines available for this moment in the current context. */
+export function linesFor(moment: Moment, oneArmed = false, quietTrip = false): readonly VoiceId[] {
+  const lines = moment === 'home' && quietTrip ? [...LINES.home, ...QUIET_HOME_LINES] : LINES[moment];
   const change = oneArmed ? ONE_ARMED[moment] : undefined;
-  if (!change) return LINES[moment];
-  return [...LINES[moment].filter((line) => !change.drop?.includes(line)), ...change.add];
+  if (!change) return lines;
+  return [...lines.filter((line) => !change.drop?.includes(line)), ...change.add];
 }
 let hideTimer: number | null = null;
 
@@ -69,6 +71,8 @@ export interface SayOptions {
   readonly interrupt?: boolean;
   /** For a recurring moment: the protagonist has one arm left, and some of what he says knows it. */
   readonly oneArmed?: boolean;
+  /** The just-ended outing was recorded as having no encounters. */
+  readonly quietTrip?: boolean;
 }
 
 /** Speaks a line. Returns its duration in seconds, or 0 if it was dropped because another line is running. */
@@ -91,12 +95,13 @@ export function sayOnce(key: string, id: VoiceId, options: SayOptions = {}): num
 export type Moment = keyof typeof LINES;
 
 /** The next line for a recurring moment, never the one picked last time. */
-export const pickLine = (moment: Moment, oneArmed = false): VoiceId => decks.next(moment, linesFor(moment, oneArmed)) as VoiceId;
+export const pickLine = (moment: Moment, oneArmed = false, quietTrip = false): VoiceId =>
+  decks.next(moment, linesFor(moment, oneArmed, quietTrip)) as VoiceId;
 
 /** Speaks one of the lines written for a recurring moment. A line is only used up when it can be said. */
 export function sayAny(moment: Moment, options: SayOptions = {}): number {
   if (audio.speaking && !options.interrupt) return 0;
-  return say(pickLine(moment, options.oneArmed), options);
+  return say(pickLine(moment, options.oneArmed, options.quietTrip), options);
 }
 
 export function showSubtitle(text: string, seconds: number): void {

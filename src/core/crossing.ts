@@ -36,5 +36,8 @@ export function chooseCrossing(state: GameState, planned: LocationId, route: Cro
   const trip = crossingDeparture(state, planned, route);
   if (!trip) return null;
   const result = travelTo(trip.state, trip.id);
-  return result.ok ? { ...result.value, id: trip.id } : null;
+  if (!result.ok) return null;
+  const { state: arrived, meeting } = result.value;
+  const outing = arrived.outing && { ...arrived.outing, quiet: false };
+  return { state: { ...arrived, outing }, meeting, id: trip.id };
 }

@@ -18,6 +18,15 @@ it('ships the daily episodes with recorded action cues and both subtitle languag
   }
 });
 
+it('reserves the empty-road remarks for a confirmed quiet outing', () => {
+  for (const oneArmed of [false, true]) {
+    for (const line of ['vo_home_4', 'vo_home_10'] as const) {
+      expect(linesFor('home', oneArmed)).not.toContain(line);
+      expect(linesFor('home', oneArmed, true)).toContain(line);
+    }
+  }
+});
+
 describe('what the protagonist says once the arm is gone', () => {
   it('keeps every moment as it was while he has both arms', () => {
     for (const moment of MOMENTS) expect(linesFor(moment)).toEqual(LINES[moment]);
@@ -41,7 +50,7 @@ describe('what the protagonist says once the arm is gone', () => {
   it('has several variants of anything heard repeatedly, in both languages and recorded', () => {
     for (const moment of MOMENTS) {
       for (const oneArmed of [false, true]) {
-        const lines = linesFor(moment, oneArmed);
+        const lines = linesFor(moment, oneArmed, true);
         expect(lines.length).toBeGreaterThanOrEqual(3);
         for (const line of lines) {
           expect(fr.voice[line]).toBeTruthy();

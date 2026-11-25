@@ -29,11 +29,13 @@ it('commits the selected route once and keeps its result on reload', () => {
   const wait = chooseCrossing(start, 'grocery', 'wait')!;
   expect(wait.state.where).toBe('grocery');
   expect(wait.state.hoursLeft).toBe(start.hoursLeft - HERD_WAIT_HOURS - LOCATIONS.grocery.travelHours);
+  expect(wait.state.outing?.quiet).toBe(false);
   const detour = chooseCrossing(start, 'grocery', 'garage')!;
   expect(detour.state.where).toBe('garage');
   expect(detour.state.hoursLeft).toBe(start.hoursLeft - LOCATIONS.garage.travelHours);
   expect(detour.state.locations.grocery.visits).toBe(0);
   const reloaded = deserialize(serialize(detour.state))!;
+  expect(reloaded.outing?.quiet).toBe(false);
   const home = unwrap(arriveHome(unwrap(leaveLocation(reloaded)).state)).state;
   expect(shouldPlayCrossing(home, 'grocery')).toBe(false);
   expect(chooseCrossing(home, 'grocery', 'wait')).toBeNull();

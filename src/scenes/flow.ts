@@ -62,7 +62,7 @@ function unload(app: App): void {
     app.save();
   }
   goDay(app, { arrivedByCar: arrival?.ok === true, deliveredMoped: !!(arrival?.ok && state && epicFlag(state, 'loaded')) });
-  if (state) tripLine('home', state);
+  if (arrival?.ok && state) tripLine('home', state);
 }
 
 /**

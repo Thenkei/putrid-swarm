@@ -282,6 +282,8 @@ export interface Outing {
   /** Whether an encounter with something at stake was already met on this trip. */
   readonly major: boolean;
   readonly marks: readonly OutingMark[];
+  /** Whether the outing has gone without meeting anyone. Older saves may have no record. */
+  readonly quiet?: boolean;
   /** The last stretch is blocked by infected and must be played before unloading. */
   readonly crossbowStop?: true;
   /** Pending arrival remark, numbered across the run. */
