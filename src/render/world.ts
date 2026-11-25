@@ -9,8 +9,9 @@ import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, GroundContact, 
 import { SECTOR_IDS } from '../core/types';
 import { wreckDrawable } from './moped-wreck';
 import { kindlingDrawable } from './baker-kindling';
-import { paintedPixel } from './painted-pixel';
+import { paintedPixel, paintedSource } from './painted-pixel';
 import { drawPinnedInvoice } from './pinned-invoice';
+import { drawMailboxPaper } from './mailbox-paper';
 import { whistleDrawable } from './fallen-whistle';
 import sillCamperUrl from '../assets/camper-sill-figure.webp';
 import { paintingImage, preparePaintings, sprite, type Sprite } from '../engine/assets';
@@ -112,6 +113,8 @@ export interface SceneryAction {
 }
 
 export interface WorldFrame {
+  readonly mailboxSlip?: boolean;
+  readonly treePointer?: { readonly x: number; readonly y: number } | null;
   readonly indoorPassage?: IndoorPassage;
   readonly barnMoth?: BarnMoth;
   readonly foxAge?: number | null;
@@ -614,7 +617,14 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const wind = windAt(frame.time, tree.gx, tree.gy, tree.trait, view.rot);
     const lean = wind * (stand.key.includes('fir') ? 0.024 : 0.034);
     const part = (passage?.bend(tree.gx, tree.gy, view.rot, frame.time) ?? 0) * 0.24;
-    const opacity = canopyOpacity(stand.x, stand.y - stand.h * 0.54, stand.w * 0.57, stand.h * 0.56, depth);
+    let opacity = canopyOpacity(stand.x, stand.y - stand.h * 0.54, stand.w * 0.57, stand.h * 0.56, depth);
+    if (frame.treePointer) {
+      const dy = frame.treePointer.y - stand.y;
+      const dx = frame.treePointer.x - stand.x + lean * (frame.treePointer.y - stand.rootY);
+      if (paintedSource(stand.image, .5 + (stand.mirror ? -dx : dx) / stand.w, 1 + dy / stand.h, stand.w / stand.h)) {
+        opacity = Math.min(.5, opacity);
+      }
+    }
     drawables.push({ depth, draw: () => drawStand(ctx, stand, lean, opacity, part) });
   }
 
@@ -709,6 +719,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       // A fighting figure can reveal a device through this canopy on the live camera.
       if (opacity < .75) revealedProps?.add(prop);
     }
+    if (frame.treePointer && (prop.kind === 'oak' || prop.kind === 'apple')
+      && propPaintedAt(view, prop, frame.treePointer.x, frame.treePointer.y, lean)) opacity = Math.min(.5, opacity);
     drawables.push({
       depth: centreDepth,
       draw: () => {
@@ -721,8 +733,11 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
           // Apply the same registration to the prop and its attached effects about the foot.
           ctx.transform(1, fit.shearY, 0, fit.scaleY, 0, p.y * (1 - fit.scaleY) - fit.shearY * p.x);
         }
+        const hasEnvelope = frame.mailboxSlip && prop.kind === 'mailbox';
+        if (hasEnvelope && view.rot === 1) drawMailboxPaper(ctx, view);
         const drawn = drawSprite(ctx, key, p.x, p.y, art.h * z, false, opacity, lean, foot);
         if (!drawn) placeholder(ctx, p.x, p.y, 40 * z, 40 * z, '#5a6a4a', prop.kind);
+        if (hasEnvelope && view.rot === 0) drawMailboxPaper(ctx, view);
         if (drawn && frame.homesteadLife) drawPropLife(ctx, prop, drawn, art.h, view, frame.homesteadLife, frame.time, calmMotion());
         if (drawn && prop.kind === 'car' && frame.exhaustAge !== undefined) {
           drawExhaust(ctx, drawn, view.rot, z, frame.exhaustAge);

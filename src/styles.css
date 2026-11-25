@@ -903,8 +903,8 @@ button:disabled {
   bottom: 12px;
   display: flex;
   flex-direction: column;
-  padding: 10px 10px 8px;
-  gap: 4px;
+  padding: 8px;
+  gap: 3px;
 }
 
 .build-panel h3 {
@@ -918,11 +918,11 @@ button:disabled {
 
 .dev-card {
   display: grid;
-  grid-template-columns: 50px 1fr;
-  gap: 2px 8px;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 1px 6px;
   align-items: center;
   width: 100%;
-  padding: 4px 8px 3px 4px;
+  padding: 1px 6px 1px 4px;
   text-align: left;
   background: linear-gradient(180deg, #352b20, #231c15);
   border: 2px solid var(--edge-soft);
@@ -943,16 +943,16 @@ button:disabled {
   color: var(--cream-dim);
 }
 
-.dev-card img {
+.dev-card > img {
   grid-row: 1 / span 2;
-  width: 50px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
 }
 
 .dev-card .name {
-  font-size: 22px;
-  letter-spacing: 0.06em;
+  font-size: 19px;
+  letter-spacing: 0.025em;
   text-transform: uppercase;
   line-height: 1;
   display: flex;
@@ -960,7 +960,8 @@ button:disabled {
 }
 
 .dev-card .name span {
-  font-size: 16px;
+  font-size: 15px;
+  white-space: nowrap;
   color: var(--cream-dim);
 }
 
@@ -968,14 +969,20 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px;
 }
+
+.dev-card .cost { flex-wrap: nowrap; gap: 5px; }
+.dev-card .res { gap: 2px; font-size: 16px; }
+.dev-card .res img { width: 18px; height: 16px; }
 
 .dev-card .tag {
   flex: none;
-  padding: 2px 6px 0;
+  padding: 2px 4px 0;
   font-size: 13px;
-  letter-spacing: 0.1em;
+  line-height: 1;
+  letter-spacing: 0.045em;
+  white-space: nowrap;
   border-radius: 4px;
   border: 1px solid currentColor;
 }
@@ -999,36 +1006,50 @@ button:disabled {
 
 .tool-row .btn {
   flex: 1;
-  min-height: 34px;
-  font-size: 18px;
-  padding: 4px 6px 2px;
-}
-
-.tool-row .yard-tool {
-  gap: 5px;
-  padding: 2px 4px;
+  min-height: 32px;
   font-size: 16px;
-  white-space: nowrap;
+  line-height: 1.1;
+  letter-spacing: 0.025em;
+  text-transform: none;
+  padding: 3px 5px;
 }
 
-.yard-action-icon {
-  display: block;
-  flex: none;
-  width: 20px;
-  height: 20px;
-}
+.yard-action-icon { display: block; flex: none; width: 20px; height: 20px; }
 
-/* The second row: the short one keeps its width, the one with a count takes the rest. */
-.tool-row.quick .btn {
-  font-size: 16px;
-  white-space: nowrap;
+.build-wheel-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: auto;
 }
-
-.tool-row.quick .btn:first-child {
-  flex: 0 0 auto;
-  padding-left: 10px;
-  padding-right: 10px;
+.build-wheel {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, #241d17f5 20%, #32271ff2 72%, #16120feb);
+  border: 2px solid var(--edge);
+  box-shadow: 0 4px 18px #000a;
 }
+.build-wheel button {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  width: 80px;
+  height: 56px;
+  border: 1px solid var(--edge-soft);
+  border-radius: 9px;
+  background: #372c20;
+  font-size: 17px;
+  line-height: 1;
+}
+.build-wheel button:hover, .build-wheel button:focus-visible, .build-wheel button.sel {
+  background: #594225;
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.build-wheel img { width: 44px; height: 31px; object-fit: contain; }
+.build-wheel .wheel-hand { left: 50%; top: 50%; width: 70px; height: 70px; border-radius: 50%; }
 
 .btn.sel {
   border-color: var(--amber);
@@ -1299,20 +1320,49 @@ button:disabled {
 .siren-controls [aria-pressed='true'] { border-color: #e3b365; color: #ffdfa0; }
 .siren-armed { color: #d5e6a3; }
 
-.hint {
+.build-heading { display: flex; align-items: center; justify-content: space-between; }
+.guide-toggle {
+  background: transparent;
+  color: var(--cream-dim);
+  border: 0;
+  padding: 3px 5px;
+  font-size: 16px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.build-guide {
+  position: relative;
+  border-left: 2px solid var(--amber);
+  padding: 5px 8px;
+  background: #33291f;
+  font-size: 17px;
+  line-height: 1.2;
+}
+.guide-step { margin: 0 0 5px; color: var(--cream); }
+.build-guide details { display: inline-block; color: var(--cream-dim); }
+.build-guide summary { cursor: pointer; }
+.build-guide ul {
   position: absolute;
-  left: 304px;
-  top: 68px;
-  width: 520px;
-  padding: 14px 18px 12px;
+  z-index: 2;
+  left: calc(100% + 16px);
+  bottom: 0;
+  width: 310px;
+  margin: 0;
+  padding: 12px 14px 12px 30px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  background: var(--panel);
 }
-
-.hint ol {
-  margin: 0 0 8px;
-  padding-left: 22px;
-  font-size: 19px;
-  line-height: 1.35;
+.build-guide li + li { margin-top: 5px; }
+.build-guide .guide-toggle { float: right; }
+#ui .mailbox-read {
+  position: absolute;
+  pointer-events: none;
+  background: none;
+  border: none;
+  padding: 0;
 }
+.mailbox-read:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
 /* ───────── Map & location ───────── */
 
@@ -2670,7 +2720,28 @@ button:disabled {
 .postal-paper summary { cursor: pointer; font-weight: bold; }
 .postal-paper .complaint-hour { text-decoration: underline double #963f30; text-underline-offset: 2px; }
 .postal-paper p, .postal-paper blockquote { margin: 10px 0 4px; }
-.delivery-slip { transform: translate(-50%, -100%); }
+#ui .build-panel .delivery-slip {
+  position: static;
+  width: auto;
+  font-size: 15px;
+  line-height: 1.2;
+  padding: 6px 9px;
+}
+.delivery-slip:not([hidden]) {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 5px;
+}
+.delivery-slip p { grid-column: 1 / -1; margin: 0; }
+.delivery-slip .btn {
+  grid-area: 1 / 2;
+  padding: 3px 6px;
+  font-size: 15px;
+  min-height: 27px;
+  text-transform: none;
+  letter-spacing: normal;
+}
 .morning-letter { left: 40px; top: 44px; max-width: 370px; padding: 14px 18px; }
 
 /* What the night is remembered for: a caption on the scene, under the yard view it opens. */

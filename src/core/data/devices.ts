@@ -147,7 +147,8 @@ export const DEVICES: Readonly<Record<DeviceTypeId, DeviceDef>> = {
 export const facingsOf = (type: DeviceTypeId): 2 | 4 => (DEVICES[type].blocks ? 4 : 2);
 
 /** The next facing when a device is turned. */
-export const turned = (type: DeviceTypeId, facing: Facing): Facing => ((facing + 1) % facingsOf(type)) as Facing;
+export const turned = (type: DeviceTypeId, facing: Facing, direction: 1 | -1 = 1): Facing =>
+  ((facing + direction + facingsOf(type)) % facingsOf(type)) as Facing;
 
 export const isManual = (type: DeviceTypeId): boolean => DEVICES[type].mode === 'manual';
 export const isAuto = (type: DeviceTypeId): boolean => DEVICES[type].mode === 'auto';
