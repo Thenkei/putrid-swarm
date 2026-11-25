@@ -43,7 +43,8 @@ export const scavengeFr = {
     clear: 'Elle est dans l’enclos. Le stand de lots est libre.',
   },
   rows: { 3: ['en haut', 'au milieu', 'en bas'], 4: ['en haut', 'sur la deuxième rangée', 'sur la troisième rangée', 'en bas'] }, circuitEnds: 'Entrée à gauche {a}, sortie à droite {b}.',
-  rummage: 'Chaque test fait du bruit, le double pour un contenant bruyant. Trouvez les deux bons avant d’être entendu. Une mauvaise prise met fin à la tentative.', rummageLoud: 'Bruyant',
+  rummageTimes: { 2: 'le double', 3: 'le triple' },
+  rummage: 'Chaque test fait du bruit, {times} pour un contenant bruyant. Trouvez les deux bons avant d’être entendu. Une mauvaise prise met fin à la tentative.', rummageLoud: 'Bruyant',
   rummageTake: 'Prendre', rummageUnknown: '?', rummageNoise: 'Bruit {n}/{max}', rummageFound: '{n} / {total} trouvés',
   rummageQuiet: 'Plus de bruit possible : prenez ce que vous savez.', rummageWrong: '{item} : {what}. Mauvaise pioche.',
   spots: {

@@ -3,7 +3,7 @@ import { GATE_HALF_ANGLE, Padlock } from '../src/core/padlock';
 import { createRng } from '../src/core/rng';
 import { catchBands, inBand, NEEDLE_PACE, needleAt } from '../src/core/catch';
 import { PUZZLE_CURVE, PUZZLE_LEVELS, puzzleLevel, type PuzzleLevel } from '../src/core/difficulty';
-import { probeCost, Rummage, RUMMAGE, type TakeResult } from '../src/core/rummage';
+import { probeCost, Rummage, RUMMAGE, type LoudCost, type RummageShape, type TakeResult } from '../src/core/rummage';
 import { circuitTiles, scaleWeights, spotRng, traceCircuit, type CatchMotion, type CircuitBoard } from '../src/core/scavenge';
 import { LAST_NIGHT } from '../src/core/data/waves';
 import { hasCrossbow } from '../src/core/crossbow';
@@ -207,10 +207,56 @@ describe('timing bands', () => {
   });
 });
 
+/** Every container of a pile, by its index in the spot's list (the first `loud` are the loud ones). */
+const PILE = Array.from({ length: RUMMAGE.items }, (_, i) => i);
+const choose = (n: number, k: number): number => (k === 0 ? 1 : (choose(n - 1, k - 1) * n) / k);
+
+/**
+ * Whether some way of testing always names both good containers, whichever two they are: every untested
+ * container is tried as the next test, against both of its answers, until the noise runs out.
+ */
+function alwaysFinds(shape: RummageShape, untested: readonly number[] = PILE, wanted: number = RUMMAGE.wanted, noise = shape.noise): boolean {
+  if (wanted === 0 || untested.length === wanted) return true;
+  return untested.some(item => {
+    const cost = probeCost(item, shape);
+    if (cost > noise) return false;
+    const rest = untested.filter(other => other !== item);
+    return alwaysFinds(shape, rest, wanted - 1, noise - cost) && alwaysFinds(shape, rest, wanted, noise - cost);
+  });
+}
+
+/**
+ * How often a careless player wins, over every deal: he tests any container the noise still covers, at
+ * random, until the answers name both good ones or nothing more can be tested, then guesses the rest.
+ */
+function carelessOdds(shape: RummageShape): number {
+  const memo = new Map<string, number>();
+  const odds = (untested: readonly number[], wanted: number, noise: number): number => {
+    if (wanted === 0 || untested.length === wanted) return 1;
+    const key = `${untested.join()}|${wanted}|${noise}`;
+    const known = memo.get(key);
+    if (known !== undefined) return known;
+    const affordable = untested.filter(item => probeCost(item, shape) <= noise);
+    const good = wanted / untested.length;
+    const result = affordable.length === 0
+      ? 1 / choose(untested.length, wanted)
+      : affordable.reduce((sum, item) => {
+        const rest = untested.filter(other => other !== item);
+        const left = noise - probeCost(item, shape);
+        return sum + (good * odds(rest, wanted - 1, left) + (1 - good) * odds(rest, wanted, left)) / affordable.length;
+      }, 0);
+    memo.set(key, result);
+    return result;
+  };
+  return odds(PILE, RUMMAGE.wanted, shape.noise);
+}
+
+/** Fair: skill always finds both good containers, and carelessness can be left with a guess. */
+const isFair = (shape: RummageShape): boolean => alwaysFinds(shape) && carelessOdds(shape) < 1;
+
 describe('rummage', () => {
   /** Tests in `plan` order while noise lasts, then grabs what the results prove; null when it must guess. */
-  function play(seed: number, plan: (pile: Rummage) => number[]): TakeResult[] | null {
-    const pile = new Rummage(createRng(seed));
+  function play(pile: Rummage, plan: (pile: Rummage) => number[]): TakeResult[] | null {
     const good: number[] = [];
     for (const item of plan(pile)) {
       if (good.length === RUMMAGE.wanted) break;
@@ -222,20 +268,36 @@ describe('rummage', () => {
     if (missing > 0 && unknown.length !== missing) return null;
     return [...good, ...(missing > 0 ? unknown : [])].map(item => pile.take(item));
   }
+  const quietFirst = (pile: Rummage) => [...pile.order].sort((a, b) => pile.cost(a) - pile.cost(b));
+  const loudFirst = (pile: Rummage) => [...pile.order].sort((a, b) => pile.cost(b) - pile.cost(a));
 
-  it('always lets a player who tests the quiet containers first find both good ones', () => {
-    const quietFirst = (pile: Rummage) => [...pile.order].sort((a, b) => probeCost(a) - probeCost(b));
-    for (let seed = 0; seed < 300; seed++) expect(play(seed, quietFirst)).toEqual(['kept', 'done']);
+  it.each(PUZZLE_LEVELS)('has a way of testing that names both good containers in every deal, with not one noise to spare, at level %i', level => {
+    const shape = PUZZLE_CURVE[level].rummage;
+    expect(alwaysFinds(shape)).toBe(true);
+    expect(alwaysFinds({ ...shape, noise: shape.noise - 1 })).toBe(false);
   });
 
-  it('can leave a guess to a player who tests the noisy containers first', () => {
-    const loudFirst = (pile: Rummage) => [...pile.order].sort((a, b) => probeCost(b) - probeCost(a));
-    const guesses = Array.from({ length: 300 }, (_, seed) => play(seed, loudFirst)).filter(result => result === null);
+  it.each(PUZZLE_LEVELS)('always lets a player who tests the quiet containers first find both good ones at level %i', level => {
+    const shape = PUZZLE_CURVE[level].rummage;
+    const dealt = new Set<string>();
+    for (let seed = 0; seed < 300; seed++) {
+      const pile = new Rummage(createRng(seed), shape);
+      dealt.add(PILE.filter(item => pile.reveal(item).good).join('+'));
+      expect(play(pile, quietFirst)).toEqual(['kept', 'done']);
+    }
+    // Every pair of good containers the pile can hide comes up.
+    expect(dealt.size).toBe(choose(RUMMAGE.items, RUMMAGE.wanted));
+  });
+
+  it.each(PUZZLE_LEVELS)('can leave a guess to a player who tests the noisy containers first at level %i', level => {
+    const shape = PUZZLE_CURVE[level].rummage;
+    expect(carelessOdds(shape)).toBeLessThan(1);
+    const guesses = Array.from({ length: 300 }, (_, seed) => play(new Rummage(createRng(seed), shape), loudFirst)).filter(result => result === null);
     expect(guesses.length).toBeGreaterThan(30);
   });
 
   it('refuses a test the noise cannot cover and ends the attempt on a wrong grab', () => {
-    const pile = new Rummage(createRng(5));
+    const pile = new Rummage(createRng(5), PUZZLE_CURVE[0].rummage);
     for (const item of [0, 1, 2]) expect(pile.probe(item)).not.toBeNull();
     expect(pile.noiseLeft).toBe(1);
     expect(pile.canProbe(3)).toBe(true);
@@ -289,7 +351,23 @@ describe('the puzzle difficulty curve', () => {
       expect(now.circuit.minRoute).toBeGreaterThanOrEqual(before.circuit.minRoute);
       expect(now.scale.tags).toBeGreaterThan(before.scale.tags);
       expect(now.scale.heaviest).toBeGreaterThan(before.scale.heaviest);
+      expect(now.rummage.noise).toBeLessThanOrEqual(before.rummage.noise);
+      expect(now.rummage.loudCost).toBeGreaterThanOrEqual(before.rummage.loudCost);
+      expect(carelessOdds(now.rummage)).toBeLessThan(carelessOdds(before.rummage));
     }
+  });
+
+  it('ends on the harshest rummage that stays fair', () => {
+    // Every pile of one to five loud containers at double or triple cost, with any noise that keeps it fair.
+    const costs: readonly LoudCost[] = [2, 3];
+    const fair = PILE.slice(1).flatMap(loud => costs.flatMap(loudCost =>
+      Array.from({ length: 16 }, (_, noise) => ({ loud, loudCost, noise })).filter(isFair)));
+    const last = PUZZLE_CURVE[PUZZLE_LEVELS[PUZZLE_LEVELS.length - 1]!].rummage;
+    expect(Math.min(...fair.map(carelessOdds))).toBeCloseTo(carelessOdds(last), 9);
+    // The least fair noise is the whole pile's cost but one loud container's, and every level uses it.
+    const leastNoise = (shape: RummageShape) => PILE.reduce((sum, item) => sum + probeCost(item, shape), 0) - shape.loudCost;
+    for (const shape of fair) expect(shape.noise).toBeGreaterThanOrEqual(leastNoise(shape));
+    for (const level of PUZZLE_LEVELS) expect(PUZZLE_CURVE[level].rummage.noise).toBe(leastNoise(PUZZLE_CURVE[level].rummage));
   });
 
   it('deals the opening days exactly the boards they had before the curve', () => {
@@ -301,5 +379,11 @@ describe('the puzzle difficulty curve', () => {
     expect(new Padlock(createRng(1), opening.ringPace)).toMatchObject({ angles: [209, 65, 186], speeds: [94, -116, 142] });
     expect(scaleWeights(createRng(1), opening.scale)).toEqual({ weights: [5, 3, 7, 2, 8], target: 5 });
     expect(scaleWeights(createRng(2), opening.scale)).toEqual({ weights: [8, 7, 5, 4, 1], target: 6 });
+    const pile = (seed: number) => {
+      const dealt = new Rummage(createRng(seed), opening.rummage);
+      return { order: dealt.order, good: PILE.filter(item => dealt.reveal(item).good), costs: PILE.map(item => dealt.cost(item)), noise: dealt.noiseLeft };
+    };
+    expect(pile(1)).toEqual({ order: [4, 1, 5, 2, 0, 3], good: [0, 4], costs: [2, 2, 1, 1, 1, 1], noise: 6 });
+    expect(pile(2)).toEqual({ order: [0, 2, 3, 5, 1, 4], good: [0, 5], costs: [2, 2, 1, 1, 1, 1], noise: 6 });
   });
 });
