@@ -182,6 +182,18 @@ try {
     assert.equal(await page.evaluate(() => window.__app.scene.facing), 0);
     await page.keyboard.press('Escape');
 
+    const placement = await screen(7, 16);
+    await page.mouse.move(placement.x, placement.y);
+    for (const [delta, cycle] of [[120, [3, 1, 2, 0]], [-120, [2, 1, 3, 0]]]) {
+      for (const facing of cycle) {
+        await page.mouse.wheel(0, delta);
+        await page.waitForFunction(f => window.__app.scene.currentGhost().ghost?.facing === f, facing);
+        await page.mouse.click(placement.x, placement.y);
+        assert.deepEqual(await built(), [[7, 16, facing]]);
+        await page.keyboard.press('Backspace');
+      }
+    }
+
     await day(rot, 7.5, 16.5);
     await moveTo(7, 16);
     await page.mouse.down();

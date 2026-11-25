@@ -9,7 +9,7 @@ import type { Cell, Decal, DeviceInstance, DeviceTypeId, Facing, GroundContact, 
 import { SECTOR_IDS } from '../core/types';
 import { wreckDrawable } from './moped-wreck';
 import { kindlingDrawable } from './baker-kindling';
-import { paintedPixel, paintedSource } from './painted-pixel';
+import { foliageAt, paintedPixel } from './painted-pixel';
 import { drawPinnedInvoice } from './pinned-invoice';
 import { drawMailboxPaper } from './mailbox-paper';
 import { whistleDrawable } from './fallen-whistle';
@@ -34,7 +34,7 @@ import { hash2, smoothstep } from './noise';
 import { TH, TW, depthOf, groundMatrix, inView, project, unproject, viewX, viewY, type Rot, type View } from './projection';
 import { BOTTOM_CENTRE, HOUSE_PAINT_SCALE, houseOffset, propMount, propRoot, spriteRect, type Foot } from './registration';
 import { DEPTH_SORTED_TREES } from './scenery';
-import { drawStand, prepareForest, projectStand } from './forest';
+import { drawStand, prepareForest, projectStand, standAt } from './forest';
 import { windAt } from './wind';
 import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
@@ -550,7 +550,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
 
   const passage = calmMotion() ? undefined : frame.brushPassage;
   const drawables: Drawable[] = [];
-  drawGround(ctx, view, frame.time, passage, drawables);
+  drawGround(ctx, view, frame.time, passage, drawables, frame.treePointer);
   drawMowerTrails(ctx, view, frame.decals);
   /** Shadows go down before anything stands on them; they are collected as the scene is. */
   const contacts: { gx: number; gy: number; rx: number; ry: number; alpha: number }[] = [];
@@ -618,13 +618,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
     const lean = wind * (stand.key.includes('fir') ? 0.024 : 0.034);
     const part = (passage?.bend(tree.gx, tree.gy, view.rot, frame.time) ?? 0) * 0.24;
     let opacity = canopyOpacity(stand.x, stand.y - stand.h * 0.54, stand.w * 0.57, stand.h * 0.56, depth);
-    if (frame.treePointer) {
-      const dy = frame.treePointer.y - stand.y;
-      const dx = frame.treePointer.x - stand.x + lean * (frame.treePointer.y - stand.rootY);
-      if (paintedSource(stand.image, .5 + (stand.mirror ? -dx : dx) / stand.w, 1 + dy / stand.h, stand.w / stand.h)) {
-        opacity = Math.min(.5, opacity);
-      }
-    }
+    if (frame.treePointer && standAt(stand, frame.treePointer, lean)) opacity = Math.min(.5, opacity);
     drawables.push({ depth, draw: () => drawStand(ctx, stand, lean, opacity, part) });
   }
 
@@ -719,8 +713,14 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       // A fighting figure can reveal a device through this canopy on the live camera.
       if (opacity < .75) revealedProps?.add(prop);
     }
-    if (frame.treePointer && (prop.kind === 'oak' || prop.kind === 'apple')
-      && propPaintedAt(view, prop, frame.treePointer.x, frame.treePointer.y, lean)) opacity = Math.min(.5, opacity);
+    if (frame.treePointer && SWAYS.has(prop.kind)) {
+      const image = sprite(key);
+      if (image) {
+        const dy = frame.treePointer.y - p.y, height = art.h * z, aspect = image.w / image.h;
+        const u = foot[0] + (frame.treePointer.x - p.x + lean * dy) / (height * aspect);
+        if (foliageAt(image.img, u, foot[1] + dy / height, aspect)) opacity = Math.min(.5, opacity);
+      }
+    }
     drawables.push({
       depth: centreDepth,
       draw: () => {

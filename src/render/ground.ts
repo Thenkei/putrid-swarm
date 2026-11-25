@@ -8,7 +8,7 @@
 import { GRID_H, GRID_W, HOUSE } from '../core/map';
 import { sprite, type Sprite } from '../engine/assets';
 import { fbm, smoothstep } from './noise';
-import { TH, TW, groundMatrix, project, viewBounds, viewX, viewY, world, type Rot, type View } from './projection';
+import { TH, TW, groundMatrix, project, viewBounds, viewX, viewY, world, type Point, type Rot, type View } from './projection';
 import { SHADOW_RGB } from './shadows';
 import { FIELD_MARGIN, GROUND_TERRAINS, TRACKS, layerAlpha, roadCentre, terrainField, type GroundTerrain, type TerrainField } from './terrainfield';
 import { dressYardFloor } from './yard-floor';
@@ -486,7 +486,7 @@ function outerRoad(ctx: CanvasRenderingContext2D, road: keyof typeof TRACKS, fro
 }
 
 /** Draws the ground for a view. The context is expected to be clipped to the view already. */
-export function drawGround(ctx: CanvasRenderingContext2D, view: View, time = 0, passage?: BrushPassage, foreground?: Drawable[]): void {
+export function drawGround(ctx: CanvasRenderingContext2D, view: View, time = 0, passage?: BrushPassage, foreground?: Drawable[], treePointer?: Point | null): void {
   const z = view.zoom;
   const bounds = viewBounds(view);
 
@@ -515,7 +515,7 @@ export function drawGround(ctx: CanvasRenderingContext2D, view: View, time = 0, 
   const vegetables = vegetableRowDrawables(ctx, view, time, passage);
   if (foreground) foreground.push(...vegetables);
   else for (const plant of vegetables) plant.draw();
-  drawForest(ctx, view, time, foreground);
+  drawForest(ctx, view, time, foreground, treePointer);
   if (!foreground) drawWoodlandShade(ctx, view);
 }
 
