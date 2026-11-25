@@ -1,0 +1,15 @@
+{
+  "id": "vo_car_placement",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "generationId": "44q5yNWSQLUx2Yru5hnC",
+  "request": {
+    "text": "[puzzled] Attends… mais comment je vais sortir la voiture, moi ?",
+    "model_id": "eleven_v4",
+    "voice_id": "DbbNuBL7lf62XwY7arQb"
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-25T14:59:32.329Z",
+  "bytes": 68160,
+  "sha256": "a34e8e67cc0958c0e35b803347d6d67cae76f08b09efc44ee9ea4e3f51af7598"
+}

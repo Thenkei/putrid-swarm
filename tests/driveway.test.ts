@@ -23,7 +23,7 @@ describe('the wagon crossing the prepared yard', () => {
   const withStakes = place(withHorn, 'spikes', 19, 11);
   const home = place(withStakes, 'log', 18, 10); // just off the road
 
-  it.each(['floodlight', 'net'] as const)('breaks a %s under the wheels and leaves one on the shoulder intact', type => {
+  it.each(['floodlight', 'net', 'barrier', 'fence', 'log'] as const)('breaks a %s under the wheels and leaves one on the shoulder intact', type => {
     const prepared = place(place(stocked, type, 15, 11), type, 18, 10);
     const [inPath, onShoulder] = prepared.yard.devices.slice(-2);
     const crushed = { ...inPath, hp: 0, broken: true };
@@ -66,7 +66,10 @@ describe('the wagon crossing the prepared yard', () => {
   it('never pushes onto scenery, another device or back into the lane', () => {
     let yard = place(stocked, 'horn', 18, 12);
     for (const x of [17, 18, 19]) yard = place(yard, 'spikes', x, 13);
-    expect(driveThroughYard(yard.yard)).toBe(yard.yard);
+    const blockedHorn = yard.yard.devices.find(d => d.type === 'horn')!;
+    const hits = drivewayImpacts(yard.yard);
+    expect(hits.map(hit => hit.after)).toEqual([{ ...blockedHorn, broken: true, hp: 0 }]);
+    expect(drivewayImpacts(driveThroughYard(yard.yard))).toEqual([]);
     const adjacent = place(place(stocked, 'horn', 15, 12), 'horn', 16, 12);
     const moved = drivewayImpacts(adjacent.yard);
     expect(moved).toHaveLength(2);
