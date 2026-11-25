@@ -58,7 +58,7 @@ body {
 }
 
 #game[data-yard-cursor='repair'] {
-  cursor: url('./cursors/repair.svg') 3 8, crosshair;
+  cursor: url('./cursors/repair.svg') 2 2, crosshair;
 }
 
 #game[data-yard-cursor='dismantle'] {

@@ -246,6 +246,7 @@ export const en: Strings = {
     turnHint: 'F or right click: turn the piece.',
     placed: '{name} in place',
     repaired: 'Repaired',
+    upgraded: 'Upgraded',
     dismantled: 'Dismantled',
     selectHint: 'Pick a device, then a tile of the yard.',
     affordable: 'The stock and the daylight pay for {n} of these.',

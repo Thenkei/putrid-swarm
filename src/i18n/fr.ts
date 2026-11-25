@@ -248,6 +248,7 @@ export const fr = {
     turnHint: 'F ou clic droit : tourner la pièce.',
     placed: '{name} en place',
     repaired: 'Réparé',
+    upgraded: 'Amélioré',
     dismantled: 'Démonté',
     selectHint: 'Choisissez un dispositif, puis une case du terrain.',
     affordable: 'Le stock et le jour permettent d’en poser {n}.',
