@@ -1,6 +1,9 @@
 // Daytime at the refuge: the lot seen from above, the build menu, the doors, and the two ways
 // out of the day — the car, or waiting for night.
 
+import dismantleIcon from '../assets/yard-dismantle.png';
+import reinforceIcon from '../assets/yard-reinforce.png';
+import repairIcon from '../assets/yard-repair.png';
 import { epicObject } from './epic-day';
 import { epicFlag, markEpic, packTrail, wreckSector } from '../core/epics';
 import { hitsMopedWreck } from '../render/moped-wreck';
@@ -71,6 +74,20 @@ import { goMap, goNightfall, goTitle } from './flow';
 const BUILD_CONTACT = 0.13;
 const BUILD_SETTLED = 0.25;
 const DISMANTLE_SECONDS = 0.28;
+
+function yardActionIcon(src: string): HTMLImageElement {
+  const icon = el('img', { class: 'yard-action-icon' });
+  icon.src = src;
+  icon.alt = '';
+  icon.draggable = false;
+  return icon;
+}
+
+function doorActionButton(icon: string, label: string, title: string, onClick: () => void): HTMLButtonElement {
+  const button = el('button', { class: 'btn icon-btn', title, onClick }, [yardActionIcon(icon)]);
+  button.setAttribute('aria-label', label);
+  return button;
+}
 
 interface Construction {
   readonly at: Cell;
@@ -363,12 +380,15 @@ export class DayScene implements Scene {
       );
     });
     this.refreshBuildArt();
-    const tool = (kind: 'repair' | 'dismantle', label: string): HTMLElement =>
-      el('button', {
-        class: `btn ${this.mode.kind === kind ? 'sel' : ''}`,
-        text: label,
-        onClick: () => this.setMode(this.mode.kind === kind ? { kind: 'idle' } : { kind }),
-      });
+    const tool = (kind: 'repair' | 'dismantle', label: string, icon: string): HTMLButtonElement => {
+      const selected = this.mode.kind === kind;
+      const button = el('button', {
+        class: `btn yard-tool ${selected ? 'sel' : ''}`,
+        onClick: () => this.setMode(selected ? { kind: 'idle' } : { kind }),
+      }, [yardActionIcon(icon), label]);
+      button.setAttribute('aria-pressed', String(selected));
+      return button;
+    };
     // The two chores that come back every day, each in one click: take back the piece just laid, and put
     // everything the night broke back on its feet.
     const fresh = lastFresh(state);
@@ -411,7 +431,10 @@ export class DayScene implements Scene {
       el('h3', { text: s.day.build }),
       ...cards,
       el('h3', { text: s.day.tools }),
-      el('div', { class: 'tool-row' }, [tool('repair', s.day.repair), tool('dismantle', s.day.dismantle)]),
+      el('div', { class: 'tool-row' }, [
+        tool('repair', s.day.repair, repairIcon),
+        tool('dismantle', s.day.dismantle, dismantleIcon),
+      ]),
       quick,
     ]);
 
@@ -429,12 +452,12 @@ export class DayScene implements Scene {
       const repair = repairBarricade(state, sector);
       const nextHp = repair.ok ? repair.value.yard.barricades[sector].hp : barricade.hp;
       const button = damaged
-        ? el('button', {
-            class: 'btn icon-btn',
-            text: '+',
-            title: repair.ok ? this.doorRepairLabel(nextHp - barricade.hp) : yardErrorText(repair.error),
-            onClick: () => this.apply(repairBarricade(this.state, sector), s.day.repaired, 'build'),
-          })
+        ? doorActionButton(
+            repairIcon,
+            `${s.day.repair} · ${s.sector[sector]}`,
+            repair.ok ? this.doorRepairLabel(nextHp - barricade.hp) : yardErrorText(repair.error),
+            () => this.apply(repairBarricade(this.state, sector), s.day.repaired, 'build'),
+          )
         : barricade.level === 0
           ? this.reinforceButton(sector)
           : el('span');
@@ -459,12 +482,12 @@ export class DayScene implements Scene {
       el('span', {}, [s.day.house]),
       el('span', { class: `meter house ${yard.houseHp <= 35 ? 'low' : ''}`, title: `${yard.houseHp} / ${HOUSE_MAX_HP}` }, [el('i', { style: { width: `${(yard.houseHp / HOUSE_MAX_HP) * 100}%` } })]),
       yard.houseHp < HOUSE_MAX_HP
-        ? el('button', {
-            class: 'btn icon-btn',
-            text: '+',
-            title: `${fmt(s.day.houseRepair, { hp: HOUSE_REPAIR.amount })} · ${describeCost(HOUSE_REPAIR.cost)} · ${fmt(s.day.time, { h: hours(HOUSE_REPAIR.hours) })}`,
-            onClick: () => this.apply(repairHouse(this.state), s.day.repaired, 'build'),
-          })
+        ? doorActionButton(
+            repairIcon,
+            `${s.day.repair} · ${s.day.house}`,
+            `${fmt(s.day.houseRepair, { hp: HOUSE_REPAIR.amount })} · ${describeCost(HOUSE_REPAIR.cost)} · ${fmt(s.day.time, { h: hours(HOUSE_REPAIR.hours) })}`,
+            () => this.apply(repairHouse(this.state), s.day.repaired, 'build'),
+          )
         : el('span'),
     ]);
     const doors = el('div', { class: 'panel door-chips' }, [...doorRows, houseRow]);
@@ -744,14 +767,13 @@ export class DayScene implements Scene {
   }
 
   private reinforceButton(sector: SectorId): HTMLButtonElement {
-    const { day: s } = S();
-    const button = el('button', {
-      class: 'btn icon-btn',
-      text: '▲',
-      title: `${s.doorReinforce} · ${describeCost(BARRICADE.reinforceCost)} · ${fmt(s.time, { h: hours(BARRICADE.reinforceHours) })}`,
-      onClick: () => this.apply(reinforceBarricade(this.state, sector), s.upgraded, 'bolt_seat'),
-    });
-    button.setAttribute('aria-label', `${s.doorReinforce} · ${S().sector[sector]}`);
+    const { day: s, sector: sectorNames } = S();
+    const button = doorActionButton(
+      reinforceIcon,
+      `${s.doorReinforce} · ${sectorNames[sector]}`,
+      `${s.doorReinforce} · ${describeCost(BARRICADE.reinforceCost)} · ${fmt(s.time, { h: hours(BARRICADE.reinforceHours) })}`,
+      () => this.apply(reinforceBarricade(this.state, sector), s.upgraded, 'bolt_seat'),
+    );
     this.reinforceButtons.set(sector, button);
     for (const event of ['mouseenter', 'mouseleave', 'focus', 'blur']) {
       button.addEventListener(event, () => this.updateInfo());

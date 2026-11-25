@@ -986,6 +986,20 @@ button:disabled {
   padding: 4px 6px 2px;
 }
 
+.tool-row .yard-tool {
+  gap: 5px;
+  padding: 2px 4px;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.yard-action-icon {
+  display: block;
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
 /* The second row: the short one keeps its width, the one with a count takes the rest. */
 .tool-row.quick .btn {
   font-size: 16px;
@@ -1190,8 +1204,12 @@ button:disabled {
 .door-chips .btn.icon-btn {
   min-height: 24px;
   height: 24px;
-  padding: 2px 0 0;
-  font-size: 18px;
+  padding: 0;
+}
+
+.door-chips .yard-action-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .tonight {
