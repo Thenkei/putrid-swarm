@@ -45,6 +45,21 @@ try {
   };
 
   for (const rot of [0, 1]) {
+    await day(rot, 5.5, 2.5);
+    await page.keyboard.press('Digit2');
+    await moveTo(5, 2);
+    assert.equal(await page.evaluate(async () => {
+      const { S } = await import('/src/engine/i18n.ts');
+      return window.__app.scene.info.textContent.includes(S().day.onRoute);
+    }), true, 'A diagonal route passes within trigger range of the spikes');
+
+    await day(rot, 2.5, 2.5);
+    await page.keyboard.press('Digit6');
+    const horn = await screen(2, 2);
+    await page.mouse.click(horn.x, horn.y);
+    assert.equal((await built()).length, 1);
+    assert.equal(await page.locator('[data-door="grange"] .cover').textContent(), '0', 'The far edge cannot cover the barn route');
+
     for (const [facing, x, y, dx, dy] of [[0, 5, 16, 1, 0], [1, 8, 14, 0, 1], [2, 6, 18, 1, -1], [3, 4, 13, 1, 1]]) {
       await day(rot, x + 2 * dx + 0.5, y + 2 * dy + 0.5);
       await stroke([x, y], [x + 4 * dx, y + 4 * dy]);
@@ -136,6 +151,27 @@ try {
     await page.mouse.up({ button: 'right' });
     assert.ok(Math.hypot(original.gx - moved.gx, original.gy - moved.gy) < 0.025, JSON.stringify({ rot, original, moved }));
   }
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  for (const rot of [0, 1]) {
+    await day(rot, 7.5, 16.5);
+    const landing = await page.evaluate(async () => {
+      const { project } = await import('/src/render/projection.ts');
+      const app = window.__app, scene = app.scene;
+      scene.zoom = 1;
+      const id = scene.placeDevice('spikes', { x: 7, y: 16 });
+      const foot = project(scene.view, 7.5, 16.5);
+      // Each sample is opaque on the raised spike plank and clear once it lands.
+      Object.assign(app.pointer, { x: foot.x + (scene.rot ? -.5 : -2.5),
+        y: foot.y + (scene.rot ? -43.5 : -41.5), overCanvas: true, down: false });
+      scene.onPointerMove(app.pointer);
+      const raised = scene.hoverDevice?.id === id;
+      scene.update(.26);
+      return [raised, scene.hoverDevice === null];
+    });
+    assert.deepEqual(landing, [true, true]);
+  }
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+
   await day(0, 7.5, 16.5);
   await page.keyboard.press('Digit1');
   const parked = await screen(7, 16);
@@ -185,7 +221,9 @@ try {
     assert.equal(await page.evaluate(() => window.__app.scene.hoverFeedDevice), id);
     // An opaque slat on the adjacent fence covers the barrier from either side.
     const slat = { x: point.x + (index < 2 ? 18 : 28), y: point.y - (index < 2 ? 4 : 5) };
+    await page.keyboard.press('p');
     await page.mouse.move(slat.x, slat.y);
+    await page.keyboard.press('p');
     assert.equal(await page.evaluate(() => window.__app.scene.hoverFeedDevice), null);
     await page.mouse.click(slat.x, slat.y);
     for (const button of ['middle', 'right']) await page.mouse.click(point.x, point.y, { button });
@@ -194,16 +232,36 @@ try {
     if (index === 3) {
       const hoverAfterOutage = await page.evaluate(() => {
         const scene = window.__app.scene, sim = scene.sim;
+        const mini = scene.minis.get('portail'), before = mini.toDataURL();
         sim.outage = { sector: 'portail', wave: 1, delay: 0 };
         sim.outageAt = sim.time;
         scene.update(.08);
-        return [sim.cameraLost, scene.hoverFeedDevice];
+        return [sim.cameraLost, scene.hoverFeedDevice, before !== mini.toDataURL()];
       });
-      assert.deepEqual(hoverAfterOutage, ['portail', id]);
+      assert.deepEqual(hoverAfterOutage, ['portail', id, true]);
     }
     await page.mouse.click(point.x, point.y);
     assert.equal(await trapState(), 'active');
   }
+  const trip = await page.evaluate(async () => {
+    const { HOUSE_RETURN_SECONDS } = await import('/src/core/night.ts');
+    const scene = window.__app.scene, sim = scene.sim;
+    const hovered = () => scene.frame(scene.cam, true).hoverCell;
+    sim.enterHouse('shambler', scene.cam, 1);
+    scene.update(.08);
+    const away = hovered();
+    sim.defense.started = sim.time - HOUSE_RETURN_SECONDS;
+    scene.update(.08);
+    const back = hovered();
+    const mini = scene.minis.get(scene.cam), before = mini.toDataURL();
+    scene.switchCam('arriere');
+    const retuned = before !== mini.toDataURL();
+    scene.consume([{ type: 'outcome', survived: true }]);
+    scene.syncHud();
+    const frame = scene.frame(scene.cam, true);
+    return [away, back, retuned, frame.hoverCell, frame.devices.some(d => d.label)];
+  });
+  assert.deepEqual(trip, [null, { x: 5, y: 10 }, true, null, false]);
   const timberHits = await page.evaluate(async () => {
     const { pickDevice, cameraView, project } = await import('/src/render/world.ts');
     const hits = [];
@@ -220,6 +278,24 @@ try {
     return hits;
   });
   assert.deepEqual(timberHits, [[2, 1, 1], [2, 1, 1]]);
+  const porchTargets = await page.evaluate(async () => {
+    const { ENTRIES } = await import('/src/core/map.ts');
+    const { doorStance } = await import('/src/house-layout.ts');
+    const { project } = await import('/src/render/projection.ts');
+    const scene = window.__app.scene, canvas = document.createElement('canvas');
+    canvas.width = 896;
+    canvas.height = 420;
+    return Object.entries(ENTRIES).map(([sector, entry]) => {
+      const enemy = scene.sim.spawn('shambler', sector, false);
+      Object.assign(enemy, { x: entry.x + .5, y: entry.y + .5, action: 'attack' });
+      const foot = doorStance(enemy);
+      const view = scene.viewFor(sector, { x: 0, y: 0, w: canvas.width, h: canvas.height }, 1.1);
+      const contact = scene.epic.paintYard(canvas, sector).find(p => p.id === enemy.id);
+      const painted = project(view, foot.x, foot.y);
+      return contact && Math.hypot(contact.x - painted.x, contact.y - painted.y);
+    });
+  });
+  assert.deepEqual(porchTargets, [0, 0, 0, 0], 'Porch targeting follows the figure standing at each painted sill');
   assert.deepEqual(errors, []);
   console.log('Yard controls passed in both yard views and all four CCTV feeds.');
 } finally {

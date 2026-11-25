@@ -2,15 +2,20 @@ import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import * as assets from '../src/engine/assets';
 import { defensePaintMatrix, deviceArt } from '../src/render/defenses';
-import { project, type Rot, type View } from '../src/render/projection';
-import { pickDevice, type DeviceVisual } from '../src/render/world';
+import { hitsWhistle } from '../src/render/fallen-whistle';
+import { hitsInvoice, invoiceNail } from '../src/render/pinned-invoice';
+import { depthOf, project, type Rot, type View } from '../src/render/projection';
+import { pickDevice, yardItemVisible, type DeviceVisual } from '../src/render/world';
+import { SECTOR_IDS } from '../src/core/types';
+import { mopedPath } from '../src/core/epics';
+import { VISIBLE_DOORS } from '../src/house-layout';
 
 const sprites = new Map<string, assets.Sprite>();
 const masks = new Map<HTMLImageElement, { width: number; height: number; data: Uint8Array }>();
 
 beforeAll(async () => {
   const devices = ['', 'back_'].flatMap(side => ['spikes_resting', 'spikes_armed', 'net_resting', 'barrier_armed'].map(pose => `dev_${side}${pose}`));
-  for (const key of [...devices, 'obj_car_front', 'obj_car_back', 'obj_house_front', 'obj_house_back']) {
+  for (const key of [...devices, 'obj_car_front', 'obj_car_back', 'obj_house_front', 'obj_house_back', 'obj_trees_apple', 'yard_rear_apple']) {
     const file = sharp(`public/assets/sprites/${key}.webp`);
     const { width: w, height: h } = await file.metadata();
     if (!w || !h) throw new Error(`Missing dimensions for ${key}`);
@@ -34,6 +39,49 @@ afterAll(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 const yard = (rot: Rot, zoom: number): View => ({ rot, zoom, cx: 16.5, cy: 10.5, x: 0, y: 0, w: 640, h: 480 });
 
 describe('yard pointer targets', () => {
+  it('only inspects the whistle from the side where the house exposes it', () => {
+    const at = { x: 11.54, y: 8.54 };
+    for (const rot of [0, 1] as const) for (const zoom of [.62, 1.5]) {
+      const view = yard(rot, zoom), p = project(view, at.x, at.y);
+      const x = p.x, y = p.y + (rot ? 1 : -1) * 2 * zoom;
+      const visible = (depth: number) => yardItemVisible(view, x, y, depth, 1, 4, []);
+      expect(hitsWhistle(view, at, x, y, visible)).toBe(rot === 1);
+    }
+  });
+
+  it('uses the exposed paper on all four invoices, including the surviving jamb at a breach', () => {
+    for (const rot of [0, 1] as const) for (const sector of SECTOR_IDS) for (const breached of [false, true]) {
+      const view = yard(rot, 1.35), p = invoiceNail(view, sector, breached);
+      expect(hitsInvoice(view, sector, breached, p.x, p.y + 5, 4)).toBe(VISIBLE_DOORS[rot].includes(sector));
+      expect(hitsInvoice(view, sector, breached, p.x - 11 * view.zoom, p.y - 4 * view.zoom, 4)).toBe(false);
+    }
+  });
+
+  it('keeps ground items selectable through the open net and blocks them behind its post', () => {
+    for (const rot of [0, 1] as const) {
+      const view = yard(rot, 1), sign = rot ? -1 : 1;
+      const net: DeviceVisual = { id: 1, type: 'net', x: 16 + sign, y: 10 + sign, state: 'idle', facing: 0, hpRatio: 1 };
+      const p = project(view, 16.5, 10.5), depth = depthOf(rot, 16.5, 10.5);
+      expect(yardItemVisible(view, p.x, p.y, depth, 1, 4, [net])).toBe(true);
+      expect(yardItemVisible(view, p.x - 16, p.y + 29, depth, 1, 4, [net])).toBe(false);
+      const lifted = { ...net, placementLift: 32 };
+      expect(yardItemVisible(view, p.x - 16, p.y + 29, depth, 1, 4, [lifted])).toBe(true);
+      expect(yardItemVisible(view, p.x - 16, p.y - 3, depth, 1, 4, [lifted])).toBe(false);
+    }
+  });
+
+  it('blocks the orchard wreck under the apple canopy while leaving its exposed paint selectable', () => {
+    const [from, end] = mopedPath('verger'), length = Math.hypot(end.x - from.x, end.y - from.y);
+    const gx = end.x + 1.05 * (end.x - from.x) / length, gy = end.y + 1.05 * (end.y - from.y) / length;
+    for (const rot of [0, 1] as const) {
+      const view = { rot, x: 292, y: 56, w: 976, h: 652, cx: 11, cy: 11, zoom: 1.35 };
+      const visible = (x: number, y: number) => yardItemVisible(view, x, y, depthOf(rot, gx, gy) + .2, 1, 4, []);
+      if (rot === 0) {
+        expect(visible(428.5, 160.5)).toBe(false);
+        expect(visible(369.5, 134.5)).toBe(true);
+      } else expect(visible(1128.5, 560.5)).toBe(true);
+    }
+  });
   it.each([
     ['wagon and farmhouse', 15, 12, [false, false]],
     ['wagon', 17, 14, [true, false]],

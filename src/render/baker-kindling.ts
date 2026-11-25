@@ -1,6 +1,7 @@
 import kindlingUrl from '../assets/baker-kindling.webp';
 import { MAILBOX } from '../core/map';
 import { depthOf, project, type View } from './projection';
+import { paintedSource } from './painted-pixel';
 
 let painting: HTMLImageElement | undefined;
 export function bakerKindling() {
@@ -14,9 +15,12 @@ export function bakerKindling() {
 // Inside the gate, against the mailbox post, in both yard orientations.
 const gx = MAILBOX.x - .35, gy = MAILBOX.y + .78;
 
-export function hitsKindling(view: View, x: number, y: number) {
+export function hitsKindling(view: View, x: number, y: number, visible?: (depth: number) => boolean) {
   const p = project(view, gx, gy);
-  return ((x - p.x) / (26 * view.zoom)) ** 2 + ((y - p.y + 15 * view.zoom) / (16 * view.zoom)) ** 2 <= 1;
+  const u = ((x - p.x) / view.zoom + 27) / 54, v = ((y - p.y) / view.zoom + 32) / 34;
+  if (u < 0 || v < 0 || u >= 1 || v >= 1) return false;
+  const art = bakerKindling();
+  return art.complete && art.naturalWidth > 0 && paintedSource(art, u, v, 54 / 34) && (visible?.(depthOf(view.rot, gx, gy)) ?? true);
 }
 
 export function kindlingDrawable(ctx: CanvasRenderingContext2D, view: View) {

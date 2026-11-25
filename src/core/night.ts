@@ -13,7 +13,7 @@ import { computeField, nextStep, type Field } from './pathing';
 import { mopedImpact, mopedPath, MOPED_BLAST_RADIUS, MOPED_EXIT_SECONDS, MOPED_RUN_SECONDS } from './epics';
 import { createRng, type Rng } from './rng';
 import { DOOR_REACH, doorStance } from '../house-layout';
-import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, NeighborId, NightHighlight, NightReport, Result, SectorId, TrapTally, YardState } from './types';
+import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, GroundContact, NeighborId, NightHighlight, NightReport, Result, SectorId, TrapTally, YardState } from './types';
 import { SECTOR_IDS, err, ok } from './types';
 
 export type DeviceRuntimeState = 'passive' | 'armed' | 'active' | 'rearming' | 'broken';
@@ -319,7 +319,7 @@ export class NightSim {
   private readonly tallies = new Map<number, { fired: number; hits: number; kills: number }>();
   private letterDelivered = false;
   private mechanicStoppedAt?: SectorId;
-  private chiefFellAt?: Cell;
+  private chiefFellAt?: GroundContact;
   private readonly chiefTracks: Cell[] = [];
   private bossDefeated: NeighborId | null = null;
   /** A camera that stopped sending. The lot goes on without it: only the desk is blind. */
@@ -1641,13 +1641,12 @@ export class NightSim {
     this.kills[e.type] = (this.kills[e.type] ?? 0) + 1;
     this.killCount++;
     const foot = doorStance(pose);
-    const stain = this.addDecal('splat', Math.floor(e.x), Math.floor(e.y), {
-      x: foot.x, y: foot.y, ...(foot.threshold && { threshold: foot.threshold }),
-    });
+    const ground = { x: foot.x, y: foot.y, ...(foot.threshold && { threshold: foot.threshold }) };
+    const stain = this.addDecal('splat', Math.floor(e.x), Math.floor(e.y), ground);
     this.events.push({ type: 'enemy_dead', id: e.id, enemy: type, x, y, fx, fy, pose, ...(stain && { stain }) });
     if (e.def.boss) {
       this.bossDefeated = e.def.boss;
-      if (e.type === 'chief' && this.night === BOSS_NIGHT.chief) this.chiefFellAt = { x: e.x, y: e.y };
+      if (e.type === 'chief' && this.night === BOSS_NIGHT.chief) this.chiefFellAt = ground;
       this.events.push({ type: 'boss_dead', boss: e.def.boss, x: e.x, y: e.y });
     }
   }
