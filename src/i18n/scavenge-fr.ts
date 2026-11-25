@@ -1,8 +1,8 @@
 import { circuit, directory, padlock, records, rummage, scale, timing, vachette, type PuzzleBook } from '../core/scavenge';
 
 export const scavengeFr = {
-  back: 'Laisser tomber', cost: '{h} h par tentative · dès le premier geste', loaded: 'Total',
-  retry: 'Réessayer · {h} h', spent: 'Tentative ratée · {h} h dépensée.', routeTest: 'Tester le passage', routeBroken: 'Le passage est coupé avant la sortie.',
+  back: 'Laisser tomber', cost: '{duration} par tentative · dès le premier geste', loaded: 'Total',
+  retry: 'Réessayer · {duration}', spent: 'Tentative ratée · −{duration}', routeTest: 'Tester le passage', routeBroken: 'Le passage est coupé avant la sortie.',
   cleanJob: 'Travail propre · le meilleur du lot',
   liftWarning: 'Danger mortel · Si vous tirez au mauvais moment, la voiture vous tombe dessus.',
   crossbow: {

@@ -1080,6 +1080,10 @@ button:disabled {
   margin-top: 4px;
 }
 
+.info-card .bad {
+  color: #ff9a7a;
+}
+
 .day-actions {
   position: absolute;
   right: 12px;
@@ -1404,13 +1408,15 @@ button:disabled {
   position: absolute;
   right: 16px;
   bottom: 16px;
-  width: 350px;
+  display: grid;
+  gap: 8px;
+  width: 376px;
   padding: 14px 16px 12px;
 }
 
 .map-card h3 {
   margin: 0;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 400;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -1418,13 +1424,60 @@ button:disabled {
 }
 
 .map-card p {
-  margin: 4px 0 8px;
+  margin: 0;
   font-size: 19px;
   line-height: 1.25;
 }
 
-.map-card .btn {
-  width: 100%;
+.map-loot, .map-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-loot {
+  flex-wrap: wrap;
+}
+
+.map-route, .map-plan h4, .map-plan dt {
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.map-route, .map-plan dt {
+  color: var(--cream-dim);
+}
+
+.map-plan {
+  border-block: 1px solid var(--edge);
+  padding: 8px 0;
+}
+
+.map-plan h4, .map-plan dd {
+  margin: 0;
+}
+
+.map-plan dl {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  margin: 8px 0 0;
+}
+
+.map-plan dd {
+  font-size: 25px;
+  font-variant-numeric: tabular-nums;
+}
+
+.map-return-icon {
+  margin-right: 5px;
+  font: 18px 'Segoe UI Symbol', sans-serif;
+  color: var(--amber);
+}
+
+.map-actions .btn {
+  flex: 1 0 auto;
+  padding-inline: 10px;
+  font-size: 18px;
 }
 
 .map-card .return-at-dusk {
@@ -2744,6 +2797,18 @@ button:disabled {
 .street-noise small {
   font-size: inherit;
   color: #ff9a7a;
+}
+
+.street-noise .noise-warning {
+  font-size: 16px;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.scavenge .street-noise {
+  position: absolute;
+  left: 12px;
+  top: 8px;
 }
 
 .spot.claimed .ring {
@@ -5191,13 +5256,16 @@ button:disabled {
 }
 .directory-screen p { margin: 4px 0; }
 .directory-screen .salvage-piece { background: #16241b; border-color: #61765b; color: inherit; font: inherit; }
-.map-card .map-cache, .pin .tag .map-cache { color: #ffd58c; }
+.pin .tag .map-cache { color: #ffd58c; }
 .records-photo { background-size: cover; }
 .vachette-case { grid-template-columns: 780px; }
 .vachette-case .salvage-sheet { padding: 20px 24px 12px; }
 .vachette-case .salvage-clue { margin: 6px 0; }
 .vachette-case .salvage-instruction { padding: 6px 0 8px; }
 .vachette-cost { display: block; margin-bottom: 8px; color: #5b391d; font-size: 16px; }
+.vachette-cost small { font: inherit; }
+.vachette-cost .search-return { margin-left: 10px; }
+.search-return[hidden] { display: none; }
 .board-vachette { padding: 10px; }
 .vachette-arena {
   position: relative;

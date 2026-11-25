@@ -20,7 +20,7 @@ import { assetUrl, sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { rememberEnding } from '../engine/progress';
 import { el } from '../engine/dom';
-import { S, fmt, hours } from '../engine/i18n';
+import { S, fmt, durationLabel } from '../engine/i18n';
 import { hush, say } from '../engine/voice';
 import { calmMotion } from '../render/lighting';
 import { smoothstep } from '../render/noise';
@@ -46,6 +46,8 @@ export class LocationScene implements Scene {
   private chiefStation: ChiefStation | null = null;
   private concealing = false;
   private readonly roomLife: ShopLife;
+  private readouts!: HTMLElement;
+  private readonly gauge = el('span', { class: 'street-noise' });
   private searchDust: { readonly x: number; readonly y: number; age: number } | null = null;
   /** Whether this visit's searching is over, and why. */
   private get stop(): SearchStop | null {
@@ -65,6 +67,10 @@ export class LocationScene implements Scene {
   private get state(): GameState {
     if (!this.app.state) throw new Error('LocationScene needs a running game');
     return this.app.state;
+  }
+
+  private returnClock(hoursLeft: number): string {
+    return clockLabel(Math.max(0, hoursLeft - LOCATIONS[this.id].travelHours));
   }
 
   /** Whoever claims a lot here, while that is not settled. */
@@ -119,7 +125,7 @@ export class LocationScene implements Scene {
       el('span', { class: 'sep' }),
       el('span', { text: clockLabel(state.hoursLeft) }),
       el('span', { class: 'meter' }, [el('i', { style: { width: `${(state.hoursLeft / DAY_HOURS) * 100}%` } })]),
-      el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { h: hours(state.hoursLeft) }) }),
+      el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { duration: durationLabel(state.hoursLeft) }) }),
       hasCrossbow(state) ? el('span', { class: 'equipment-chip', text: s.scavenge.crossbow.name }) : null,
     ]);
     // What is already safe at home, to judge what this trip still has to bring back.
@@ -145,7 +151,7 @@ export class LocationScene implements Scene {
       const opened = !done && hasViceLeftovers(state, this.id, index);
       const coverTarget = this.concealing && coverTargets.includes(index);
       const receipt = looted && this.id === 'hardware' && index === HARDWARE_SPRING_BIN && state.springReceipt === 'left';
-      const blocked = !done && !opened && !this.concealing && (!canStillSearch || this.stop !== null);
+      const blocked = !done && !this.concealing && ((!canStillSearch && !opened) || this.stop !== null);
       const status = coverTarget ? s.stashCover.target
         : receipt ? covered ? s.stashCover.tornReceipt : s.springReceipt.found
         : covered ? looted ? s.stashCover.torn : s.stashCover.intact
@@ -166,7 +172,8 @@ export class LocationScene implements Scene {
         {
           class: `spot ${done ? 'done' : ''} ${looted ? 'looted' : ''} ${blocked ? 'blocked' : ''} ${receipt ? 'has-receipt' : ''} ${covered ? 'covered' : ''} ${coverTarget ? 'cover-target' : ''} ${opened ? 'vice-leftovers' : ''}`,
           style: { left: `${p.x}px`, top: `${p.y}px` },
-          title: status ?? (done ? s.loc.searched : fmt(s.loc.search, { h: hours(SEARCH_HOURS) })),
+          title: status ?? (done ? s.loc.searched : blocked ? this.stop ? this.stopLine : s.loc.noTime
+            : fmt(s.loc.afterSearch, { clock: this.returnClock(state.hoursLeft - SEARCH_HOURS) })),
           disabled: this.concealing && !coverTarget,
           data: { spot: String(index) },
           onClick: () => {
@@ -201,7 +208,7 @@ export class LocationScene implements Scene {
               ? this.stopLine
               : !canStillSearch
                 ? s.loc.noTime
-                : fmt(s.loc.search, { h: hours(SEARCH_HOURS) }),
+                : fmt(s.loc.search, { duration: durationLabel(SEARCH_HOURS) }),
       }),
       coverTargets.length > 0 || this.concealing ? el('button', {
         class: 'btn conceal-button',
@@ -210,18 +217,20 @@ export class LocationScene implements Scene {
       }) : null,
     ]);
     // Driving off leaves the lot to whoever is standing on it: said on the button, not after the fact.
-    const drive = fmt(s.loc.leaveCost, { h: hours(location.travelHours) });
-    const leaveNote = dispute ? `${drive} · ${fmt(s.encounter.leaveKeeps, { name: nameOf(dispute.rival) })}` : drive;
+    const arrival = fmt(s.loc.arrival, { clock: this.returnClock(state.hoursLeft) });
+    const leaveNote = dispute ? `${arrival} · ${fmt(s.encounter.leaveKeeps, { name: nameOf(dispute.rival) })}` : arrival;
     const leave = el('div', { class: 'loc-leave' }, [el('button', { class: 'btn btn-primary', onClick: () => this.leave() }, [
       s.loc.leave, el('small', { text: leaveNote }), dusk ? el('small', { class: 'road-warning', text: s.crossbowRoad.warning }) : null,
     ])]);
     const thought = lastSearchBeforeDusk ? el('p', { class: 'panel last-search-thought', text: s.crossbowRoad.lastSearch }) : null;
+    this.readouts = el('div', { class: 'location-readouts' }, [returnCargoBar(state), stash]);
     const status = el('div', { class: 'location-status' }, [
-      el('div', { class: 'location-readouts' }, [this.noiseGauge(), returnCargoBar(state), stash]),
+      this.readouts,
       thought,
     ]);
 
     this.hud.replaceChildren(topbar, status, ...spots.filter(spot => spot !== null), title, leave);
+    this.updateNoiseGauge();
     const curiosity = !this.concealing && !this.stop && epicObject(this.app, () => this.refresh());
     if (curiosity) this.hud.append(curiosity);
   }
@@ -280,6 +289,7 @@ export class LocationScene implements Scene {
       el('h2', { text: copy.title }),
       el('blockquote', { text: copy.note }),
       copy.reaction ? el('p', { class: 'note', text: copy.reaction }) : null,
+      el('small', { text: fmt(S().loc.arrival, { clock: this.returnClock(this.state.hoursLeft) }) }),
       el('div', { class: 'actions' }, [leave, take]),
     ]);
     card.setAttribute('role', 'dialog');
@@ -332,7 +342,7 @@ export class LocationScene implements Scene {
           el('p', { text: meeting.first ? lines.first : lines.later }),
           meeting.first ? el('p', { class: 'note', text: lines.firstNote }) : null,
           hasGift ? el('p', {}, [costLine(meeting.gift, undefined, '+')]) : null,
-          meeting.hoursLost > 0 ? el('p', { class: 'note', text: `− ${hours(meeting.hoursLost)} h` }) : null,
+          meeting.hoursLost > 0 ? el('p', { class: 'note', text: `− ${durationLabel(meeting.hoursLost)}` }) : null,
           el('div', { class: 'actions' }, [
             el('button', {
               class: 'btn btn-primary',
@@ -407,6 +417,7 @@ export class LocationScene implements Scene {
     const close = (): void => {
       this.puzzle?.root.remove();
       this.puzzle = null;
+      this.updateNoiseGauge();
       this.roomLife.disturbed();
       this.hud.inert = false;
       this.hud.querySelector<HTMLButtonElement>(`[data-spot="${index}"]`)?.focus();
@@ -459,7 +470,7 @@ export class LocationScene implements Scene {
         if (next.ok) this.puzzle?.showFailure(message, () => {
           close();
           this.search(index, at, true);
-        });
+        }, this.returnClock(next.value.paid.hoursLeft));
         else {
           const reason = next.error.code === 'escorted_out' ? this.stopLine : s.loc.noTime;
           this.puzzle?.showFailure(`${message} ${reason}`, null);
@@ -470,10 +481,13 @@ export class LocationScene implements Scene {
         heard += amount;
         this.app.state = makeNoise(this.state, amount);
         this.app.save();
+        this.updateNoiseGauge();
       },
+      this.returnClock(attempt.paid.hoursLeft),
     );
     this.hud.inert = true;
     this.overlay.append(this.puzzle.root);
+    this.updateNoiseGauge();
     if (retry) this.puzzle.start();
     this.puzzle.focus();
   }
@@ -484,19 +498,23 @@ export class LocationScene implements Scene {
   }
 
   /** The street-noise gauge: one dot per noise towards the next lost search, and the searches already lost. */
-  private noiseGauge(): HTMLElement {
+  private updateNoiseGauge(): void {
     const s = S().streetNoise;
     const state = this.state;
     const lost = searchesLostToNoise(state, this.id);
     const filled = streetNoise(state) % NOISE_PER_LOST_SEARCH;
     const lostLine = lost > 0 ? fmt(s.lost, { n: lost }) : null;
-    const gauge = el('span', { class: 'street-noise', title: s.hint }, [
-      s.label,
+    const warning = filled === NOISE_PER_LOST_SEARCH - 1 && !this.stop ? s.nextLoss : '';
+    this.gauge.title = s.hint;
+    this.gauge.replaceChildren(s.label,
       el('b', { text: '●'.repeat(filled) + '○'.repeat(NOISE_PER_LOST_SEARCH - filled) }),
-      lostLine ? el('small', { text: lostLine }) : null,
-    ]);
-    gauge.setAttribute('aria-label', `${s.label} ${filled}/${NOISE_PER_LOST_SEARCH}${lostLine ? ` · ${lostLine}` : ''}`);
-    return gauge;
+    );
+    if (lostLine) this.gauge.append(el('small', { text: lostLine }));
+    if (warning) this.gauge.append(el('small', { class: 'noise-warning', text: warning }));
+    this.gauge.setAttribute('role', 'status');
+    this.gauge.setAttribute('aria-label', [`${s.label} ${filled}/${NOISE_PER_LOST_SEARCH}`, lostLine, warning].filter(Boolean).join(' · '));
+    const host = this.puzzle?.root ?? this.readouts;
+    if (this.gauge.parentNode !== host) host.prepend(this.gauge);
   }
 
   private collect(result: SearchOutcome, at: { x: number; y: number }, finish: Finish = 'plain'): void {
@@ -581,7 +599,7 @@ export class LocationScene implements Scene {
     this.app.save();
     // A lot left behind on the way out is still a good turn: it is said on the drive home.
     const memory = forfeit ? memoryLine(forfeit) : null;
-    const drive = fmt(s.loc.leaveCost, { h: hours(LOCATIONS[this.id].travelHours) });
+    const drive = fmt(s.loc.leaveCost, { duration: durationLabel(LOCATIONS[this.id].travelHours) });
     const sub = memory ? `${drive} · ${memory}` : drive;
     if (state.encounter) {
       // Seen from the wheel before anything is said: there is time to take it in.

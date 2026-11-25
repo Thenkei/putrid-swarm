@@ -42,6 +42,7 @@ import {
   fenceCells,
   isFresh,
   lastFresh,
+  missingFor,
   placementProblem,
   refundOf,
   reinforceBarricade,
@@ -60,7 +61,7 @@ import { STAGE_H, STAGE_W, type App, type Pointer, type Scene } from '../engine/
 import { assetUrl, sprite } from '../engine/assets';
 import { audio, type Sfx } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, getLang, hours, line } from '../engine/i18n';
+import { S, durationLabel, fmt, getLang, hours, line } from '../engine/i18n';
 import { say, sayAny, sayOnce } from '../engine/voice';
 import { onDriveway, WAGON_CONTACT } from '../core/driveway';
 import { applyDaylight, cameraView, dayDeviceVisual, drawWorld, houseLights, inView, pickDevice, pickDoor, pickProp, prepareWorld, project, unproject, yardItemVisible, WELL_CLINK_AT, type Ghost, type Particle, type Rot, type SceneryAction, type View, type WorldFrame } from '../render/world';
@@ -160,7 +161,7 @@ export function yardErrorText(error: YardError): string {
     case 'cannot_afford':
       return fmt(s.err.cannot_afford, { list: describeCost(error.missing) });
     case 'no_time':
-      return fmt(s.err.no_time, { h: hours(error.needed) });
+      return fmt(s.err.no_time, { duration: durationLabel(error.needed) });
     case 'not_buildable':
       return s.err.not_buildable;
     case 'occupied':
@@ -335,10 +336,10 @@ export class DayScene implements Scene {
       el('span', { class: 'sep' }),
       el('span', { text: clockLabel(state.hoursLeft) }),
       daylight,
-      el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { h: hours(state.hoursLeft) }) }),
-      hasLeftArm(state) ? null : el('span', { class: 'chip-arm', text: s.day.oneArm, title: fmt(s.day.oneArmNote, { h: hours(ORCHARD.dressingHours) }) }),
+      el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { duration: durationLabel(state.hoursLeft) }) }),
+      hasLeftArm(state) ? null : el('span', { class: 'chip-arm', text: s.day.oneArm, title: fmt(s.day.oneArmNote, { duration: durationLabel(ORCHARD.dressingHours) }) }),
       state.shed === 'freed' ? el('span', { class: 'chip-arm chip-shed good', text: s.day.shedFreed, title: fmt(s.day.shedFreedNote, { n: SHED.delivery.wood ?? 0 }) }) : null,
-      state.shed === 'chained' ? el('span', { class: 'chip-arm chip-shed', text: s.day.shedChained, title: fmt(s.day.shedChainedNote, { h: hours(SHED.upkeepHours) }) }) : null,
+      state.shed === 'chained' ? el('span', { class: 'chip-arm chip-shed', text: s.day.shedChained, title: fmt(s.day.shedChainedNote, { duration: durationLabel(SHED.upkeepHours) }) }) : null,
       inventoryBar(state.inventory),
       el('span', { class: 'sep' }),
       el('span', { text: s.day.house }),
@@ -355,7 +356,7 @@ export class DayScene implements Scene {
       const count = affordableCount(state.inventory, type, state.hoursLeft);
       const affordable = count > 0;
       const tag = def.mode === 'auto' ? s.day.tagAuto : def.mode === 'manual' ? s.day.tagManual : s.day.tagPassive;
-      return el(
+      const button = el(
         'button',
         {
           class: `dev-card ${selected ? 'sel' : ''} ${affordable ? '' : 'poor'}`,
@@ -371,12 +372,15 @@ export class DayScene implements Scene {
             el('span', {}, [
               // How many of them the stock and the daylight still pay for: the answer to "can I close this gap?".
               count > 0 ? el('i', { class: 'stock-count', text: `×${count}`, title: fmt(s.day.affordable, { n: count }) }) : null,
-              fmt(s.day.time, { h: hours(def.buildHours) }),
+              durationLabel(def.buildHours),
             ]),
           ]),
           el('span', { class: 'meta' }, [costLine(def.cost, state.inventory), el('span', { class: `tag tag-${def.mode}`, text: tag })]),
         ],
       );
+      button.addEventListener('focus', () => this.showDeviceInfo(type));
+      button.addEventListener('blur', () => this.updateInfo());
+      return button;
     });
     this.refreshBuildArt();
     const tool = (kind: 'repair' | 'dismantle', label: string, icon: string): HTMLButtonElement => {
@@ -402,7 +406,7 @@ export class DayScene implements Scene {
       class: `btn ${count > 0 ? 'btn-alert' : ''}`,
       text: wrecks === 0 ? s.day.repairAllNone : fmt(count === wrecks ? s.day.repairAll : s.day.repairPart, { n: count, total: wrecks }),
       disabled: count === 0,
-      title: repairs.ok ? `${describeCost(bill)} · ${fmt(s.day.time, { h: hours(elapsed) })}` : wrecks ? yardErrorText(repairs.error) : s.day.repairAllNoneTitle,
+      title: repairs.ok ? `${describeCost(bill)} · ${durationLabel(elapsed)}` : wrecks ? yardErrorText(repairs.error) : s.day.repairAllNoneTitle,
       onClick: () => this.repairEverything(),
     });
     if (repairs.ok) {
@@ -484,7 +488,7 @@ export class DayScene implements Scene {
         ? doorActionButton(
             repairIcon,
             `${s.day.repair} · ${s.day.house}`,
-            `${fmt(s.day.houseRepair, { hp: HOUSE_REPAIR.amount })} · ${describeCost(HOUSE_REPAIR.cost)} · ${fmt(s.day.time, { h: hours(HOUSE_REPAIR.hours) })}`,
+            `${fmt(s.day.houseRepair, { hp: HOUSE_REPAIR.amount })} · ${describeCost(HOUSE_REPAIR.cost)} · ${durationLabel(HOUSE_REPAIR.hours)}`,
             () => this.apply(repairHouse(this.state), s.day.repaired, 'build'),
           )
         : el('span'),
@@ -584,7 +588,7 @@ export class DayScene implements Scene {
       el('summary', { text: s.rattle.title }),
       el('p', { text: s.rattle.pick }),
       el('div', { class: 'rattle-price' }, [
-        costLine(RATTLE_COST, this.state.inventory), ` · ${fmt(s.day.time, { h: hours(RATTLE_HOURS) })}`,
+        costLine(RATTLE_COST, this.state.inventory), ` · ${durationLabel(RATTLE_HOURS)}`,
       ]),
       el('div', { class: 'rattle-controls' }, [
         approach,
@@ -731,14 +735,22 @@ export class DayScene implements Scene {
     this.root.append(card);
   }
 
-  private showDeviceInfo(type: DeviceTypeId): void {
+  private showDeviceInfo(type: DeviceTypeId): boolean {
     const s = S();
     const def = DEVICES[type];
     this.info.replaceChildren(
       el('b', { text: s.device[type].name }),
       s.device[type].desc,
-      el('div', {}, [costLine(def.cost, this.state.inventory), el('span', { class: 'muted', text: `  ·  ${fmt(s.day.time, { h: hours(def.buildHours) })}` })]),
+      el('div', {}, [costLine(def.cost, this.state.inventory), el('span', { class: 'muted', text: `  ·  ${durationLabel(def.buildHours)}` })]),
     );
+    const missing = describeCost(missingFor(this.state.inventory, def.cost));
+    const timeShort = def.buildHours - this.state.hoursLeft;
+    const reasons = [
+      missing && fmt(s.err.cannot_afford, { list: missing }),
+      timeShort > 1e-9 && fmt(s.err.missingDaylight, { duration: durationLabel(timeShort) }),
+    ].filter(Boolean);
+    if (reasons.length) this.info.append(el('div', { class: 'bad', text: reasons.join(' · ') }));
+    return reasons.length === 0;
   }
 
   private inspectDoor(sector: SectorId | null): void {
@@ -762,7 +774,7 @@ export class DayScene implements Scene {
 
   private doorRepairLabel(gain: number): string {
     const s = S().day;
-    return `${fmt(s.doorRepair, { hp: gain })} · ${fmt(s.time, { h: hours(BARRICADE.repairHours) })}`;
+    return `${fmt(s.doorRepair, { hp: gain })} · ${durationLabel(BARRICADE.repairHours)}`;
   }
 
   private reinforceButton(sector: SectorId): HTMLButtonElement {
@@ -770,7 +782,7 @@ export class DayScene implements Scene {
     const button = doorActionButton(
       reinforceIcon,
       `${s.doorReinforce} · ${sectorNames[sector]}`,
-      `${s.doorReinforce} · ${describeCost(BARRICADE.reinforceCost)} · ${fmt(s.time, { h: hours(BARRICADE.reinforceHours) })}`,
+      `${s.doorReinforce} · ${describeCost(BARRICADE.reinforceCost)} · ${durationLabel(BARRICADE.reinforceHours)}`,
       () => this.apply(reinforceBarricade(this.state, sector), s.upgraded, 'bolt_seat'),
     );
     this.reinforceButtons.set(sector, button);
@@ -793,7 +805,7 @@ export class DayScene implements Scene {
       const { bill, elapsed, left } = this.repairPreview;
       this.info.replaceChildren(
         el('b', { text: s.day.repairPreview }),
-        el('div', {}, [costLine(bill, this.state.inventory), ` · ${fmt(s.day.time, { h: hours(elapsed) })}`]),
+        el('div', {}, [costLine(bill, this.state.inventory), ` · ${durationLabel(elapsed)}`]),
       );
       if (left > 0) this.info.append(el('div', { class: 'muted', text: fmt(s.day.repairPreviewLeft, { n: left }) }));
       return;
@@ -830,7 +842,7 @@ export class DayScene implements Scene {
       );
       if (reinforcing) this.info.append(el('div', {}, [
         `${s.day.doorReinforce} · `, costLine(BARRICADE.reinforceCost, this.state.inventory),
-        ` · ${fmt(s.day.time, { h: hours(BARRICADE.reinforceHours) })}`,
+        ` · ${durationLabel(BARRICADE.reinforceHours)}`,
       ]));
       else if (hp !== undefined) this.info.append(el('div', { text: this.doorRepairLabel(hp - door.hp) }));
       if (!work.ok && (reinforcing || door.hp < barricadeMaxHp(door.level))) this.info.append(el('div', { class: 'bad', text: yardErrorText(work.error) }));
@@ -843,7 +855,7 @@ export class DayScene implements Scene {
       return;
     }
     if (this.mode.kind === 'build') {
-      this.showDeviceInfo(this.mode.type);
+      if (!this.showDeviceInfo(this.mode.type)) return;
       const { ghost, problem } = this.currentGhost();
       if (problem && this.hover) this.info.append(el('div', { style: { color: '#ff8a78', marginTop: '4px' }, text: yardErrorText(problem) }));
       else if (ghost && isTrap(ghost.type)) {
@@ -875,12 +887,12 @@ export class DayScene implements Scene {
         lines.push(el('div', { class: tally.fired === 0 ? 'tally silent' : 'tally', text }));
       }
       if (device.broken || device.hp < def.maxHp) {
-        lines.push(el('div', {}, [fmt(s.day.repairHp, { from: hp, to: def.maxHp }), ' · ', costLine(repairCostOf(device.type), this.state.inventory), ` · ${fmt(s.day.time, { h: hours(def.buildHours / 2) })}`]));
+        lines.push(el('div', {}, [fmt(s.day.repairHp, { from: hp, to: def.maxHp }), ' · ', costLine(repairCostOf(device.type), this.state.inventory), ` · ${durationLabel(def.buildHours / 2)}`]));
       }
       const fresh = isFresh(device, this.state.day);
       const refund = refundOf(device, this.state.day);
       const timeBack = daylightRefund(device, this.state);
-      const timeText = timeBack > 0 ? ` · +${fmt(s.day.time, { h: hours(timeBack) })}` : '';
+      const timeText = timeBack > 0 ? ` · +${durationLabel(timeBack)}` : '';
       lines.push(el('div', {}, [`${s.day.dismantle} → ${s.day.refund} `, costLine(refund), timeText]));
       if (this.mode.kind === 'dismantle') {
         const point = project(this.view, device.x + 0.5, device.y + 0.5);
@@ -983,7 +995,7 @@ export class DayScene implements Scene {
     }
     const stay = el('button', { class: 'btn', text: s.day.waitNo, onClick: () => this.cancelNight?.() });
     const leave = el('button', { class: 'btn btn-primary', text: s.day.waitYes, onClick: proceed });
-    const prompt = el('p', { text: fmt(s.day.waitNightConfirm, { h: hours(this.state.hoursLeft) }) });
+    const prompt = el('p', { text: fmt(s.day.waitNightConfirm, { duration: durationLabel(this.state.hoursLeft) }) });
     prompt.id = 'wait-night-question';
     const modal = el('div', { class: 'modal' }, [
       el('div', { class: 'card', style: { width: '520px', padding: '20px 24px' } }, [
@@ -1090,8 +1102,8 @@ export class DayScene implements Scene {
     if (this.ghostCache?.key === key) return this.ghostCache;
     const def = DEVICES[type];
     let problem = placementProblem(this.state.yard, type, this.hover.x, this.hover.y);
-    if (!problem && this.state.hoursLeft < def.buildHours) problem = { code: 'no_time', needed: def.buildHours };
-    if (!problem && !canAfford(this.state.inventory, def.cost)) problem = { code: 'cannot_afford', missing: def.cost };
+    if (!problem && this.state.hoursLeft + 1e-9 < def.buildHours) problem = { code: 'no_time', needed: def.buildHours };
+    if (!problem && !canAfford(this.state.inventory, def.cost)) problem = { code: 'cannot_afford', missing: missingFor(this.state.inventory, def.cost) };
     this.ghostCache = { key, ghost: { type, x: this.hover.x, y: this.hover.y, facing: this.facing, ok: problem === null }, problem };
     return this.ghostCache;
   }
