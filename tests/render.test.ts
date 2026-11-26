@@ -50,6 +50,19 @@ describe('departure maneuver', () => {
     expect(outside.position.y).toBe(roadCentre('barn', outside.position.x));
     expect(onTrack(outside.position.x, outside.position.y)).toBe(true);
   });
+
+  it('unwinds the front wheels progressively as the nose-first departure joins the road', () => {
+    const tick = 1 / 60;
+    let previous = carManeuver(2.95, 'forward').steer;
+    expect(previous).toBeLessThan(-.15);
+    for (let frame = 1; frame <= 24; frame++) {
+      const angle = carManeuver(2.95 + frame*tick, 'forward').steer;
+      expect(angle).toBeGreaterThanOrEqual(previous);
+      expect(angle - previous).toBeLessThan(Math.PI / 180);
+      previous = angle;
+    }
+    expect(previous).toBeCloseTo(0, 6);
+  });
 });
 
 describe('noise', () => {

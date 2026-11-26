@@ -90,8 +90,11 @@ export function carManeuver(elapsed: number, route: DepartureRoute = 'reverse') 
     if (elapsed <= FRONT_SECONDS) {
       const t = clamp01(elapsed / FRONT_SECONDS), u = t*t*(2-t);
       const pose = frontCurve(u);
+      // Begin unwinding before the merge. Using time here keeps the wheel
+      // movement readable even as the wagon accelerates through the last cell.
+      const unwind = smoothstep(FRONT_SECONDS - .50, FRONT_SECONDS, elapsed);
       return { ...pose, distance: frontLength(u),
-        steer: pose.steer * smoothstep(-.35, .16, elapsed) * (1-smoothstep(FRONT_JOIN-1, FRONT_JOIN, pose.position.x)) };
+        steer: pose.steer * smoothstep(-.35, .16, elapsed) * (1 - unwind) };
     }
     const x = Math.min(EXIT_X, FRONT_JOIN + (elapsed - FRONT_SECONDS) * FRONT_EXIT_SPEED);
     return onRoad(x, frontLength(1) - roadLength((FRONT_JOIN - ROAD_ENTRY_X) / (EXIT_X - ROAD_ENTRY_X)));
@@ -105,7 +108,7 @@ export function carManeuver(elapsed: number, route: DepartureRoute = 'reverse') 
     const distance = REVERSE_DISTANCE * smoothstep(0, REVERSE_SECONDS, elapsed);
     const turn = Math.max(0, distance - STRAIGHT_REVERSE) / REVERSE_RADIUS;
     const backingSteer = steeringAngle(-1 / REVERSE_RADIUS) * smoothstep(0, .4, distance - STRAIGHT_REVERSE);
-    const shift = smoothstep(REVERSE_SECONDS-.10, FORWARD_START, elapsed);
+    const shift = smoothstep(REVERSE_SECONDS - .22, FORWARD_START, elapsed);
     return {
       position: {
         x: PARKED.x - REVERSE_RADIUS * (1 - Math.cos(turn)),
@@ -125,7 +128,7 @@ export function carManeuver(elapsed: number, route: DepartureRoute = 'reverse') 
         y: BACKED_OUT.y + TURN_RADIUS * (Math.sin(turn) - Math.sin(REVERSE_TURN)),
       },
       yaw: -turn,
-      steer: steeringAngle(1 / TURN_RADIUS) * (1-smoothstep(.75, 1, progress)),
+      steer: steeringAngle(1 / TURN_RADIUS) * (1-smoothstep(.55, 1, progress)),
       distance: -REVERSE_DISTANCE + TURN_RADIUS * (turn - REVERSE_TURN),
     };
   }
