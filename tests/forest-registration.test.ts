@@ -153,6 +153,27 @@ describe('the woodland fringe', () => {
     }
   });
 
+  it('keeps the painted hub fixed and centres the rotating ink on each axle', () => {
+    const key = 'car_wheel_faces';
+    const size = sprites.get(key)!.h;
+    for (let wheel = 0; wheel < 4; wheel++) {
+      let mass = 0, momentX = 0, momentY = 0;
+      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+        const dx = x + .5 - size/2, dy = y + .5 - size/2;
+        const weight = alpha(key, wheel*size+x, y);
+        if (Math.hypot(dx, dy) < size/8) {
+          expect(weight).toBe(0);
+          expect(alpha(key, (4+wheel)*size+x, y)).toBe(255);
+        }
+        mass += weight;
+        momentX += dx*weight;
+        momentY += dy*weight;
+      }
+      expect(mass).toBeGreaterThan(0);
+      expect(Math.hypot(momentX, momentY)/mass).toBeLessThan(.1);
+    }
+  });
+
   it('keeps a broad rubber contact patch through the head-on view', () => {
     const { cell, columns } = sweep.tyre;
     for (let frame = 0; frame <= 3; frame++) {
