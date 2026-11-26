@@ -28,7 +28,9 @@ describe('departure maneuver', () => {
     expect(reverse.position.y).toBeLessThan(parked.position.y);
     expect(reverse.yaw).toBeLessThan(parked.yaw);
     const shifted = carManeuver(1.2);
-    expect(shifted).toEqual(carManeuver(1.15));
+    const beforeShift = carManeuver(1.15);
+    expect(shifted).toMatchObject({ position: beforeShift.position, yaw: beforeShift.yaw, distance: beforeShift.distance });
+    expect(shifted.steer).toBeGreaterThan(beforeShift.steer);
     const moving = carManeuver(1.85);
     expect(moving.position.x).toBeGreaterThan(shifted.position.x);
     expect(moving.position.y).toBeGreaterThan(shifted.position.y);

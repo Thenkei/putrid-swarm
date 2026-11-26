@@ -37,28 +37,84 @@ SIDE_UV = [
          roof=(73,41), tail=(47,96), low_front=(229,267), low_rear=(41,147)),
 ]
 
-# Hub centre, forward radius and upward radius on each original side painting.
+# The hub, forward radius and vertical radius of each photographed sidewall.
 WHEEL_UV = [
-    [((170,222),(-16,8),(1,-28)), ((311,153),(-12,6),(1,-22))],
-    [((191,215),(13,7),(0,-24)), ((80,144),(11,6),(0,-21))],
+    [((170,222),(-20,11),(0,-32)), ((311,153),(-15,8),(0,-27))],
+    [((191,215),(17,10),(0,-29)), ((80,144),(12,7),(0,-24))],
+]
+# Lower edge of the painted fender, from left to right in each source.
+ARCHES = [
+    [[(131,239),(139,236),(145,230),(149,214),(155,202),(163,192),(173,186),
+      (181,184),(187,186),(191,193),(194,205),(194,218)],
+     [(278,170),(288,165),(291,153),(297,138),(307,127),(317,121),
+      (324,120),(328,123),(329,137),(329,145)]],
+    [[(173,212),(174,194),(177,185),(182,181),(188,182),(198,188),
+      (205,197),(211,211),(216,227),(222,231),(228,234)],
+     [(64,136),(65,125),(68,117),(73,115),(80,118),(87,124),
+      (93,135),(97,151),(102,159),(106,164)]],
 ]
 DISC = 64
+TYRE_CELL = 88
+RADIUS = 35
+HALF_WIDTH = 11
 
 
 def wheel_textures(sides):
-    atlas = Image.new("RGBA", (DISC*4, DISC))
+    atlas = Image.new("RGBA", (DISC*8, DISC))
     yy, xx = np.mgrid[:DISC, :DISC]
     r = np.hypot((xx+.5)/32-1, (yy+.5)/32-1)
-    mask = Image.fromarray(np.uint8(255*np.clip((1-r)*12, 0, 1)))
+    mask = Image.fromarray(np.uint8(255*np.clip((1-r)*24, 0, 1)))
     for side, image in enumerate(sides):
         for axle, (hub, forward, up) in enumerate(WHEEL_UV[side]):
-            a, b = np.array(forward)/32, np.array(up)/32
-            offset = np.array(hub)-forward-up
-            disc = image.transform((DISC, DISC), Image.Transform.AFFINE,
-                (a[0],b[0],offset[0],a[1],b[1],offset[1]), Image.Resampling.BICUBIC)
-            disc.putalpha(ImageChops.multiply(disc.getchannel("A"), mask))
-            atlas.paste(disc, ((side*2+axle)*DISC, 0))
+            for layer, scale in enumerate((.68, 1)):
+                a, b = np.array(forward)*scale/32, np.array(up)*scale/32
+                offset = np.array(hub) - 32*(a+b)
+                disc = image.transform((DISC, DISC), Image.Transform.AFFINE,
+                    (a[0],b[0],offset[0],a[1],b[1],offset[1]), Image.Resampling.BICUBIC)
+                disc.putalpha(ImageChops.multiply(disc.getchannel("A"), mask))
+                atlas.paste(disc, ((layer*4+side*2+axle)*DISC, 0))
     atlas.save(ASSETS / "sprites/car_wheel_faces.webp", quality=96)
+
+
+def bake_tyre(front):
+    # Cast orthographic rays through a rounded cylinder. Its longitudinal and
+    # vertical coordinates give a continuous rubber texture around both shoulders.
+    columns = 8
+    count = round(90/STEP_DEGREES)+1
+    atlas = Image.new("RGBA", (columns*TYRE_CELL, ((count+columns-1)//columns)*TYRE_CELL))
+    yy, xx = (np.indices((TYRE_CELL*2, TYRE_CELL*2))+.5)/2-TYRE_CELL/2
+    rubber = np.asarray(front.convert("RGB"))
+    for frame in range(count):
+        angle = radians(frame*STEP_DEGREES)
+        c, s = cos(angle), sin(angle)
+        nearest = np.full(xx.shape, -np.inf)
+        for inset in range(5):
+            width = HALF_WIDTH-inset
+            radius = RADIUS-4+(16-(4-inset)**2)**.5
+            # Screen x is constant along a ray. In wheel space its coordinates
+            # are (x*c-depth*s, x*s+depth*c, y-.48*depth).
+            k = c*c+.48**2
+            b = xx*s*c-yy*.48
+            discriminant = b*b-k*((xx*s)**2+yy**2-radius**2)
+            root = np.sqrt(np.maximum(0, discriminant))
+            lo, hi = (-b-root)/k, (-b+root)/k
+            if s > 1e-6:
+                lo = np.maximum(lo,(xx*c-width)/s)
+                hi = np.minimum(hi,(xx*c+width)/s)
+            valid = (discriminant>=0) & (lo<=hi) & ((s>1e-6) | (np.abs(xx*c)<=width))
+            nearest = np.where(valid, np.maximum(nearest,hi), nearest)
+        hit = np.isfinite(nearest)
+        depth = np.where(hit,nearest,0)
+        across = xx*c-depth*s
+        along, down = xx*s+depth*c, yy-.48*depth
+        u = np.clip(np.rint(130+across*.74).astype(int),121,139)
+        v = 240 + (np.floor(8*np.arctan2(down,along)).astype(int) % 7)
+        cel = np.dstack((rubber[v,u], hit.astype(np.uint8)*255))
+        tile = Image.fromarray(cel).resize((TYRE_CELL,TYRE_CELL), Image.Resampling.LANCZOS)
+        atlas.paste(tile, (frame%columns*TYRE_CELL,frame//columns*TYRE_CELL))
+    atlas.save(ASSETS / "sprites/car_tyre.webp", quality=94)
+    return dict(cell=TYRE_CELL, columns=columns, radius=RADIUS, halfWidth=HALF_WIDTH)
+
 
 def point(station, side):
     width, y, along = STATIONS[station]
@@ -119,75 +175,8 @@ def side_faces(sign):
 
 def side_panel(canvas, sides, sign, angle):
     image = sides[0 if sign == 1 else 1]
-    mounts = [None, None]
     for vertices, coords in side_faces(sign):
-        dest = project(vertices, angle)
-        render_face(canvas, image, dest, coords, sign)
-        for axle, (hub, forward, up) in enumerate(WHEEL_UV[0 if sign == 1 else 1]):
-            for ids in ([0,1,2], [0,2,3]):
-                tri = coords[ids]
-                inv = np.linalg.inv((tri[1:]-tri[0]).T)
-                bary = inv @ (hub-tri[0])
-                if min(bary) < 0 or sum(bary) > 1:
-                    continue
-                projected = dest[ids]
-                basis = (projected[1:]-projected[0]).T @ inv
-                centre = projected[0] + basis @ (hub-tri[0])
-                mounts[axle] = np.round(np.r_[centre, basis @ forward, basis @ up], 2).tolist()
-    assert all(mount is not None for mount in mounts)
-    return mounts
-
-
-def front_tyre(sign, painting):
-    """Extrude the painted contact edge in axle space so it joins the sidewall at every yaw."""
-    driver = sign == 1
-    # Trace the exposed lower arc from the back of the tyre towards the bumper.
-    xs = range(190, 133, -2) if driver else range(176, 225, 2)
-    alpha = np.asarray(painting.getchannel("A"))
-    edge = [(x, np.flatnonzero(alpha[:, x] > 128)[-1] + .5) for x in xs]
-    # The rising leading edge disappears behind the painted bumper.
-    edge += [(133, 233), (133, 218)] if driver else [(225, 230), (225, 216)]
-    triangles = [(verts[ids], uv[ids]) for verts, uv in side_faces(sign)
-                 for ids in ([0,1,2], [0,2,3])]
-    def on_panel(pixel):
-        # Use the closest triangle at antialiased pixels just outside the panel.
-        choices = []
-        for verts, uv in triangles:
-            u, v = np.linalg.solve((uv[1:] - uv[0]).T, pixel - uv[0])
-            choices.append((min(u, v, 1-u-v), verts[0] + u*(verts[1]-verts[0]) + v*(verts[2]-verts[0])))
-        return max(choices, key=lambda pair: pair[0])[1]
-    profile = np.array([on_panel(pixel) for pixel in edge])
-    # A rounded shoulder on each edge of the tread, with the outer one just
-    # inside the original ink. Each strip shares its edge with the next.
-    rings = [profile + [-sign*inset, 0, drop] for inset, drop in
-             ((0, -.5), (2, 1), (5, 2), (17, 2), (21, .5), (23, -2), (24, -5))]
-    return np.array(rings)
-
-
-def paint_tyre(canvas, front, rings, sign, angle):
-    left = 241 if sign == 1 else 122
-    # Only rubber from below the bumper is sampled. Follow the curve around
-    # the tyre with a continuous strip of the original front-facing tread.
-    rows = np.clip(238 + (rings[:, :, 2] - 26) * .44, 238, 247)
-    cols = left + (rings[:, 0, 0] - rings[0, 0, 0]) * .66 + (16 if sign == 1 else 0)
-    projected = project(rings.reshape(-1, 3), angle).reshape(*rings.shape[:2], 2)
-    # The inward-facing wall is visible below the far side of the car.
-    # Close both ends behind the tread and the painted outer sidewall.
-    for rim in (projected[-1], projected[0]):
-        centre = (rim[0] + rim[-1]) / 2
-        for a, b in zip(rim[:-1], rim[1:]):
-            render_face(canvas, front, np.array([centre, a, b, centre]),
-                        np.array([(left+8,240),(left+1,244),(left+14,244),(left+8,240)]))
-    for j in range(rings.shape[1] - 1):
-        for i in range(len(rings) - 1):
-            ix = ([i,i+1,i+1,i], [j,j,j+1,j+1])
-            uv = np.column_stack((cols[ix[0]], rows[ix]))
-            render_face(canvas, front, projected[ix], uv)
-    # The animated grooves occupy the forward rubber, below the bumper.
-    j = np.argmax(projected[2, :, 1])
-    centre = (projected[2,j] + projected[3,j]) / 2
-    across = (projected[3,j] - projected[2,j]) * .55 * -sign
-    return np.round(np.r_[centre - [0, 7], across, [0, 3]], 2).tolist()
+        render_face(canvas, image, project(vertices, angle), coords, sign)
 
 
 def bake():
@@ -203,13 +192,18 @@ def bake():
     mirror_ink.putalpha(ImageChops.multiply(mirror_ink.getchannel("A"), mask))
     mirrors = texture(mirror_ink)
     paintings = [driver.convert("RGBA"), road.crop((384,256,768,512)).convert("RGBA")]
-    tyres = [front_tyre(1, paintings[0]), front_tyre(-1, paintings[1])]
+    tyre = bake_tyre(road.crop((384,0,768,256)))
     wheel_textures(paintings)
+    for painting, arches in zip(paintings, ARCHES):
+        pen = ImageDraw.Draw(painting)
+        for arch in arches:
+            pen.polygon([*arch, (arch[-1][0], painting.height), (arch[0][0], painting.height)],
+                        fill=(0,0,0,0))
     sides = [texture(image) for image in paintings]
     atlas = Image.new("RGBA", (CELL[0]*COLUMNS, CELL[1]*((FRAMES+COLUMNS-1)//COLUMNS)))
     lamps = []
     wheels = []
-    treads = []
+
     for frame in range(FRAMES):
         angle = radians(-45 + frame*STEP_DEGREES)
         side = 1 if angle < 0 else -1
@@ -231,13 +225,14 @@ def bake():
             uvs = [(189.5+sign*x,y) for x,y in ((57,115),(82,115),(82,135),(57,135))]
             face(mirrors, verts, uvs)
 
-        treads.append([paint_tyre(canvas, front, tyre, sign, angle)
-                       for tyre, sign in zip(tyres, (1, -1))])
         mirror(-side)
         for sign in (-side, side):
-            mounts = side_panel(canvas, sides, sign, angle)
-            if sign == side:
-                wheels.append(mounts)
+            side_panel(canvas, sides, sign, angle)
+        # Hub positions belong to the axles. Both sides use the same wheelbase
+        # and ride height; the steering only rotates a wheel around its hub.
+        hubs = [[project([[sign*63, along, .48*along-35]], angle)[0].round(2).tolist()
+                 for along in (96, -98)] for sign in (1, -1)]
+        wheels.append(hubs)
         # Only the luggage rack carries planks. The roof beneath it is enamel.
         face(front, [point("roof",-1), point("roof",1), point("glass",1), point("glass",-1)],
              [(145,144),(232,144),(242,188),(135,188)])
@@ -262,7 +257,7 @@ def bake():
         lamps.append(np.round(locations.flatten(),1).tolist())
     atlas.save(ASSETS / "sprites/car_turn_sweep.webp", quality=92, method=6)
     meta = dict(width=CELL[0],height=CELL[1],columns=COLUMNS,pivot=PIVOT.tolist(),unit=UNIT,
-                stepDegrees=STEP_DEGREES, lamps=lamps, wheels=wheels, treads=treads)
+                stepDegrees=STEP_DEGREES, lamps=lamps, wheels=wheels, tyre=tyre)
     (ASSETS.parents[1] / "src/render/wagon-turn.json").write_text(json.dumps(meta,separators=(",",":"))+"\n")
 
 

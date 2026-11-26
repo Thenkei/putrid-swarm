@@ -30,6 +30,8 @@ const FRONT_SECONDS = 3.35;
 const FRONT_JOIN = GRID_W + 1.6;
 const FRONT_CONTROL_X = PARKED.x + 2.5;
 const FRONT_EXIT_SPEED = 3 * (FRONT_JOIN - FRONT_CONTROL_X) / FRONT_SECONDS;
+const WHEELBASE = 1.9; // Grid cells between the axles.
+const steeringAngle = (curvature: number) => Math.atan(Math.max(-.64, Math.min(.64, WHEELBASE * curvature)));
 
 export function departureTiming(route: DepartureRoute) {
   if (route === 'forward') return { reverseEnd: 0, forwardAt: 0, duration: FRONT_SECONDS + (EXIT_X - FRONT_JOIN) / FRONT_EXIT_SPEED };
@@ -46,7 +48,11 @@ function frontCurve(t: number) {
   const y = u*u*u * PARKED.y + 3*u*u*t * (PARKED.y + reach) + t*t * (3 - 2*t) * ROAD_Y;
   const dx = 2*u*t * (FRONT_CONTROL_X - PARKED.x) + t*t * (FRONT_JOIN - FRONT_CONTROL_X);
   const dy = u*u * reach + 2*u*t * (ROAD_Y - PARKED.y - reach);
-  return { position: { x, y }, yaw: Math.atan2(-dx, dy) };
+  const ddx = 2*(u-t)*(FRONT_CONTROL_X - PARKED.x) + 2*t*(FRONT_JOIN - FRONT_CONTROL_X);
+  const ddy = -2*u*reach + 2*(u-t)*(ROAD_Y - PARKED.y - reach);
+  // dx and dy are one third of the cubic's derivatives.
+  const curvature = (dy*ddx - dx*ddy) / (3 * Math.hypot(dx,dy)**3);
+  return { position: { x, y }, yaw: Math.atan2(-dx, dy), steer: steeringAngle(curvature) };
 }
 
 /** Arc length of a painted ground path, independent of display frame rate. */
@@ -71,16 +77,21 @@ const roadLength = arcLengthTable(t => {
 });
 
 function onRoad(x: number, distanceAtEntry: number) {
-  const slope = (roadCentre('barn', x + .01) - roadCentre('barn', x - .01)) / .02;
-  return { position: { x, y: roadCentre('barn', x) }, yaw: Math.atan2(-1, slope),
+  const y = roadCentre('barn', x);
+  const ahead = roadCentre('barn', x + .05), behind = roadCentre('barn', x - .05);
+  const slope = (ahead - behind) / .1;
+  const curvature = -(ahead - 2*y + behind) / (.05**2 * (1 + slope*slope)**1.5);
+  return { position: { x, y }, yaw: Math.atan2(-1, slope), steer: steeringAngle(curvature),
     distance: distanceAtEntry + roadLength((x - ROAD_ENTRY_X) / (EXIT_X - ROAD_ENTRY_X)) };
 }
 
-export function carManeuver(elapsed: number, route: DepartureRoute = 'reverse'): { position: Cell; yaw: number; distance: number } {
+export function carManeuver(elapsed: number, route: DepartureRoute = 'reverse') {
   if (route === 'forward') {
     if (elapsed <= FRONT_SECONDS) {
       const t = clamp01(elapsed / FRONT_SECONDS), u = t*t*(2-t);
-      return { ...frontCurve(u), distance: frontLength(u) };
+      const pose = frontCurve(u);
+      return { ...pose, distance: frontLength(u),
+        steer: pose.steer * smoothstep(-.35, .16, elapsed) * (1-smoothstep(FRONT_JOIN-1, FRONT_JOIN, pose.position.x)) };
     }
     const x = Math.min(EXIT_X, FRONT_JOIN + (elapsed - FRONT_SECONDS) * FRONT_EXIT_SPEED);
     return onRoad(x, frontLength(1) - roadLength((FRONT_JOIN - ROAD_ENTRY_X) / (EXIT_X - ROAD_ENTRY_X)));
@@ -93,12 +104,15 @@ export function carManeuver(elapsed: number, route: DepartureRoute = 'reverse'):
     // Clear the bay first, then swing the rear toward the barn while still in reverse.
     const distance = REVERSE_DISTANCE * smoothstep(0, REVERSE_SECONDS, elapsed);
     const turn = Math.max(0, distance - STRAIGHT_REVERSE) / REVERSE_RADIUS;
+    const backingSteer = steeringAngle(-1 / REVERSE_RADIUS) * smoothstep(0, .4, distance - STRAIGHT_REVERSE);
+    const shift = smoothstep(REVERSE_SECONDS-.10, FORWARD_START, elapsed);
     return {
       position: {
         x: PARKED.x - REVERSE_RADIUS * (1 - Math.cos(turn)),
         y: PARKED.y - Math.min(STRAIGHT_REVERSE, distance) - REVERSE_RADIUS * Math.sin(turn),
       },
       yaw: -turn,
+      steer: backingSteer * (1-shift) + steeringAngle(1 / TURN_RADIUS) * shift,
       distance: -distance,
     };
   }
@@ -111,6 +125,7 @@ export function carManeuver(elapsed: number, route: DepartureRoute = 'reverse'):
         y: BACKED_OUT.y + TURN_RADIUS * (Math.sin(turn) - Math.sin(REVERSE_TURN)),
       },
       yaw: -turn,
+      steer: steeringAngle(1 / TURN_RADIUS) * (1-smoothstep(.75, 1, progress)),
       distance: -REVERSE_DISTANCE + TURN_RADIUS * (turn - REVERSE_TURN),
     };
   }
