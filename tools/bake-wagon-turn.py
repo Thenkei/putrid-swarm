@@ -8,7 +8,7 @@ from math import cos, radians, sin
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageChops, ImageDraw
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 ASSETS = Path(__file__).resolve().parents[1] / "public/assets"
 CELL = (384, 304)
@@ -61,19 +61,46 @@ HALF_WIDTH = 11
 
 def wheel_textures(sides):
     atlas = Image.new("RGBA", (DISC*8, DISC))
-    yy, xx = np.mgrid[:DISC, :DISC]
-    r = np.hypot((xx+.5)/32-1, (yy+.5)/32-1)
-    mask = Image.fromarray(np.uint8(255*np.clip((1-r)*24, 0, 1)))
+    size = DISC * 4
+    y, x = (np.indices((size, size)) + .5) * (2/size) - 1
+    r, angle = np.hypot(x,y), np.arctan2(y,x)
+    # The hub, rolled lip and illumination stay put. Only the slots and lug
+    # nuts rotate. Repeating each detail around the axle keeps their pitch
+    # circles concentric even where the original painting was foreshortened.
+    relief = np.interp(r, [0,.13,.17,.20,.22,.25,.30,.43,.53,.57,.60,.64,.67,.71,.79],
+                          [.97,1.02,1.14,.83,.50,.74,.97,1.06,1.02,.82,1.27,1.19,.57,.64,.83])
+    light = 1 + .15*y - .07*x
+    detail_shade = np.ones_like(r)
+    detail_alpha = np.zeros_like(r)
+    for count, orbit, width, height, tones in (
+            (9, .76, .135, .103, (.17,.24,.54,1.27)),
+            (5, .40, .081, .081, (1.43,1.10,.66,.38))):
+        offset = (angle + np.pi/count) % (2*np.pi/count) - np.pi/count
+        tangent = r*np.sin(offset)
+        radial = r*np.cos(offset)-orbit
+        shape = np.hypot(tangent/width, radial/height)
+        inside = shape < 1
+        detail_shade[inside] = np.interp(shape[inside], [0,.54,.80,1], tones)
+        detail_alpha[inside] = np.clip((1-shape[inside])*12, 0, 1)
     for side, image in enumerate(sides):
         for axle, (hub, forward, up) in enumerate(WHEEL_UV[side]):
-            for layer, scale in enumerate((.68, 1)):
-                a, b = np.array(forward)*scale/32, np.array(up)*scale/32
-                offset = np.array(hub) - 32*(a+b)
-                disc = image.transform((DISC, DISC), Image.Transform.AFFINE,
-                    (a[0],b[0],offset[0],a[1],b[1],offset[1]), Image.Resampling.BICUBIC)
-                disc.putalpha(ImageChops.multiply(disc.getchannel("A"), mask))
-                atlas.paste(disc, ((layer*4+side*2+axle)*DISC, 0))
-    atlas.save(ASSETS / "sprites/car_wheel_faces.webp", quality=96)
+            a, b = np.array(forward)*2/size, np.array(up)*2/size
+            offset = np.array(hub) - forward - up
+            face = image.transform((size,size), Image.Transform.AFFINE,
+                (a[0],b[0],offset[0],a[1],b[1],offset[1]), Image.Resampling.BICUBIC)
+            paint = np.asarray(face.convert("RGB"), dtype=float)
+            grain = paint - np.asarray(face.convert("RGB").filter(ImageFilter.GaussianBlur(size/32)))
+            steel = np.percentile(paint[(r>.28) & (r<.64)], 65, axis=0)
+            moving = Image.fromarray(np.uint8(np.clip(np.dstack(
+                (steel*detail_shade[...,None], detail_alpha*255)), 0, 255)))
+            plate = steel * (relief*light)[...,None] + np.clip(grain, -25, 25)*.48
+            rubber = np.clip((r-.74)/.10, 0, 1)[...,None]
+            fixed = Image.fromarray(np.uint8(np.clip(plate*(1-rubber) + paint*rubber, 0, 255)))
+            fixed.putalpha(Image.fromarray(np.uint8(255*np.clip((1-r)*25, 0, 1))))
+            index = side*2 + axle
+            atlas.paste(moving.resize((DISC,DISC), Image.Resampling.BOX), (index*DISC,0))
+            atlas.paste(fixed.resize((DISC,DISC), Image.Resampling.LANCZOS), ((4+index)*DISC,0))
+    atlas.save(ASSETS / "sprites/car_wheel_faces.webp", lossless=True)
 
 
 def bake_tyre(front):
