@@ -1535,6 +1535,18 @@
     "seconds": 2.273,
     "gain": 1
   },
+  "vo_car_watch_barriers": {
+    "file": "vo_car_watch_barriers.mp3",
+    "kind": "voice",
+    "seconds": 2.612,
+    "gain": 1
+  },
+  "vo_car_watch_traps": {
+    "file": "vo_car_watch_traps.mp3",
+    "kind": "voice",
+    "seconds": 2.482,
+    "gain": 1
+  },
   "vo_car_placement": {
     "file": "vo_car_placement.mp3",
     "kind": "voice",

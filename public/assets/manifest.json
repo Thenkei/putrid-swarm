@@ -2128,6 +2128,16 @@
     "w": 676,
     "h": 511
   },
+  "car_turn_sweep": {
+    "file": "sprites/car_turn_sweep.webp",
+    "w": 2688,
+    "h": 2432
+  },
+  "car_wheel_faces": {
+    "file": "sprites/car_wheel_faces.webp",
+    "w": 256,
+    "h": 64
+  },
   "car_turn_road": {
     "file": "sprites/car_turn_road.webp",
     "w": 1152,

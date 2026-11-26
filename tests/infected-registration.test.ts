@@ -49,6 +49,10 @@ function capture() {
     save() { stack.push([...m]); }, restore() { m = stack.pop()!; },
     translate(x: number, y: number) { m[4] += m[0] * x + m[2] * y; m[5] += m[1] * x + m[3] * y; },
     scale(x: number, y: number) { m[0] *= x; m[1] *= x; m[2] *= y; m[3] *= y; },
+    transform(a: number, b: number, c: number, d: number, x: number, y: number) {
+      const [u,v,w,z,tx,ty] = m;
+      m = [u*a+w*b,v*a+z*b,u*c+w*d,v*c+z*d,tx+u*x+w*y,ty+v*x+z*y];
+    },
     rotate(angle: number) {
       const [a, b, c, d, e, f] = m, cos = Math.cos(angle), sin = Math.sin(angle);
       m = [a * cos + c * sin, b * cos + d * sin, c * cos - a * sin, d * cos - b * sin, e, f];
@@ -66,6 +70,27 @@ function capture() {
 }
 
 describe('infected registration on the yard', () => {
+  it.each(['shambler', 'runner', 'brute'] as const)('keeps the hands planted while the %s leans into a rail', type => {
+    const e = actor(type);
+    Object.assign(e, { action: 'attack', gripTarget: 3 });
+    for (const rot of views) {
+      const draw = (seconds: number) => {
+        e.actionSeconds = seconds;
+        const sample = capture();
+        drawEnemy(sample.ctx, camera(rot), frame, e);
+        return sample.blits;
+      };
+      const contact = draw(.31)[0]!;
+      const [hands, torso] = draw(.49);
+      expect(hands!.key).toBe('defense_mob_poses');
+      const wrist = [hands!.left + (rot ? 163 : 75), hands!.top + (rot ? 55 : 78)] as const;
+      expect(hands!.pixel(...wrist)).toEqual(contact.pixel(...wrist));
+      const head = [hands!.left + (rot ? 135 : 110), hands!.top + 40] as const;
+      const initial = hands!.pixel(...head), leaned = torso!.pixel(...head);
+      expect(Math.hypot(initial.x - leaned.x, initial.y - leaned.y)).toBeGreaterThan(1);
+    }
+  });
+
   it.each(SECTOR_IDS)('knocks toward the painted %s door and walks away from its sill', sector => {
     const sim = new NightSim(5, newGame(421).yard, 421);
     const e = actor('mail'), entry = ENTRIES[sector], [nx, ny] = DOOR_OUTWARD[sector];

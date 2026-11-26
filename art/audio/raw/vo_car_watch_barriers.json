@@ -1,0 +1,15 @@
+{
+  "id": "vo_car_watch_barriers",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "generationId": "yiieC5nNcXkHUYqjl35H",
+  "request": {
+    "text": "[muttering] Ah oui… Je fais attention aux barrières.",
+    "model_id": "eleven_v4",
+    "voice_id": "DbbNuBL7lf62XwY7arQb"
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-26T19:09:48.018Z",
+  "bytes": 65652,
+  "sha256": "8be2e1ab301e34b48d91dc40aa4c87ae965506575ad7c95e2d68cf21067bff08"
+}
