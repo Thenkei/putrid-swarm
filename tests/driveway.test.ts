@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { drivewayImpacts, driveThroughYard, onDriveway } from '../src/core/driveway';
+import { departurePlan, drivewayImpacts, driveThroughYard, onDriveway } from '../src/core/driveway';
+import { carManeuver, departureTiming, type DepartureRoute } from '../src/core/car-path';
 import { chooseCrossing } from '../src/core/crossing';
 import { arriveHome, newGame, travelTo } from '../src/core/game';
 import { deserialize, serialize } from '../src/core/save';
@@ -17,11 +18,46 @@ function place(state: GameState, type: DeviceTypeId, x: number, y: number) {
 
 describe('the wagon crossing the prepared yard', () => {
   const base = newGame(94);
-  const stocked = { ...base, day: 2, inventory: { wood: 50, scrap: 50, wire: 50, springs: 50, battery: 50 } };
+  const open = { ...base, day: 2, inventory: { wood: 50, scrap: 50, wire: 50, springs: 50, battery: 50 } };
+  const stocked = place(open, 'spikes', 17, 15); // No clear nose-first exit in the collision fixtures.
   const log = place(stocked, 'log', 15, 11); // swept while backing out
   const withHorn = place(log, 'horn', 18, 12);
   const withStakes = place(withHorn, 'spikes', 19, 11);
   const home = place(withStakes, 'log', 18, 10); // just off the road
+
+  it.each(['barrier','fence','log','net','horn','spikes','floodlight'] as const)('spots a rear %s and takes the clear front exit', type => {
+    const yard = place(open, type, 15, 11).yard;
+    const warning = type === 'barrier' || type === 'fence' ? 'vo_car_watch_barriers' : 'vo_car_watch_traps';
+    expect(departurePlan(yard)).toEqual({ route: 'forward', warning });
+    expect(drivewayImpacts(yard)).toEqual([]);
+    expect(unwrap(travelTo({ ...open, yard }, 'garage')).state.yard).toEqual(yard);
+    expect(departurePlan(place(stocked, type, 15, 11).yard)).toEqual({ route: 'carefulReverse', warning });
+  });
+
+  it('alternates in a clear yard and ignores wrecked gear and equipment on the shoulder', () => {
+    const built = place(open, 'barrier', 15, 11).yard;
+    const wreck = { ...built, devices: built.devices.map(d => d.type === 'barrier' ? { ...d, hp: 0, broken: true } : d) };
+    for (const yard of [open.yard, wreck, place(open, 'net', 18, 10).yard]) {
+      expect(departurePlan(yard, 0)).toEqual({ route: 'reverse', warning: null });
+      expect(departurePlan(yard, 1)).toEqual({ route: 'forward', warning: null });
+    }
+  });
+
+  it.each(['reverse','carefulReverse','forward'] as const)('rolls with signed ground travel on the %s route', (route: DepartureRoute) => {
+    const timing = departureTiming(route);
+    let previous = carManeuver(0, route);
+    for (let tick = 1; tick <= Math.ceil(timing.duration * 120); tick++) {
+      const t = tick / 120;
+      const sample = carManeuver(t, route);
+      const delta = sample.distance - previous.distance;
+      const travel = Math.hypot(sample.position.x - previous.position.x, sample.position.y - previous.position.y);
+      expect(Math.abs(delta)).toBeCloseTo(travel, 4);
+      if (t < timing.reverseEnd) expect(delta).toBeLessThanOrEqual(0);
+      else if (t > timing.reverseEnd + 1/120 && t < timing.forwardAt) expect(delta).toBe(0);
+      else if (t > timing.forwardAt) expect(delta).toBeGreaterThanOrEqual(0);
+      previous = sample;
+    }
+  });
 
   it.each(['floodlight', 'net', 'barrier', 'fence', 'log'] as const)('breaks a %s under the wheels and leaves one on the shoulder intact', type => {
     const prepared = place(place(stocked, type, 15, 11), type, 18, 10);

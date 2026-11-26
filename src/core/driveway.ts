@@ -1,4 +1,4 @@
-import { carManeuver, MANEUVER_SECONDS } from './car-path';
+import { carManeuver, departureTiming, PARKED, REVERSE_SECONDS, type DepartureRoute } from './car-path';
 import { idx, inGrid, isBuildable } from './map';
 import type { Cell, DeviceInstance, DeviceTypeId, YardState } from './types';
 
@@ -10,27 +10,53 @@ interface Contact {
 
 // Use the wagon's oriented body throughout the reverse, turn and run down the track.
 // The contact time is also the cue for the sound and the movement on screen.
-const swept = new Map<number, Contact>();
-for (let frame = 0; frame <= Math.ceil(MANEUVER_SECONDS * 60); frame++) {
-  const at = frame / 60;
-  const { position, yaw } = carManeuver(at);
-  const c = Math.cos(yaw);
-  const s = Math.sin(yaw);
-  for (let y = Math.floor(position.y) - 2; y <= Math.floor(position.y) + 2; y++) {
-    for (let x = Math.floor(position.x) - 2; x <= Math.floor(position.x) + 2; x++) {
-      if (!inGrid(x, y) || swept.has(idx(x, y))) continue;
-      const dx = x + .5 - position.x;
-      const dy = y + .5 - position.y;
-      const side = dx * c + dy * s;
-      if (Math.abs(side) > .95 || Math.abs(-dx * s + dy * c) > 1.6) continue;
-      const sign = side < 0 ? -1 : 1;
-      swept.set(idx(x, y), { at, sideX: sign * c, sideY: sign * s });
+function sweptCells(route: DepartureRoute) {
+  const { duration } = departureTiming(route);
+  const swept = new Map<number, Contact>();
+  for (let frame = 0; frame <= Math.ceil(duration * 60); frame++) {
+    const at = frame / 60;
+    const { position, yaw } = carManeuver(at, route);
+    const c = Math.cos(yaw);
+    const s = Math.sin(yaw);
+    for (let y = Math.floor(position.y) - 2; y <= Math.floor(position.y) + 2; y++) {
+      for (let x = Math.floor(position.x) - 2; x <= Math.floor(position.x) + 2; x++) {
+        if (!inGrid(x, y) || swept.has(idx(x, y))) continue;
+        const dx = x + .5 - position.x;
+        const dy = y + .5 - position.y;
+        const side = dx * c + dy * s;
+        if (Math.abs(side) > .95 || Math.abs(-dx * s + dy * c) > 1.6) continue;
+        const sign = side < 0 ? -1 : 1;
+        swept.set(idx(x, y), { at, sideX: sign * c, sideY: sign * s });
+      }
     }
   }
+  return swept;
+}
+
+const paths = { reverse: sweptCells('reverse'), forward: sweptCells('forward'), carefulReverse: sweptCells('carefulReverse') };
+
+export function departurePlan(yard: YardState, outings = 0) {
+  const live = yard.devices.filter(d => !d.broken);
+  const rear = live.filter(d => {
+    const hit = paths.reverse.get(idx(d.x, d.y));
+    // Flat spikes on the outside of the swing clear the sill. The driver
+    // checks spikes directly behind a tyre, and upright equipment in the turn.
+    const behindTyres = Math.abs(d.x + .5 - PARKED.x) <= .95;
+    return d.y + .5 < PARKED.y && hit && hit.at <= REVERSE_SECONDS &&
+      (behindTyres || WAGON_CONTACT[d.type] !== 'rollOver');
+  });
+  const warning = !rear.length ? null : rear.every(d => d.type === 'barrier' || d.type === 'fence')
+    ? 'vo_car_watch_barriers' : 'vo_car_watch_traps';
+  const clear = (route: DepartureRoute) => live.every(d => !paths[route].has(idx(d.x, d.y)));
+  let route: DepartureRoute = 'reverse';
+  if (warning) route = clear('forward') ? 'forward' : 'carefulReverse';
+  else if (outings % 2 === 1 && clear('forward') &&
+    !live.some(d => WAGON_CONTACT[d.type] !== 'rollOver' && paths.reverse.has(idx(d.x, d.y)))) route = 'forward';
+  return { route, warning } as const;
 }
 
 export function onDriveway(x: number, y: number): boolean {
-  return inGrid(x, y) && swept.has(idx(x, y));
+  return inGrid(x, y) && paths.reverse.has(idx(x, y));
 }
 
 export interface DrivewayImpact {
@@ -63,9 +89,9 @@ export const WAGON_CONTACT = {
   barrier: 'break', horn: 'push', floodlight: 'break',
 } as const satisfies Record<DeviceTypeId, 'break' | 'rollOver' | 'push'>;
 
-export function drivewayImpacts(yard: YardState): DrivewayImpact[] {
+export function drivewayImpacts(yard: YardState, route = departurePlan(yard).route): DrivewayImpact[] {
   const contacts = yard.devices.flatMap(before => {
-    const contact = swept.get(idx(before.x, before.y));
+    const contact = paths[route].get(idx(before.x, before.y));
     return contact && !before.broken && WAGON_CONTACT[before.type] !== 'rollOver' ? [{ before, contact }] : [];
   }).sort((a, b) => a.contact.at - b.contact.at || a.before.id - b.before.id);
   const occupied = new Set(yard.devices.map(d => idx(d.x, d.y)));

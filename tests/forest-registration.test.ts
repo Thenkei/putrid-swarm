@@ -2,6 +2,8 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import sharp from 'sharp';
 import manifest from '../public/assets/manifest.json';
 import { carDepartureShot, departingCar, drawDepartingCar } from '../src/render/car-departure';
+import { FORWARD_START, REVERSE_SECONDS } from '../src/core/car-path';
+import sweep from '../src/render/wagon-turn.json';
 import { drawForest, drawStand, projectStand } from '../src/render/forest';
 import { depthOf, project, type Rot, type View } from '../src/render/projection';
 import { DEPTH_SORTED_TREES, treesIn, type Tree } from '../src/render/scenery';
@@ -31,6 +33,7 @@ class Surface implements Image {
   translate(x: number, y: number) { this.transform(1,0,0,1,x,y); }
   scale(x: number, y: number) { this.transform(x,0,0,y,0,0); }
   beginPath() {} rect() {} clip() {} fillRect() {}
+  createRadialGradient() { return { addColorStop() {} }; }
   clearRect() { this.draws.length = 0; }
   drawImage(image: Image, ...args: number[]) {
     let sx = 0, sy = 0, sw = image.width, sh = image.height;
@@ -47,7 +50,7 @@ vi.mock('../src/render/shadows', () => ({ castShadow() {}, contactShadow() {} })
 const pixels = new Map<string, Uint8Array>();
 beforeAll(async () => {
   for (const [key, entry] of Object.entries(manifest).filter(([k]) => k.startsWith('forest_stands') || k.startsWith('obj_trees') ||
-    ['car_boarding', 'car_driver', 'car_turn_road'].includes(k))) {
+    ['car_boarding', 'car_turn_sweep', 'car_wheel_faces'].includes(k))) {
     sprites.set(key, { ...entry, img: { key, width: entry.w, height: entry.h } });
     pixels.set(key, await sharp('public/assets/' + entry.file).ensureAlpha().raw().toBuffer());
   }
@@ -120,6 +123,80 @@ describe('the woodland fringe', () => {
         return Math.hypot(p.x - n.rootX, p.y - n.rootY) < .01;
       })).toBe(true);
     } finally { vi.unstubAllGlobals(); }
+  });
+
+  it.each([0, 90, 125])('rotates the painted rims around both fixed hubs at %s degrees', angle => {
+    const shot = carDepartureShot(false)!;
+    const car = departingCar(shot, shot.rollAt, 0);
+    if (car.kind !== 'driving') throw Error('Driver must be seated');
+    const discs = (distance: number) => {
+      const surface = new Surface();
+      drawDepartingCar(surface.ctx, { ...car, distance, yaw: -angle * Math.PI / 180 }, { x: 0, y: 0 }, 112);
+      return surface.draws.filter(draw => draw.image.key === 'car_wheel_faces');
+    };
+    const rest = discs(0);
+    expect(rest).toHaveLength(2);
+    for (const direction of [-1, 1]) {
+      const rolled = discs(direction * .30 * Math.PI / 2);
+      for (const [axle, draw] of rolled.entries()) {
+        const cell = (angle < 45 ? 0 : 2) + axle;
+        const centre = (cell + .5) * 64;
+        const hub = map(rest[axle]!.matrix, centre, 32), movingHub = map(draw.matrix, centre, 32);
+        const mark = map(draw.matrix, centre, 64), quarterTurn = map(rest[axle]!.matrix, centre + direction * 32, 32);
+        expect(movingHub.x).toBeCloseTo(hub.x, 8);
+        expect(movingHub.y).toBeCloseTo(hub.y, 8);
+        expect(mark.x).toBeCloseTo(quarterTurn.x, 8);
+        expect(mark.y).toBeCloseTo(quarterTurn.y, 8);
+      }
+    }
+  });
+
+  it('keeps both front sidewalls joined to the tread through the head-on view', () => {
+    const headOn = 45 / sweep.stepDegrees;
+    for (let frame = headOn - 3; frame <= headOn + 3; frame++) {
+      const left = frame % sweep.columns * sweep.width;
+      const top = Math.floor(frame / sweep.columns) * sweep.height;
+      for (const mount of sweep.treads[frame]!) {
+        const centre = left + Math.round(mount[0]!);
+        const rubberWidth = (y: number) => {
+          let width = 0;
+          for (let x = centre - 28; x <= centre + 28; x++) {
+            if (alpha('car_turn_sweep', x, top + y) > 128) width++;
+          }
+          return width;
+        };
+        let bottom = sweep.height - 1;
+        while (bottom > mount[1]! && !rubberWidth(bottom)) bottom--;
+        expect(bottom).toBeGreaterThan(mount[1]!);
+        // A detached sidewall leaves a one- or two-pixel spike below the tyre.
+        expect(rubberWidth(bottom - 2)).toBeGreaterThan(12);
+      }
+    }
+  });
+
+  it('turns the wagon about one ground mount at a constant scale, including while braking', () => {
+    const shot = carDepartureShot(false)!, height = 112, root = { x: 371, y: 209 };
+    const frames = new Set<number>();
+    for (let tick = 0; tick <= (shot.duration - shot.rollAt) * 60; tick++) {
+      const roll = tick / 60;
+      const car = departingCar(shot, shot.rollAt + roll, 1);
+      if (car.kind !== 'driving') throw Error('Driver must be seated');
+      if (roll > REVERSE_SECONDS && roll < FORWARD_START) expect(car.brake).toBe(1);
+      if (roll > FORWARD_START + .1 || roll < REVERSE_SECONDS - .33) expect(car.brake).toBe(0);
+      const surface = new Surface();
+      drawDepartingCar(surface.ctx, car, root, height);
+      const m = surface.draws[0]!.matrix;
+      expect(m[0]).toBeCloseTo(m[3], 10);
+      expect(m[1]).toBeCloseTo(-m[2], 10);
+      expect(Math.hypot(m[0], m[1])).toBeCloseTo(height / sweep.unit, 10);
+      const frame = Math.round(-car.yaw * 180 / Math.PI / sweep.stepDegrees);
+      frames.add(frame);
+      const mount = map(m, frame % sweep.columns * sweep.width + sweep.pivot[0]!,
+        Math.floor(frame / sweep.columns) * sweep.height + sweep.pivot[1]!);
+      expect(mount.x).toBeCloseTo(root.x, 8);
+      expect(mount.y).toBeCloseTo(root.y, 8);
+    }
+    for (let f = 0; f <= 90 / sweep.stepDegrees; f++) expect(frames.has(f)).toBe(true);
   });
 
   it.each([

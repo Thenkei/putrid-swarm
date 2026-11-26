@@ -38,6 +38,7 @@ import { drawStand, prepareForest, projectStand, standAt } from './forest';
 import { windAt } from './wind';
 import type { BrushPassage } from './brush';
 import { castShadow, contactShadow, groundPatch, shadowOutline } from './shadows';
+import type { DepartureRoute } from '../core/car-path';
 import { drawDepartingCar, drawHeadlightPools, wagonLeaves, type DepartingCar } from './car-departure';
 import { drawApproachWindow, drawApproachingHero, type ApproachingHero } from './hero-approach';
 import type { NightOwl } from '../scenes/night-wildlife';
@@ -142,6 +143,7 @@ export interface WorldFrame {
   readonly sunriseAge?: number;
   readonly departingCar?: DepartingCar;
   readonly secondsSinceCarRoll?: number;
+  readonly departureRoute?: DepartureRoute;
   /** Seconds since the car shut off after returning from an outing. */
   readonly exhaustAge?: number;
   readonly sceneryAction?: SceneryAction | null;
@@ -926,7 +928,7 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
       });
     }
   };
-  if (frame.secondsSinceCarRoll !== undefined) addLeaves(wagonLeaves(frame.secondsSinceCarRoll), true);
+  if (frame.secondsSinceCarRoll !== undefined) addLeaves(wagonLeaves(frame.secondsSinceCarRoll, frame.departureRoute), true);
   else if (passage) addLeaves(passage.leaves(frame.time));
   if (!frame.night && !calmMotion()) addLeaves(fallingLeaves(frame.time));
 

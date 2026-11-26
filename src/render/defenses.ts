@@ -588,8 +588,11 @@ export function drawDefense(ctx: CanvasRenderingContext2D, x: number, y: number,
   const beforeRatio = w ? w.beforeBreakHp / capacity : 1;
   // Weight shifts towards the cracked brace as a device wears down.
   if (!timber && d.hpRatio > 0) {
-    const lean = deviceLean(d.hpRatio, side, still ? Infinity : hitAge, w?.strikes ?? 0);
-    ctx.transform(1, 0, lean.shear, lean.scale, 0, 0);
+    const pressed = d.kind === 'barrier' && d.state === 'active';
+    const lean = deviceLean(d.hpRatio, side, still || pressed ? Infinity : hitAge, w?.strikes ?? 0);
+    const flex = pressed && !still && w ? (w.pullX - w.pullY) * localX : 0;
+    const dip = pressed && !still && w ? (w.pullX + w.pullY) * viewSign : 0;
+    ctx.transform(1, 0, lean.shear - .08 * flex, lean.scale - .035 * dip, 0, 0);
   }
   if (!still && w && breakAge < 0.7) {
     ctx.save();

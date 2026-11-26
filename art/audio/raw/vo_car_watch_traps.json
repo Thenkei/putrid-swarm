@@ -1,0 +1,15 @@
+{
+  "id": "vo_car_watch_traps",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "generationId": "NwYVvmkS9gYOPcpqZ1h0",
+  "request": {
+    "text": "[muttering] Ah oui… Je fais attention aux pièges.",
+    "model_id": "eleven_v4",
+    "voice_id": "DbbNuBL7lf62XwY7arQb"
+  },
+  "voice": "Hugo",
+  "generatedAt": "2026-11-26T19:09:51.415Z",
+  "bytes": 65652,
+  "sha256": "7d3a154cc17d909f080d6cf1eaa7e0bc5c80b37ac2e4bf066b2158417cdc1f8c"
+}

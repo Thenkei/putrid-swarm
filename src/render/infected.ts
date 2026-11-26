@@ -193,22 +193,33 @@ const trait = (id: number): number => {
   return a - Math.floor(a);
 };
 const stature = (art: CharacterArt, id: number): number => art.row >= 6 ? 1 : 0.965 + 0.07 * trait(id);
+const handsOnBoard = (e: Enemy) => e.gripTarget !== null && (e.type === 'shambler' || e.type === 'runner' || e.type === 'brute');
 
 /** One clock for the shoulder or jaw and the timber it holds. Positive load pulls
  * toward the attacker; a ram first drives the board into its fixings. */
 export function attackBeat(e: Enemy) {
+  const palms = handsOnBoard(e);
   if (e.blowRecovery > 0) {
     const recovery = 1 - e.blowRecovery / BLOW_RECOVERY_SECONDS;
     const impact = 1 - smoothstep(0.06, 0.75, recovery);
     const rebound = Math.sin(Math.PI * smoothstep(0.45, 1, recovery)) * 0.21;
-    return { phase: 0.3 + recovery * 0.68, reach: impact, load: rebound - impact };
+    const press = palms ? smoothstep(0, .27, recovery) * (1 - smoothstep(.38, .85, recovery)) : 0;
+    return { phase: 0.3 + recovery * 0.68, reach: palms ? 1 - smoothstep(.52, .91, recovery) : impact, load: rebound - impact, press };
   }
   const cycle = ART[e.type].animal ? 0.71 : 0.92;
   const phase = (e.actionSeconds / (cycle * (0.94 + 0.12 * trait(e.id)))) % 1;
+  if (palms) {
+    const reach = smoothstep(.09, .28, phase) * (1 - smoothstep(.70, .94, phase));
+    const press = smoothstep(.28, .48, phase) * (1 - smoothstep(.58, .77, phase));
+    const spring = .16 * Math.sin(Math.PI * smoothstep(.72, .95, phase));
+    // On the gate the hands catch and pull a plank. A freestanding obstacle takes a push.
+    const load = typeof e.gripTarget === 'number' ? spring - press : press - spring;
+    return { phase, reach, load, press };
+  }
   const reach = smoothstep(0.08, 0.29, phase) * (1 - smoothstep(0.72, 0.96, phase));
   const tug = smoothstep(0.29, 0.57, phase) * (1 - smoothstep(0.66, 0.81, phase));
   const spring = Math.sin(Math.PI * smoothstep(0.78, 0.97, phase)) * 0.14;
-  return { phase, reach: reach - 0.72 * tug, load: tug - spring };
+  return { phase, reach: reach - 0.72 * tug, load: tug - spring, press: 0 };
 }
 
 function facing(view: View, fx: number, fy: number) {
@@ -241,6 +252,7 @@ interface Movement {
   flash: number;
   step: number;
   gait?: number;
+  palmPress?: number;
   /** Moving portion of a signature gesture, independent of camera angle. */
   signature?: MobGesture;
 }
@@ -426,12 +438,19 @@ function motion(e: Enemy, art: CharacterArt, reduced: boolean, leader?: Enemy, h
     m.signature = { kind: 'whistle', time: t, force: 1 };
   } else if (e.blowRecovery > 0 || (e.action === 'attack' && (e.type !== 'mail' || e.cooldown <= 0))) {
     // A discrete blow starts at contact. Continuous attackers reach, keep their grip, tug and release.
-    const { phase: t, reach } = attackBeat(e);
+    const { phase: t, reach, press } = attackBeat(e);
     const armed = e.type === 'shambler' || e.type === 'brute' || (enhanced && (e.def.flanks || e.type === 'deer'));
     m.pose = t < 0.1 || t > 0.94 ? 'p' : t < 0.23 && armed ? 'x' : 'grip';
     m.forward = (enhanced && art.animal ? 0.125 : 0.095) * reach;
     m.lean = reach * (enhanced ? e.type === 'brute' ? 0.15 : 0.084 : 0.07);
     m.squash = 1 - (enhanced ? 0.058 : 0.038) * reach;
+    if (handsOnBoard(e)) {
+      m.pose = t < .09 || t > .94 ? planted : t < .19 ? 'x' : 'grip';
+      m.forward = .11 * reach;
+      m.lean = 0;
+      m.squash = 1;
+      if (!reduced && m.pose === 'grip') m.palmPress = press;
+    }
     if (enhanced && e.type === 'mail' && t < 0.78) {
       const secondKnock = e.boss?.knocks === 0;
       m.pose = 'x';
@@ -575,9 +594,33 @@ function cameraCel(f: Figure, exposure: Exposure): HTMLCanvasElement | undefined
   return canvas;
 }
 
+// Split the grip painting along the line from the wrists to the trailing heel.
+// Both pieces meet on that fixed line as the elbows fold and the shoulder drops.
+function pressIntoBoard(ctx: CanvasRenderingContext2D, front: boolean, press: number, width: number, height: number, paint: () => void): void {
+  const sign = front ? 1 : -1;
+  const wristX = (front ? -.075 : .17) * width, wristY = (front ? -.49 : -.59) * height;
+  const heelX = sign * .23 * width;
+  const slope = (heelX - wristX) / -wristY;
+  const topX = heelX - height * slope;
+  for (const torso of [false, true]) {
+    ctx.save();
+    const edge = (torso ? sign : -sign) * width;
+    ctx.beginPath();
+    ctx.moveTo(heelX, 0); ctx.lineTo(topX, -height);
+    ctx.lineTo(edge, -height); ctx.lineTo(edge, 0);
+    ctx.closePath(); ctx.clip();
+    if (torso) {
+      const bend = -.24 * press, drop = sign * .12 * press;
+      ctx.transform(1 + bend, drop, -bend * slope, 1 - drop * slope, -bend * heelX, -drop * heelX);
+    }
+    paint();
+    ctx.restore();
+  }
+}
+
 function drawFigure(
   ctx: CanvasRenderingContext2D, f: Figure, height: number, exposure: Exposure, night: boolean,
-  flash = 0, front = false, signature?: MobGesture, crawlDepth = 0,
+  flash = 0, front = false, signature?: MobGesture, crawlDepth = 0, palmPress = 0,
 ): void {
   const w = f.width * height;
   const h = f.height * height;
@@ -587,6 +630,11 @@ function drawFigure(
   const baked = night ? cameraCel(f, exposure) : undefined;
   if (signature?.kind === 'hoist' && f.sw === (front ? 331 : 302) && f.sh === (front ? 269 : 268)) {
     drawHoist(ctx, front, w, h, signature, () => {
+      if (baked) ctx.drawImage(baked, -w / 2, -h, w, h);
+      else paintCel(ctx, f, -w / 2, -h, w, h);
+    });
+  } else if (palmPress > 0 && f.source === sprite('defense_mob_poses')) {
+    pressIntoBoard(ctx, front, palmPress, w, h, () => {
       if (baked) ctx.drawImage(baked, -w / 2, -h, w, h);
       else paintCel(ctx, f, -w / 2, -h, w, h);
     });
@@ -669,7 +717,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, view: View, frame: Mome
   ctx.translate(groundX, groundY + padding * (1 - support) - h * movement.up);
   ctx.rotate(forwardX * movement.lean);
   ctx.scale(flip ? -1 : 1, posture * movement.squash);
-  if (f) drawFigure(ctx, f, h, enemy.nettedFor > 0 ? 'net' : enemy.threshold ? 'door' : 'live', frame.night, movement.flash, front, movement.signature, support);
+  if (f) drawFigure(ctx, f, h, enemy.nettedFor > 0 ? 'net' : enemy.threshold ? 'door' : 'live', frame.night, movement.flash, front, movement.signature, support, movement.palmPress);
   else {
     ctx.fillStyle = enemy.def.boss ? '#a8433a' : '#7d9a58';
     ctx.beginPath();

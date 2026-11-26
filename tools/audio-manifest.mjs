@@ -400,6 +400,8 @@ export const AUDIO = [
   voice('vo_looted_again_3', 'hero', '[irritated] Bon. La prochaine fois, j’embarque tout au premier voyage.'),
   voice('vo_car', 'hero', 'Allez, ma vieille. Encore un tour.'),
   voice('vo_car_crush', 'hero', '[muttering] Je suis idiot d’avoir placé ça là, moi…'),
+  voice('vo_car_watch_barriers', 'hero', '[muttering] Ah oui… Je fais attention aux barrières.'),
+  voice('vo_car_watch_traps', 'hero', '[muttering] Ah oui… Je fais attention aux pièges.'),
   voice('vo_car_placement', 'hero', '[puzzled] Attends… mais comment je vais sortir la voiture, moi ?'),
   voice('vo_car_2', 'hero', '[pleading] Démarre. S’il te plaît, démarre.'),
   voice('vo_car_3', 'hero', 'Un plein, quatre pneus, zéro voisin. Ça ira.'),

@@ -2,7 +2,8 @@
 
 import { HOUSE_MAX_HP } from '../core/data/devices';
 import { packTrail, wreckSector } from '../core/epics';
-import { drivewayImpacts, type DrivewayImpact } from '../core/driveway';
+import { departurePlan, drivewayImpacts, type DrivewayImpact } from '../core/driveway';
+import type { DepartureRoute } from '../core/car-path';
 import { DAY_HOURS } from '../core/data/locations';
 import type { Cost, GameState } from '../core/types';
 import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
@@ -58,12 +59,12 @@ const EXIT_VIEW: View = { ...BOARDING_VIEW, zoom: 1.7, cx: 17.2, cy: 12.9 };
 const GRAVEL_PUFFS = [0.45, 0.7, 0.96, 1.26, 1.62, 2] as const;
 const GRAVEL_DUST_LIFE = 0.5;
 
-function gravelDust(elapsed: number, forward: number): Particle[] {
+function gravelDust(elapsed: number, forward: number, route: DepartureRoute): Particle[] {
   const dust: Particle[] = [];
   for (const delay of GRAVEL_PUFFS) {
     const age = elapsed - forward - delay;
     if (age <= 0 || age >= GRAVEL_DUST_LIFE) continue;
-    const { position, yaw } = carManeuver(forward + delay);
+    const { position, yaw } = carManeuver(forward + delay, route);
     dust.push({
       kind: 'dust',
       x: position.x + Math.sin(yaw) * 0.95,
@@ -119,15 +120,21 @@ export class TravelScene implements Scene {
   private engineStarted = false;
   private plate: string;
   private readonly impacts: Map<number, DrivewayImpact>;
+  private readonly plan: ReturnType<typeof departurePlan> | null;
+  private readonly outings: number;
   private readonly firstBreak: DrivewayImpact | undefined;
   private reactionEnds = 0;
+  private crushPending = false;
 
   constructor(
     private readonly app: App,
     private readonly options: TravelOptions,
   ) {
     this.plate = options.plate;
-    const hits = options.departure ? drivewayImpacts(options.departure.yard) : [];
+    const departure = options.departure;
+    this.outings = departure ? Object.values(departure.locations).reduce((n, loc) => n + loc.visits, 0) : 0;
+    this.plan = departure ? departurePlan(departure.yard, this.outings) : null;
+    const hits = departure && this.plan ? drivewayImpacts(departure.yard, this.plan.route) : [];
     this.impacts = new Map(hits.map(hit => [hit.before.id, hit]));
     this.firstBreak = hits.find(hit => hit.after.broken);
   }
@@ -135,14 +142,15 @@ export class TravelScene implements Scene {
   enter(): void {
     const { title, sub, loot, lost, mopedDisplaced, note, departure } = this.options;
     if (departure) {
+      if (this.plan?.warning) void audio.prepareSample(this.plan.warning);
       if (this.firstBreak) void audio.prepareSample('vo_car_crush');
       // Every confirmed outing already increments a persisted visit count.
-      const outings = Object.values(departure.locations).reduce((total, location) => total + location.visits, 0);
+      const outings = this.outings;
       const variants = [...OUTBOUND_PLATES, this.options.plate];
       const plate = variants[outings % variants.length];
       if (plate && sprite(plate)) this.plate = plate;
       const armless = oneArmed(departure);
-      this.shot = carDepartureShot(armless);
+      this.shot = carDepartureShot(armless, this.plan?.route, !!this.plan?.warning);
       if (this.shot) {
         this.stills = calmMotion();
         this.approach = heroApproachShot(this.stills ? 0 : outings, armless, departure.yard.houseHp / HOUSE_MAX_HP);
@@ -159,8 +167,8 @@ export class TravelScene implements Scene {
         audio.play('car_latch');
         this.startEngine();
       }
+      if (!this.approach) this.departureLine(departure);
       if (this.firstBreak && !this.shot) this.reactToBreak();
-      if (!this.firstBreak && !this.approach) tripLine('car', departure);
     }
     if (!this.shot) audio.setAmbience('car', ROAD_AUDIO_FADE_IN);
     const some = (cost: Cost | undefined): cost is Cost => cost !== undefined && Object.values(cost).some((n) => (n ?? 0) > 0);
@@ -196,7 +204,17 @@ export class TravelScene implements Scene {
     this.engineStarted = true;
   }
 
+  private departureLine(departure: GameState): void {
+    if (this.plan?.warning) this.reactionEnds = this.time + say(this.plan.warning, { interrupt: true });
+    else if (!this.firstBreak) tripLine('car', departure);
+  }
+
   private reactToBreak(): void {
+    if (this.time < this.reactionEnds) {
+      this.crushPending = true;
+      return;
+    }
+    this.crushPending = false;
     this.reactionEnds = this.time + say('vo_car_crush', { interrupt: true });
   }
 
@@ -221,6 +239,7 @@ export class TravelScene implements Scene {
     if (this.done) return;
     const previous = this.time;
     this.time += dt;
+    if (this.crushPending && this.time >= this.reactionEnds) this.reactToBreak();
     if (!this.engineStarted && this.options.ignitionAt !== undefined && this.app.time >= this.options.ignitionAt) {
       audio.play('engine');
       this.engineStarted = true;
@@ -240,7 +259,7 @@ export class TravelScene implements Scene {
         if (crossed(this.catWake + CAT_BONNET_AT)) audio.play('cat_bonnet', .65);
         if (crossed(this.catWake + CAT_LANDS_AT)) audio.play('step_gravel', .30, 1.32);
       }
-      if (!this.firstBreak && this.options.departure && crossed(boardingStart)) tripLine('car', this.options.departure);
+      if (this.options.departure && crossed(boardingStart)) this.departureLine(this.options.departure);
     }
     if (shot) {
       if (crossed(this.stills ? STILL_SEATED : boardingStart + shot.latchAt)) audio.play('car_latch');
@@ -284,13 +303,13 @@ export class TravelScene implements Scene {
       const hero = onFoot && sampleApproach(onFoot, heroTime);
       const view = this.stills ? STILL_VIEW : onFoot
         ? approachView(onFoot, heroTime, BOARDING_VIEW)
-        : departureView(smoothstep(shot.rollAt - 0.12, shot.forwardAt + 0.45, boardingTime));
+        : departureView(smoothstep(shot.rollAt - .12, Math.max(shot.rollAt + 1.28, shot.forwardAt) + .45, boardingTime));
       const { yard } = departure;
       const houseHpRatio = yard.houseHp / HOUSE_MAX_HP;
       const dusk = 1 - departure.hoursLeft / DAY_HOURS;
       const catTime = this.stills ? (onFoot ? -1 : CAT_SETTLES_AT) : this.time - (this.catWake ?? 0);
       const cat = this.catWake === null ? undefined : sampleYardCat(catTime);
-      const particles = gravelDust(boardingTime - shot.rollAt, shot.forwardAt - shot.rollAt);
+      const particles = gravelDust(boardingTime - shot.rollAt, shot.forwardAt - shot.rollAt, shot.route);
       if (!this.stills && approach) {
         for (const cue of approach.cues) {
           const age = this.time - cue.at;
@@ -329,6 +348,7 @@ export class TravelScene implements Scene {
         houseHpRatio,
         carPresent: true,
         secondsSinceCarRoll: this.stills ? -1 : boardingTime - shot.rollAt,
+        departureRoute: shot.route,
         homesteadLife: { day: departure.day, hornAge: this.stills || boardingTime < shot.ignitionAt ? -1 : boardingTime - shot.ignitionAt },
         ...(cat && { yardCat: cat }),
         ...(hero ? { approachingHero: hero } : { departingCar: departingCar(shot, boardingTime, dusk) }),
