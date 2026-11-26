@@ -68,13 +68,13 @@ interface DepartureShot {
 
 export type DepartingCar = { readonly position: Point } & (
   | { readonly kind: 'boarding'; readonly picture: CarArt; readonly pose: number }
-  | { readonly kind: 'driving'; readonly brake: number; readonly pitch: number; readonly distance: number; readonly turn: Sprite; readonly yaw: number; readonly shake: number; readonly headlights: number }
+  | { readonly kind: 'driving'; readonly brake: number; readonly pitch: number; readonly steer: number; readonly distance: number; readonly turn: Sprite; readonly yaw: number; readonly shake: number; readonly headlights: number }
 );
 
 export function carDepartureShot(oneArmed: boolean, route: DepartureRoute = 'reverse', checkingBehind = false): DepartureShot | null {
   const boarding = sprite(oneArmed ? 'car_boarding_one_arm' : 'car_boarding');
   const turn = sprite('car_turn_sweep');
-  if (!boarding || !turn) return null;
+  if (!boarding || !turn || !sprite('car_tyre')) return null;
   const poseEnds = oneArmed ? BOARDING_ONE_ARM : BOARDING;
   const latchAt = poseEnds[3];
   const timing = departureTiming(route);
@@ -167,9 +167,9 @@ function drawDrivingCar(ctx: CanvasRenderingContext2D, car: Extract<DepartingCar
   ctx.save();
   ctx.transform(cosine, sine, -sine, cosine, root.x, root.y + height * car.shake * .009);
   ctx.translate(-sweep.pivot[0]!, -sweep.pivot[1]!);
+  drawRollingWheels(ctx, frame, car.distance, car.steer);
   ctx.drawImage(car.turn.img, (frame % sweep.columns) * sweep.width, Math.floor(frame / sweep.columns) * sweep.height,
     sweep.width, sweep.height, 0, 0, sweep.width, sweep.height);
-  drawRollingWheels(ctx, frame, car.distance);
   if (car.headlights > 0) {
     glow(ctx, lampX!, lampY!, 16, car.headlights, '#ffe4a0', 'rgba(255,202,116,.65)');
     glow(ctx, otherX!, otherY!, 16, car.headlights, '#ffe4a0', 'rgba(255,202,116,.65)');
@@ -180,37 +180,71 @@ function drawDrivingCar(ctx: CanvasRenderingContext2D, car: Extract<DepartingCar
   ctx.restore();
 }
 
-function drawRollingWheels(ctx: CanvasRenderingContext2D, frame: number, distance: number): void {
-  const art = sprite('car_wheel_faces');
-  if (!art) return;
-  const phase = -distance / .30; // Signed ground travel divided by the tyre radius, in cells.
-  const cosine = Math.cos(phase), sine = Math.sin(phase);
-  const angle = frame * sweep.stepDegrees - 45;
-  const side = angle < 0 ? 0 : 1;
-  const disc = art.h;
-  const visible = smoothstep(2, 12, Math.abs(angle));
-  if (visible > 0) for (const [axle, mount] of sweep.wheels[frame]!.entries()) {
-    const [x, y, ux, uy, vx, vy] = mount as [number, number, number, number, number, number];
+function drawRollingWheels(ctx: CanvasRenderingContext2D, frame: number, distance: number, steer: number): void {
+  const rubber = sprite('car_tyre'), art = sprite('car_wheel_faces');
+  if (!rubber) return;
+  const bodyAngle = (frame * sweep.stepDegrees - 45) * Math.PI / 180;
+  const { cell, columns, radius, halfWidth } = sweep.tyre;
+  const phase = -distance / .30;
+  const rollCos = Math.cos(phase), rollSin = Math.sin(phase);
+  // Draw the far wheels first. The fenders and bumper cover all four afterwards.
+  const near = bodyAngle < 0 ? 0 : 1;
+  for (const side of [1-near, near]) for (const axle of [1, 0]) {
+    const sign = side === 0 ? 1 : -1;
+    const tangent = axle === 0 ? Math.tan(steer) : 0;
+    // Half track / wheelbase: the inside front wheel follows the tighter circle.
+    const angle = bodyAngle + Math.atan2(tangent, 1 - sign * (63/194) * tangent);
+    const s = Math.sin(angle), c = Math.cos(angle);
+    const [x, y] = sweep.wheels[frame]![side]![axle]!;
+    const tile = Math.round(Math.atan2(Math.abs(s), Math.abs(c)) * 180 / Math.PI / sweep.stepDegrees);
     ctx.save();
-    ctx.globalAlpha *= visible;
-    ctx.transform(ux*cosine + vx*sine, uy*cosine + vy*sine, vx*cosine - ux*sine, vy*cosine - uy*sine, x, y);
-    ctx.drawImage(art.img, (side*2+axle)*disc, 0, disc, disc, -1, -1, 2, 2);
+    ctx.translate(x!, y!);
+    // The inside of the wheel arch stays in the body plane when the tyre
+    // turns away from it. Gravel should only show below the sill.
+    ctx.save();
+    const arch = radius + 7;
+    ctx.transform(arch*Math.sin(bodyAngle), .48*arch*Math.cos(bodyAngle), 0, -arch,
+      sign*halfWidth*Math.cos(bodyAngle), 3-sign*halfWidth*.48*Math.sin(bodyAngle));
+    ctx.fillStyle = '#2f231b';
+    ctx.beginPath();
+    ctx.arc(0, 0, 1, 0, Math.PI);
+    ctx.fill();
     ctx.restore();
-  }
-  // Seen head-on the hubs are hidden. The rubber tread still passes under the bumper.
-  const tread = 1 - smoothstep(7, 24, Math.abs(angle));
-  if (tread <= 0) return;
-  const cycle = distance / .25;
-  for (const mount of sweep.treads[frame]!) {
-    const [x, y, ux, uy, vx, vy] = mount as [number, number, number, number, number, number];
     ctx.save();
-    ctx.transform(ux, uy, vx, vy, x, y);
-    ctx.fillStyle = '#a78a6a';
-    for (let i = 0; i < 3; i++) {
-      const t = (cycle + i/3) - Math.floor(cycle + i/3);
-      ctx.globalAlpha = .46 * tread * Math.sin(Math.PI * t);
-      ctx.fillRect(-.78, 2*t-1, .62, .12);
-      ctx.fillRect(.07, 2*t-.91, .66, .12);
+    ctx.scale(s*c < 0 ? -1 : 1, 1);
+    ctx.drawImage(rubber.img, tile%columns*cell, Math.floor(tile/columns)*cell, cell, cell,
+      -cell/2, -cell/2, cell, cell);
+    ctx.restore();
+
+    // Tread travels down the exposed face as the wheel rolls forward.
+    const headOn = 1 - smoothstep(.15, .52, Math.abs(s));
+    if (headOn > 0) {
+      ctx.save();
+      ctx.fillStyle = '#b09778';
+      for (let i = 0; i < 3; i++) {
+        const cycle = distance/.25 + i/3;
+        const t = cycle - Math.floor(cycle);
+        const arc = .35 + .92*t;
+        const along = Math.cos(arc)*radius*Math.sign(c);
+        ctx.save();
+        ctx.transform(c, -.48*s, 0, 1, along*s, radius*Math.sin(arc) + .48*along*c);
+        ctx.globalAlpha *= .42 * headOn * Math.sin(Math.PI*t);
+        ctx.fillRect(-6, 0, 5, 1);
+        ctx.fillRect(1, .7, 5, 1);
+        ctx.restore();
+      }
+      ctx.restore();
+    }
+    // Only the outward face carries a hubcap. Its ground and vertical axes
+    // are projected before spinning the paint in the plane of the wheel.
+    if (art && -sign*s > .001) {
+      const disc = art.h, index = side*2 + axle;
+      const faceRadius = radius - 4;
+      ctx.transform(s*faceRadius, .48*c*faceRadius, 0, -faceRadius,
+        sign*halfWidth*c, -sign*halfWidth*.48*s);
+      ctx.drawImage(art.img, (4+index)*disc, 0, disc, disc, -1, -1, 2, 2);
+      ctx.transform(rollCos, rollSin, -rollSin, rollCos, 0, 0);
+      ctx.drawImage(art.img, index*disc, 0, disc, disc, -.68, -.68, 1.36, 1.36);
     }
     ctx.restore();
   }

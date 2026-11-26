@@ -2133,9 +2133,14 @@
     "w": 2688,
     "h": 2432
   },
+  "car_tyre": {
+    "file": "sprites/car_tyre.webp",
+    "w": 704,
+    "h": 440
+  },
   "car_wheel_faces": {
     "file": "sprites/car_wheel_faces.webp",
-    "w": 256,
+    "w": 512,
     "h": 64
   },
   "car_turn_road": {

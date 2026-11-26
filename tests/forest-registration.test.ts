@@ -18,7 +18,7 @@ function compose([a,b,c,d,e,f]: Matrix, [A,B,C,D,E,F]: Matrix): Matrix {
 const map = ([a,b,c,d,e,f]: Matrix, x: number, y: number): Point => ({ x: a*x+c*y+e, y: b*x+d*y+f });
 
 interface Image { key?: string; width: number; height: number; draws?: Draw[] }
-interface Draw { image: Image; matrix: Matrix; op: string }
+interface Draw { image: Image; matrix: Matrix; op: string; source: [number, number, number, number] }
 class Surface implements Image {
   width = 300; height = 150; draws: Draw[] = [];
   private m = id();
@@ -32,14 +32,15 @@ class Surface implements Image {
   setTransform(...m: Matrix) { this.m = m; }
   translate(x: number, y: number) { this.transform(1,0,0,1,x,y); }
   scale(x: number, y: number) { this.transform(x,0,0,y,0,0); }
-  beginPath() {} rect() {} clip() {} fillRect() {}
+  beginPath() {} arc() {} fill() {} rect() {} clip() {} fillRect() {}
   createRadialGradient() { return { addColorStop() {} }; }
   clearRect() { this.draws.length = 0; }
   drawImage(image: Image, ...args: number[]) {
     let sx = 0, sy = 0, sw = image.width, sh = image.height;
     if (args.length === 8) [sx, sy, sw, sh] = args.splice(0, 4) as [number, number, number, number];
     const [x, y, w = sw, h = sh] = args as [number, number, number?, number?];
-    this.draws.push({ image, op: this.globalCompositeOperation, matrix: compose(this.m, [w/sw, 0, 0, h/sh, x-sx*w/sw, y-sy*h/sh]) });
+    this.draws.push({ image, op: this.globalCompositeOperation, source: [sx, sy, sw, sh],
+      matrix: compose(this.m, [w/sw, 0, 0, h/sh, x-sx*w/sw, y-sy*h/sh]) });
   }
   get ctx() { return this as unknown as CanvasRenderingContext2D; }
 }
@@ -50,7 +51,7 @@ vi.mock('../src/render/shadows', () => ({ castShadow() {}, contactShadow() {} })
 const pixels = new Map<string, Uint8Array>();
 beforeAll(async () => {
   for (const [key, entry] of Object.entries(manifest).filter(([k]) => k.startsWith('forest_stands') || k.startsWith('obj_trees') ||
-    ['car_boarding', 'car_turn_sweep', 'car_wheel_faces'].includes(k))) {
+    ['car_boarding', 'car_turn_sweep', 'car_tyre', 'car_wheel_faces'].includes(k))) {
     sprites.set(key, { ...entry, img: { key, width: entry.w, height: entry.h } });
     pixels.set(key, await sharp('public/assets/' + entry.file).ensureAlpha().raw().toBuffer());
   }
@@ -131,8 +132,9 @@ describe('the woodland fringe', () => {
     if (car.kind !== 'driving') throw Error('Driver must be seated');
     const discs = (distance: number) => {
       const surface = new Surface();
-      drawDepartingCar(surface.ctx, { ...car, distance, yaw: -angle * Math.PI / 180 }, { x: 0, y: 0 }, 112);
-      return surface.draws.filter(draw => draw.image.key === 'car_wheel_faces');
+      drawDepartingCar(surface.ctx, { ...car, steer: 0, distance, yaw: -angle * Math.PI / 180 }, { x: 0, y: 0 }, 112);
+      return surface.draws.filter(draw => draw.image.key === 'car_wheel_faces' && draw.source[0] < 4*64)
+        .sort((a, b) => a.source[0]-b.source[0]);
     };
     const rest = discs(0);
     expect(rest).toHaveLength(2);
@@ -151,27 +153,44 @@ describe('the woodland fringe', () => {
     }
   });
 
-  it('keeps both front sidewalls joined to the tread through the head-on view', () => {
-    const headOn = 45 / sweep.stepDegrees;
-    for (let frame = headOn - 3; frame <= headOn + 3; frame++) {
-      const left = frame % sweep.columns * sweep.width;
-      const top = Math.floor(frame / sweep.columns) * sweep.height;
-      for (const mount of sweep.treads[frame]!) {
-        const centre = left + Math.round(mount[0]!);
-        const rubberWidth = (y: number) => {
-          let width = 0;
-          for (let x = centre - 28; x <= centre + 28; x++) {
-            if (alpha('car_turn_sweep', x, top + y) > 128) width++;
-          }
-          return width;
-        };
-        let bottom = sweep.height - 1;
-        while (bottom > mount[1]! && !rubberWidth(bottom)) bottom--;
-        expect(bottom).toBeGreaterThan(mount[1]!);
-        // A detached sidewall leaves a one- or two-pixel spike below the tyre.
-        expect(rubberWidth(bottom - 2)).toBeGreaterThan(12);
-      }
+  it('keeps a broad rubber contact patch through the head-on view', () => {
+    const { cell, columns } = sweep.tyre;
+    for (let frame = 0; frame <= 3; frame++) {
+      const left = frame % columns * cell, top = Math.floor(frame / columns) * cell;
+      const rubberWidth = (y: number) => {
+        let width = 0;
+        for (let x = 0; x < cell; x++) if (alpha('car_tyre', left+x, top+y) > 128) width++;
+        return width;
+      };
+      let bottom = cell - 1;
+      while (bottom > cell/2 && !rubberWidth(bottom)) bottom--;
+      expect(rubberWidth(bottom-2)).toBeGreaterThan(12);
     }
+  });
+
+  it('steers the front pair independently of the rear axle through the forward exit', () => {
+    const shot = carDepartureShot(false, 'forward')!;
+    const pose = (time: number) => {
+      const car = departingCar(shot, shot.rollAt + time, 0);
+      if (car.kind !== 'driving') throw Error('Driver must be seated');
+      return car;
+    };
+    expect(pose(.8).steer).toBeGreaterThan(.3);
+    expect(pose(2.9).steer).toBeLessThan(0);
+    expect(pose(3.35).steer).toBeCloseTo(0, 6);
+    const car = pose(.9);
+    const wheels = (steer: number) => {
+      const surface = new Surface();
+      drawDepartingCar(surface.ctx, { ...car, steer, yaw: -Math.PI/4 }, { x: 0, y: 0 }, 112);
+      return surface.draws.filter(draw => draw.image.key === 'car_tyre');
+    };
+    const straight = wheels(0), turning = wheels(car.steer);
+    expect(turning).toHaveLength(4);
+    for (const i of [0,2]) expect(turning[i]).toEqual(straight[i]);
+    for (const i of [1,3]) expect(turning[i]).not.toEqual(straight[i]);
+    const tile = ({ source: [x, y] }: Draw) => (x + y*sweep.tyre.columns)/sweep.tyre.cell;
+    expect(tile(turning[1]!)).toBeGreaterThan(tile(turning[3]!));
+    expect(tile(turning[3]!)).toBeGreaterThan(0);
   });
 
   it('turns the wagon about one ground mount at a constant scale, including while braking', () => {
@@ -185,7 +204,7 @@ describe('the woodland fringe', () => {
       if (roll > FORWARD_START + .1 || roll < REVERSE_SECONDS - .33) expect(car.brake).toBe(0);
       const surface = new Surface();
       drawDepartingCar(surface.ctx, car, root, height);
-      const m = surface.draws[0]!.matrix;
+      const m = surface.draws.find(draw => draw.image.key === 'car_turn_sweep')!.matrix;
       expect(m[0]).toBeCloseTo(m[3], 10);
       expect(m[1]).toBeCloseTo(-m[2], 10);
       expect(Math.hypot(m[0], m[1])).toBeCloseTo(height / sweep.unit, 10);
@@ -215,13 +234,16 @@ describe('the woodland fringe', () => {
       expect(depth).toBeGreaterThan(depthOf(0, p.x, p.y) + .4);
       c.draws.length = 0;
       drawDepartingCar(c.ctx, car, root, 112);
-      const blit = c.draws[0]!, [a,b,k,d,e,f] = blit.matrix;
       let overlapping = 0;
       for (let x = root.x + dx - 1.5; x < root.x + dx + 2; x++) for (let y = root.y + dy - 1.5; y < root.y + dy + 2; y++) {
-        const u = ((x-e)*d - (y-f)*k) / (a*d-b*k), w = ((y-f)*a - (x-e)*b) / (a*d-b*k);
         const art = sprites.get(stand.key)!;
         const leafX = (x - stand.x + stand.w/2) * art.w / stand.w, leafY = (y - stand.y + stand.h) * art.h / stand.h;
-        if (alpha(blit.image.key!, u, w) > 160 && alpha(stand.key, leafX, leafY) > 160) overlapping++;
+        const wagonInk = c.draws.some(({ matrix: [a,b,k,d,e,f], source, image }) => {
+          const u = ((x-e)*d - (y-f)*k) / (a*d-b*k), v = ((y-f)*a - (x-e)*b) / (a*d-b*k);
+          const [sx, sy, sw, sh] = source;
+          return u >= sx && u < sx+sw && v >= sy && v < sy+sh && alpha(image.key!, u, v) > 160;
+        });
+        if (wagonInk && alpha(stand.key, leafX, leafY) > 160) overlapping++;
       }
       expect(overlapping).toBeGreaterThan(0);
     } finally { vi.unstubAllGlobals(); }

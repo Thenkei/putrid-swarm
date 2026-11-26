@@ -28,7 +28,9 @@ describe('departure maneuver', () => {
     expect(reverse.position.y).toBeLessThan(parked.position.y);
     expect(reverse.yaw).toBeLessThan(parked.yaw);
     const shifted = carManeuver(1.2);
-    expect(shifted).toEqual(carManeuver(1.15));
+    const beforeShift = carManeuver(1.15);
+    expect(shifted).toMatchObject({ position: beforeShift.position, yaw: beforeShift.yaw, distance: beforeShift.distance });
+    expect(shifted.steer).toBeGreaterThan(beforeShift.steer);
     const moving = carManeuver(1.85);
     expect(moving.position.x).toBeGreaterThan(shifted.position.x);
     expect(moving.position.y).toBeGreaterThan(shifted.position.y);
@@ -47,6 +49,19 @@ describe('departure maneuver', () => {
     expect(outside.position.x).toBeGreaterThan(GRID_W);
     expect(outside.position.y).toBe(roadCentre('barn', outside.position.x));
     expect(onTrack(outside.position.x, outside.position.y)).toBe(true);
+  });
+
+  it('unwinds the front wheels progressively as the nose-first departure joins the road', () => {
+    const tick = 1 / 60;
+    let previous = carManeuver(2.95, 'forward').steer;
+    expect(previous).toBeLessThan(-.15);
+    for (let frame = 1; frame <= 24; frame++) {
+      const angle = carManeuver(2.95 + frame*tick, 'forward').steer;
+      expect(angle).toBeGreaterThanOrEqual(previous);
+      expect(angle - previous).toBeLessThan(Math.PI / 180);
+      previous = angle;
+    }
+    expect(previous).toBeCloseTo(0, 6);
   });
 });
 
