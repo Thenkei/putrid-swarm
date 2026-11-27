@@ -134,6 +134,7 @@ async function bowOut(tag) {
   await page.waitForSelector('.jam-out.on', { state: 'attached', timeout: 10000 });
   await shot(`${tag}-offer`);
   await page.keyboard.press('Enter');
+  await page.locator('.pause button').last().click();
 }
 
 /** The horde, then the end screen, both photographed. */

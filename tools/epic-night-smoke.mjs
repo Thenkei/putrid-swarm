@@ -45,7 +45,7 @@ try {
   assert.ok(await page.getByRole('button', { name: 'Lift the print' }).evaluate(el => el === document.activeElement));
   if (out) await page.screenshot({ path: join(out, 'garage-print-portrait.png') });
   await tap('Lift the print');
-  await page.getByText(/You keep the photo/).waitFor();
+  await page.getByText(/brass glints at the edge of a pocket/).waitFor();
   await tap('Back to the desk');
   assert.equal(await page.locator('.epic-night').count(), 0);
   // Decode the actual shipped samples from the same relative base as GitHub Pages.
@@ -64,9 +64,24 @@ try {
   assert.ok(decoded.length >= 7 && decoded.every(([,duration, signal]) => duration > .1 && signal), JSON.stringify(decoded));
   await page.close();
 
+  const spoiled = await openSave({ ...newGame(54), day: 3, phase: 'night' }, true);
+  for (const name of ['Wait for night', 'Take the desk', 'Develop the print', 'Dip the paper']) {
+    await spoiled.getByRole('button', { name, exact: true }).tap();
+  }
+  await spoiled.getByText(/The print is unreadable/).waitFor();
+  await spoiled.getByRole('button', { name: 'Field notebook', exact: true }).tap();
+  await spoiled.getByText(/A ring peeks out of Gérard/).waitFor();
+  const darkroomFlags = await spoiled.evaluate(() => JSON.parse(localStorage.getItem('putrid-swarm.save.v1')).flags);
+  assert.equal(darkroomFlags['epic.found.pocket'], 1);
+  assert.ok(!darkroomFlags['epic.garagePrint']);
+  await spoiled.close();
+
   const refuge = await openSave({ ...newGame(54), day: 6, flags: { 'epic.photo': 1, 'epic.moped': 1 } });
   await refuge.locator('summary').filter({ hasText: 'Ashtray and lamp' }).click();
+  await refuge.getByRole('button', { name: 'Look out of the window' }).click();
+  await refuge.getByRole('button', { name: 'Inspect the lamp' }).click();
   await refuge.getByRole('button', { name: 'Set the lamp in the window' }).click();
+  await refuge.getByRole('button', { name: 'Back to the yard' }).click();
   await refuge.locator('summary').filter({ hasText: 'bladed moped' }).click();
   await refuge.getByRole('button', { name: /Aim at/ }).click();
   const flags = await refuge.evaluate(() => JSON.parse(localStorage.getItem('putrid-swarm.save.v1')).flags);

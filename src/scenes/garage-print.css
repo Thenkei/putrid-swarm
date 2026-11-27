@@ -1,8 +1,8 @@
 .epic-pause { position: absolute; top: 26px; right: 30px; min-width: 48px; }
 .epic-night h2 { padding-right: 40px; }
 .garage-print-tray { position:absolute; inset:0; container-type:size; overflow:hidden; background:radial-gradient(ellipse at 45% 38%,#412216,#170d09 82%); }
-.garage-print-bath { position:absolute; width:min(100cqw,231cqh); aspect-ratio:1440/624; left:50%; top:50%; transform:translate(-50%,-50%); background:url('../render/epic-garage-darkroom.webp') center / 100% 100%; }
-#ui .garage-print-bath .garage-print-paper { position:absolute; top:50%; left:50%; width:62%; box-sizing:border-box; padding:.75% .75% 1.1%; background:#d9c5a9; transform:translate(-50%,-50%) rotate(-1deg); box-shadow:0 2px 3px #100807aa; }
+.garage-print-bath { position:absolute; width:min(100cqw,177.778cqh); aspect-ratio:16/9; left:50%; top:50%; transform:translate(-50%,-50%); background:url('../assets/darkroom-bath.webp') center / 100% 100%; }
+#ui .garage-print-bath .garage-print-paper { position:absolute; top:60%; left:59%; width:42%; box-sizing:border-box; padding:.75% .75% 1.1%; background:#c78b69; transform:translate(-50%,-50%) rotate(-1deg); box-shadow:0 2px 3px #100807aa; }
 #ui .garage-print-bath .garage-print-photo { width:100%; height:auto; aspect-ratio:2.4; background-size:cover; opacity:0; }
-.garage-print-ripple { position:absolute; pointer-events:none; top:51%; left:50%; width:65%; height:65%; border:1px solid #db9d80; box-shadow:0 2px 2px #2a0809, inset 0 -2px 1px #b07d61; border-radius:22%; opacity:0; }
+.garage-print-ripple { position:absolute; pointer-events:none; top:60%; left:59%; width:44%; height:27%; border:1px solid #db9d80; box-shadow:0 2px 2px #2a0809, inset 0 -2px 1px #b07d61; border-radius:22%; opacity:0; }
 .garage-print-status { position:absolute; bottom:2.5%; left:50%; transform:translateX(-50%); white-space:nowrap; padding:3px 12px; color:#f7e0bc; background:#21130de8; border:1px solid #a0714d; font-size:18px; }

@@ -304,7 +304,7 @@ export type OrchardChapter = 'quiet' | 'cut' | 'spared' | 'maimed';
  */
 export type OrchardFate = 'throat' | 'turned' | 'bled';
 export type ChapterFate = OrchardFate | 'bitten';
-export type Fate = ChapterFate | 'lift';
+export type Fate = ChapterFate | 'lift' | 'outside' | 'werewolves';
 
 // ───────────────────────────── The shed ─────────────────────────────
 
@@ -340,6 +340,8 @@ export interface GameState {
   readonly locations: Readonly<Record<LocationId, LocationProgress>>;
   readonly springReceipt: SpringReceipt;
   readonly flags: Readonly<Record<string, number>>;
+  readonly chapterPrints?: Readonly<Record<string, string>>;
+  readonly moonPrints?: readonly { camera: number; image: string }[];
   readonly morningTape?: MorningTape;
   readonly lastNight: NightReport | null;
   readonly orchard: OrchardChapter;

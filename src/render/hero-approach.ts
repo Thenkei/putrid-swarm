@@ -75,6 +75,7 @@ export interface ApproachingHero {
   readonly windowPose?: GripPose;
   /** First step inside the hall through to both boots on the landing. */
   readonly emergence?: number;
+  readonly fall?: number;
 }
 
 function housePoint(x: number, y: number): Point {
@@ -239,6 +240,9 @@ export function drawApproachingHero(ctx: CanvasRenderingContext2D, hero: Approac
   const cellH = !left && !shot.oneArmed && frame < 4 ? 418 : Math.round((Math.floor(cell / 4) + 1) * rawH / 2) - rawY;
   const scale = zoom * HERO_HEIGHT / (left ? 405 : shot.oneArmed ? 402 : 365) * (frame === 4 ? 0.87 : 1);
   ctx.save();
+  if(hero.fall){
+    ctx.translate(foot.x,foot.y);ctx.rotate(-1.43*hero.fall);ctx.scale(1,1-.35*hero.fall);ctx.translate(-foot.x,-foot.y);
+  }
   if (hero.emergence !== undefined && shot.start !== 'window') {
     clipAtSill(ctx, view, shot.start, left ? -1 : 1);
     // Duck under the lintel and straighten as the trailing boot comes out onto the step.

@@ -1,3 +1,5 @@
+import { notebookButton } from './field-notebook';
+import { drawEpicFind, epicFind } from './epic-finds';
 // A searchable interior. Each hotspot costs daylight and is emptied for good; what is found
 // rides in the boot until the refuge. Someone else may already be standing at the best lot.
 
@@ -130,6 +132,7 @@ export class LocationScene implements Scene {
       el('span', { class: 'meter' }, [el('i', { style: { width: `${(state.hoursLeft / DAY_HOURS) * 100}%` } })]),
       el('span', { class: 'muted', text: fmt(s.day.hoursLeft, { duration: durationLabel(state.hoursLeft) }) }),
       hasCrossbow(state) ? el('span', { class: 'equipment-chip', text: s.scavenge.crossbow.name }) : null,
+      notebookButton(this.app),
     ]);
     // What is already safe at home, to judge what this trip still has to bring back.
     const stash = el('div', { class: 'stash' }, [el('span', { class: 'muted', text: s.encounter.stash }), inventoryBar(state.inventory)]);
@@ -244,7 +247,7 @@ export class LocationScene implements Scene {
       this.hud.append(parkedGarageMoped(this.app, () => inspect('model')));
       if (searching) this.hud.append(garageFinds(state.seed, epicFlag(state, 'garageHeldKey'), inspect));
     }
-    const curiosity = !this.concealing && !this.stop && epicObject(this.app, () => this.refresh());
+    const curiosity = !this.concealing && (epicFind(this.app, !!this.stop, ctx => this.render(ctx)) ?? (!this.stop && epicObject(this.app, () => this.refresh())));
     if (curiosity) this.hud.append(curiosity);
   }
 
@@ -656,6 +659,7 @@ export class LocationScene implements Scene {
 
   render(ctx: CanvasRenderingContext2D): void {
     drawPlate(ctx, LOCATIONS[this.id].plate, { oneArmed: oneArmed(this.app.state) });
+    drawEpicFind(ctx, this.state);
     this.roomLife.draw(ctx, calmMotion());
     const dusk = 1 - this.state.hoursLeft / DAY_HOURS;
     ctx.fillStyle = `rgba(40, 30, 90, ${Math.max(0, dusk - 0.55) * 0.5})`;

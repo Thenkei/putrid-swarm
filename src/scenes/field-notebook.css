@@ -1,0 +1,49 @@
+.find-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
+.find-heading h2 { margin:0; }
+.topbar .notebook-open { margin-inline-start:auto; font-size:inherit; min-height:28px; padding:2px 10px; }
+.find-view[data-kind=trail] .find-target { width:27%; height:38%; border-color:transparent; }
+.find-view[data-kind=trail] .find-left { left:28%; top:45%; }
+.find-view[data-kind=trail] .find-right { left:68%; top:54%; }
+.find-view[data-kind=trail] .find-target:is(:hover,:focus-visible) { outline:1px dashed #ffedc5; }
+.field-notebook {
+  box-sizing:border-box; width:min(760px,95vw); max-height:90dvh; margin:auto; padding:8px;
+  border:1px solid #514433; border-radius:5px 11px 7px 4px; color:#332b22;
+  background:#e7ddbe url('../assets/field-notebook.webp') center / 100% 100%; box-shadow:0 14px 50px #000b, inset -3px 0 #b9a983;
+  pointer-events:auto; text-align:left; font:17px/1.45 Georgia,serif;
+}
+.field-notebook[open] { display:grid; grid-template-columns:26% 1fr; grid-template-rows:auto minmax(0,1fr); }
+.field-notebook::backdrop { background:#16140fcc; }
+.field-notebook header { grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 20px; color:#422d21; }
+#ui .field-notebook h2 { font:small-caps 23px/1.1 Georgia,serif; margin:0; padding:0; }
+.field-notebook button { font:inherit; color:inherit; cursor:pointer; min-height:44px; }
+.field-notebook button:focus-visible { outline:2px solid #9a522f; outline-offset:-3px; }
+@media(min-width:601px) { #ui .field-notebook h2 { max-width:24%; font-size:21px; } }
+.notebook-close { background:transparent; border:1px solid #827052; padding:4px 14px; }
+.notebook-index { overflow:auto; background:transparent; padding:10px 0; }
+.notebook-index button { display:block; width:100%; border:0; border-left:4px solid transparent; padding:9px 12px; background:transparent; text-align:left; font:600 15px/1.25 var(--hud-font),sans-serif; }
+.notebook-index button[aria-pressed=true] { border-color:#994d35; background:#f6eac68a; }
+.notebook-index[hidden] + .notebook-leaf { grid-column:1/-1; }
+.notebook-leaf { overflow:auto; padding:18px clamp(18px,4vw,38px) 24px; min-height:165px; max-height:64dvh;
+  background:transparent; }
+#ui .notebook-leaf h3 { margin:0 0 10px; font:italic bold 24px/1.2 Georgia,serif; color:#633e30; }
+#ui .notebook-leaf p { font:17px/1.55 Georgia,serif; color:#332b22; margin:8px 0 12px; min-height:0; }
+.notebook-leaf figure { margin:14px 0 4px; background:#f7f2df; padding:6px 6px 4px; box-shadow:1px 2px 4px #34281955; }
+.notebook-leaf img { display:block; width:100%; }
+.notebook-leaf figcaption { padding:3px 6px; font:italic 15px/1.4 Georgia,serif; color:#4a4034; }
+@media(max-width:600px) {
+  .field-notebook[open] { background-size:148% 100%; background-position:right; grid-template-columns:minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr); }
+  .field-notebook header { padding:7px 12px; }
+  .notebook-index:not([hidden]) { display:flex; gap:3px; overflow-x:auto; border-right:0; border-bottom:1px solid #aa9772; padding:2px; }
+  .notebook-index button { width:auto; flex:none; }
+  .notebook-leaf { max-height:60dvh; }
+}
+/* In portrait the world is letterboxed. Use the margin above it for the pocket book. */
+@media(max-width:880px) and (orientation:portrait) {
+  #stage:has(.topbar .notebook-open) { overflow:visible; }
+  .topbar .notebook-open { position:absolute; right:0; bottom:calc(100% + 9px / var(--stage-scale));
+    min-height:calc(44px / var(--stage-scale)); padding:0 calc(12px / var(--stage-scale)); font-size:calc(16px / var(--stage-scale)); }
+}
+.notebook-crop { position:relative; overflow:hidden; }
+.notebook-crop img { position:absolute; max-width:none; }
+.epic-heading { display:flex; align-items:center; gap:16px; padding-right:48px; }
+.epic-heading h2 { flex:1; }

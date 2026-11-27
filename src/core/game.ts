@@ -540,7 +540,7 @@ export function settleOrchard(state: GameState, ending: Ending): Result<GameStat
 
 /** A run a chapter ended goes back to that morning, the night before still won, the chapter waiting again. */
 export function retryChapter(state: GameState): Result<{ state: GameState; chapter: ChapterId }, OrchardError> {
-  if (state.phase !== 'lost' || state.fate === null || state.fate === 'lift') return err({ code: 'no_fate' });
+  if (state.phase !== 'lost' || state.fate === null || state.fate === 'lift' || state.fate === 'outside' || state.fate === 'werewolves') return err({ code: 'no_fate' });
   const morning: GameState = { ...state, phase: 'morning', fate: null };
   const chapter = chapterWaiting(morning);
   if (chapter === null) return err({ code: 'no_fate' });

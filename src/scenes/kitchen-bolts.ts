@@ -4,17 +4,23 @@ import { line as L } from '../engine/i18n';
 
 /** A second way to play the kitchen without finding the stove idea. A released bolt
  * stays where it is. Continued pressure from both sides makes it slide backwards. */
+export function kitchenDoor(seated = false) {
+  const rails = [0, 1].map(() => el('div', { class: 'kitchen-bolt' }, [
+    el('i', { class: 'bolt-rail' }), el('i', { class: 'bolt-shaft' }), el('i', { class: 'bolt-catch' }),
+  ]));
+  const door = el('div', { class: 'kitchen-door-detail' }, rails);
+  door.setAttribute('aria-hidden', 'true');
+  if (seated) for (const rail of rails) rail.style.setProperty('--slide', '100%');
+  return { door, rails };
+}
+
 export function kitchenBolts(field: HTMLElement, note: HTMLElement, toggle: HTMLButtonElement, finish: () => void) {
   let time = 0, inserted = 0, travel = 0, pushing = false;
   void audio.prepareSample('bolt_slide');
   void audio.prepareSample('bolt_seat');
   let motion = 0;
   let wasKnocking = false;
-  const rails = [0, 1].map(() => el('div', { class: 'kitchen-bolt' }, [
-    el('i', { class: 'bolt-rail' }), el('i', { class: 'bolt-shaft' }), el('i', { class: 'bolt-catch' }),
-  ]));
-  const door = el('div', { class: 'kitchen-door-detail' }, rails);
-  door.setAttribute('aria-hidden', 'true');
+  const { door, rails } = kitchenDoor();
   field.append(door);
   const status = el('span');
   status.setAttribute('role', 'status');
@@ -37,7 +43,7 @@ export function kitchenBolts(field: HTMLElement, note: HTMLElement, toggle: HTML
       rail.dataset.active = String(i === inserted);
     });
     const text = (inserted ? L('Verrou du bas', 'Lower bolt') : L('Verrou du haut', 'Upper bolt')) + ' · ' +
-      (knocking ? L('La porte force. Relâche.', 'The door strains. Release.') : L('Accalmie. Pousse.', 'A lull. Push.'));
+      (knocking ? L('Les coups repoussent le pêne.', 'The blows drive the bolt back.') : L('Le pêne est en face de la gâche.', 'The bolt lines up with the keeper.'));
     if (status.textContent !== text) status.textContent = text;
     progress.value = travel;
   };
@@ -58,7 +64,13 @@ export function kitchenBolts(field: HTMLElement, note: HTMLElement, toggle: HTML
       motion = 0;
       audio.play('bolt_seat', .9, inserted ? .89 : 1);
       inserted++;
-      if (inserted === rails.length) { finish(); return; }
+      if (inserted === rails.length) {
+        show();
+        finish();
+        field.replaceChildren(door);
+        door.dataset.pressure = 'false';
+        return;
+      }
       pushing = false;
       travel = 0;
       label();

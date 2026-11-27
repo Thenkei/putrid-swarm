@@ -1,3 +1,4 @@
+import { lotPatrol, lotView, moonView, porchAttack } from '../render/moon-yard';
 // The night: a desk, four cameras, and traps fired by hand.
 // The simulation runs on its own clock; this scene only chooses which part of it to look at.
 
@@ -16,7 +17,7 @@ import { sirenForNight } from '../core/siren';
 import { detectContact, hasDetector, SCAN_RANGE, SCAN_SECONDS } from '../core/dead-channel';
 import { concludeNight } from '../core/game';
 import { MOPED_BLAST_RADIUS, wreckSector } from '../core/epics';
-import { HOUSE, sectorOf, type Prop } from '../core/map';
+import { HOUSE, idx, sectorOf, type Prop } from '../core/map';
 import { HOUSE_RETURN_SECONDS, NightSim, hoistAge, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
 import { deskFor, outageFor } from '../core/orchard';
 import { allyFor } from '../core/radio';
@@ -291,6 +292,7 @@ export class NightScene implements Scene {
       void audio.prepareSample('camper_inside_knock');
     }
     if (this.sim.night === BOSS_NIGHT.mechanic) void audio.prepareSample('mechanic_chain');
+    if (this.sim.night === 5) void audio.prepareSample('vo_moon_threshold');
     if (this.sim.night === BOSS_NIGHT.chief) void audio.prepareSample('chief_watch');
     if (this.sim.rattleSector) {
       this.rattleCaption = el('span', { class: 'rattle-caption' });
@@ -341,6 +343,7 @@ export class NightScene implements Scene {
     this.coachEl = el('div', { class: 'coach' });
     this.root = el('div', {}, [topbar, this.camFrame, ...minis, this.trapBar, this.awayNotice, this.banners, this.coachEl, this.overlay]);
     this.app.ui.append(this.root, pauseOverlay);
+    const patrol=lotPatrol();
     this.epic = new EpicNight(this.app, this.sim, this.root, (canvas, sector, burst) => {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
@@ -352,7 +355,29 @@ export class NightScene implements Scene {
       const targets = new Set(this.sim.enemies.filter(e => e.alive && sectorOf(Math.floor(e.x), Math.floor(e.y)) === sector).map(e => e.id));
       return actors.filter(e => targets.has(e.id))
         .map(e => ({ id: e.id, ...project(view, e.x, e.y) }));
-    }, sector => this.switchCam(sector), () => this.togglePause());
+    }, sector => this.switchCam(sector), () => this.togglePause(), (canvas, sector, paint, lot) => {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const view = lot ? lotView : moonView(sector, paint ? undefined : this.sim.moonCub);
+      const frame = this.frame(sector, false);
+      // The desk simulation is held while the scene's patrol walks this sector.
+      // Keep the yard, damage and neighbouring sectors in the camera.
+      const neighbours = frame.enemies.filter(e => sectorOf(Math.floor(e.x), Math.floor(e.y)) !== sector);
+      let visible;
+      if(lot){
+        const hero=lot.hero;
+        const blocked=new Set(frame.devices.filter(d=>d.type==='fence'&&d.state!=='broken').map(d=>idx(d.x,d.y)));
+        const walkers=patrol(lot,frame.enemies,blocked);
+        const cubAge=lot.attack && frame.moonAge!=null?frame.moonAge+lot.attack.age:null;
+        visible=drawWorld(ctx,view,{...frame,time:frame.time+(lot.attack?.age??0),moonLot:lot,
+          ...(cubAge!==null && {moonAge:cubAge,moonCub:this.sim.sampleMoonCub(cubAge)}),
+          enemies:lot.attack?porchAttack(lot.attack,walkers):walkers,
+          ...(hero && hero.shot.start!=='window' && {approachingHero:hero, houseDoor:{sector:hero.shot.start,open:hero.opening}})});
+      } else drawWorld(ctx, view, paint ? { ...frame, enemies: neighbours, moonAction: { sector, paint } } : frame);
+      applyNight(ctx, view, this.lights(view.rot), frame.time, sunlight(frame.sunriseAge));
+      if(!lot) applyCctv(ctx, view, frame.time, .85);
+      return visible;
+    });
     if (this.sim.handView()) this.hand = new HandGauge();
     this.layoutMinis();
     for (const sector of SECTOR_IDS) this.renderMini(sector);
@@ -1267,7 +1292,7 @@ export class NightScene implements Scene {
 
     const previousTime = this.sim.time;
     const previousStage = houseDamageStage(this.sim.houseHp / HOUSE_MAX_HP);
-    this.accumulator += dt * this.speed;
+    this.accumulator += dt * (this.epic.active && this.sim.night === 5 ? 1 : this.speed);
     let steps = 0;
     while (this.accumulator >= STEP && steps < MAX_STEPS_PER_FRAME * this.speed) {
       this.sim.step(STEP, this.epic.active);
@@ -1378,6 +1403,10 @@ export class NightScene implements Scene {
       mopedWreck: ride?.blastAt === null ? undefined : wreckSector(this.state),
       ...(ride && open > 0 && { houseDoor: { sector: ride.sector, open } }),
       night: true,
+      laundrySheet: this.sim.night === 5,
+      moonAge: this.sim.moonAge,
+      moonCub: this.sim.moonCub,
+      packRushes: this.sim.packRushes,
       camperAtRearDoor: this.sim.heldDoor === 'arriere',
       barnMoth: this.barnMoth,
       foxAge: this.wildlife.foxAge,

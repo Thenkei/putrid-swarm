@@ -1,3 +1,5 @@
+import { discover } from './scene-evidence';
+import { chapterLook } from './chapter-look';
 // The end of a run: every run ends with the village in the garden.
 //
 // A house lost before the fifth night is brief: the control room door gives way. From the fifth night
@@ -113,6 +115,7 @@ export class FinaleScene implements Scene {
   private readonly oneArmed: boolean;
   private readonly carriesLetter: boolean;
   private stage: Stage = 'fall';
+  private opening?: ReturnType<typeof chapterLook>;
   private time = 0;
   private stageTime = 0;
   private left = false;
@@ -270,6 +273,7 @@ export class FinaleScene implements Scene {
         this.ending = { firstTime: this.remember() };
         break;
       case 'letter': {
+        discover(this.app, 'sunday');
         hush();
         audio.setMusic('none');
         audio.play('shed_door');
@@ -313,6 +317,8 @@ export class FinaleScene implements Scene {
             el('span', { class: 'jam-touch-hint', text: s.finale.touchStart }),
           ]),
         );
+        this.opening = chapterLook(this.app, 'finale');
+        this.root.append(this.opening.layer);
         this.pickMode(this.mode);
         if (document.hidden || !document.hasFocus()) this.pause(true);
         break;
@@ -477,7 +483,7 @@ export class FinaleScene implements Scene {
 
   /** Leaving before the end of the song, once it has been offered. */
   private bowOut(): void {
-    if (this.stage === 'jam' && this.now >= FINALE.skipAfter) this.go('swarm');
+    if (this.stage === 'jam' && this.now >= FINALE.skipAfter) this.pause(false, true);
   }
 
   private spawn(x = STAGE_W + 40 + Math.random() * 160): void {
@@ -652,10 +658,13 @@ export class FinaleScene implements Scene {
       } else if (code === 'Space') {
         event.preventDefault();
         this.hitStrings();
-      } else if (code === 'Enter') this.bowOut();
+      } else if (code === 'Enter') {
+        event.preventDefault();
+        this.bowOut();
+      }
       return;
     }
-    if (this.stage === 'shed' && (code === 'ArrowLeft' || code === 'ArrowRight' || code === 'Tab')) {
+    if (this.stage === 'shed' && (code === 'ArrowLeft' || code === 'ArrowRight')) {
       event.preventDefault();
       this.pickMode(this.mode === 'soft' ? 'hard' : 'soft');
       audio.play('click');
@@ -678,13 +687,24 @@ export class FinaleScene implements Scene {
     if (this.stage === 'jam' || this.stage === 'shed' || this.stage === 'letter') this.pause(true);
   }
 
-  private pause(auto: boolean): void {
+  private pause(auto: boolean, finishSong = false): void {
     if (this.left || this.pausedAt !== null) return;
     this.pausedAt = performance.now();
     this.chords.length = 0;
     this.keyEls.forEach(key => key.classList.remove('held'));
     if (this.stage === 'jam') audio.setMusicPaused(true);
     hush();
+    if (finishSong) {
+      this.pauseMenu.open(() => this.resume(), () => {
+        this.resume();
+        this.go('swarm');
+      }, false, line('Couper le moteur', 'Cut the engine'), {
+        title: line('La main sur le contact', 'Hand on the ignition'),
+        note: line('Il reste du morceau. Si tu tournes la clé maintenant, le riff s’arrête ici.', 'There’s music left. Turn the key now and this is where the riff ends.'),
+        resume: line('Reprendre le riff', 'Keep playing'),
+      });
+      return;
+    }
     this.pauseMenu.open(() => this.resume(), () => {
       this.left = true;
       goEnd(this.app);
@@ -721,6 +741,7 @@ export class FinaleScene implements Scene {
   // ───────────────────────────── Loop ─────────────────────────────
 
   update(dt: number): void {
+    if (this.opening?.dialog.open) return;
     if (this.left || this.pausedAt !== null) return;
     this.time += dt;
     this.stageTime += dt;

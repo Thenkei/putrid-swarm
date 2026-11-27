@@ -22,9 +22,24 @@ function ease(t: number) {
   return p * p * (3 - 2 * p);
 }
 
+/** The settled last frame can be seen again in daylight, with no knock or score event. */
+export function cassetteOnDesk() {
+  const canvas = el('canvas');
+  canvas.width = 960;
+  canvas.height = 412;
+  const { room, cassette } = warmVhsRoom();
+  void Promise.all([room.decode(), cassette.decode()]).then(() => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(room, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(cassette, 179, 317, 224, 40);
+  }).catch(() => {});
+  return canvas;
+}
+
 /** All cues follow the desk clock. Leaving the insert discards the remaining beats. */
 export function ejectVhs(field: HTMLElement, note: HTMLElement, frame: HTMLCanvasElement,
-  complete: boolean, fired: boolean, rightHand: boolean, result: string) {
+  complete: boolean, fired: boolean, rightHand: boolean, result: string, hearKnock: () => void) {
   const { room, hand, cassette } = warmVhsRoom();
   const canvas = el('canvas');
   canvas.className = 'vhs-room';
@@ -49,6 +64,7 @@ export function ejectVhs(field: HTMLElement, note: HTMLElement, frame: HTMLCanva
       caption.textContent = L('Clac. La cassette ressort.', 'Clack. The cassette slides out.');
     } },
     { at: knock, play: () => {
+      hearKnock();
       audio.play('vhs_knock', .76);
       caption.textContent = L('L’écran est noir. Ça cogne encore.', 'The screen is dark. The pounding carries on.');
     } },

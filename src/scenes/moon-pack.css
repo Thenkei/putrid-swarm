@@ -1,27 +1,13 @@
-.moon-screen { position: absolute; inset: 0; overflow: hidden; background-size: cover; background-position: center; background-color: #202828; }
+.moon-screen { position: absolute; inset: 0; overflow: clip; background-size: cover; background-position: center; background-color: #202828; }
 .moon-feed-id, .moon-evidence, .moon-caption { position: absolute; background: #111b1bea; color: #dce9da; padding: 6px 12px; }
 .moon-feed-id { left: 14px; top: 12px; }
 .moon-evidence { right: 14px; top: 12px; }
 .moon-caption { bottom: 12px; left: 14px; max-width: 85%; }
-.moon-timing { position: absolute; left: 16%; right: 16%; bottom: 61px; height: 20px; border: 2px solid #d0d2c7; background: #312e31; }
-.moon-timing i { position: absolute; top: 0; bottom: 0; }
-.moon-gap { background: repeating-linear-gradient(120deg,#5c7666 0 8px,#93aa90 8px 13px); }
-.moon-head { width: 4px; background: #fff7d6; box-shadow: 0 0 4px black; }
-.moon-screen[data-phase="trail"] > canvas { cursor: crosshair; }
 .moon-contacts { position:absolute; top:54px; right:14px; display:flex; gap:4px; pointer-events:none; }
 .moon-print { position:relative; background:#273749; width:57px; aspect-ratio:92/55; border:2px solid #c1c2a6; border-bottom-width:5px; box-shadow:0 2px 5px #070e15ab; }
 .moon-print small { position:absolute; bottom:0; right:0; background:#0b1724bb; color:#f6e5bb; padding:0 2px; font-size:10px; }
 .moon-screen .moon-print canvas { display:block; width:100%; height:100%; }
 .moon-screen[data-phase="winch"] .moon-contacts { display:none; }
-.moon-winch-lamp { display:none; }
-.moon-screen[data-phase="winch"] .moon-winch-lamp { display:block; position:absolute; left:51.7%; top:38%; width:9px; height:10px; background:#d4864e; border:1px solid #4a3626; box-shadow:0 0 7px 3px #ee895370; border-radius:4px; pointer-events:none; }
-.moon-screen[data-passage="clear"] .moon-winch-lamp { background:#bad7ae; box-shadow:0 0 8px 3px #a6cab080; }
-.moon-screen[data-passage="closing"] .moon-winch-lamp { background:#ffd47e; box-shadow:0 0 8px 3px #ffc97390; }
-.moon-screen[data-passage="closing"] .moon-head { background:#ffcb73; }
-.moon-screen[data-outcome="reunion"] { background-size:cover; background-position:center; }
-.moon-breath { position:absolute; left:43%; top:46%; width:7%; height:4.5%; pointer-events:none; border-radius:50%; background:radial-gradient(ellipse,#e0e6d866,transparent 67%); animation:moon-breathe 4.1s ease-out infinite; }
-@keyframes moon-breathe { 0%,35%,100% { opacity:0; transform:translate(0,0) scale(.35); } 49% { opacity:.75; } 82% { opacity:0; transform:translate(35%,-80%) scale(1.55); } }
-@media (prefers-reduced-motion: reduce) { .moon-breath { animation:none; opacity:.35; } }
 .epic-actions button[aria-pressed="true"] { outline: 2px solid #c9ba8a; outline-offset: -2px; }
 
 @media (max-width: 880px), (pointer: coarse) {
@@ -39,7 +25,136 @@
 }
 @media (pointer: coarse) and (orientation: portrait) {
   .epic-field .moon-screen { height: auto; width: 100%; top: 50%; bottom: auto; transform: translate(-50%, -50%); }
-  /* On a narrow feed the lower third belongs to the cub, including its tail. */
-  #ui .moon-screen .moon-timing { top: 30px; bottom: auto; left: 6%; right: 6%; }
   .epic-night:has(.moon-screen, .garden-feed) .epic-actions button { flex-grow: 1; }
 }
+.moon-contacts .moon-print { pointer-events:auto; cursor:zoom-in; padding:0; min-width:44px; min-height:44px; }
+.moon-album-image { aspect-ratio:900/420; background-size:100% 100%; }
+#ui .moon-album-image :is(canvas,img) { display:block; width:100%; height:100%; object-fit:contain; }
+.moon-album .find-actions { margin-top:10px; }
+.moon-album button[aria-pressed=true] { border-color:#eac188; }
+
+/* Keep the native controls registered to the 900 × 420 camera frame. */
+.epic-field:has(.moon-screen) { container-type:size; background:#101717 !important; }
+#ui .epic-field .moon-screen { inset:auto; left:50%; top:50%; transform:translate(-50%,-50%); width:min(100cqw,calc(100cqh * 15 / 7)); height:auto; aspect-ratio:15/7; }
+.moon-gesture { position:absolute; left:73%; top:63%; transform:translate(-50%,-50%); touch-action:none;
+  width:48px; height:48px; padding:0; border:2px solid #c1b49a; border-radius:50%; background:#1a211fe3;
+  color:#e3dac4; font:700 27px/1 system-ui; cursor:pointer; box-shadow:0 2px 5px #080a09aa; }
+
+
+.moon-gesture[data-ready=true] { background:#e7bf72; color:#201d17; border-color:#fff0c4; box-shadow:0 0 0 4px #cfa76563; }
+.moon-gesture:focus-visible { outline:2px dashed #fff5d9; outline-offset:4px; }
+.moon-screen[data-pass=lost] .moon-gesture { opacity:.55; }
+.moon-screen[data-phase=trail] > canvas { cursor:default; }
+@media(max-width:600px) { .moon-gesture { width:44px; height:44px; font-size:23px; } }
+
+.moon-sheet-edge, .moon-handle {
+  position:absolute; padding:0; border:0; background:transparent; appearance:none;
+  min-width:calc(44px / var(--stage-scale, 1)); min-height:calc(44px / var(--stage-scale, 1));
+  touch-action:none; -webkit-tap-highlight-color:transparent;
+}
+.moon-sheet-edge { top:71%; height:23%; transform:translateY(-50%); cursor:pointer; border-radius:16%; }
+.moon-handle { width:4.6%; aspect-ratio:1; transform:translate(-50%,-50%); cursor:grab; border-radius:50%; }
+.moon-handle:active { cursor:grabbing; }
+.moon-handle:focus-visible::after, .moon-sheet-edge:focus-visible::after {
+  position:absolute; content:''; inset:12%; outline:2px dashed #fff1c8; outline-offset:2px; border-radius:inherit;
+}
+#ui .moon-screen :is(.moon-handle,.moon-sheet-edge):focus { outline:none; }
+.moon-material { position:absolute; transform:translate(-50%,-50%); width:9%; height:18%; min-width:44px; min-height:44px; background:transparent; border:0; border-radius:35%; cursor:pointer; }
+.moon-material:focus-visible { outline:2px dashed #e9dbb8; }
+.moon-caption:empty { display:none; }
+.moon-evidence:empty { display:none; }
+.moon-screen[data-danger=true] .moon-evidence { color:#ffcc9a; border-left:3px solid #dd8252; }
+.moon-screen .moon-sheet-edge { transform:translate(-50%,-50%); }
+.moon-observe { position:absolute; transform:translate(-50%,-50%); background:transparent; border:0; min-width:44px; min-height:44px; width:15%; height:18%; border-radius:14%; cursor:zoom-in; }
+.moon-observe:focus-visible { outline:2px dashed #ffe7af; }
+.moon-door { position:absolute; transform:translate(-50%,-50%); min-width:calc(44px / var(--stage-scale, 1)); min-height:calc(44px / var(--stage-scale, 1)); width:5%; height:13%; background:transparent; border:0; border-radius:10%; cursor:pointer; }
+.moon-door:focus-visible { outline:2px dashed #ffe7af; }
+@media (pointer:coarse) { .moon-door { min-width:44px; min-height:44px; } }
+.moon-spoken-direction { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+.moon-deadline {
+  position:absolute; top:0; left:0; right:0; height:4px; background:#120f0bb0; pointer-events:none;
+}
+.moon-deadline span { display:block; height:100%; transform-origin:left; background:#e6c185; }
+.moon-screen[data-urgent=true] .moon-deadline span { background:#eb9671; }
+.moon-prompt { color:#fff0d4; touch-action:none; user-select:none; -webkit-touch-callout:none; }
+.moon-prompt::before {
+  content:''; position:absolute; left:50%; top:50%; width:14px; height:14px; transform:translate(-50%,-50%);
+  border:2px solid currentColor; border-radius:50%; box-shadow:0 1px 4px #15100f; background:#251b135c;
+}
+.moon-prompt-label {
+  position:absolute; left:50%; top:calc(50% + 11px); transform:translateX(-50%); white-space:nowrap;
+  padding:2px 7px; border-radius:2px; background:#1e1b16e8; color:#f7e8cc;
+  font:700 clamp(12px,1.2vw,17px)/1.2 var(--hud-font);
+  text-shadow:0 1px 2px #000;
+}
+.moon-prompt-label::after {
+  content:''; display:block; height:2px; transform:scaleX(var(--called,0)); transform-origin:left; background:#ffdd94;
+}
+.moon-prompt-label kbd { display:none; margin-left:.36em; font:inherit; color:#ffdc99; }
+@media (hover:hover) { .moon-prompt:focus-visible kbd { display:inline; } }
+.moon-screen[data-window=open] .moon-timed::before { color:#251b13; background:#ffda91; border-color:#fff1c9; box-shadow:0 0 0 3px #3b2a16bd; }
+.moon-screen[data-window=open] .moon-timed .moon-prompt-label { color:#ffdb94; }
+.moon-prompt:focus-visible { outline:2px dashed #f6dda8; outline-offset:2px; }
+.moon-picture { position:absolute; inset:0; overflow:hidden; }
+#ui .moon-picture .moon-prompt:focus-visible { outline:0; }
+.moon-picture .moon-prompt:focus-visible .moon-prompt-label { outline:2px solid #f6dda8; outline-offset:2px; }
+.moon-screen[data-route=track][data-phase=forest] .moon-prompt::before { top:calc(50% + 20px); }
+.moon-screen[data-route=track][data-phase=forest] .moon-prompt-label { top:calc(50% + 30px); }
+.moon-caption { pointer-events:none; }
+@media (orientation:portrait) and (max-width:880px) {
+  #stage #ui .epic-night:has(.moon-prompt) { grid-template-rows:auto auto auto auto; align-content:center; }
+  #ui .epic-field:has(.moon-prompt) { padding-bottom:34px; box-sizing:content-box; overflow:visible; }
+  #ui .epic-field:has(.moon-prompt) .moon-screen { top:0; transform:translateX(-50%); width:100%; overflow:visible; }
+  #ui .moon-screen:has(.moon-prompt) .moon-caption { top:100%; bottom:auto; left:0; right:0; max-width:none; }
+  #ui .epic-field:has(.moon-screen[data-phase=forest]) { aspect-ratio:1.48; }
+  #ui .epic-field .moon-screen[data-phase=forest] { aspect-ratio:1.48; clip-path:inset(0 0 -34px); }
+  .moon-screen[data-phase=forest] .moon-picture { width:auto; aspect-ratio:15/7; right:auto; }
+  .moon-screen[data-phase=forest][data-route=track] .moon-picture { left:auto; right:0; }
+}
+@media (max-width:880px), (pointer:coarse) {
+  .moon-handle, .moon-sheet-edge { min-width:44px; min-height:44px; }
+}
+
+/* A single illustrated stage, with every gameplay prompt pinned inside the picture. */
+#stage #ui .epic-night:has(.moon-picture) {
+  display:block; padding:0; overflow:hidden; background:#080a09;
+}
+.epic-night:has(.moon-picture) > :is(h2,p,.epic-actions) { display:none; }
+#stage #ui .epic-night:has(.moon-picture) .epic-field {
+  position:absolute; inset:0; padding:0; margin:0; border:0; aspect-ratio:auto;
+  min-height:0; overflow:visible; background:#080a09 !important;
+}
+#stage #ui .epic-field .moon-screen:has(.moon-picture) {
+  top:50%;left:50%;width:min(100cqw,calc(100cqh * 15 / 7));height:auto;aspect-ratio:15/7;
+  transform:translate(-50%,-50%);clip-path:none;overflow:visible;outline:0;
+}
+#ui .moon-screen .moon-picture { inset:0; width:100%;height:100%;aspect-ratio:auto; }
+.moon-screen .notebook-open { position:absolute;top:8px;right:64px;z-index:2; }
+#stage #ui .epic-night:has(.moon-picture) .epic-pause { z-index:3;top:8px;right:8px; }
+#ui .moon-screen:has(.moon-picture) .moon-feed-id { font-size:14px;top:7px;left:10px; }
+#ui .moon-screen:has(.moon-picture) .moon-caption { top:36px;bottom:auto;left:10px;right:auto; max-width:68%; }
+.moon-line { position:absolute;left:50%;bottom:2.5%;transform:translateX(-50%);width:max-content;max-width:82%;
+  padding:5px 12px;color:#ffeecd;background:#19150ee8;text-align:center;pointer-events:none;
+  font:500 clamp(16px,1.55vw,22px)/1.25 Georgia,serif; }
+.moon-line:empty {display:none;}
+.moon-picture .moon-material { width:6%;height:10%; }
+#ui .moon-picture .moon-prompt-label { font-size:clamp(13px,1.3vw,18px); }
+#ui .moon-picture .moon-prompt[data-key] .moon-prompt-label kbd { display:inline; }
+@media (hover:none) and (pointer:coarse) {
+  #ui .moon-picture .moon-prompt[data-key=Space] .moon-prompt-label kbd { display:none; }
+}
+.moon-screen[data-route=track][data-phase=forest] .moon-prompt[data-key]::before { top:50%; }
+.moon-screen[data-route=track][data-phase=forest] .moon-prompt[data-key] .moon-prompt-label { top:calc(50% + 11px); }
+@media (orientation:portrait) and (max-width:880px) {
+  .moon-screen .notebook-open {top:auto;bottom:calc(100% + 20px);right:6px;}
+  #ui .moon-screen:has(.moon-picture) .moon-feed-id { top:auto;bottom:calc(100% + 12px); }
+  #ui .moon-screen:has(.moon-picture) .moon-caption {top:100%;left:5px;right:5px;max-width:100%;text-align:center;}
+  .moon-screen .moon-line { top:calc(100% + 44px);bottom:auto;max-width:94%; }
+  .moon-picture .moon-prompt-label { padding:2px 4px; }
+  #ui .moon-picture .moon-prompt-label {font-size:12px;}
+}
+/* Leave the metal, threshold and pawprints visible at the end of each leader. */
+.moon-picture .moon-prompt[data-key]::before { width:5px;height:5px;border-width:1px;background:#e7ca96; }
+.moon-picture .moon-prompt[data-key] .moon-prompt-label { top:calc(50% + 12px);background:#201b14d6;color:#fff0cd; }
+.moon-picture .moon-prompt[data-key=ArrowDown] .moon-prompt-label { top:auto;bottom:calc(50% + 11px); }
+.moon-picture .moon-prompt[data-key] .moon-prompt-label kbd {padding-left:3px; color:#ffcf7f;}

@@ -1,3 +1,4 @@
+import { notebookButton } from './field-notebook';
 // Daytime at the refuge: the lot seen from above, the build menu, the doors, and the two ways
 // out of the day — the car, or waiting for night.
 
@@ -350,6 +351,7 @@ export class DayScene implements Scene {
       el('span', { text: s.day.house }),
       houseMeter,
       el('button', { class: 'btn icon-btn', text: '☰', title: s.end.menu, onClick: () => goTitle(this.app) }),
+      notebookButton(this.app),
     ]);
 
     // Build menu.
@@ -510,6 +512,7 @@ export class DayScene implements Scene {
 
     const outOfTime = state.hoursLeft < 0.25;
     const actions = el('div', { class: 'day-actions' }, [
+      tonight,
       el('button', { class: `btn ${outOfTime ? '' : 'btn-primary'}`, disabled: state.hoursLeft < 0.5, onClick: () => goMap(this.app) }, [s.day.takeCar]),
       el('button', { class: `btn ${outOfTime ? 'btn-primary' : ''}`, onClick: event => this.askNight(event.currentTarget as HTMLElement) }, [s.day.waitNight]),
     ]);
@@ -575,8 +578,7 @@ export class DayScene implements Scene {
       curiosity.prepend(el('button', { class: 'whistle-find', text: label, onClick: () => this.openWhistle() }));
     }
     if (curiosity) frame.append(curiosity);
-    // One column: the doors' panel grows a line taller with every door that needs a nail, and the card under it follows.
-    const side = el('div', { class: 'day-side' }, [doors, tonight]);
+    const side = el('div', { class: 'day-side' }, [doors]);
     this.closeBuildWheel();
     this.root.replaceChildren(frame, topbar, panel, viewTools, side, actions, this.info);
     this.panelDoor = SECTOR_IDS.find((_, index) => doorRows[index]?.matches(':hover')) ?? null;
@@ -1392,6 +1394,7 @@ export class DayScene implements Scene {
     const frame: WorldFrame = {
       time: this.time,
       night: false,
+      laundrySheet: state.day === 5,
       mailboxSlip: this.deliverySlip?.hidden === true,
       treePointer: this.app.pointer.overCanvas && !this.buildWheel && inView(this.view, this.app.pointer.x, this.app.pointer.y) ? this.app.pointer : null,
       mopedWreck: wreckSector(state),

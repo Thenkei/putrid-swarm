@@ -12,7 +12,7 @@ const gardenNames = () => [
 ];
 
 /** The caller owns the simulation clock, so pausing or leaving night also stops the patrol. */
-export function escortFeed(field: HTMLElement, note: HTMLElement, signal: HTMLButtonElement, lamp: boolean, seed: number, finish: (home: boolean) => void) {
+export function escortFeed(field: HTMLElement, note: HTMLElement, signal: HTMLButtonElement, lamp: boolean, seed: number, shelter: (id: 'hedge' | 'laundry' | 'greenhouse') => void, finish: (home: boolean) => void) {
   const game = new GardenEscort(lamp, seed);
   const names = gardenNames();
   const canvas = el('canvas', { class: 'garden-feed' });
@@ -22,6 +22,7 @@ export function escortFeed(field: HTMLElement, note: HTMLElement, signal: HTMLBu
   const voice = el('span', { class: 'epic-live' });
   voice.setAttribute('role', 'status');
   field.replaceChildren(canvas, voice);
+  let lastShelter = -1;
   let last = '';
   let feedback = '';
   let feedbackFor = 0;
@@ -71,6 +72,10 @@ export function escortFeed(field: HTMLElement, note: HTMLElement, signal: HTMLBu
         feedback = L('Au portail. Il attend ton signal.', 'At the gate. He waits for your signal.');
         feedbackFor = 3;
       }
+    }
+    if (game.hidden && game.garden !== lastShelter) {
+      lastShelter = game.garden;
+      shelter((['hedge', 'laundry', 'greenhouse'] as const)[game.garden]!);
     }
     sync();
   };

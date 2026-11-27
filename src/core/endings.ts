@@ -26,6 +26,7 @@ export const ENDINGS = {
    */
   finale: ['desk', 'rampage', 'dawn', 'chord'],
   town: ['lift'],
+  moon: ['outside','parents'],
 } as const;
 
 export type Chapter = keyof typeof ENDINGS;

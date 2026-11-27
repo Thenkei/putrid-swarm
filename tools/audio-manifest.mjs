@@ -141,6 +141,7 @@ export const AUDIO = [
   voice('vo_moped_alibi', 'hero', '[dryly] Bon. Pour Gérard, on dit qu’on l’a pas trouvée.', { peak: -4 }),
   voice('vo_epic_stove', 'hero', '[dryly] Bon. Ce soir, on mange froid.', { peak: -4 }),
   voice('vo_epic_pack', 'hero', '[whispering] Attends. Y a un petit sous la grille.', { peak: -4 }),
+  voice('vo_moon_threshold', 'hero', '[quietly] Ils l’ont tous suivi. Si je fais rien, ce petit loup va mourir. [hesitates] Et moi… est-ce que j’ai envie de mourir ce soir ?', { peak: -4 }),
   voice('vo_epic_neighbor', 'hero', '[quietly] Ça y est. Il a rallumé sa cuisine.', { peak: -4 }),
   voice('vo_epic_neighbor_relay', 'neighbor', '[relieved, quietly] Je te reçois. De ma fenêtre, je vois ta porte arrière. Je veille.', { fx: 'radio', peak: -4 }),
   // ───────────── Traps ─────────────

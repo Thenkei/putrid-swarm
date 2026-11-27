@@ -7,7 +7,8 @@ export class PauseMenu {
 
   constructor(private readonly overlay: HTMLElement, private readonly fallbackFocus?: HTMLElement) {}
 
-  open(onResume: () => void, onLeave: () => void, auto: boolean, leaveLabel = S().night.leaveToTitle): void {
+  open(onResume: () => void, onLeave: () => void, auto: boolean, leaveLabel = S().night.leaveToTitle,
+    choice?: { title: string; note: string; resume: string }): void {
     const s = S().night;
     const focused = document.activeElement;
     this.previousFocus = focused instanceof HTMLElement ? focused : null;
@@ -16,11 +17,11 @@ export class PauseMenu {
     );
     for (const node of this.blocked) node.inert = true;
 
-    const title = el('h1', { text: s.paused });
+    const title = el('h1', { text: choice?.title ?? s.paused });
     title.id = 'pause-title';
-    const resume = el('button', { class: 'btn btn-primary', text: s.resume, onClick: onResume });
+    const resume = el('button', { class: 'btn btn-primary', text: choice?.resume ?? s.resume, onClick: onResume });
     const leave = el('button', { class: 'btn', text: leaveLabel, onClick: onLeave });
-    const note = auto ? el('p', { class: 'pause-reason', text: s.away }) : null;
+    const note = auto || choice ? el('p', { class: 'pause-reason', text: choice?.note ?? s.away }) : null;
     const dialog = el('div', { class: 'modal pause' }, [title, note, resume, leave]);
     dialog.setAttribute('role', 'dialog');
     dialog.setAttribute('aria-modal', 'true');

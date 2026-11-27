@@ -578,6 +578,8 @@ export const fr = {
       load: 'La Brocanteuse est partie sans dette.',
     },
     fate: {
+      werewolves: { title: 'Ils ont retrouvé ta porte', text: 'Nuit {n}. Après le dernier cri du petit, ses parents ont remonté ta piste jusqu’au perron. Tu n’as pas vu le matin.' },
+      outside: { title: 'À deux pas du perron', text: 'Nuit {n}. Tu as ouvert au passage de la deuxième vague. Une main t’a saisi dans la lumière de la cuisine. La porte est restée ouverte.' },
       lift: { title: 'Fin de course', text: 'Jour {n}. Le pont a lâché. La clochette de la porte du garage tintait encore quand la voiture a touché le sol.' },
       throat: { title: 'Un lapin', text: 'Jour {n}, sept heures dix. Il était blanc, il tenait dans une main, et il a sauté plus vite que ton bras. La caméra du verger n’a rien filmé.' },
       turned: { title: 'Trop tard', text: 'Jour {n}. C’est arrivé à l’épaule avant la scie. Ce soir, tu seras dans le jardin avec les autres, à regarder la maison.' },
@@ -1153,6 +1155,7 @@ export const fr = {
     vo_moped_load: 'Allez, on l’embarque.',
     vo_moped_alibi: 'Bon. Pour Gérard, on dit qu’on l’a pas trouvée.',
     vo_epic_pack: 'Attends. Y a un petit sous la grille.',
+    vo_moon_threshold: 'Ils l’ont tous suivi. Si je fais rien, ce petit loup va mourir. Et moi… est-ce que j’ai envie de mourir ce soir ?',
     vo_epic_neighbor: 'Ça y est. Il a rallumé sa cuisine.',
     vo_epic_neighbor_relay: 'Je te reçois. De ma fenêtre, je vois ta porte arrière. Je veille.',
     vo_later: 'Bon. La maison tient. Le break démarre encore. C’est déjà ça.',

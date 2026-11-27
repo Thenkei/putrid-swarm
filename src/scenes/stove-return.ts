@@ -36,7 +36,7 @@ function sootPrint(): HTMLCanvasElement {
   return canvas;
 }
 
-export function stoveMorning(soot: boolean): HTMLElement {
+export function stoveMorning(soot: boolean): HTMLDetailsElement {
   const photo = el('img');
   photo.src = morningPlate;
   photo.alt = line('La boîte de raviolis ouverte, une fourchette dedans, à la place de la gazinière.', 'An open tin of ravioli with a fork where the stove used to stand.');

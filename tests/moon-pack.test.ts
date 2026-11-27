@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { CUB_CROSSING, gatePassage, PACK_CYCLE } from '../src/core/moon-pack';
+import { CLOTHESLINE, CLOTHESLINE_POSTS, isStaticBlocked, terrainAt } from '../src/core/map';
+import { CUB_LEAVES_LINE, CUB_REACHES_WOOD, planCubRun, porchTraffic, CUB_CROSSING, gatePassage, PACK_CYCLE } from '../src/core/moon-pack';
+import { THRESHOLDS } from '../src/house-layout';
 import { markEpic, packTrail } from '../src/core/epics';
 import { newGame, startNextDay } from '../src/core/game';
+import { build, placementProblem } from '../src/core/yard';
+import { zombieClothContacts } from '../src/render/moon-laundry';
 import { NightSim } from '../src/core/night';
 import { serialize, deserialize } from '../src/core/save';
 import type { GameState } from '../src/core/types';
@@ -31,6 +35,144 @@ describe('moonlit gate', () => {
         expect(gatePassage(opened, opened + CUB_CROSSING)).toBe('impact');
       }
     }
+  });
+});
+
+describe('the clothesline in wave two', () => {
+  const game = newGame(54);
+  it('starts on the lawn and runs across open cells to the forest', () => {
+    const moonCubAt=planCubRun([]);
+    expect(terrainAt(Math.floor(CLOTHESLINE.x), Math.floor(CLOTHESLINE.y))).toBe('grass');
+    expect(moonCubAt(CUB_LEAVES_LINE)).toMatchObject(CLOTHESLINE);
+    for (let t=CUB_LEAVES_LINE;t<=CUB_REACHES_WOOD;t+=.05) {
+      const p=moonCubAt(t);
+      expect(isStaticBlocked(Math.floor(p.x),Math.floor(p.y))).toBe(false);
+    }
+    const end=moonCubAt(CUB_REACHES_WOOD);
+    expect(terrainAt(Math.floor(end.x),Math.floor(end.y))).toBe('forest');
+  });
+  it('skirts the armed stakes under the sheet and clears the standing driveway fence', () => {
+    const spikes={x:16,y:3,type:'spikes' as const,hp:40};
+    const fence={x:14,y:16,type:'fence' as const,hp:60};
+    const run=planCubRun([spikes,fence]);
+    let crossed=false;
+    for(let age=0;age<=CUB_REACHES_WOOD;age+=.025) {
+      const p=run(age), x=Math.floor(p.x), y=Math.floor(p.y);
+      expect(x===spikes.x && y===spikes.y).toBe(false);
+      expect(isStaticBlocked(x,y)).toBe(false);
+      if(x===fence.x && y===fence.y) {expect(p.lift).toBeGreaterThan(55);crossed=true;}
+    }
+    expect(crossed).toBe(true);
+    expect(run(CUB_REACHES_WOOD).lift).toBe(0);
+    fence.hp=0;
+    expect(run(18.8).lift).toBe(0);
+  });
+  it('allows a spike trap under the linen and reserves just the footings', () => {
+    const x = Math.floor(CLOTHESLINE.x), y = Math.floor(CLOTHESLINE.y);
+    expect(build(game, 'spikes', x, y).ok).toBe(true);
+    const [first,last] = CLOTHESLINE_POSTS;
+    expect(first.y).toBe(last.y);
+    expect(first.x).toBeLessThan(CLOTHESLINE.x);
+    expect(last.x).toBeGreaterThan(CLOTHESLINE.x);
+    for (const post of CLOTHESLINE_POSTS) {
+      expect(placementProblem(game.yard,'spikes',Math.floor(post.x),Math.floor(post.y))?.code).toBe('not_buildable');
+    }
+  });
+  it('finds a continuous detour when adjacent traps cover a turn beside the well', () => {
+    const traps=[{x:16,y:7,type:'net' as const,hp:30},{x:16,y:8,type:'spikes' as const,hp:30}];
+    const run=planCubRun(traps);
+    let prev=run(0);
+    for(let t=0;t<CUB_REACHES_WOOD;t+=.04) {
+      const p=run(t), x=Math.floor(p.x), y=Math.floor(p.y);
+      expect(isStaticBlocked(x,y) || traps.some(d=>d.x===x && d.y===y)).toBe(false);
+      expect(Math.hypot(p.x-prev.x,p.y-prev.y)).toBeLessThan(.2);
+      expect(p.lift).toBe(0);
+      prev=p;
+    }
+  });
+
+  it('folds the sheet at each body in contact, including restrained walkers', () => {
+    const body = {...CLOTHESLINE,alive:true,type:'shambler' as const,crawlDepth:0};
+    const second = {...body,x:body.x+.35,y:body.y-.22};
+    const touching = zombieClothContacts([body,second]);
+    expect(touching).toHaveLength(2);
+    expect(touching[0]!.x).toBeLessThan(touching[1]!.x);
+    expect(touching[0]!.pressure).toBeGreaterThan(.8);
+    const reverse = zombieClothContacts([body,second],1);
+    expect(reverse[0]!.x).toBeGreaterThan(reverse[1]!.x);
+    expect(reverse[1]!.pressure).toBe(touching[1]!.pressure);
+    expect(zombieClothContacts([{...body,crawlDepth:1}])[0]!.pressure).toBeLessThan(touching[0]!.pressure);
+    expect(zombieClothContacts([{...body,alive:false},{...body,x:body.x+1,y:body.y+1}])).toEqual([]);
+  });
+  function secondWave() {
+    const sim = new NightSim(5, game.yard, game.seed);
+    expect(sim.moonAge).toBeNull();
+    for (let i=0;i<3000 && sim.moonAge===null;i++) sim.step(1/30);
+    expect(sim.waveIndex).toBe(2);
+    return sim;
+  }
+  it('turns all live attackers away from the barricades and towards the linen', () => {
+    const sim=secondWave();
+    const hp=Object.values(sim.barricades).map(b=>b.hp);
+    const distance=(e:{x:number;y:number})=>Math.hypot(e.x-CLOTHESLINE.x,e.y-CLOTHESLINE.y);
+    const original=sim.enemies.map(e=>({e,d:distance(e)}));
+    for(let i=0;i<180;i++)sim.step(1/30);
+    expect(Object.values(sim.barricades).map(b=>b.hp)).toEqual(hp);
+    expect(original.filter(({e,d})=>e.alive && distance(e)<d).length).toBeGreaterThan(0);
+    expect(sim.moonAge).toBeGreaterThan(5);
+  });
+  it.each([1,7,54,99])('brings wave two across the steps, then leaves time to follow on seed %i', seed=>{
+    const sim=new NightSim(5,game.yard,seed);
+    const step={x:THRESHOLDS.portail.gx,y:THRESHOLDS.portail.gy+1.25};
+    for(let i=0;i<3000 && sim.moonAge===null;i++)sim.step(1/30);
+    let lastContact=0, contactTicks=0;
+    for(let i=0;i<CUB_REACHES_WOOD*30;i++){
+      sim.step(1/30);
+      if(i>17*30 && porchTraffic(sim.enemies,step)==='occupied'){lastContact=i;contactTicks++;}
+    }
+    expect(contactTicks).toBeGreaterThan(30);
+    expect(CUB_REACHES_WOOD-lastContact/30).toBeGreaterThan(4);
+    expect(sim.waveIndex).toBe(2);
+    sim.settlePack('neutral');
+    for(let i=0;i<1200 && sim.waveIndex===2;i++)sim.step(1/30);
+    expect(sim.waveIndex).toBe(3);
+  });
+  it('distinguishes an approaching walker from one that has passed or is caught in a trap',()=>{
+    const e={...secondWave().enemies[0]!,type:'shambler' as const,alive:true,x:2.8,y:0,fx:-1,fy:0,moveSpeed:2,
+      stunnedFor:0,nettedFor:0,crawlDepth:0};
+    const step={x:0,y:0};
+    expect(porchTraffic([e],step)).toBe('near');
+    expect(porchTraffic([{...e,fx:1}],step)).toBe('clear');
+    expect(porchTraffic([{...e,x:1}],step)).toBe('occupied');
+    for(const disabled of [{alive:false},{stunnedFor:1},{nettedFor:1},{type:'deer' as const}]){
+      expect(porchTraffic([{...e,x:1,...disabled}],step)).toBe('clear');
+    }
+  });
+  it('kills every standing enemy and every pending arrival once, up to dawn', () => {
+    const sim=secondWave();
+    const kills=()=>Object.values(sim.report().kills).reduce((sum,n)=>sum+n,0)-(sim.report().indoorKills ?? 0);
+    const expected=kills()+sim.enemies.filter(e=>e.alive).length+sim.remainingSpawns();
+    const hp=sim.houseHp;
+    sim.settlePack('allied');sim.settlePack('neutral');
+    for(let i=0;i<9000 && sim.outcome==='ongoing';i++)sim.step(1/30);
+    expect(sim.outcome).toBe('survived');
+    expect(sim.houseHp).toBe(hp);
+    expect(kills()).toBe(expected);
+    expect(sim.remainingSpawns()).toBe(0);
+  });
+  it('resumes normal waves when left alone', () => {
+    const sim=secondWave(); sim.settlePack('neutral');
+    expect(sim.moonAge).toBeNull();
+    expect(sim.remainingSpawns()).toBeGreaterThan(0);
+    expect(sim.enemies.some(e=>e.alive)).toBe(true);
+  });
+  it('remembers the fatal choice when the parents return', () => {
+    expect(deserialize(serialize({...game,phase:'lost',day:5,fate:'werewolves'}))?.fate).toBe('werewolves');
+  });
+  it('loads a death in the lane as a fifth-night loss with the house standing', () => {
+    const lost = { ...game, phase: 'lost', day: 5, fate: 'outside' } as const;
+    expect(deserialize(serialize(lost))).toMatchObject({ phase:'lost', fate:'outside', yard:{houseHp:game.yard.houseHp} });
+    expect(deserialize(serialize({ ...lost, day:4 }))?.fate).toBeNull();
   });
 });
 

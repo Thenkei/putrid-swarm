@@ -42,6 +42,12 @@ try {
   await frequency.press('ArrowRight');
   await button('Engage relay').click();
   await p.locator('.last-watch-state').filter({ hasText: 'Relay connected' }).waitFor();
+  await button('Field notebook').click();
+  const leaf = p.locator('.notebook-leaf');
+  await leaf.getByText(/Frequency 4/).waitFor();
+  await leaf.getByText(/Phase 2/).waitFor();
+  await leaf.getByText(/crests line up/).waitFor();
+  await button('Close notebook').click();
   await button('Back to the desk').click();
   await p.locator('.epic-night').waitFor({ state:'detached' });
   assert.deepEqual(errors, []);

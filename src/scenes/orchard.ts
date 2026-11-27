@@ -1,3 +1,5 @@
+import { discover } from './scene-evidence';
+import { chapterLook, chapterReport } from './chapter-look';
 // The orchard, the morning after a camera went dark: a cut-scene that is played.
 //
 // core/orchard.ts decides what every input does. This file frames it (one wide shot, three places,
@@ -34,7 +36,7 @@ import { STAGE_H, STAGE_W, type App, type Scene } from '../engine/app';
 import { sprite } from '../engine/assets';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
-import { S, fmt, durationLabel } from '../engine/i18n';
+import { S, fmt, durationLabel, line } from '../engine/i18n';
 import { endingsTally, rememberEnding as remember } from '../engine/progress';
 import { hush, say, type VoiceId } from '../engine/voice';
 import { Atmosphere, drawArm } from './atmosphere';
@@ -155,6 +157,7 @@ type Phase = 'intro' | 'play' | 'outro' | 'card';
 export class OrchardScene implements Scene {
   private orchard: Orchard = startOrchard();
   private phase: Phase = 'intro';
+  private opening!: ReturnType<typeof chapterLook>;
   private time = 0;
   private phaseTime = 0;
   private paused = false;
@@ -239,6 +242,9 @@ export class OrchardScene implements Scene {
     this.root.tabIndex = -1;
     this.root.setAttribute('aria-label', s.orchard.title);
     this.pauseMenu = new PauseMenu(pauseOverlay, this.root);
+    this.opening = chapterLook(this.app, 'orchard');
+    this.opening.layer.hidden = true;
+    this.root.append(this.opening.layer);
     this.app.ui.append(this.root);
     this.after(0.9, () => say('vo_orchard_arrive'));
   }
@@ -291,6 +297,7 @@ export class OrchardScene implements Scene {
         }
         break;
       case 'looked':
+        discover(this.app, cue.at);
         this.line(cue.at === 'saw' ? 'vo_orchard_saw' : 'vo_orchard_rope');
         break;
       case 'clapped':
@@ -345,6 +352,7 @@ export class OrchardScene implements Scene {
         this.after(0.8, () => this.line('vo_orchard_infected', true));
         break;
       case 'took':
+        discover(this.app, cue.what);
         audio.play(cue.what === 'rope' ? 'rope_take' : 'saw_take');
         this.take = { what: cue.what, t: 0 };
         // Said once, and only if it still applies: the saw alone is how this ends badly.
@@ -471,6 +479,7 @@ export class OrchardScene implements Scene {
         el('button', { class: 'btn btn-primary', text: fmt(s.orchard.next, { n: this.state.day + 1 }), onClick: () => this.settle() }),
       ]),
     ]);
+    chapterReport(card, line('Revoir le verger', 'Look at the orchard'));
     this.overlay.replaceChildren(el('div', { class: 'modal orchard-modal' }, [card]));
     if (ending === 'maimed') this.after(0.8, () => say('vo_orchard_one_arm', { subtitle: false }));
   }
@@ -538,6 +547,7 @@ export class OrchardScene implements Scene {
   // ───────────────────────────── Loop ─────────────────────────────
 
   update(dt: number): void {
+    if (this.opening.dialog.open) return;
     if (this.paused || this.left) return;
     this.time += dt;
     this.phaseTime += dt;
@@ -719,6 +729,7 @@ export class OrchardScene implements Scene {
   // ───────────────────────────── HUD ─────────────────────────────
 
   private syncHud(): void {
+    this.opening.layer.hidden = this.phase !== 'play' || this.orchard.beat !== 'arrive' || this.orchard.walk > .01;
     const s = S();
     const o = this.orchard;
 
