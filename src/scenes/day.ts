@@ -6,7 +6,7 @@ import dismantleIcon from '../assets/yard-dismantle.png';
 import reinforceIcon from '../assets/yard-reinforce.png';
 import repairIcon from '../assets/yard-repair.png';
 import { epicObject } from './epic-day';
-import { epicFlag, markEpic, packTrail, wreckSector } from '../core/epics';
+import { epicFlag, markEpic, MOON_NIGHT, packTrail, wreckSector } from '../core/epics';
 import { hitsMopedWreck } from '../render/moped-wreck';
 import { hitsKindling } from '../render/baker-kindling';
 import { bakerMorning } from './baker-morning';
@@ -1394,7 +1394,7 @@ export class DayScene implements Scene {
     const frame: WorldFrame = {
       time: this.time,
       night: false,
-      laundrySheet: state.day === 5,
+      laundrySheet: state.day === MOON_NIGHT,
       mailboxSlip: this.deliverySlip?.hidden === true,
       treePointer: this.app.pointer.overCanvas && !this.buildWheel && inView(this.view, this.app.pointer.x, this.app.pointer.y) ? this.app.pointer : null,
       mopedWreck: wreckSector(state),

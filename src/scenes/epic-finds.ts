@@ -1,6 +1,6 @@
 import { notebookButton } from './field-notebook';
 import type { GameState } from '../core/types';
-import { epicFlag, markEpic } from '../core/epics';
+import { epicFlag, GARDEN_NIGHT, markEpic, MOON_NIGHT } from '../core/epics';
 import type { App } from '../engine/app';
 import { audio } from '../engine/audio';
 import { el } from '../engine/dom';
@@ -14,8 +14,8 @@ const positions = { menu: [314, 360], vhs: [408, 254], trail: [555, 523], photo:
 function findAt(s: GameState): Find | undefined {
   if (s.where === 'grocery' && s.day === 2) return 'menu';
   if (s.where === 'post' && s.day === 4) return 'vhs';
-  if (s.where === 'shed' && s.day === 5) return 'trail';
-  if (s.where === 'grocery' && s.day === 6) return 'photo';
+  if (s.where === 'shed' && s.day === MOON_NIGHT) return 'trail';
+  if (s.where === 'grocery' && s.day === GARDEN_NIGHT) return 'photo';
 }
 
 const pictures = new Map<string, HTMLImageElement>();

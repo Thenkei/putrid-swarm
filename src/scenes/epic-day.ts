@@ -3,7 +3,8 @@ import './epic.css';
 import { showGarageBoot } from './garage-boot';
 import { noteWhenOpened } from './scene-evidence';
 import { stoveMorning } from './stove-return';
-import { epicFlag, markEpic } from '../core/epics';
+import { epicFlag, GARDEN_NIGHT, markEpic } from '../core/epics';
+import { MOPED_UNLOCK_DAY } from '../core/garage-ignition';
 import { SECTOR_IDS, type SectorId } from '../core/types';
 import type { App } from '../engine/app';
 import { audio } from '../engine/audio';
@@ -35,9 +36,9 @@ export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: Se
     return details;
   };
   const { where, day } = state;
-  if (where === 'garage' && !flag('moped')) {
+  if (where === 'garage' && day >= MOPED_UNLOCK_DAY && !flag('moped')) {
     if (flag('garageStarterBroken') || flag('loaded')) return null;
-    if (day >= 3 && flag('garageKey')) {
+    if (flag('garageKey')) {
       void audio.prepareSample('vo_moped_load');
       void audio.prepareSample('crate_1');
       const summary = el('summary', { text: line('Antivol ouvert', 'Steering unlocked') });
@@ -59,14 +60,12 @@ export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: Se
         summary, el('div', { class: 'garage-load-body' }, [note, load]),
       ]);
     }
-    if (day < 3) return item(line('Rétroviseur fêlé', 'Cracked mirror'),
-      line('« Si tu touches, tu pédales. » Gérard a fermé le rideau.', '“Touch it and you pedal.” Gérard pulled the shutter down.'));
     return null;
   }
   if (where !== 'home') return null;
   const objects = el('div', { class: 'refuge-curiosities' });
   if (day === 2) objects.append(refugeRoom(app, 'stove'));
-  if (day === 6 && flag('photo')) objects.append(refugeRoom(app, 'lamp'));
+  if (day === GARDEN_NIGHT && flag('photo')) objects.append(refugeRoom(app, 'lamp'));
   if (flag('garagePrint') && !flag('moped') && !flag('garageKey') && !flag('garageStarterBroken')) objects.append(item(line('Tirage du garage', 'Garage print'),
     line('Un petit anneau dépasse de la poche du bleu de travail.', 'A small ring peeks out of the coverall pocket.')));
   if (flag('moped') && !flag('spent')) {

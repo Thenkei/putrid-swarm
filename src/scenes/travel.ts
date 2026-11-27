@@ -1,7 +1,7 @@
 // A short beat in the old break between the refuge and the village, and back with the boot full.
 
 import { HOUSE_MAX_HP } from '../core/data/devices';
-import { packTrail, wreckSector } from '../core/epics';
+import { MOON_NIGHT, packTrail, wreckSector } from '../core/epics';
 import { departurePlan, drivewayImpacts, type DrivewayImpact } from '../core/driveway';
 import type { DepartureRoute } from '../core/car-path';
 import { DAY_HOURS } from '../core/data/locations';
@@ -344,7 +344,7 @@ export class TravelScene implements Scene {
         time: this.app.time,
         night: false,
         mopedWreck: this.app.state ? wreckSector(this.app.state) : undefined,
-        laundrySheet: this.app.state?.day === 5,
+        laundrySheet: this.app.state?.day === MOON_NIGHT,
         packTrail: this.app.state ? packTrail(this.app.state) : undefined,
         houseHpRatio,
         carPresent: true,

@@ -16,7 +16,7 @@ function loadSheet(url: string) {
   return image;
 }
 
-/** Only the sixth night's invitation starts these downloads. */
+/** The invitation to guide the neighbour starts these downloads. */
 export function warmGardenArt() {
   cameras ??= loadSheet(camerasUrl);
   kitchen ??= loadSheet(windowUrl);

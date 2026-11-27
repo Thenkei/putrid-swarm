@@ -6,6 +6,7 @@ import { drawEpicFind, epicFind } from './epic-finds';
 import { epicObject } from './epic-day';
 import { loadedGarageBoot } from './garage-boot';
 import { type GarageFind, garageFinds, parkedGarageMoped, searchGarageKeys } from './garage-keys';
+import { MOPED_UNLOCK_DAY } from '../core/garage-ignition';
 import { epicFlag } from '../core/epics';
 import { ShopLife } from './shop-life';
 import { MechanicVisit } from './mechanic-visit';
@@ -240,8 +241,8 @@ export class LocationScene implements Scene {
     if (this.id === 'garage' && epicFlag(state, 'loaded')) {
       this.hud.prepend(loadedGarageBoot(this.app));
     }
-    if (this.id === 'garage' && !epicFlag(state, 'loaded') && !epicFlag(state, 'moped')) {
-      const searching = state.day >= 3 && !epicFlag(state, 'garageKey') && !epicFlag(state, 'garageStarterBroken') && !this.stop && !this.concealing;
+    if (this.id === 'garage' && state.day >= MOPED_UNLOCK_DAY && !epicFlag(state, 'loaded') && !epicFlag(state, 'moped')) {
+      const searching = !epicFlag(state, 'garageKey') && !epicFlag(state, 'garageStarterBroken') && !this.stop && !this.concealing;
       const inspect = (place: GarageFind) => searchGarageKeys(this.app, place,
         assetUrl(heroArt(location.plate, oneArmed(state))), searching, () => this.refresh());
       this.hud.append(parkedGarageMoped(this.app, () => inspect('model')));

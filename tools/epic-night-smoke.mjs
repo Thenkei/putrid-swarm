@@ -76,7 +76,7 @@ try {
   assert.ok(!darkroomFlags['epic.garagePrint']);
   await spoiled.close();
 
-  const refuge = await openSave({ ...newGame(54), day: 6, flags: { 'epic.photo': 1, 'epic.moped': 1 } });
+  const refuge = await openSave({ ...newGame(54), day: 3, flags: { 'epic.photo': 1, 'epic.moped': 1 } });
   await refuge.locator('summary').filter({ hasText: 'Ashtray and lamp' }).click();
   await refuge.getByRole('button', { name: 'Look out of the window' }).click();
   await refuge.getByRole('button', { name: 'Inspect the lamp' }).click();

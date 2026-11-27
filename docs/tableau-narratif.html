@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Putrid Swarm — Tableau narratif</title>
+<style>
+:root{color-scheme:light;--paper:#f4f1e8;--card:#fffdf7;--ink:#24251f;--muted:#595b50;--line:#d8d4c6;--olive:#3d5035;--red:#8e352b;--ochre:#795523;--blue:#34566a;--shadow:0 6px 18px #29261a12}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
+button,input,textarea{font:inherit}
+button{cursor:pointer;color:inherit}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid #436945;outline-offset:3px}
+a{color:var(--olive);text-underline-offset:.18em}
+.hero{color:#fffaf0;background:#262d23;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#252c22 18%,#252c22e6 44%,#252c225c 100%),url('../public/assets/plates/plate_village.webp') center 43%/cover}
+.hero-inner{position:relative;padding:32px clamp(18px,4vw,64px) 31px;max-width:1040px}
+.brand{font:650 .78rem ui-monospace,monospace;letter-spacing:.19em;text-transform:uppercase;color:#dfd5ba}
+h1,h2,h3,p{margin-top:0}
+h1{font:500 clamp(2.45rem,6vw,5rem)/.99 Georgia,serif;letter-spacing:-.05em;margin:.2em 0 .27em}
+.hero p{margin:0;max-width:62ch;color:#f1ecd9}
+.hero small{display:block;margin-top:14px;color:#ddd7c2}
+.workspace{padding:20px clamp(14px,3vw,48px) 32px}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.switcher,.filters{display:flex;gap:6px;flex-wrap:wrap}
+.control{border:1px solid var(--line);border-radius:7px;padding:7px 11px;background:var(--card);min-height:38px}
+.control[aria-pressed="true"]{background:var(--olive);color:white;border-color:var(--olive)}
+.search{display:flex;align-items:center;gap:9px;flex:1 1 210px;max-width:420px}
+.search input{width:100%;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:7px;color:var(--ink);padding:8px 11px}
+.subbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:13px}
+#result{margin:0;color:var(--muted);font-size:.85rem}
+.jumps{display:flex;gap:5px;flex-wrap:wrap;margin:0 0 12px}
+.jumps button,.link{border:0;background:#e5e8d9;color:#30472b;border-radius:5px;padding:4px 9px;text-align:left}
+.board{overflow:auto;max-height:70vh;min-height:322px;scrollbar-color:#898d79 #e5e1d5;border:1px solid var(--line);border-radius:9px;background-color:#ece9df;background-image:radial-gradient(#a29d894d 1px,transparent 1px);background-size:15px 15px}
+.columns{display:flex;gap:12px;padding:0 12px 14px;width:max-content;min-width:100%}
+.lane{width:247px;flex:none}.lane header{position:sticky;top:0;z-index:1;background:#e8e5da;border-bottom:1px solid #c6c3b4;padding:10px 9px;margin-bottom:10px}
+.lane h2{font:600 1.15rem Georgia,serif;margin:0 0 3px}.lane header p{font-size:.75rem;color:var(--muted);margin:0}
+.card{width:100%;text-align:left;background:var(--card);border:1px solid #d7d1bf;border-left:4px solid var(--accent,var(--olive));border-radius:6px;padding:9px 11px 10px;box-shadow:var(--shadow);margin:0 0 8px;display:block}
+.card:hover{border-top-color:var(--accent);border-right-color:var(--accent);border-bottom-color:var(--accent);transform:translateY(-1px)}
+.card.arc,.entry.arc{--accent:var(--olive)}.card.side,.entry.side{--accent:var(--ochre)}.card.death,.entry.death{--accent:var(--red)}.card.review,.entry.review{--accent:var(--blue)}
+.kind{display:block;font:650 .67rem ui-monospace,monospace;letter-spacing:.075em;text-transform:uppercase;color:var(--accent,var(--muted));margin-bottom:5px}
+.card strong{display:block;font-size:.96rem;line-height:1.22}
+.timing{display:block;color:#55593f;font-size:.76rem;font-weight:650;line-height:1.35;margin:5px 0}
+.card .caption{display:block;color:var(--muted);font-size:.78rem;line-height:1.4;margin-top:5px}
+.entry{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:7px;padding:13px 16px}
+.list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:10px}
+.entry h2{font:600 1.3rem Georgia,serif;margin:0 0 6px}
+.entry p{margin:0 0 8px}.entry .link{margin-top:6px}
+.empty{padding:18px;color:var(--muted)}
+[hidden]{display:none!important}
+dialog{max-width:640px;width:calc(100% - 26px);max-height:88vh;border:1px solid #aaa48d;border-radius:12px;padding:0;background:var(--card);color:var(--ink);box-shadow:0 20px 80px #24251f55}
+dialog::backdrop{background:#25241d99}
+.panel-top{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--line);padding:15px 21px 12px;display:flex;gap:10px;align-items:start;justify-content:space-between;z-index:1}
+.panel-top h2{font:600 clamp(1.5rem,4vw,2.15rem)/1.05 Georgia,serif;margin:0}
+.panel-body{padding:17px 21px 21px}.panel-body h3{font-size:1rem;margin:19px 0 7px}
+.branch{border-left:2px solid var(--line);padding:4px 0 4px 11px;margin:0 0 9px}.branch p{margin:2px 0 4px;color:#45463e}
+.tags,.connections,.sources{display:flex;gap:6px;flex-wrap:wrap}.tags code{background:#ece8dc;padding:3px 6px;border-radius:4px}
+.sources a{font-size:.85rem;overflow-wrap:anywhere}
+textarea{display:block;width:100%;min-height:92px;resize:vertical;padding:8px;border:1px solid var(--line);border-radius:6px;background:#faf8f0;color:var(--ink)}
+#note-status,.foot{font-size:.8rem;color:var(--muted);margin-top:9px}.foot{margin:17px 0 0}
+@media(max-width:560px){.workspace{padding-top:13px}.toolbar{gap:9px}.hero-inner{padding-block:24px}.hero::before{background-image:linear-gradient(90deg,#252c22f7,#252c2299),url('../public/assets/plates/plate_village.webp')}.lane{width:222px}.panel-body,.panel-top{padding-inline:14px}}
+@media(prefers-reduced-motion:reduce){.card:hover{transform:none}}
+@media print{.toolbar,.subbar,.jumps,dialog,.entry button{display:none!important}.board{max-height:none;overflow:visible;background:none;border:0}.columns{width:100%;flex-wrap:wrap}.lane{width:31%}.lane header{position:static}.card,.entry{box-shadow:none;break-inside:avoid}.hero{color:#111;background:white}.hero p,.hero small,.brand{color:#222}.hero::before{display:none}}
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="brand">Putrid Swarm</div>
+    <h1>Tableau narratif</h1>
+    <p>Suivre les sept nuits, les chemins qui se croisent et les choix qui changent le sort d’Hugo.</p>
+    <small>Spoilers intégraux · Version locale du 27 novembre 2026 · base <code>b70337a</code> et redistribution des nuits</small>
+  </div>
+</header>
+<main class="workspace">
+  <div class="toolbar">
+    <nav class="switcher" aria-label="Vues du tableau" id="views">
+      <button class="control" data-view="board" aria-pressed="true">Chronologie</button>
+      <button class="control" data-view="deaths" aria-pressed="false">Morts et fins</button>
+      <button class="control" data-view="review" aria-pressed="false">Cohérence</button>
+    </nav>
+    <label class="search"><span>Rechercher</span><input id="search" type="search" placeholder="Campeur, aube du J5, vague 2…"></label>
+    <button class="control" id="export">Exporter mes notes</button>
+  </div>
+  <div class="subbar">
+    <div class="filters" id="filters" aria-label="Filtrer la chronologie"></div>
+    <p id="result" aria-live="polite"></p>
+  </div>
+  <nav class="jumps" id="jumps" aria-label="Aller à une étape"></nav>
+  <div id="board" class="board" tabindex="0" aria-label="Tableau chronologique à défilement horizontal"></div>
+  <div id="list" class="list" hidden></div>
+  <p class="foot">Cliquez sur une carte pour suivre ses embranchements, ouvrir les sources ou ajouter une note. Les notes sont gardées dans ce navigateur. Les issues se combinent au fil des parties selon la graine, les ressources et le déroulement des nuits.</p>
+</main>
+<dialog id="detail" aria-labelledby="detail-title">
+  <div class="panel-top">
+    <div><div id="detail-meta" class="kind"></div><h2 id="detail-title"></h2><div id="detail-timing" class="timing"></div></div>
+    <button class="control" id="close" aria-label="Fermer la carte">Fermer</button>
+  </div>
+  <div id="detail-body" class="panel-body"></div>
+</dialog>
+<script>
+const stages = [
+  ['intro','Prologue','Le bureau, le journal et l’ellipse'],
+  ['j1','Jour 1 · Nuit 1','Le refuge prend forme'],
+  ['j2','Jour 2 · Nuit 2','Le Tondeur et la caméra coupée'],
+  ['j3','Jour 3 · Nuit 3','Le verger, la mob et le voisin'],
+  ['j4','Jour 4 · Nuit 4','Le Dépanneur et la cassette'],
+  ['j5','Jour 5 · Nuit 5','Le boulanger et la dernière tournée'],
+  ['j6','Jour 6 · Nuit 6','Pleine lune, puis le Chef'],
+  ['j7','Jour 7 · Nuit 7','La CB et la dernière veille'],
+  ['fin','Dénouements','Le bureau ou la tondeuse'],
+  ['any','Au fil des sorties','Rencontres, détours et trouvailles'],
+];
+const cards = [];
+function arc(id, stage, kind, title, timing, summary, branches, sources, endings = []) {
+  cards.push({id, stage, kind, title, timing, summary, branches, sources, endings});
+}
+arc('intro','intro','arc','Le journal de la vallée','Soir · Avant le jour 1','Hugo est à son bureau. Le journal évoque des agressions et un « patient zéro », puis la fumée du joint couvre une ellipse.',[
+  ['Commencer','Le refuge est déjà préparé et le break attend. Le temps écoulé et l’identité du premier cas restent ouverts dans les sources.','refuge'],
+],['src/scenes/title.ts','src/i18n/fr.ts','docs/LORE.md']);
+arc('refuge','j1','arc','Le refuge et le break','Journée du J1 · Première veille à la tombée de la nuit','Le jour sert à fouiller et barricader. La nuit se joue sur quatre caméras, du portail au verger.',[
+  ['Sortir','Le trajet et les fouilles consomment du jour. Le coffre devient du stock au retour dans la cour.','town','lots','road'],
+  ['Tenir la première nuit','Les villageois obligent à apprendre le rondin et le changement de caméra. Un bilan du matin transmet les dégâts et les traces au jour suivant.','mower','defense'],
+],['src/core/game.ts','src/core/data/waves.ts','src/scenes/morning.ts']);
+arc('defense','any','arc','La maison tient ou cède','Chaque nuit · De la prise de poste à l’aube','Les barricades protègent les seuils. Les intrusions attaquent l’intégrité de la maison et peuvent éloigner Hugo du pupitre.',[
+  ['Maison debout','La nuit se termine à l’aube ou après la dernière vague. Le lendemain reprend avec la cour réellement abîmée.'],
+  ['Maison à zéro','Nuits 1 à 4 : le bureau. Nuits 5 à 7 : la sortie en tondeuse.','desk-death','rampage-death'],
+  ['Septième nuit tenue','Le village entier reste devant la maison.','dawn-death'],
+],['src/core/night.ts','src/core/game.ts','src/core/finale.ts']);
+arc('mower','j2','arc','Le Tondeur','Jour 2 au cabanon · Nuit 2, vague 3','Le voisin du cabanon revient en boss et fauche en ligne droite. L’herbe coupée reste visible sur le terrain.',[
+  ['Le rencontrer vivant','Le cabanon est accessible dès le jour 1. Le voisin est présent jusqu’au jour 2 inclus.'],
+  ['La deuxième vague','Le signal du verger tombe. Les pièges peuvent encore être déclenchés à l’aveugle. Si la maison tient, Hugo doit aller voir au matin.','orchard'],
+],['src/core/data/locations.ts','src/core/data/waves.ts','src/core/night.ts','src/core/chapters.ts']);
+arc('stove','j2','side','Ce soir, on mange froid','Préparation au J2 · Début de nuit 2 · Cuisine au J3','Le menu de l’épicerie et l’inspection de la gazinière préparent une sortie pendant la poussée contre la porte.',[
+  ['Tirer les verrous','Réussir le geste rend jusqu’à 4 PV à la barricade du portail. Reprendre la veille reste possible.'],
+  ['Sortir avec la gazinière','Une fois la préparation faite, Hugo peut tirer jusqu’à huit flambées sur les infectés de la cour, puis revenir à la porte.'],
+  ['Clé ou fenêtre','Attraper la clé permet de rentrer. Chaque prise manquée ou passage par la fenêtre coûte 2 PV. Une prise réussie après usage du feu laisse la suie sur la serrure.'],
+  ['Revoir la cuisine au J3','Gazinière préparée : retour sur la boîte froide. La suie peut être relevée si elle a été laissée sur la serrure.'],
+],['src/scenes/epic-finds.ts','src/scenes/refuge-room.ts','src/scenes/epic-night.ts','src/scenes/stove-return.ts']);
+arc('orchard','j3','arc','Le lapin du verger','Aube du J3 · Après la nuit 2','Au matin de la nuit 2, Hugo doit réparer la caméra. Un lapin blanc mordille le câble.',[
+  ['Taper des mains et raccorder le câble','Le lapin s’enfuit. Le jour reprend avec les deux bras.','arm'],
+  ['S’approcher, bras levé à temps','Le lapin mord le bras. Hugo doit l’arracher, trouver la scie et la corde, poser le garrot et terminer avant que l’infection remonte.','arm','bled','turned'],
+  ['S’approcher, réaction trop lente','Le lapin prend la gorge.','throat'],
+],['src/core/orchard.ts','src/scenes/orchard.ts','src/core/chapters.ts'],['orchard.spared']);
+arc('arm','j3','arc','Le bras gauche','Aube du J3 · Effets jusqu’à la fin de la partie','La morsure du verger peut se conclure par une amputation viable. La blessure change le reste de la partie.',[
+  ['Garrot posé, scie à temps','Hugo survit. J3 commence avec 4 h 30 de moins, puis chaque journée perd 1 h 30.'],
+  ['Sur les nuits suivantes','Une main passe d’une rangée de commandes à l’autre. Les actions attendent dans l’ordre.','defense'],
+  ['Sur les chapitres et la sortie','Les scènes utilisent les visuels adaptés quand ils existent. À la CB, la main alterne entre cadran et micro.','baker','radio','song'],
+],['src/core/orchard.ts','src/core/game.ts','src/scenes/hand.ts','src/core/radio.ts'],['orchard.maimed']);
+arc('moped','j2','side','La mob de Gérard','Dès le J2 au garage · Tirage facultatif au début de la nuit 3','À partir du jour 2, Hugo peut trouver la mob de Gérard au garage. S’il la ramène au refuge à temps, il peut l’utiliser dès la nuit 2.',[
+  ['Lire les indices','Dès J2 : regarder le modèle sur le réservoir, prendre une des cinq clés et comparer les calques. Si la clé est encore à trouver en nuit 3, le tirage peut montrer du laiton à la poche. La recherche reste possible de jour.'],
+  ['Essayer une clé','Chaque tentative coûte 30 min. La bonne ouvre l’antivol. Une autre mauvaise clé peut résister après un premier refus. Forcer la clé résistante casse le démarreur et ferme cette route.'],
+  ['Charger ou laisser','On peut repartir et revenir après avoir ouvert l’antivol. Chargée dans le break, la mob ne laisse rentrer qu’un exemplaire par paire de même ressource du coffre, arrondi vers le bas.'],
+  ['Orienter et lâcher','Choisir le secteur depuis la cour. Lâcher à l’approche d’un groupe : passage des lames puis explosion à la haie. Une fois lancée, seule l’épave reste à inspecter.','defense'],
+],['src/scenes/garage-keys.ts','src/core/garage-ignition.ts','src/core/epics.ts','src/scenes/epic-day.ts','src/scenes/epic-night.ts']);
+arc('night3','j3','arc','La nuit des groupes','Nuit 3 · De la prise de poste à l’aube','La troisième nuit répartit les assauts entre les secteurs. La mob peut rejoindre cette veille si elle a été ramenée à temps.',[
+  ['Préparée','Choisir le secteur et le moment de la charge.','moped'],
+  ['Indisponible','La chambre noire donne encore une piste pour une prochaine visite.','moped'],
+],['src/core/data/waves.ts','src/scenes/epic-night.ts']);
+arc('mechanic','j4','arc','Le Dépanneur et sa facture','De jour au garage · Nuit 4, vague 3 · Trace à l’aube du J5','Le garagiste vivant avance un ressort ou deux ferrailles et les note sur sa facture. Infecté, il attaque avec un palan.',[
+  ['Le rencontrer au garage','La visite prépare le rappel. Le pont de levage du garage constitue un danger distinct.','lift'],
+  ['Interrompre le palan au rondin en N4','Si la nuit est tenue et qu’un don du garagiste a été enregistré, le double reste cloué au secteur attaqué. On peut l’inspecter après le chapitre du boulanger.','baker'],
+  ['Laisser passer l’occasion','La scène de facture clouée dépend de l’interruption et de la visite. La nuit suit ses conditions habituelles.','defense'],
+],['src/core/mechanic-invoice.ts','src/core/night.ts','src/scenes/mechanic-visit.ts','src/scenes/morning.ts']);
+arc('vhs','j4','side','Édition vidéo','Jour 4 à la poste · Début de la nuit 4','Une pochette à la poste fait écho à la cassette signée. La bande retrace une tournée à travers le village.',[
+  ['Prendre la pochette','Le bonus du facteur à vélo est doublé dans le jeu de la cassette.'],
+  ['Lire ou éjecter directement','On peut reprendre la veille immédiatement ou jouer sur trois voies, jusqu’à l’arrêt ou au portail rouge. Le score et le record peuvent rester.'],
+  ['Éjecter après le jeu','La scène revient à la pièce du téléviseur. Le bruit à côté de la porte peut être relevé au carnet.'],
+],['src/scenes/epic-finds.ts','src/scenes/epic-night.ts','src/scenes/vhs-arcade.ts','src/scenes/vhs-ejection.ts']);
+arc('baker','j5','arc','Le boulanger dans la remise','Aube du J5 · Après la nuit 4','Après la nuit 4 tenue, Hugo va voir l’infecté qu’il a enchaîné. Son ancien métier réapparaît dans ses gestes et sa parole.',[
+  ['Attendre, donner de l’eau ou de la farine','Le silence aide hors de portée. L’eau et la farine peuvent ramener la lucidité. La farine déclenche le geste de pétrissage.'],
+  ['Questionner pendant la lucidité','La camionnette rapporte 6 planches et 2 batteries pour 30 min supplémentaires. La nuit à venir et le Chef alimentent les indications du jour. La question sur le premier est interrompue.'],
+  ['Reculer quand il bondit','Une réponse ou la chute de lucidité peut précipiter un bond si Hugo est à portée. Le recul permet de continuer. Un recul trop tardif est fatal à Hugo.','bitten'],
+  ['Libérer','Possible pendant la lucidité si Hugo a épargné le boulanger. Le bois du four donne 2 planches aux matins suivants et sa tournée peut être captée à la CB.','radio'],
+  ['Laisser enchaîné','Les matins suivants coûtent 15 min pour lui apporter de l’eau.'],
+  ['Marteau ou courant prolongé','Le marteau le tue. Le courant rétablit vite la lucidité mais épuise ce qu’il reste de lui, ferme la libération et peut le tuer. Les deux issues coûtent 30 min pour l’enterrer.','baker-death'],
+],['src/core/shed.ts','src/core/game.ts','src/scenes/shed.ts','src/scenes/baker-morning.ts'],['shed.freed','shed.chained']);
+arc('mail','j5','arc','La Dernière Tournée','J4 dès midi · Nuit 5, vague 3 · Lettre à l’aube du J6','Le facteur vivant est lié à la poste et à la cassette. Un avis humide annonce la tournée à partir de J4.',[
+  ['Le laisser faire au portail en N5','Deux coups, attente de signature, dépôt possible. La lettre recommandée est disponible dans le rapport si la tournée a abouti.'],
+  ['Interrompre l’attente','On peut perdre le dépôt si le facteur est dérangé avant la remise.'],
+  ['Ouvrir le recommandé après N5','L’heure de la plainte est soulignée, dimanche à 7 h 12. Relue, la lettre ressort quand Hugo démarre la tondeuse.','song'],
+],['src/core/night.ts','src/scenes/day.ts','src/scenes/morning.ts','src/scenes/finale.ts']);
+arc('moon','j6','arc','Pleine lune','Traces de jour au J6 · Nuit 6, vague 2 · Bilan à l’aube du J7','À la deuxième vague, les infectés suivent un louveteau de l’étendoir au bois. Hugo peut descendre de la maison.',[
+  ['Préparer la lecture des traces','Au cabanon du Tondeur, J6, examiner le sol boueux. La caméra de la grange montre ensuite le drap, les traces et la course du petit.'],
+  ['Descendre pendant le passage','Un rôdeur peut saisir Hugo sur les marches. Attendre que le perron se dégage permet de sortir.','outside'],
+  ['Suivre les traces puis appeler','Au chêne creux, garder l’appel quand le rôdeur détourne la tête. Le petit retrouve ses parents. La meute disperse la poursuite puis repart avant la troisième vague.','chief','relay'],
+  ['Passer par le break et faire du bruit','La boîte métallique mène à une autre approche. Frapper le seau quand le rôdeur écoute permet aussi de secourir le petit.','relay'],
+  ['Reculer, attendre ou manquer la fenêtre','Le petit repart vers le bois. La meute garde ses distances et la veille reprend. Les traces et les photos alimentent le bilan et le carnet.','chief'],
+  ['Pousser les rôdeurs dans le creux','Le choix est confirmé après avoir vu la queue du petit. Un cri, puis le silence. Les parents retrouvent ensuite le perron.','cub-death','wolves'],
+],['src/scenes/moon-pack.ts','src/scenes/epic-night.ts','src/core/night.ts','src/core/epics.ts']);
+arc('chief','j6','arc','Le Chef et le sifflet','De jour au commissariat · Nuit 6, vague 3 · Sifflet au J7','Au commissariat, la montre et le sifflet annoncent son ordre de sortir. La nuit, les infectés serrés autour de son bouclier continuent leur marche.',[
+  ['Fouiller deux fois au commissariat','Le Chef met fin à la fouille et fait sortir Hugo lorsque son contrôle est déclenché.'],
+  ['Klaxon ou projecteur','Le klaxon attire les retardataires. Le projecteur expose le Chef. Le renseignement du boulanger précise la menace.','baker'],
+  ['Faire tomber le Chef','Si sa chute est localisée et que la partie arrive au dernier jour, Hugo peut retrouver le sifflet et le souffler une fois. Deux infectés s’alignent à la haie.'],
+  ['Sans chute repérée','Le rappel du sifflet dépend du point de chute enregistré.'],
+],['src/core/game.ts','src/core/night.ts','src/core/chief-whistle.ts','src/scenes/chief-whistle.ts']);
+arc('garden','j3','side','Quelqu’un fait tourner','Photo et lampe au J3 · Nuit 3, vague 2 · Bilan à l’aube du J4','Après la scène du garage, un voisin en jaune attend un signe au portillon à la deuxième vague. Une photo trouvée à l’épicerie au jour 3 permet de préparer la lampe au refuge.',[
+  ['Prendre le relais','Guider le voisin du portillon au drap rayé puis à la serre. Une lampe préparée le fait réagir plus tôt.'],
+  ['Il rentre chez lui','Sa cuisine s’allume. Ses trois éclats en nuit 7 guident la fréquence du relais.','relay'],
+  ['Deux repérages','Il rebrousse chemin vers l’abri. Sa fenêtre reste noire.'],
+  ['Fermer le volet','Après confirmation, Hugo le laisse sans signal pour la nuit.'],
+],['src/scenes/epic-finds.ts','src/scenes/refuge-room.ts','src/scenes/epic-night.ts','src/core/garden-escort.ts']);
+arc('radio','j7','arc','La voix à la CB','Aube du J7 · Après la nuit 6','Après la nuit 6, le dernier jour attend la décision à la CB. Le signal dérive et chaque mot peut passer dans le souffle.',[
+  ['Sélection par les relations de route','Une dette ou une rancune ouvre les appels de la Brocanteuse et du Campeur. Si plusieurs survivants sont éligibles, la graine tranche. Sinon, le radioamateur appelle.','lots','road','dealer-owes','dealer-grudge','camper-owes','camper-grudge','ham'],
+  ['Explorer la bande','L’ancien journal boucle et le boulanger libéré peut être entendu. Sans le bras gauche, passer du bouton au micro laisse dériver la fréquence.','intro','baker','arm'],
+  ['Silence ou poste éteint','Une réponse non donnée avant la fin du délai est classée silence. Couper le poste avant de répondre, lorsque le jeu le permet, donne la fin « off ». Après une réponse, raccrocher conserve son issue.'],
+],['src/core/radio.ts','src/scenes/radio.ts','src/core/game.ts'],['radio.silence','radio.off']);
+arc('dealer-owes','j7','arc','La Brocanteuse doit une caisse','Aube du J7 à la CB · Suite dans la journée','Une faveur sur la route revient au micro. Le Comité peut écouter la même fréquence.',[
+  ['Donner l’adresse · confiance','4 planches, 3 ferrailles, 2 ressorts, 1 batterie. Si le Comité écoute, il prélève jusqu’à 4 pièces au portail et prend 30 min.'],
+  ['Donner le lieu de la rencontre · marché','Même caisse à récupérer, pour 1 h 30.'],
+  ['Lui laisser la caisse · refus','Elle garde le chargement et reste redevable.'],
+],['src/core/radio.ts','src/core/encounters.ts'],['radio.trusted','radio.bargained','radio.refused']);
+arc('dealer-grudge','j7','arc','La Brocanteuse avec le Comité','Aube du J7 à la CB · Suite dans la journée','L’appel part d’une rancune. Elle peut révéler que le Comité compte six personnes armées de fourches.',[
+  ['Donner l’adresse · confiance','Le groupe prend jusqu’à 3 pièces, ou 6 s’il est nombreux. La rancune est réglée.'],
+  ['Laisser deux planches au carrefour · marché','Le groupe prend les planches disponibles. S’il est nombreux, il vient chercher jusqu’à 4 pièces de plus et la rancune subsiste.'],
+  ['Mentir · commissariat','Hugo les envoie au sous-sol du commissariat. Le groupe ne vient pas au refuge.'],
+],['src/core/radio.ts','src/core/encounters.ts'],['radio.trusted','radio.bargained','radio.lied']);
+arc('camper-owes','j7','arc','Le Campeur redevable','Aube du J7 à la CB · Conséquences le jour et la nuit 7','La fermeture éclair et la cosse de batterie rappellent la rencontre. Il peut avouer une morsure.',[
+  ['L’inviter à la porte arrière · confiance','La barricade prend moitié moins tant qu’il tient. S’il est mordu, il se retourne à la vague 2 et la barricade perd la moitié des PV qui lui restent.','camper-turn'],
+  ['L’accueillir dans la remise · marché','Il aide à bricoler de jour (+1 h, dans la limite de la journée), puis reste enfermé la nuit. S’il s’est retourné, le premier coup de la scène de tondeuse vient de l’intérieur.','camper-turn','song'],
+  ['Refuser','Il ne vient pas.'],
+],['src/core/radio.ts','src/scenes/camper-door.ts','src/scenes/camper-pocket.ts','src/scenes/finale.ts'],['radio.trusted','radio.bargained','radio.refused']);
+arc('camper-grudge','j7','arc','Le Campeur avec le groupe du fourgon','Aube du J7 à la CB · Conséquences possibles le jour et la nuit 7','La rancune revient sur la CB. La phrase masquée par le souffle peut révéler que le groupe se tient à côté de lui.',[
+  ['Déposer une batterie · marché','Une batterie disponible règle la rancune. Sans batterie, le groupe vient prendre jusqu’à 3 pièces.'],
+  ['Refuser','Il repart, sauf si le groupe est à côté de lui : jusqu’à 3 pièces prélevées.'],
+  ['L’inviter seul · confiance','S’il est vraiment seul, il tient la porte arrière et devient redevable. Sinon le groupe vient prendre jusqu’à 4 pièces.','camper-turn'],
+],['src/core/radio.ts','src/scenes/camper-door.ts'],['radio.trusted','radio.bargained','radio.refused']);
+arc('ham','j7','arc','Le radioamateur de la ferme','Aube du J7 à la CB · Indices pour la nuit 7','C’est la voix de repli, quand aucune dette ou rancune éligible ne sélectionne les deux survivants.',[
+  ['Rester à l’écoute · confiance','Il décrit les arrivées par secteur. Seuls les secteurs compris s’affichent sur la carte de la nuit.'],
+  ['Demander une indication · marché','Une réponse plus courte renseigne le portail si le signal est entendu.'],
+  ['Prétendre être nombreux · mensonge','Il raccroche rassuré.'],
+],['src/core/radio.ts'],['radio.trusted','radio.bargained','radio.lied']);
+arc('relay','j7','side','La dernière veille','Fin de la nuit 7 · Une fois la veille bien avancée','Le relais demande d’aligner fréquence et phase. Les deux alliés des nuits précédentes donnent chacun un réglage.',[
+  ['Voisin sauvé','Ses trois éclats donnent la fréquence. Avec les deux alliés, la connexion privilégie l’arrière.','garden'],
+  ['Louveteau secouru','Son appel donne la phase. Avec lui seul, la connexion dirige Hugo vers le portail.','moon'],
+  ['Sans les deux indices','Le cadran reste jouable. Sans allié, le secteur le plus menacé est visé. Un alignement réussi redonne jusqu’à 12 points d’énergie et rétablit le signal du secteur si nécessaire. On peut aussi reprendre la veille directement.'],
+],['src/scenes/epic-night.ts','src/scenes/last-watch.ts']);
+arc('mayor','j7','arc','Le Maire et le dernier assaut','De jour à la mairie · Nuit 7, vague 3','Le Maire vu à la mairie prend son mégaphone la nuit. Ses discours amènent des renforts sur d’autres secteurs.',[
+  ['Tomber pendant la dernière nuit','La maison est perdue, la tondeuse sort de nuit.','rampage-death'],
+  ['Tenir jusqu’au matin','La dernière aube se transforme en rappel.','dawn-death'],
+],['src/core/data/locations.ts','src/core/data/waves.ts','src/core/night.ts','src/core/game.ts']);
+arc('throat','j3','death','Un lapin','Aube du J3 · À l’approche du lapin','Le lapin saute à la gorge quand Hugo s’approche et lève le bras trop tard.',[
+  ['Reprendre','Rejouer le matin au verger. La nuit 2 reste tenue.','orchard'],
+],['src/core/orchard.ts','src/scenes/end.ts'],['orchard.throat']);
+arc('turned','j3','death','Trop tard','Aube du J3 · Après la morsure','La morsure atteint l’épaule avant que le bras soit coupé. Hugo rejoint les infectés.',[
+  ['Reprendre','Rejouer le matin au verger.','orchard'],
+],['src/core/orchard.ts','src/scenes/end.ts'],['orchard.turned']);
+arc('bled','j3','death','Sans garrot','Aube du J3 · Après l’amputation sans garrot','Scier le bras sans avoir noué la corde déclenche l’hémorragie qui finit la partie.',[
+  ['Reprendre','Rejouer le matin au verger.','orchard'],
+],['src/core/orchard.ts','src/scenes/end.ts'],['orchard.bled']);
+arc('bitten','j5','death','Le boulanger','Aube du J5 · Pendant la visite à la remise','Hugo reste dans la portée de la chaîne quand le boulanger bondit et le mord.',[
+  ['Reprendre','Rejouer le matin dans la remise. La nuit 4 reste tenue.','baker'],
+],['src/core/shed.ts','src/scenes/end.ts'],['shed.bitten']);
+arc('baker-death','j5','side','Le boulanger meurt','Aube du J5 · Pendant la visite à la remise','Le coup de marteau et le courant prolongé sont deux issues distinctes pour le boulanger. Hugo poursuit sa partie.',[
+  ['Marteau','Met fin à la scène sur le coup.'],
+  ['Courant','Épuise le reste de lucidité et provoque une autre fin de chapitre.','baker'],
+],['src/core/shed.ts','src/core/game.ts'],['shed.finished','shed.emptied']);
+arc('cub-death','j6','side','Le dernier cri du louveteau','Nuit 6, vague 2 · Au chêne creux','Les rôdeurs atteignent le creux. La mort du petit est suggérée par le cri puis le silence.',[
+  ['La conséquence','Les parents suivent Hugo jusqu’à sa porte.','wolves','moon'],
+],['src/scenes/moon-pack.ts','src/i18n/fr.ts']);
+arc('wolves','j6','death','Ils ont retrouvé ta porte','Nuit 6 · Au retour du chêne creux','Hugo confirme qu’il pousse les rôdeurs sur le louveteau. Les parents remontent sa piste jusqu’au perron.',[
+  ['Reprendre','Rejouer la nuit 6 si le point de reprise du soir existe.','moon'],
+],['src/scenes/moon-pack.ts','src/scenes/epic-night.ts','src/scenes/end.ts'],['moon.parents']);
+arc('outside','j6','death','À deux pas du perron','Nuit 6, vague 2 · À la descente du perron','Hugo descend pendant que les rôdeurs passent assez près des marches pour l’attraper.',[
+  ['Reprendre','Rejouer la nuit 6 si le point de reprise du soir existe. Observer le passage depuis le seuil avant de descendre.','moon'],
+],['src/core/endings.ts','src/core/save.ts','src/scenes/moon-pack.ts','src/scenes/end.ts','src/i18n/fr.ts'],['moon.outside']);
+arc('camper-turn','j7','side','Le Campeur se retourne','Nuit 7, vague 2 à la porte · Dans la remise selon l’accueil','Le Campeur redevable a été mordu dans une variante de son appel. Son état se révèle différemment selon l’accueil.',[
+  ['À la porte arrière','Il trahit la défense à la vague 2, aussi bien au seuil barricadé qu’à la porte déjà rompue.','camper-owes','defense'],
+  ['Enfermé dans la remise','Il reste isolé. Le bruit dans la remise rappelle sa présence pendant le départ en tondeuse.','camper-owes','song'],
+  ['Invité seul malgré sa rancune','Cette autre branche peut lui faire tenir la porte. Elle ne déclenche pas son retournement.','camper-grudge'],
+],['src/core/radio.ts','src/core/night.ts','src/scenes/camper-door.ts','src/scenes/finale.ts']);
+arc('boss-fates','any','side','Sort des voisins infectés','Nuits 2, 4, 5, 6 et 7 · Pendant les assauts','Les boss peuvent être abattus pendant la défense ou rester debout jusqu’à la clôture de leur nuit.',[
+  ['Tondeur · N2','Fauche les passages. La caméra du verger tombe pendant sa nuit.','mower'],
+  ['Dépanneur · N4','Le palan et la facture ont leur propre chaîne de conditions.','mechanic'],
+  ['Facteur · N5','La lettre exige qu’il reste libre de la déposer.','mail'],
+  ['Chef · N6','Sa chute peut laisser le sifflet dans la cour.','chief'],
+  ['Maire · N7','La fin dépend de l’issue de la nuit.','mayor'],
+],['src/core/night.ts','src/core/data/waves.ts','src/scenes/morning.ts']);
+arc('desk-death','fin','death','La maison est tombée','Nuits 1 à 4 · À la chute du refuge','Si la maison cède pendant l’une des quatre premières nuits, la fin se joue au bureau. La horde finit par entrer.',[
+  ['Reprendre','Rejouer la nuit si le point de reprise du soir existe.','defense'],
+],['src/core/finale.ts','src/scenes/finale.ts','src/scenes/end.ts'],['finale.desk']);
+arc('rampage-death','fin','death','Fin du concert','Nuits 5 à 7 · À la chute du refuge','Maison perdue de N5 à N7. Hugo sort de la remise sur sa tondeuse et finit encerclé.',[
+  ['Jouer le morceau','Le matériel préparé à la remise ouvre le dernier trajet.','song'],
+  ['Reprendre','Rejouer la nuit si le point du soir existe, ou relancer le morceau depuis la fin.'],
+],['src/core/finale.ts','src/scenes/finale.ts','src/scenes/end.ts'],['finale.rampage']);
+arc('dawn-death','fin','death','La septième aube','Septième aube · Après la nuit 7 tenue','La septième nuit est tenue. Le village entier attend un rappel dans le jardin. Hugo sort jouer et se fait submerger.',[
+  ['Le rappel','Même tondeuse au matin, après la fausse accalmie.','song'],
+  ['Reprendre','Rejouer le morceau depuis la fin. La dernière nuit reste tenue.'],
+],['src/core/finale.ts','src/scenes/finale.ts','src/scenes/end.ts'],['finale.dawn']);
+arc('song','fin','side','Le dernier accord','De nuit après la chute du refuge · À la septième aube si le refuge tient','Le concert de la tondeuse propose des modes facile et furieux. Le score, la série et les notes parfaites restent sur le rapport final.',[
+  ['Quitter quand l’option apparaît','Le départ anticipé mène à l’encerclement.'],
+  ['Jouer jusqu’au bout','Le dernier accord ajoute une fin de collection à la fin principale du concert. La horde entoure aussi la tondeuse.'],
+  ['Rappels visibles','Lettre lue, manche vide et Campeur dans la remise modulent la scène. Le bilan de la CB peut rester jusqu’à l’écran de fin.','mail','arm','camper-owes','radio'],
+],['src/core/finale.ts','src/scenes/finale.ts','src/scenes/end.ts'],['finale.chord']);
+arc('town','any','side','Le village par étapes','De jour · Lieux ouverts par étapes dès le J1','J1 ouvre le cabanon, le garage et la quincaillerie. J2 ouvre l’épicerie et la poste, J3 le commissariat, J4 la mairie.',[
+  ['Voisin présent','Ses habitudes et ses gestes le présentent avant la nuit où il revient infecté.','boss-fates'],
+  ['Lieu sans voisin','Une fouille peut révéler un lot disputé, une cache prise ou du matériel laissé. Les faux pas augmentent le bruit de la visite.','lots','caches'],
+  ['Fouiller sous le pont au garage','Le choix fait entrer dans le jeu du pont de levage.','lift'],
+],['src/core/data/locations.ts','src/core/game.ts','src/scenes/location.ts']);
+arc('lift','any','death','Fin de course','De jour · Pendant une fouille au garage','Hugo manque la manœuvre sous l’épave du garage. Le pont lâche et la voiture lui tombe dessus.',[
+  ['Reprendre','L’écran propose de repartir sur une nouvelle partie.'],
+  ['Réussir la manœuvre','Le lot d’une batterie et de trois ressorts peut être chargé dans le coffre.','town'],
+],['src/core/data/locations.ts','src/core/game.ts','src/scenes/location.ts','src/scenes/end.ts'],['town.lift']);
+arc('lots','any','side','Le dernier lot','De jour · Pendant une fouille en ville','La Brocanteuse apparaît à partir de J1, le Campeur de J2. Un survivant peut réclamer un lot après les premières fouilles.',[
+  ['Partager ou échanger','Le partage répartit les pièces. Acheter le lot se paie depuis le coffre.'],
+  ['Rondelles ou estimation','La Brocanteuse peut jouer aux rondelles. Une estimation de son poste peut aussi régler une rencontre.'],
+  ['Abandonner en bons termes','Le survivant garde le lot et peut devoir un service. Une faveur existante peut être dépensée pour prendre le lot entier ou ouvrir la route.','road','radio'],
+  ['Menacer ou se battre','Le lot et du temps sont en jeu. Reculer après une menace conserve la rancune. Une rancune retire certaines options et renchérit le prochain barrage.','road','radio'],
+  ['Montrer le reçu','Si Hugo a pris le reçu de la quincaillerie, il peut le montrer à la Brocanteuse dans le contexte où l’option est offerte.','caches'],
+],['src/core/encounters.ts','src/core/data/rivals.ts','src/core/appraisal.ts','src/scenes/encounter.ts']);
+arc('road','any','side','Ouvre le coffre','De jour · Sur le trajet du retour','Avec assez de chargement au retour, le Comité peut barrer à partir de J2, le groupe du fourgon à partir de J3.',[
+  ['Payer ou négocier','Choisir les pièces exigées, ou proposer moins de pièces de la ressource recherchée. Le Comité veut du fil, le fourgon une batterie et refuse le bois.'],
+  ['Rappeler le service','Un visage redevable dans le groupe ouvre la route et la faveur est consommée.','lots'],
+  ['Faire le tour','Garder le chargement contre du temps : 30 min pour le Comité, 45 min pour le fourgon.'],
+  ['Défendre le coffre','La confrontation se joue en échanges courts. Les coups coûtent du temps et l’issue peut coûter du chargement.','radio'],
+],['src/core/encounters.ts','src/core/data/rivals.ts','src/core/game.ts']);
+arc('crossing','any','side','La traversée du troupeau','De jour dès le J2 · À l’aller','À partir de J2, une sortie éligible vers un autre lieu que le garage ou le cabanon peut rencontrer un troupeau.',[
+  ['Attendre','30 min de jour pour continuer vers la destination prévue.'],
+  ['Dévier vers le garage','La destination change sans payer cette attente. Le garage conserve ses propres histoires et son danger.','mechanic','moped','lift'],
+],['src/core/crossing.ts','src/scenes/crossing.ts']);
+arc('dusk','any','side','Le retour à la tombée du jour','Fin de journée · Retour prévu à 17 h ou plus tard','Une fois l’arbalète trouvée au garage, un retour avec au plus deux heures de jour peut déclencher un arrêt de nuit tombante.',[
+  ['Relancer le break','Le geste de démarrage évite l’arrêt prolongé.'],
+  ['Caler et tirer','L’arrêt peut coûter 15 min. Sur trois carreaux, chaque raté peut enlever une pièce du coffre. L’issue rejoint le retour.','road'],
+],['src/core/crossbow-road.ts','src/core/game.ts','src/scenes/crossbow-road.ts']);
+arc('caches','any','side','Ce que les autres ont laissé','De jour · Pendant les fouilles et les revisites','Revenir sur les lieux ouvre des rappels de fouille, d’objets emportés et de caches.',[
+  ['Quincaillerie','Un lot de ressorts peut disparaître et laisser un reçu avec du fil. Le reçu peut resservir avec la Brocanteuse.','lots'],
+  ['Garage','Un étau manipulé puis laissé visible pendant la nuit peut être ouvert au retour. Un lot caché reste protégé de cette ouverture.'],
+  ['Poste et cabanon','Consulter l’annuaire au Minitel révèle la cache de colis au cabanon. Ses ressources passent par le coffre.'],
+  ['Matériel spécial','Le détecteur de la quincaillerie révèle des contacts de nuit. La sirène de la mairie peut détourner un groupe prévu, contre une batterie.','defense'],
+  ['Épicerie','Les archives et la Vachette ont chacune leur fouille. À la Vachette, des portes successives demandent le bon tempo.'],
+],['src/core/game.ts','src/core/planque.ts','src/core/garage-vice.ts','src/core/fairground.ts','src/core/siren.ts','src/core/dead-channel.ts']);
+arc('check-moon','j6','review','Pleine lune · le perron','Nuit 6, vague 2 · Au perron','La deuxième vague passe près des marches pendant la poursuite. Hugo peut choisir quand descendre.',[
+  ['Trancher la place de l’ancienne route','Les mentions de la grille, du fossé et des griffures peuvent ressortir de sauvegardes anciennes. Vérifier si le carnet les présente clairement à côté du parcours du chêne.'],
+  ['Relire l’avertissement','Les pas, la main et la fenêtre de sortie doivent permettre de comprendre la mort « À deux pas du perron ».','outside','moon'],
+],['README.md','src/core/endings.ts','src/core/epics.ts','src/scenes/moon-pack.ts']);
+arc('check-letter','j5','review','Tournée, meute et dernier assaut','Nuit 5 puis nuit 6 · Rappels en nuit 7 et en finale','Le facteur peut terminer sa tournée en nuit 5. En nuit 6, la meute aide pendant la poursuite et la troisième vague reste celle du Chef.',[
+  ['Suivre les rappels','Lire la lettre après la nuit 5, sauver le louveteau en nuit 6, puis chercher les indices du relais et le rappel de la lettre en finale.','mail','moon','chief','relay','song'],
+],['src/core/data/waves.ts','src/core/night.ts','src/scenes/morning.ts','src/scenes/finale.ts']);
+arc('check-infection','j5','review','L’infection · que peut comprendre Hugo ?','Aubes des J3, J5 et J7 · Retournement possible en nuit 7','Le verger montre une progression immédiate, le boulanger oscille entre lucidité et agressivité, le Campeur parle encore après sa morsure.',[
+  ['Comparer les signes et les délais','Quel indice permet au joueur de comprendre la différence entre propagation, lucidité et retournement ?','orchard','baker','camper-owes'],
+  ['Relier le premier cas','Le journal le nomme sans l’identifier, puis le boulanger n’arrive pas au bout de sa réponse. Décider si cette interruption suffit comme rappel.','intro','baker'],
+],['docs/LORE.md','src/core/orchard.ts','src/core/shed.ts','src/core/radio.ts']);
+arc('check-radio','j7','review','CB · la décision sous le souffle','Aube du J7 à la CB · Retombées le jour et la nuit 7','Une seule phrase peut révéler le Comité, la morsure ou le groupe du fourgon. La conséquence dépend de la situation du correspondant, même quand le joueur n’a pas compris le détail.',[
+  ['Relire la conséquence après coup','Comparer le journal de l’appel, le rapport du jour et la scène nocturne. Le joueur peut-il reconstituer la cause de l’arrivée ou de la trahison ?','radio','dealer-owes','camper-turn'],
+],['src/core/radio.ts','src/scenes/radio.ts','src/scenes/end.ts']);
+arc('check-rappel','fin','review','Dernière aube · le rappel','Nuits 5 à 7 ou septième aube · Selon le sort du refuge','Le maintien de la maison achève la semaine. La sortie en tondeuse revient aussi quand on perd dans les trois dernières nuits.',[
+  ['Comparer les deux départs','Vérifier ce que la fausse accalmie, les alliés, la lettre et les traces des choix laissent percevoir dans chacun.','dawn-death','rampage-death','song','relay'],
+],['src/core/finale.ts','src/scenes/finale.ts','src/scenes/morning.ts']);
+arc('check-voices','fin','review','Les habitudes qui survivent','Rencontres de jour · Rappels à l’assaut nocturne','Le palan, la tournée, le sifflet, la tonte et le discours relient des voisins vivants à leur version infectée.',[
+  ['Relire chaque rencontre et son rappel','Repérer ce que voit un joueur qui passe au lieu du voisin, et ce que comprend celui qui ne rencontre le voisin que la nuit.','boss-fates','mechanic','mail','chief','mayor','mower'],
+],['docs/LORE.md','src/core/data/locations.ts','src/core/data/waves.ts']);
+
+const endingCatalogue = {
+  'orchard.spared':'Câble raccordé',
+  'orchard.maimed':'Un bras en moins',
+  'orchard.throat':'Un lapin',
+  'orchard.turned':'Trop tard',
+  'orchard.bled':'Sans garrot',
+  'shed.freed':'Libéré',
+  'shed.chained':'Enchaîné',
+  'shed.finished':'Tué au marteau',
+  'shed.emptied':'Épuisé par le courant',
+  'shed.bitten':'Le boulanger',
+  'radio.trusted':'Confiance',
+  'radio.bargained':'Marché',
+  'radio.lied':'Mensonge',
+  'radio.refused':'Refus',
+  'radio.silence':'Silence',
+  'radio.off':'Poste éteint',
+  'finale.desk':'La maison est tombée',
+  'finale.rampage':'Fin du concert',
+  'finale.dawn':'La septième aube',
+  'finale.chord':'Le dernier accord',
+  'town.lift':'Fin de course',
+  'moon.outside':'À deux pas du perron',
+  'moon.parents':'Ils ont retrouvé ta porte',
+};
+const deathsOfOthers = ['baker-death','cub-death','camper-turn','boss-fates'];
+const labels = { arc:'Histoire', side:'Fil secondaire', death:'Mort d’Hugo', review:'Cohérence' };
+const filters = {all:'Tout',arc:'Histoires',side:'Fils secondaires',death:'Morts d’Hugo',review:'Cohérence'};
+const byId = new Map(cards.map(card => [card.id, card]));
+const stageTitle = new Map(stages.map(([id, label]) => [id, label]));
+const storageKey = 'putrid-swarm.narrative-board.notes.v1';
+let notes = Object.create(null);
+let storageAvailable = true;
+try {
+  const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+  for (const [id, note] of Object.entries(saved)) {
+    if (byId.has(id) && typeof note === 'string') notes[id] = note;
+  }
+} catch { storageAvailable = false; }
+const $ = id => document.getElementById(id);
+let view = 'board';
+let filter = 'all';
+let request = '';
+let openingControl;
+
+function element(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+function button(text, fn, className = 'link') {
+  const control = element('button', className, text);
+  control.type = 'button';
+  control.addEventListener('click', fn);
+  return control;
+}
+function openLink(id) {
+  return button(byId.get(id).title, event => showCard(id, event.currentTarget));
+}
+function simplify(text) {
+  return text.toLocaleLowerCase('fr').normalize('NFD').replace(/\p{Diacritic}/gu, '');
+}
+function matches(card) {
+  if (!request) return true;
+  const words = [
+    card.title, card.timing, card.summary, labels[card.kind], stageTitle.get(card.stage),
+    ...card.branches.flatMap(([title, text]) => [title, text]),
+    ...card.endings.flatMap(id => [id, endingCatalogue[id]]), notes[card.id] || '',
+  ];
+  const content = simplify(words.join(' '));
+  return request.split(/\s+/).every(term => content.includes(term));
+}
+function showCard(id, trigger) {
+  const card = byId.get(id);
+  const detail = $('detail');
+  if (!detail.open) openingControl = trigger;
+  $('detail-title').textContent = card.title;
+  $('detail-meta').textContent = stageTitle.get(card.stage) + ' · ' + labels[card.kind];
+  $('detail-timing').textContent = card.timing;
+  const body = $('detail-body');
+  body.replaceChildren(element('p', '', card.summary), element('h3', '', card.kind === 'review' ? 'Points à examiner' : 'Chemins et conséquences'));
+  for (const [title, text, ...links] of card.branches) {
+    const branch = element('section', 'branch');
+    branch.append(element('strong', '', title), element('p', '', text));
+    if (links.length) {
+      const connections = element('div', 'connections');
+      connections.append(...links.map(openLink));
+      branch.append(connections);
+    }
+    body.append(branch);
+  }
+  const incoming = cards.filter(other => other.id !== id
+    && !card.branches.some(([, , ...links]) => links.includes(other.id))
+    && other.branches.some(([, , ...links]) => links.includes(id)));
+  if (incoming.length) {
+    const connections = element('div', 'connections');
+    connections.append(...incoming.map(other => openLink(other.id)));
+    body.append(element('h3', '', 'Autres cartes qui y mènent'), connections);
+  }
+  if (card.endings.length) {
+    const tags = element('div', 'tags');
+    tags.append(...card.endings.map(id => element('code', '', id)));
+    body.append(element('h3', '', 'Fins enregistrées'), tags);
+  }
+  const sources = element('div', 'sources');
+  for (const path of card.sources) {
+    const link = element('a', '', path);
+    link.href = '../' + path;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    sources.append(link);
+  }
+  body.append(element('h3', '', 'Sources locales'), sources);
+  const label = element('label', '', 'Mes notes');
+  label.htmlFor = 'note';
+  const heading = element('h3');
+  heading.append(label);
+  const note = element('textarea');
+  note.id = 'note';
+  note.value = notes[id] || '';
+  note.placeholder = 'Une question, une contradiction, un raccord à écrire…';
+  const status = element('p', '', storageAvailable ? '' : 'Stockage indisponible. Exportez vos notes avant de fermer.');
+  status.id = 'note-status';
+  status.setAttribute('role', 'status');
+  note.addEventListener('input', () => {
+    if (note.value.trim()) notes[id] = note.value;
+    else delete notes[id];
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(notes));
+      status.textContent = 'Note enregistrée.';
+    } catch {
+      status.textContent = 'Stockage indisponible. Exportez vos notes avant de fermer.';
+    }
+  });
+  body.append(heading, note, status);
+  if (!detail.open) detail.showModal();
+  detail.scrollTop = 0;
+  $('close').focus({preventScroll:true});
+}
+function boardCard(card) {
+  const control = button('', event => showCard(card.id, event.currentTarget), 'card ' + card.kind);
+  control.dataset.card = card.id;
+  control.append(element('span','kind',labels[card.kind]),element('strong','',card.title),element('span','timing',card.timing),element('span','caption',card.summary));
+  return control;
+}
+function entry(card) {
+  const item = element('article','entry ' + card.kind);
+  item.append(element('div','kind',stageTitle.get(card.stage)),element('h2','',card.title),element('div','timing',card.timing),element('p','',card.summary));
+  item.append(button('Ouvrir la carte', event => showCard(card.id, event.currentTarget)));
+  return item;
+}
+function endingEntry(id, label, linked) {
+  const card = linked.find(item => item.kind === 'death') || linked[0];
+  const item = element('article','entry ' + card.kind);
+  const timing = id.startsWith('radio.') ? 'Aube du J7 · Pendant l’appel CB' : card.timing;
+  item.append(element('div','kind',id),element('h2','',label),element('div','timing',timing),element('p','','Cartes liées à cette fin'));
+  const links = element('div','connections');
+  links.append(...linked.map(item => openLink(item.id)));
+  item.append(links);
+  return item;
+}
+function section(title, items) {
+  if (!items.length) return;
+  const container = element('section');
+  container.style.gridColumn = '1 / -1';
+  const grid = element('div', 'list');
+  grid.append(...items);
+  container.append(element('h2','',title), grid);
+  $('list').append(container);
+}
+function render() {
+  const inBoard = view === 'board';
+  $('board').hidden = $('filters').hidden = $('jumps').hidden = !inBoard;
+  $('list').hidden = inBoard;
+  document.querySelectorAll('#views button').forEach(control => control.setAttribute('aria-pressed', String(control.dataset.view === view)));
+  document.querySelectorAll('#filters button').forEach(control => control.setAttribute('aria-pressed', String(control.dataset.filter === filter)));
+  const visible = cards.filter(matches);
+  let count;
+  if (inBoard) {
+    const selected = visible.filter(card => filter === 'all' || card.kind === filter);
+    const columns = element('div','columns');
+    $('jumps').replaceChildren();
+    for (const [id, title, caption] of stages) {
+      const group = selected.filter(card => card.stage === id);
+      if (!group.length) continue;
+      const lane = element('section','lane');
+      const header = element('header');
+      header.append(element('h2','',title), element('p','',caption));
+      lane.append(header,...group.map(boardCard));
+      columns.append(lane);
+      $('jumps').append(button(title, () => {
+        const board = $('board');
+        board.scrollLeft += lane.getBoundingClientRect().left - board.getBoundingClientRect().left - 12;
+        board.scrollTop = 0;
+        lane.querySelector('button').focus({preventScroll:true});
+      }));
+    }
+    $('board').replaceChildren(selected.length ? columns : element('p','empty','Aucune carte correspondante.'));
+    count = selected.length + ' carte' + (selected.length === 1 ? '' : 's');
+  } else {
+    $('list').replaceChildren();
+    if (view === 'deaths') {
+      const deaths = visible.filter(card => card.kind === 'death');
+      const other = visible.filter(card => deathsOfOthers.includes(card.id));
+      const endings = Object.entries(endingCatalogue).flatMap(([id,label]) => {
+        const linked = visible.filter(card => card.endings.includes(id));
+        return linked.length ? [endingEntry(id,label,linked)] : [];
+      });
+      section('Morts jouables d’Hugo', deaths.map(entry));
+      section('Sort des autres personnages', other.map(entry));
+      section('Catalogue des fins de chapitre et de partie', endings);
+      count = deaths.length + ' morts jouables d’Hugo · ' + endings.length + ' fins au catalogue';
+    } else {
+      const reviews = visible.filter(card => card.kind === 'review');
+      $('list').append(...reviews.map(entry));
+      count = reviews.length + ' points de cohérence';
+    }
+    if (!$('list').childElementCount) $('list').append(element('p','empty','Aucune carte correspondante.'));
+  }
+  $('result').textContent = count;
+}
+for (const [id,label] of Object.entries(filters)) {
+  const control = button(label, () => {
+    filter = id;
+    $('board').scrollLeft = $('board').scrollTop = 0;
+    render();
+  }, 'control');
+  control.dataset.filter = id;
+  $('filters').append(control);
+}
+for (const control of document.querySelectorAll('#views button')) {
+  control.addEventListener('click', () => {
+    view = control.dataset.view;
+    render();
+  });
+}
+$('search').addEventListener('input', event => {
+  request = simplify(event.currentTarget.value.trim());
+  $('board').scrollLeft = $('board').scrollTop = 0;
+  render();
+});
+$('close').addEventListener('click', () => $('detail').close());
+$('detail').addEventListener('close', () => openingControl?.focus({preventScroll:true}));
+$('export').addEventListener('click', () => {
+  const lines = ['# Putrid Swarm — Notes du tableau narratif', ''];
+  for (const card of cards) {
+    if (notes[card.id]) lines.push('## ' + stageTitle.get(card.stage) + ' — ' + card.title, '', notes[card.id], '');
+  }
+  if (lines.length === 2) {
+    $('result').textContent = 'Aucune note à exporter.';
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([lines.join('\n')], {type:'text/markdown;charset=utf-8'}));
+  const download = element('a');
+  download.href = url;
+  download.download = 'putrid-swarm-notes-narratives.md';
+  document.body.append(download);
+  download.click();
+  download.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+render();
+</script>
+</body>
+</html>

@@ -18,7 +18,7 @@ async function run(mode) {
   const button=name=>page.getByRole('button',{name,exact:true});
   const click=el=>phone?el.tap():el.click();
   try {
-    let state={...newGame(54),day:mode==='day1'?1:mode==='day6'?6:5,hoursLeft:0};
+    let state={...newGame(54),day:mode==='day1'?1:6,hoursLeft:0};
     const waitAtDoor=mode==='track'||mode==='keys';
     if(waitAtDoor) {
       const trap=build({...state,hoursLeft:1},'spikes',16,3);

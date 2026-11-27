@@ -5,13 +5,19 @@ import { forceGarageKey, garageModel, keyForGarageModel, tryGarageKey } from '..
 import { LOCATIONS } from '../src/core/data/locations';
 import { deserialize, serialize } from '../src/core/save';
 
-const trip = travelTo({ ...newGame(587), day: 3 }, 'garage');
+const trip = travelTo({ ...newGame(587), day: 2 }, 'garage');
 if (!trip.ok) throw Error('Garage unreachable');
 const start = trip.value.state;
 const correct = keyForGarageModel(start.seed, garageModel(start.seed));
 const take = (offset: number) => (correct + offset) % 5 + 1;
 
 describe('Gérard’s ignition', () => {
+  it('unlocks the ignition on day two', () => {
+    const held = markEpic(start, 'garageHeldKey', take(0));
+    expect(tryGarageKey({ ...held, day: 1 }).result).toBe('unavailable');
+    expect(tryGarageKey(held).result).toBe('started');
+  });
+
   it('charges each attempt and reserves daylight for the return trip', () => {
     const held = markEpic(start, 'garageHeldKey', take(0));
     const limit = LOCATIONS.garage.travelHours + .5;

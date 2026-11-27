@@ -66,9 +66,14 @@ try {
     await page.close();
     console.log('Deux vues du décor enregistrées, chapitre '+chapter);
   }
-  for (const [day, ids] of [[2,['latch','hob']], [3,['tongs','paper']], [4,['signature','rewind']], [6,['coat','curtain']]]) {
-    const page = await start(day, day === 6);
+  for (const [day, ids] of [[2,['latch','hob']], [3,['tongs','paper']], [4,['signature','rewind']], [3,['coat','curtain']]]) {
+    const garden = ids.includes('coat');
+    const page = await start(day, garden);
     const button = name => page.getByRole('button',{name,exact:true});
+    if (garden) {
+      await button('Reprendre la veille').click();
+      await button('Prendre le relais').waitFor({timeout:45000});
+    }
     const points = page.locator('.epic-field .room-point');
     for (const [i,id] of ids.entries()) {
       await points.nth(i).press('Enter');
@@ -76,15 +81,15 @@ try {
       await button('Carnet de terrain').click();
       assert.equal(await page.locator('.notebook-leaf p').count(), i+1);
       await page.locator('.notebook-crop img').first().evaluate(img => img.decode());
-      if (i === 1) await shot(page,'carnet-nuit-'+day);
+      if (i === 1) await shot(page,'carnet-nuit-'+(garden ? '3-jardins' : day));
       await button('Refermer').click();
       await button('Vue d’ensemble').click();
     }
-    await shot(page,'decor-nuit-'+day);
+    await shot(page,'decor-nuit-'+(garden ? '3-jardins' : day));
     await page.close();
     console.log('Indices et carnet vérifiés, nuit '+day);
   }
-  const p = await start(5,false);
+  const p = await start(6,false);
   const button = name => p.getByRole('button',{name,exact:true});
   await button('Descendre de la maison').waitFor({timeout:90000});
   await p.waitForFunction(() => JSON.parse(localStorage.getItem('putrid-swarm.save.v1')).moonPrints?.length === 1);

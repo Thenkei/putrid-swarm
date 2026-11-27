@@ -16,7 +16,7 @@ import { LAST_NIGHT, sirenPackFor, type SirenSector } from '../core/data/waves';
 import { sirenForNight } from '../core/siren';
 import { detectContact, hasDetector, SCAN_RANGE, SCAN_SECONDS } from '../core/dead-channel';
 import { concludeNight } from '../core/game';
-import { MOPED_BLAST_RADIUS, wreckSector } from '../core/epics';
+import { MOON_NIGHT, MOPED_BLAST_RADIUS, wreckSector } from '../core/epics';
 import { HOUSE, idx, sectorOf, type Prop } from '../core/map';
 import { HOUSE_RETURN_SECONDS, NightSim, hoistAge, type DeskPress, type DeviceRuntime, type SimEvent, type TriggerError } from '../core/night';
 import { deskFor, outageFor } from '../core/orchard';
@@ -292,7 +292,7 @@ export class NightScene implements Scene {
       void audio.prepareSample('camper_inside_knock');
     }
     if (this.sim.night === BOSS_NIGHT.mechanic) void audio.prepareSample('mechanic_chain');
-    if (this.sim.night === 5) void audio.prepareSample('vo_moon_threshold');
+    if (this.sim.night === MOON_NIGHT) void audio.prepareSample('vo_moon_threshold');
     if (this.sim.night === BOSS_NIGHT.chief) void audio.prepareSample('chief_watch');
     if (this.sim.rattleSector) {
       this.rattleCaption = el('span', { class: 'rattle-caption' });
@@ -1292,7 +1292,7 @@ export class NightScene implements Scene {
 
     const previousTime = this.sim.time;
     const previousStage = houseDamageStage(this.sim.houseHp / HOUSE_MAX_HP);
-    this.accumulator += dt * (this.epic.active && this.sim.night === 5 ? 1 : this.speed);
+    this.accumulator += dt * (this.epic.active && this.sim.night === MOON_NIGHT ? 1 : this.speed);
     let steps = 0;
     while (this.accumulator >= STEP && steps < MAX_STEPS_PER_FRAME * this.speed) {
       this.sim.step(STEP, this.epic.active);
@@ -1403,7 +1403,7 @@ export class NightScene implements Scene {
       mopedWreck: ride?.blastAt === null ? undefined : wreckSector(this.state),
       ...(ride && open > 0 && { houseDoor: { sector: ride.sector, open } }),
       night: true,
-      laundrySheet: this.sim.night === 5,
+      laundrySheet: this.sim.night === MOON_NIGHT,
       moonAge: this.sim.moonAge,
       moonCub: this.sim.moonCub,
       packRushes: this.sim.packRushes,

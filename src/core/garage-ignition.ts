@@ -2,6 +2,7 @@ import { LOCATIONS } from './data/locations';
 import { epicFlag, markEpic } from './epics';
 import type { GameState } from './types';
 
+export const MOPED_UNLOCK_DAY = 2;
 export const GARAGE_KEY_COUNT = 5;
 export const garageModels = ['G-17', 'G-41', 'G-74'] as const;
 export const garageModel = (seed: number) => (seed >>> 8) % garageModels.length;
@@ -10,7 +11,7 @@ export const GARAGE_KEY_HOURS = .5;
 export const hasTimeForGarageKey = (state: GameState) => state.hoursLeft >= LOCATIONS.garage.travelHours + GARAGE_KEY_HOURS;
 
 function canStart(state: GameState) {
-  return state.where === 'garage' && state.phase === 'day' && state.day >= 3 &&
+  return state.where === 'garage' && state.phase === 'day' && state.day >= MOPED_UNLOCK_DAY &&
     !['garageStarterBroken', 'garageKey', 'loaded', 'moped'].some(flag => epicFlag(state, flag));
 }
 

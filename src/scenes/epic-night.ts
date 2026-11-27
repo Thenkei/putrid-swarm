@@ -20,7 +20,7 @@ import { rememberEnding } from '../engine/progress';
 import { goEnd } from './flow';
 import { moonWatch } from './moon-pack';
 import { developGaragePrint } from './garage-print';
-import { epicFlag, markEpic } from '../core/epics';
+import { epicFlag, GARDEN_NIGHT, markEpic, MOON_NIGHT, moonResolvedNight } from '../core/epics';
 import { LAST_NIGHT } from '../core/data/waves';
 import { lastWatchDesk } from './last-watch';
 import type { NightSim } from '../core/night';
@@ -39,6 +39,7 @@ const sector = (n: number) => S().sector[SECTOR_IDS[n]!];
 /** Owns one playable interruption. Its clock advances with the scene, including pause. */
 export class EpicNight {
   private shown = false;
+  private gardenShown = false;
   private panel: HTMLElement | null = null;
   private readonly title = el('h2');
   private readonly note = el('p');
@@ -134,25 +135,28 @@ export class EpicNight {
     if (this.launchButton && this.launchHint) this.launchButton.disabled = this.sim.awayFromDesk;
     if (this.sim.awayFromDesk) return false;
     const day = this.sim.night;
-    if (this.shown || day < 2 || day > LAST_NIGHT || (day === LAST_NIGHT ? this.sim.progress() < 0.72 : day !== 4 && this.sim.time < 9)) return false;
-    if (day === 5) {
+    if (day === 5 || day < 2 || day > LAST_NIGHT) return false;
+    const garden = day === GARDEN_NIGHT && this.shown && !this.gardenShown && this.sim.waveIndex >= 2;
+    if (this.shown && !garden) return false;
+    if (day === LAST_NIGHT ? this.sim.progress() < 0.72 : day !== 4 && this.sim.time < 9) return false;
+    if (day === MOON_NIGHT) {
       if (this.sim.moonAge === null) return false;
-      const pact = this.flag('moonPact');
-      if (pact) {
+      const resolved = moonResolvedNight(this.app.state!);
+      if (resolved) {
         this.shown = true;
-        this.sim.settlePack(pact === 1 ? 'allied' : 'neutral');
-        if (pact === 1) this.mark('cub');
+        this.sim.settlePack(resolved === day && this.flag('moonPact') === 1 ? 'allied' : 'neutral');
         return false;
       }
     }
     const ride = this.sim.mopedRide;
     if (ride && (ride.blastAt === null || this.sim.time - ride.blastAt < 0.85)) return false;
     this.shown = true;
+    if (garden) this.gardenShown = true;
     this.previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.desk.inert = true;
     const pause = el('button', { class: 'btn epic-pause', text: 'Ⅱ', title: S().night.paused, onClick: this.pause });
     pause.setAttribute('aria-label', S().night.paused);
-    const page = ({ 2: 'menu', 3: 'garage', 4: 'vhs', 6: 'photo', 7: 'relay' } as Record<number, string | undefined>)[day];
+    const page = garden ? 'photo' : ({ 2: 'menu', 3: 'garage', 4: 'vhs', 7: 'relay' } as Record<number, string | undefined>)[day];
     const heading = page ? el('div', { class: 'epic-heading' }, [
       this.title, notebookButton(this.app, page, open => { this.reading = open; }),
     ]) : this.title;
@@ -172,10 +176,12 @@ export class EpicNight {
     const url = assetUrl(heroArt(plates[day - 2]!, oneArmed(this.app.state)));
     if (url) this.field.style.backgroundImage = 'linear-gradient(0deg,#12131177,#13121c22),url("' + url + '")';
     if (day === 2) this.kitchen();
-    if (day === 3) this.garage();
+    if (day === GARDEN_NIGHT) {
+      if (garden) this.windows();
+      else this.garage();
+    }
     if (day === 4) this.arcadeIntro();
-    if (day === 5) this.moon();
-    if (day === 6) this.windows();
+    if (day === MOON_NIGHT) this.moon();
     if (day === 7) this.lastWatch();
     if (!this.panel.contains(document.activeElement)) this.actions.querySelector('button')?.focus();
     return true;
@@ -467,6 +473,7 @@ export class EpicNight {
       },
       decide: result => {
         this.sim.settlePack(result);
+        this.mark('moonResolvedNight', MOON_NIGHT);
         this.mark('moonPact', result === 'allied' ? 1 : result === 'neutral' ? 2 : 3);
         if (result === 'allied') this.mark('cub');
         if (result === 'hostile') {
@@ -499,6 +506,7 @@ export class EpicNight {
           this.mark('neighbor');
           say('vo_epic_neighbor', { interrupt: true });
         }
+        this.mark('gardenNight', GARDEN_NIGHT);
         this.mark('gardenWalk', home ? 1 : 2);
         this.app.save();
         this.page(title, home

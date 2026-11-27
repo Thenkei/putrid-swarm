@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CLOTHESLINE, CLOTHESLINE_POSTS, isStaticBlocked, terrainAt } from '../src/core/map';
 import { CUB_LEAVES_LINE, CUB_REACHES_WOOD, planCubRun, porchTraffic, CUB_CROSSING, gatePassage, PACK_CYCLE } from '../src/core/moon-pack';
 import { THRESHOLDS } from '../src/house-layout';
-import { markEpic, packTrail } from '../src/core/epics';
+import { markEpic, MOON_NIGHT, packTrail } from '../src/core/epics';
 import { newGame, startNextDay } from '../src/core/game';
 import { build, placementProblem } from '../src/core/yard';
 import { zombieClothContacts } from '../src/render/moon-laundry';
@@ -105,7 +105,7 @@ describe('the clothesline in wave two', () => {
     expect(zombieClothContacts([{...body,alive:false},{...body,x:body.x+1,y:body.y+1}])).toEqual([]);
   });
   function secondWave() {
-    const sim = new NightSim(5, game.yard, game.seed);
+    const sim = new NightSim(MOON_NIGHT, game.yard, game.seed);
     expect(sim.moonAge).toBeNull();
     for (let i=0;i<3000 && sim.moonAge===null;i++) sim.step(1/30);
     expect(sim.waveIndex).toBe(2);
@@ -122,7 +122,7 @@ describe('the clothesline in wave two', () => {
     expect(sim.moonAge).toBeGreaterThan(5);
   });
   it.each([1,7,54,99])('brings wave two across the steps, then leaves time to follow on seed %i', seed=>{
-    const sim=new NightSim(5,game.yard,seed);
+    const sim=new NightSim(MOON_NIGHT,game.yard,seed);
     const step={x:THRESHOLDS.portail.gx,y:THRESHOLDS.portail.gy+1.25};
     for(let i=0;i<3000 && sim.moonAge===null;i++)sim.step(1/30);
     let lastContact=0, contactTicks=0;
@@ -148,17 +148,15 @@ describe('the clothesline in wave two', () => {
       expect(porchTraffic([{...e,x:1,...disabled}],step)).toBe('clear');
     }
   });
-  it('kills every standing enemy and every pending arrival once, up to dawn', () => {
+  it('clears the pursuit without killing the Chief or his escort', () => {
     const sim=secondWave();
-    const kills=()=>Object.values(sim.report().kills).reduce((sum,n)=>sum+n,0)-(sim.report().indoorKills ?? 0);
-    const expected=kills()+sim.enemies.filter(e=>e.alive).length+sim.remainingSpawns();
-    const hp=sim.houseHp;
-    sim.settlePack('allied');sim.settlePack('neutral');
-    for(let i=0;i<9000 && sim.outcome==='ongoing';i++)sim.step(1/30);
-    expect(sim.outcome).toBe('survived');
-    expect(sim.houseHp).toBe(hp);
-    expect(kills()).toBe(expected);
-    expect(sim.remainingSpawns()).toBe(0);
+    sim.settlePack('allied');
+    expect(sim.enemies.every(e=>!e.alive)).toBe(true);
+    for(let i=0;i<3000 && !sim.enemies.some(e=>e.fileRank);i++)sim.step(1/30);
+    expect(sim.waveIndex).toBe(3);
+    expect(sim.enemies.some(e=>e.type==='chief' && e.alive)).toBe(true);
+    expect(sim.enemies.some(e=>e.fileRank && e.alive)).toBe(true);
+    expect(sim.report().bossDefeated).toBeNull();
   });
   it('resumes normal waves when left alone', () => {
     const sim=secondWave(); sim.settlePack('neutral');
@@ -166,12 +164,10 @@ describe('the clothesline in wave two', () => {
     expect(sim.remainingSpawns()).toBeGreaterThan(0);
     expect(sim.enemies.some(e=>e.alive)).toBe(true);
   });
-  it('remembers the fatal choice when the parents return', () => {
-    expect(deserialize(serialize({...game,phase:'lost',day:5,fate:'werewolves'}))?.fate).toBe('werewolves');
-  });
-  it('loads a death in the lane as a fifth-night loss with the house standing', () => {
-    const lost = { ...game, phase: 'lost', day: 5, fate: 'outside' } as const;
-    expect(deserialize(serialize(lost))).toMatchObject({ phase:'lost', fate:'outside', yard:{houseHp:game.yard.houseHp} });
+  it.each(['werewolves','outside'] as const)('loads %s on night six and on older night-five saves', fate => {
+    const lost = { ...game, phase: 'lost', day: MOON_NIGHT, fate } as const;
+    expect(deserialize(serialize(lost))).toMatchObject({ phase:'lost', fate, yard:{houseHp:game.yard.houseHp} });
+    expect(deserialize(serialize({ ...lost, day:5 }))?.fate).toBe(fate);
     expect(deserialize(serialize({ ...lost, day:4 }))?.fate).toBeNull();
   });
 });
@@ -191,7 +187,7 @@ describe('the tracks at the refuge', () => {
     expect(packTrail({ ...day, day: 7 })).toBeUndefined();
   });
   it('keeps only the evidence a legacy save can establish', () => {
-    expect(packTrail(dawn)).toBe('fence');
+    expect(packTrail(dawn)).toBeUndefined();
     expect(packTrail(markEpic(dawn, 'cub'))).toBe('together');
     expect(packTrail({ ...dawn, lastNight: null })).toBeUndefined();
     expect(packTrail({ ...dawn, phase: 'night' })).toBeUndefined();
@@ -199,5 +195,21 @@ describe('the tracks at the refuge', () => {
   it('rewinds a mid-night checkpoint without keeping abandoned tracks', () => {
     const saved = markEpic({ ...game, day: 5, phase: 'night' }, 'packExit', 1);
     expect(deserialize(serialize(saved))!.flags['epic.packExit']).toBeUndefined();
+  });
+  it.each([[1,'woodland'],[2,'clothesline']] as const)('keeps a night-six pact %i from the report through day seven', (pact, trail) => {
+    const newDawn: GameState = { ...dawn, day: MOON_NIGHT, lastNight: { ...report, night: MOON_NIGHT } };
+    const settled = markEpic(markEpic(newDawn, 'moonPact', pact), 'moonResolvedNight', MOON_NIGHT);
+    expect(packTrail(settled)).toBe(trail);
+    const day = deserialize(serialize(startNextDay(settled)))!;
+    expect(day.day).toBe(MOON_NIGHT + 1);
+    expect(packTrail(day)).toBe(trail);
+    expect(packTrail({ ...day, phase: 'night' })).toBeUndefined();
+  });
+  it('keeps both relay allies when reloading after the new moon scene', () => {
+    const checkpoint: GameState = { ...game, day: MOON_NIGHT, phase: 'night', flags: {
+      'epic.gardenNight': 3, 'epic.neighbor': 1, 'epic.gardenWalk': 1,
+      'epic.moonResolvedNight': MOON_NIGHT, 'epic.moonPact': 1, 'epic.cub': 1,
+    } };
+    expect(deserialize(serialize(checkpoint))).toMatchObject({ phase: 'day', flags: checkpoint.flags });
   });
 });
