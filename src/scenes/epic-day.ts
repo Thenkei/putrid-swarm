@@ -4,6 +4,7 @@ import { showGarageBoot } from './garage-boot';
 import { noteWhenOpened } from './scene-evidence';
 import { stoveMorning } from './stove-return';
 import { epicFlag, GARDEN_NIGHT, markEpic } from '../core/epics';
+import { MOPED_UNLOCK_DAY } from '../core/garage-ignition';
 import { SECTOR_IDS, type SectorId } from '../core/types';
 import type { App } from '../engine/app';
 import { audio } from '../engine/audio';
@@ -35,9 +36,9 @@ export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: Se
     return details;
   };
   const { where, day } = state;
-  if (where === 'garage' && !flag('moped')) {
+  if (where === 'garage' && day >= MOPED_UNLOCK_DAY && !flag('moped')) {
     if (flag('garageStarterBroken') || flag('loaded')) return null;
-    if (day >= 3 && flag('garageKey')) {
+    if (flag('garageKey')) {
       void audio.prepareSample('vo_moped_load');
       void audio.prepareSample('crate_1');
       const summary = el('summary', { text: line('Antivol ouvert', 'Steering unlocked') });
@@ -59,8 +60,6 @@ export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: Se
         summary, el('div', { class: 'garage-load-body' }, [note, load]),
       ]);
     }
-    if (day < 3) return item(line('Rétroviseur fêlé', 'Cracked mirror'),
-      line('« Si tu touches, tu pédales. » Gérard a fermé le rideau.', '“Touch it and you pedal.” Gérard pulled the shutter down.'));
     return null;
   }
   if (where !== 'home') return null;
