@@ -11,7 +11,7 @@ import type { CameraOutage } from './orchard';
 import type { Ally } from './radio';
 import { CUB_REACHES_WOOD, planCubRun, type CubPose, type PackChoice } from './moon-pack';
 import { computeField, nextStep, type Field } from './pathing';
-import { mopedImpact, mopedPath, MOPED_BLAST_RADIUS, MOPED_EXIT_SECONDS, MOPED_RUN_SECONDS } from './epics';
+import { MOON_NIGHT, MOON_WAVE, mopedImpact, mopedPath, MOPED_BLAST_RADIUS, MOPED_EXIT_SECONDS, MOPED_RUN_SECONDS } from './epics';
 import { createRng, type Rng } from './rng';
 import { DOOR_REACH, doorStance } from '../house-layout';
 import type { Cell, Decal, DeviceTypeId, EnemyTypeId, Facing, GroundContact, NeighborId, NightHighlight, NightReport, Result, SectorId, TrapTally, YardState } from './types';
@@ -802,11 +802,11 @@ export class NightSim {
       this.dawnAt -= skip;
     }
     while (this.pending.length > 0 && (this.pending[0] as PendingSpawn).time <= this.time) {
-      if(this.moonAge!==null && this.pending[0]!.wave>2)break;
+      if (this.moonAge !== null && this.pending[0]!.wave > MOON_WAVE) break;
       const spawn = this.pending.shift() as PendingSpawn;
       if (spawn.wave > this.waveIndex) {
         this.waveIndex = spawn.wave;
-        if (this.night === 5 && spawn.wave === 2) {
+        if (this.night === MOON_NIGHT && spawn.wave === MOON_WAVE) {
           this.moonStart = this.time;
           this.cubRun = planCubRun(this.devices.filter(d=>d.state!=='broken'));
         }
@@ -815,7 +815,8 @@ export class NightSim {
         if (this.ally && this.heldDoor !== null && spawn.wave === this.ally.turnsAtWave) this.allyTurns(this.ally);
       }
       const enemy = this.spawn(spawn.type, spawn.sector, true, spawn);
-      if (this.packChoice === 'allied') this.packKill(enemy);
+      // The wolves drive off the pursuit. The Chief and his column arrive afterwards.
+      if (this.packChoice === 'allied' && spawn.wave <= MOON_WAVE) this.packKill(enemy);
     }
   }
 

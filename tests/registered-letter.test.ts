@@ -23,6 +23,7 @@ it.each([false, true])('plays the night-five delivery with the gate log fired = 
     }
     if (sim.waveIndex < 3 || stages.includes('delivered') || stages.includes('missed')) operate(sim);
     sim.step(1 / 60);
+    expect(sim.moonAge).toBeNull();
     for (const event of sim.drainEvents()) {
       if (event.type === 'log_release' && fireAtPostman && stages.at(-1) === 'waiting') {
         expect(event.sweeps.map(s => s.before.type)).toEqual(expect.arrayContaining(['mail', 'shambler']));

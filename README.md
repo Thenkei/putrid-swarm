@@ -2,7 +2,7 @@
 
 A 2D isometric survival and defense game. By day, take the old yellow break into the village, search what the neighbours left behind and set improvised traps around the house. By night, sit at the camera desk: the simple traps go off by themselves, the big ones wait for your signal, one sector at a time, while familiar neighbours come back as bosses who still cling to their habits.
 
-The game is playable from the opening on the protagonist's computer screen to the seventh dawn, and past it to the one way every run ends. French is the source language; English is available in the options.
+The campaign follows Hugo from the opening on his computer screen to the seventh dawn and the last concert, with earlier endings along the way. French is the source language; English is available in the options.
 
 ## Play
 
@@ -82,7 +82,7 @@ pnpm check      # typecheck + tests + build: what the deployment runs
 
 ## The night watch
 
-Each night from the second to the seventh has one special scene. Daytime clues change what you can do when it arrives. The pause button and `Esc` work throughout.
+Daytime clues carry into the night scenes. The pause button and `Esc` work throughout.
 
 [Watch gameplay from all six nights with in-game audio (35 seconds)](docs/previews/epic-nights.mp4) · [View the six scenes](docs/previews/epic-nights.webp) · [Watch Gérard’s moped from the yard to the morning after](docs/previews/epic-moped.mp4).
 
@@ -103,10 +103,10 @@ After the second search at the police station, a desk lamp catches the Chief's e
 | Night | At the desk |
 | --- | --- |
 | 2 | Brace the kitchen door under pressure. A sketch found in town unlocks a trip outside with the stove. Catch the swinging key to get back inside. If you used the flame, your fingerprints are still on the lock when you find the cold ravioli the next day. |
-| 3 | Develop a garage photograph, clear the aisle and bring Gérard’s moped home in the wagon. Aim it at a door during the day. The headlamp turns and a tyre track shows its route. At night, release it from the desk when a crowd approaches the hedge. The door swings open, the fork jolts at the first blade contact, and the moped explodes at the far end. You get one ride per run. The wreck is still there to inspect the next morning. |
+| 3 | Develop a garage photograph, clear the aisle and bring Gérard’s moped home in the wagon. Aim it at a door during the day, then release it from the desk when a crowd approaches the hedge. You get one ride per run. The wreck is still there to inspect the next morning. In the second wave, guide the neighbour through three gardens. The photograph from the grocery unlocks the lamp at home and the lamp makes him react sooner. A successful crossing earns his help at the relay on night 7. |
 | 4 | Follow the tape from the market hall past the cinema, under the tracks and on to the garage. Sweep three lanes with the belt-fed machine gun and dodge the armoured carts. The sleeve from the post office doubles the cycling postman’s bonus. At the red gate the tape catches. Eject it and listen to the door beside the TV. |
-| 5 | Follow a cub across three camera feeds. An adult lets an infected pass as it watches the cub. Work the gate, then look for pawprints or disturbed earth in the morning report and around the gate the next day. |
-| 6 | Guide a neighbour through three gardens. He looks for your window and raises a hand when he sees the signal. Preparing the lamp shortens his reaction time. A striped sheet marks his route from the hedge to the washing line and the greenhouse glass. |
+| 5 | Watch the mail carrier’s last round. Leave the carrier undisturbed at the gate for the registered letter, which can be opened in the morning. |
+| 6 | Watch the cub run from the clothesline to the woods during the second wave. Wait for a clear doorstep, then follow its tracks or distract the stragglers. If you reunite the pack, the wolves clear the pursuit. The Chief and his column still arrive in the third wave. |
 | 7 | Match frequency and phase on the relay scope. If you helped the neighbour, watch the reflection of his window for three flashes. If the cub made it through, listen for its call and watch the gate feed. Each ally gives you one setting. Reconnecting tunes the desk to a sector and restores up to twelve energy. |
 
 ## The loop as built
@@ -156,13 +156,13 @@ After the second search at the police station, a desk lamp catches the Chief's e
 
 The house falls when its integrity reaches zero; infected only get in through a door whose barricade is down. A night ends when the lot is clear or at first light, whichever comes first.
 
-**Every run ends the same way: eaten.** There is no winning. A house lost on the first four nights is short: the control room door gives way. From the fifth night it goes out through the shed, on a ride-on mower with a blade on the front and two amplifier stacks on the back, the keyboard played like a guitar over eighty seconds of hard rock: a top-row key holds a chord, `Space` hits the strings, right notes on the beat carry further. After thirty seconds leaving is offered; the song can also be played to its last chord. Either way the petrol runs out among them.
+**The siege ends with the horde closing in.** When the house falls on the first four nights, the control room door gives way. From the fifth night Hugo goes out through the shed, on a ride-on mower with a blade on the front and two amplifier stacks on the back, the keyboard played like a guitar over eighty seconds of hard rock: a top-row key holds a chord, `Space` hits the strings, right notes on the beat carry further. After thirty seconds leaving is offered; the song can also be played to its last chord. Either way the petrol runs out among them.
 
 **Holding the seventh night earns the best of it.** The seventh dawn comes, the quiet village of the old victory screen with its music and its line, "Sept nuits. Plus personne ne frappe à la porte." Then the same picture with the whole village standing in the garden, facing the door. They do not leave. "Ils attendent un rappel." The shed, in the morning light, and the same song.
 
 **The end screen is the last picture held still.** After the mower it stays on the horde, and writes over it what the song was worth: how many were mown, the best streak, the perfect notes, which way it was played and whether to the last chord, and how that stands against the record kept for that way of playing (a song switched halfway counts as the easy one). A new record lands like a stamp. A lost house offers to replay its night; a run that held all seven does not, it only offers the song again. Its words and its picture follow the ending: the desk, the mower after a lost house, the mower at the seventh dawn, or one of the orchard's three deaths.
 
-**Endings seen.** The game keeps, in this browser, which endings have been reached: the orchard's five, the shed's five, the radio's six, the garage lift death and the last scene's four (the desk, the mower after a lost house, the mower at the seventh dawn, and the song played to its last chord). The end screen counts them, and so does a corner of the title monitor once there is one to count.
+**Endings seen.** The game keeps, in this browser, which endings have been reached: the orchard's five, the shed's five, the radio's six, the garage lift death, the full moon's two deaths and the last scene's four (the desk, the mower after a lost house, the mower at the seventh dawn, and the song played to its last chord). The end screen counts them, and so does a corner of the title monitor once there is one to count.
 
 **The first night teaches itself.** The yard starts with a palisade across the drive, automatic stakes in its one gap, a log over the front step and stakes on the barn doorstep. The night holds still twice, the first time each thing matters: once until the log has been dropped, once until the camera has been switched. After that the yellow key is the only prompt.
 

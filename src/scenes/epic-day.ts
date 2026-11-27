@@ -3,7 +3,7 @@ import './epic.css';
 import { showGarageBoot } from './garage-boot';
 import { noteWhenOpened } from './scene-evidence';
 import { stoveMorning } from './stove-return';
-import { epicFlag, markEpic } from '../core/epics';
+import { epicFlag, GARDEN_NIGHT, markEpic } from '../core/epics';
 import { SECTOR_IDS, type SectorId } from '../core/types';
 import type { App } from '../engine/app';
 import { audio } from '../engine/audio';
@@ -66,7 +66,7 @@ export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: Se
   if (where !== 'home') return null;
   const objects = el('div', { class: 'refuge-curiosities' });
   if (day === 2) objects.append(refugeRoom(app, 'stove'));
-  if (day === 6 && flag('photo')) objects.append(refugeRoom(app, 'lamp'));
+  if (day === GARDEN_NIGHT && flag('photo')) objects.append(refugeRoom(app, 'lamp'));
   if (flag('garagePrint') && !flag('moped') && !flag('garageKey') && !flag('garageStarterBroken')) objects.append(item(line('Tirage du garage', 'Garage print'),
     line('Un petit anneau dépasse de la poche du bleu de travail.', 'A small ring peeks out of the coverall pocket.')));
   if (flag('moped') && !flag('spent')) {

@@ -291,8 +291,8 @@ export function moonWatch(field: HTMLElement, note: HTMLElement, actions: HTMLEl
     resultFrom=shot;voiceUntil=0;
     outcome=result; hunt.setLive(false); hunt.decide(result);
     view('result',result==='allied'?L('La meute répond','The pack answers'):result==='neutral'?L('Le bois se referme','The woods fall quiet'):L('Un cri sous les racines','A cry beneath the roots'),
-      result==='allied'?L('Le petit rejoint ses parents. Au premier hurlement, les deux adultes chargent. Ils chassent chaque vague jusqu’au matin.',
-        'The cub reaches its parents. At the first howl both adults charge. They hunt down every remaining wave until morning.')
+      result==='allied'?L('Le petit rejoint ses parents. Les deux adultes chargent et dispersent les rôdeurs. Tous trois disparaissent dans le bois. Il reste le Chef et sa file.',
+        'The cub reaches its parents. Both adults charge, scattering the stragglers. All three vanish into the woods. The Chief and his column are still coming.')
       :result==='neutral'?L('Les traces se perdent dans les feuilles. La meute garde ses distances. La veille continue.',
         'The tracks vanish in the leaves. The pack keeps its distance. The watch continues.')
       :L('Les rôdeurs se pressent contre le chêne. Le petit se tait. Un hurlement, puis un autre, beaucoup plus près de la maison.',

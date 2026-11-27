@@ -9,6 +9,7 @@ import { CALLERS, ENDINGS as RADIO_ENDINGS, QUIET_RADIO, optionOf, rollCall, typ
 import { createRng } from './rng';
 import { facingsOf } from './data/devices';
 import { ENCOUNTER } from './data/rivals';
+import { FORMER_MOON_NIGHT, GARDEN_NIGHT, MOON_NIGHT } from './epics';
 import { BOSS_NIGHT, HARDWARE_SPRING_BIN, LOCATIONS } from './data/locations';
 import { GROUP_IDS, INTEL_IDS, LOCATION_IDS, RESOURCE_IDS, RIVAL_IDS, SECTOR_IDS } from './types';
 
@@ -19,7 +20,8 @@ const LEGACY_PHASES: Readonly<Record<string, Phase>> = { won: 'held' };
 /** Awarded during that night's playable scene, settled with the rest of its report at dawn. */
 const NIGHT_OUTCOMES: Readonly<Partial<Record<number, readonly string[]>>> = {
   2: ['epic.sootyLock'],
-  3: ['epic.garagePrint'], 5: ['epic.cub', 'epic.packExit'], 6: ['epic.neighbor'],
+  [GARDEN_NIGHT]: ['epic.garagePrint', 'epic.neighbor', 'epic.gardenWalk', 'epic.gardenNight'],
+  [FORMER_MOON_NIGHT]: ['epic.cub', 'epic.packExit', 'epic.moonPact'],
 };
 
 export const serialize = (state: GameState): string => JSON.stringify(state);
@@ -255,8 +257,9 @@ function parseRadio(data: Record<string, unknown>, people: GameState['people'], 
 
 /** A fate only means something on a run a chapter ended, on the morning that chapter was waiting. */
 function parseFate(data: Record<string, unknown>, state: GameState): Fate | null {
-  if (data['fate'] === 'werewolves') return state.phase === 'lost' && state.day === 5 ? 'werewolves' : null;
-  if (data['fate'] === 'outside') return state.phase === 'lost' && state.day === 5 ? 'outside' : null;
+  if (data['fate'] === 'werewolves' || data['fate'] === 'outside') {
+    return state.phase === 'lost' && (state.day === MOON_NIGHT || state.day === FORMER_MOON_NIGHT) ? data['fate'] : null;
+  }
   if (data['fate'] === 'lift') return state.phase === 'lost' && state.where === 'garage' ? 'lift' : null;
   const fate = FATES.includes(data['fate'] as ChapterFate) ? (data['fate'] as ChapterFate) : null;
   if (fate === null || state.phase !== 'lost') return null;
@@ -329,5 +332,10 @@ export function deserialize(raw: string): GameState | null {
   // unfinished encounter alongside its simulation, preserving the spent moped and earlier nights.
   const flags = { ...state.flags };
   for (const outcome of NIGHT_OUTCOMES[state.day] ?? []) delete flags[outcome];
+  if (state.day === MOON_NIGHT && flags['epic.gardenNight'] !== GARDEN_NIGHT) {
+    // An old night-six checkpoint may have saved a still-unsettled escort.
+    delete flags['epic.neighbor'];
+    delete flags['epic.gardenWalk'];
+  }
   return { ...state, flags, phase: 'day', where: 'home', hoursLeft: 0 };
 }

@@ -140,13 +140,7 @@ export class MorningScene implements Scene {
       el('p', { text: line('La bande dépasse encore du lecteur. Dernière lecture ', 'The tape still sticks out of the VCR. Last play ') + epicFlag(state, 'vhsScore') + ' pts.' }),
     ]), 'spentTape'));
     const neighbourHome = !!epicFlag(state, 'neighbor');
-    if (trail || (night === 6 && (neighbourHome || epicFlag(state, 'gardenWalk')))) {
-      let windowView: HTMLCanvasElement | null = null;
-      if (night === 6) {
-        windowView = el('canvas');
-        windowView.width = 900; windowView.height = 390;
-        gardenAftermath(windowView, neighbourHome);
-      }
+    if (trail) {
       const account = trail === 'woodland' ? line('Sous les fils vides, deux grandes pistes encadrent celle du petit. Les pas des rôdeurs s’arrêtent à la lisière.', 'Beneath the empty line two large tracks flank the cub’s trail. The stragglers’ tracks stop at the wood.')
         : trail === 'clothesline' ? line('Le drap a été rentré. La petite piste se perd sous les feuilles.', 'The sheet is in. The cub’s trail vanishes under the leaves.')
         : trail === 'together' ? line('Deux grandes pistes et une petite ressortent ensemble par le portail.', 'Two large sets of prints and a small one lead out through the gate together.')
@@ -154,10 +148,22 @@ export class MorningScene implements Scene {
         : trail === 'ditch' ? line('Les petites empreintes bifurquent vers le fossé. Deux grandes pistes les suivent le long de la clôture.', 'The small prints veer towards the ditch. Two larger sets follow them along the fence.')
         : line('Deux grandes pistes longent la clôture.', 'Two large sets of tracks run along the fence.');
       letters.append(noteWhenOpened(this.app, el('details', { class: 'morning-letter postal-paper' }, [
-        el('summary', { text: night === 5 ? line('Traces dans la boue', 'Tracks in the mud') : line('La fenêtre d’en face', 'Across the street') }),
-        trail === 'woodland' || trail === 'clothesline' ? null : trail ? trackDetail(trail, oneArmed(state)) : windowView,
-        el('p', { text: night !== 6 ? account : neighbourHome ? line('Un cendrier sur le rebord. « Bien reçu, ducon. »', 'An ashtray on the sill. “Got it, asshole.”') : line('Le volet est resté fermé. Il a dû passer la nuit à l’abri.', 'The shutter stayed closed. He must have spent the night in shelter.') }),
-      ]), trail ?? (neighbourHome ? 'sill' : 'shutter')));
+        el('summary', { text: line('Traces dans la boue', 'Tracks in the mud') }),
+        trail === 'woodland' || trail === 'clothesline' ? null : trackDetail(trail, oneArmed(state)),
+        el('p', { text: account }),
+      ]), trail));
+    }
+    // Earlier campaigns played the escort on night six.
+    const gardenNight = epicFlag(state, 'gardenNight') || 6;
+    if (night === gardenNight && (neighbourHome || epicFlag(state, 'gardenWalk'))) {
+      const windowView = el('canvas');
+      windowView.width = 900; windowView.height = 390;
+      gardenAftermath(windowView, neighbourHome);
+      letters.append(noteWhenOpened(this.app, el('details', { class: 'morning-letter postal-paper' }, [
+        el('summary', { text: line('La fenêtre d’en face', 'Across the street') }),
+        windowView,
+        el('p', { text: neighbourHome ? line('Un cendrier sur le rebord. « Bien reçu, ducon. »', 'An ashtray on the sill. “Got it, asshole.”') : line('Le volet est resté fermé. Il a dû passer la nuit à l’abri.', 'The shutter stayed closed. He must have spent the night in shelter.') }),
+      ]), neighbourHome ? 'sill' : 'shutter'));
     }
     if (report?.letterDelivered === true) {
       const clock = line('7 h 12', '7:12');

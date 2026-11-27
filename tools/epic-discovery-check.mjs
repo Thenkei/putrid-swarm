@@ -97,9 +97,9 @@ async function refuge(day, phone) {
 }
 try {
   for (const phone of [false, true]) {
-    for (const [day, place, kind] of [[2, 'grocery', 'menu'], [4, 'post', 'vhs'], [5, 'shed', 'trail'], [6, 'grocery', 'photo']]) await dayFind(day, place, kind, phone);
+    for (const [day, place, kind] of [[2, 'grocery', 'menu'], [3, 'grocery', 'photo'], [4, 'post', 'vhs'], [6, 'shed', 'trail']]) await dayFind(day, place, kind, phone);
     await refuge(2, phone);
-    await refuge(6, phone);
+    await refuge(3, phone);
   }
   assert.deepEqual(errors, []);
 } finally {

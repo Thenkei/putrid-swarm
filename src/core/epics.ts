@@ -6,6 +6,10 @@ export const MOPED_RUN_SECONDS = 1.65;
 /** From releasing the door to the moped reaching the outside lane. */
 export const MOPED_EXIT_SECONDS = 0.8;
 export const MOPED_BLAST_RADIUS = 4.25;
+export const GARDEN_NIGHT = 3;
+export const MOON_NIGHT = 6;
+export const MOON_WAVE = 2;
+export const FORMER_MOON_NIGHT = 5;
 
 export function mopedImpact(sector: SectorId) {
   const cell = LANES[sector][2]!;
@@ -37,18 +41,24 @@ export function wreckSector(state: GameState): SectorId | undefined {
 
 export type PackTrail = 'together' | 'digging' | 'ditch' | 'fence' | 'woodland' | 'clothesline';
 
-/** Fresh tracks stay visible from the fifth dawn until the next nightfall. */
+/** Earlier campaigns may already have made the choice on night five. */
+export function moonResolvedNight(state: GameState): number {
+  const recorded = epicFlag(state, 'moonResolvedNight');
+  if (recorded) return recorded;
+  return epicFlag(state, 'moonPact') || epicFlag(state, 'cub') || epicFlag(state, 'packExit') ? FORMER_MOON_NIGHT : 0;
+}
+
+/** Fresh tracks stay visible from the moonlit night's dawn until the next nightfall. */
 export function packTrail(state: GameState): PackTrail | undefined {
-  if (!(state.day === 5 && state.phase === 'morning' || state.day === 6 && state.phase === 'day')) return;
+  const resolved = moonResolvedNight(state);
+  const night = resolved || MOON_NIGHT;
+  if (!(state.day === night && state.phase === 'morning' || state.day === night + 1 && state.phase === 'day')) return;
   if (epicFlag(state, 'moonPact') === 1) return 'woodland';
-  if (epicFlag(state, 'moonPact') === 2) return 'clothesline';
+  if (epicFlag(state, 'moonPact') === 2 || (!resolved && state.lastNight?.night === MOON_NIGHT)) return 'clothesline';
   if (epicFlag(state, 'cub')) return 'together';
   const exit = epicFlag(state, 'packExit');
   if (exit === 1) return 'digging';
   if (exit === 2) return 'ditch';
-  // Older saves recorded only a rescue. On a completed fifth night the adult
-  // prints are known, but a closed gate and a mistimed lift cannot be distinguished.
-  if (state.lastNight?.night === 5) return 'fence';
 }
 
 /** Preview the load that fits beside the moped without changing any goods on the road. */
