@@ -1,3 +1,4 @@
+import { discover } from './scene-evidence';
 import { audio } from '../engine/audio';
 import type { App } from '../engine/app';
 import { epicFlag, markEpic } from '../core/epics';
@@ -193,6 +194,10 @@ export function searchGarageKeys(app: App, place: GarageFind, plate: string | un
     garageModels.forEach((number, index) => {
       const key = keys[keyForGarageModel(seed, index)]!;
       const copy = el('button', { class: 'garage-key-sheet', onClick: () => {
+        const previous = epicFlag(app.state!, 'garageTracing');
+        const carried = previous > 0 ? 1 << (previous - 1) : 0;
+        const copies = epicFlag(app.state!, 'garageTracings') | carried | (1 << index);
+        app.state = markEpic(app.state!, 'garageTracings', copies);
         remember('garageTracing', index + 1);
         dialog.close();
         app.toast(L('Calque emporté · ', 'Tracing taken · ') + number);
@@ -207,6 +212,7 @@ export function searchGarageKeys(app: App, place: GarageFind, plate: string | un
       el('h3', { text: L('Doubles d’antivol', 'Spare steering keys') }), pages,
     ]));
   } else if (place === 'pocket' || place === 'cart') {
+        discover(app, place === 'pocket' ? 'pocket' : 'hook');
     const ink = tracing >= 0 && tracing < garageModels.length ? notebookPage(tracing) : null;
     if (ink) detail.append(ink);
     detail.append(garageRing(seed, place, held, index => {

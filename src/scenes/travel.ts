@@ -344,6 +344,7 @@ export class TravelScene implements Scene {
         time: this.app.time,
         night: false,
         mopedWreck: this.app.state ? wreckSector(this.app.state) : undefined,
+        laundrySheet: this.app.state?.day === 5,
         packTrail: this.app.state ? packTrail(this.app.state) : undefined,
         houseHpRatio,
         carPresent: true,

@@ -2,6 +2,7 @@
 // dawn comes and they do not leave — or, once, the orchard. After the mower, this is the last picture
 // of that scene held still, with what the song was worth written over it.
 
+import moonPorchUrl from '../assets/moon-outside-barn.webp';
 import { chapterOfFate } from '../core/chapters';
 import { epicFlag, markEpic } from '../core/epics';
 import { finaleOf, type FinaleKind, type JamResult, type RecordOutcome } from '../core/finale';
@@ -52,7 +53,7 @@ export class EndScene implements Scene {
     const state = app.state;
     this.kind = state ? finaleOf(state) : null;
     // Nobody replays a night after holding all seven: only a lost house offers it.
-    if (state && state.phase === 'lost' && state.fate === null) {
+    if (state && state.phase === 'lost' && (state.fate === null || state.fate === 'outside' || state.fate === 'werewolves')) {
       try {
         const raw = sessionStorage.getItem('putrid-swarm.evening');
         const evening = raw ? (JSON.parse(raw) as GameState) : null;
@@ -63,7 +64,10 @@ export class EndScene implements Scene {
     }
   }
 
+  private readonly moonLane = new Image();
+
   enter(): void {
+    if (this.app.state?.fate === 'outside' || this.app.state?.fate === 'werewolves') this.moonLane.src = moonPorchUrl;
     const state = this.app.state;
     const fate = state?.fate ?? null;
     const dawn = this.kind === 'dawn';
@@ -74,7 +78,7 @@ export class EndScene implements Scene {
     const night = state?.lastNight?.night ?? state?.day ?? 1;
     const totals = state?.totals ?? { kills: 0, triggers: 0, searches: 0 };
     // Nights held: all of them at the seventh dawn; up to the lost one otherwise; the orchard comes the morning after its night.
-    const held = dawn ? LAST_NIGHT : fate === 'lift' ? Math.max(0, (state?.day ?? 1) - 1) : fate ? (state?.day ?? 0) : Math.max(0, night - 1);
+    const held = dawn ? LAST_NIGHT : (fate === 'lift' || fate === 'outside' || fate === 'werewolves') ? Math.max(0, (state?.day ?? 1) - 1) : fate ? (state?.day ?? 0) : Math.max(0, night - 1);
 
     const buttons: HTMLElement[] = [];
     const primary = (label: string, onClick: () => void): HTMLElement => el('button', { class: `btn ${buttons.length === 0 ? 'btn-primary' : ''}`, text: label, onClick });
@@ -115,7 +119,7 @@ export class EndScene implements Scene {
 
     const title = fate ? s.end.fate[fate].title : this.kind === 'dawn' ? s.end.dawn.title : this.kind === 'rampage' ? s.end.rampage.title : s.end.lostTitle;
     const text = fate
-      ? fmt(s.end.fate[fate].text, { n: (state?.day ?? 2) + (fate === 'lift' ? 0 : 1) })
+      ? fmt(s.end.fate[fate].text, { n: (state?.day ?? 2) + (fate === 'lift' || fate === 'outside' || fate === 'werewolves' ? 0 : 1) })
       : this.kind === 'dawn'
         ? s.end.dawn.text
         : fmt(this.kind === 'rampage' ? s.end.rampage.text : s.end.lostText, { n: night });
@@ -191,6 +195,10 @@ export class EndScene implements Scene {
         // Punch in on the falling car for a run where the survivor has already lost an arm.
         drawPlate(ctx, 'plate_lift_fall', oneArmed(state) ? { zoom: 1.8, focusX: 1, focusY: 0 } : {});
       } else drawPlate(ctx, 'plate_lift_end');
+      return;
+    }
+    if (state?.fate === 'outside' || state?.fate === 'werewolves') {
+      if (this.moonLane.complete && this.moonLane.naturalWidth) ctx.drawImage(this.moonLane, 0, 0, STAGE_W, STAGE_H);
       return;
     }
     if (state?.fate) {

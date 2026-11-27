@@ -1,3 +1,4 @@
+import { CLOTHESLINE } from '../core/map';
 import type { PackTrail } from '../core/epics';
 import { hash2 } from './noise';
 import { groundMatrix, type View } from './projection';
@@ -7,7 +8,7 @@ import { groundMatrix, type View } from './projection';
 const sheets = new Map<PackTrail, HTMLCanvasElement>();
 const width = 206, height = 191, left = -104, top = -48;
 
-function paw(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, turn: number) {
+export function groundPaw(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, turn: number) {
   ctx.save(); ctx.translate(x, y); ctx.rotate(turn); ctx.scale(size, size);
   const pad = new Path2D();
   pad.moveTo(-3.6, -1.7);
@@ -76,14 +77,14 @@ function trailSheet(trail: PackTrail): HTMLCanvasElement {
   sheet.width = width * 2; sheet.height = height * 2;
   const ctx = sheet.getContext('2d')!;
   ctx.scale(2, 2); ctx.translate(-left, -top);
-  if (trail === 'together') {
+  if (trail === 'together' || trail === 'woodland') {
     for (let row = 0; row < 3; row++) {
       const small = row === 1;
       for (let i = 0; i < (small ? 11 : 8); i++) {
         const y = i * (small ? 10 : 16) + row * 2;
         const x = (row - 1) * (14 + Math.max(0, 12 - y) * .22) + Math.sin(i * .71 + row) * 3;
         const side = i % 2 ? 1 : -1;
-        paw(ctx, x + side * (small ? 1.7 : 3), y, small ? .54 : .91 + row * .05, side * .15);
+        groundPaw(ctx, x + side * (small ? 1.7 : 3), y, small ? .54 : .91 + row * .05, side * .15);
       }
     }
   } else {
@@ -91,16 +92,16 @@ function trailSheet(trail: PackTrail): HTMLCanvasElement {
     // tracks bending off towards the ditch, a closed gate leaves kicked earth.
     for (let i = 0; i < 10; i++) {
       const x = -88 + i * 18, side = i % 2 ? 1 : -1;
-      paw(ctx, x, 17 + Math.sin(i * .47) * 4 + side * 2.3, .87, -1.45 + side * .16);
-      paw(ctx, x + 5, 32 + Math.cos(i * .61) * 3 + side * 2.6, .93, 1.62 + side * .12);
+      groundPaw(ctx, x, 17 + Math.sin(i * .47) * 4 + side * 2.3, .87, -1.45 + side * .16);
+      groundPaw(ctx, x + 5, 32 + Math.cos(i * .61) * 3 + side * 2.6, .93, 1.62 + side * .12);
     }
     if (trail === 'digging') {
       loosenedEarth(ctx);
-      paw(ctx, -40, 45, .56, 2.79);
-      paw(ctx, -37, 36, .54, 3.06);
+      groundPaw(ctx, -40, 45, .56, 2.79);
+      groundPaw(ctx, -37, 36, .54, 3.06);
     }
     if (trail === 'ditch') for (let i = 0; i < 9; i++) {
-      paw(ctx, 11 - i * 11, 42 + Math.sin(i * .53) * 8, .55, 1.4 + i * .05);
+      groundPaw(ctx, 11 - i * 11, 42 + Math.sin(i * .53) * 8, .55, 1.4 + i * .05);
     }
   }
   sheets.set(trail, sheet);
@@ -116,7 +117,8 @@ export function paintedPackTrail(ctx: CanvasRenderingContext2D, trail: PackTrail
 
 export function yardPackTrail(ctx: CanvasRenderingContext2D, view: View, trail: PackTrail) {
   ctx.save(); ctx.transform(...groundMatrix(view));
-  ctx.translate(11.05, 18.95); ctx.scale(1 / 34, 1 / 34);
+  if (trail === 'woodland' || trail === 'clothesline') { ctx.translate(CLOTHESLINE.x + .3, CLOTHESLINE.y + .9); ctx.rotate(Math.PI/2); }
+  else ctx.translate(11.05, 18.95); ctx.scale(1 / 34, 1 / 34);
   ctx.drawImage(trailSheet(trail), left, top, width, height);
   ctx.restore();
 }

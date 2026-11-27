@@ -1,0 +1,26 @@
+.room-mat { position:absolute; inset:0; display:grid; place-items:center; container-type:size; background:#161510; }
+.room-board { width:min(100cqw,calc(100cqh * var(--ratio))); aspect-ratio:var(--ratio); position:relative; overflow:hidden; }
+.room-painting,.room-painting img { width:100%; height:100%; }
+.room-painting img { display:block; }
+.room-point { position:absolute; transform:translate(-50%,-50%); width:9%; height:22%; min-width:44px; min-height:44px; border:0; border-radius:42%; background:transparent; color:#ffe9af; cursor:zoom-in; }
+.room-point:is(:hover,:focus-visible)::after { content:''; position:absolute; inset:12%; border:1px dashed #ffe5af80; border-radius:inherit; }
+.room-point:is(:hover,:focus-visible) { outline:2px solid #fbe2a9; background:#e9bd6a1a; }
+.is-close .room-point { visibility:hidden; }
+.room-wide[hidden] { display:none; }
+.refuge-room .room-frame { aspect-ratio:var(--room-ratio); max-height:min(50dvh,420px); position:relative; border:1px solid #8e7452; }
+.refuge-room[data-lit=false] .room-painting img { filter:brightness(.64) saturate(.65); }
+.refuge-room h2 { margin:0 0 8px; }
+.refuge-room p { margin:10px 0; min-height:2.5em; font-size:clamp(16px,2.6vw,20px); }
+.refuge-room .btn { min-height:44px; }
+@media(prefers-reduced-motion:no-preference) { .room-painting { transition:transform .22s ease-out; } }
+
+.room-material { position:absolute; pointer-events:none; }
+.mark-latch { left:86.8%; top:43.8%; width:3.2%; height:.8%; border-radius:50%; background:linear-gradient(90deg,transparent,#ccac75ad,#776040); transform-origin:right; }
+.mark-litSignal { left:13%; top:45%; width:4%; height:12%; background:radial-gradient(ellipse,#ffc47745,transparent 70%); }
+.mark-curtain { left:0; top:4%; width:7%; height:33%; background:linear-gradient(75deg,#281d2080,transparent); }
+@media(prefers-reduced-motion:no-preference) {
+  .mark-latch { animation:latch-jolt 3.3s ease-in-out infinite; }
+  .mark-litSignal,.mark-curtain { animation:window-stir 3.5s ease-in-out infinite alternate; }
+}
+@keyframes latch-jolt { 0%,46%,66%,100% { transform:rotate(0); opacity:.4; } 49%,59% { transform:rotate(-11deg); opacity:1; } }
+@keyframes window-stir { to { transform:translateX(10%); opacity:.32; } }

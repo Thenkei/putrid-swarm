@@ -1,3 +1,5 @@
+import { discover } from './scene-evidence';
+import { chapterLook, chapterReport } from './chapter-look';
 // The radio, the morning after night 6: a cut-scene that is played by listening.
 //
 // core/radio.ts decides what every input does. This file frames it (the desk from the chair, then close on
@@ -211,6 +213,7 @@ interface Shown {
 export class RadioScene implements Scene {
   private radio: Radio;
   private phase: Phase = 'intro';
+  private opening!: ReturnType<typeof chapterLook>;
   private time = 0;
   private phaseTime = 0;
   private paused = false;
@@ -306,6 +309,9 @@ export class RadioScene implements Scene {
     const pauseOverlay = el('div');
     this.pauseMenu = new PauseMenu(pauseOverlay);
     this.root = el('div', { class: 'orchard radio' }, [this.titleEl, this.logEl, this.answersEl, this.waitEl, this.weakEl, this.promptsEl, this.noteEl, this.overlay, pauseOverlay]);
+    this.opening = chapterLook(this.app, 'radio');
+    this.opening.layer.hidden = true;
+    this.root.append(this.opening.layer);
     this.app.ui.append(this.root);
     if (rivalOf(this.radio.call.caller) === 'camper') {
       void audio.prepareSample('camper_zip');
@@ -382,6 +388,7 @@ export class RadioScene implements Scene {
         audio.play('radio_knob', 0.5);
         break;
       case 'found':
+        discover(this.app, 'caller');
         this.flicker = 0.5;
         if (rivalOf(o.call.caller) !== 'camper') this.after(0.4, () => this.once(this.oneArm ? 'vo_radio_one_hand' : 'vo_radio_found'));
         break;
@@ -512,6 +519,7 @@ export class RadioScene implements Scene {
         el('button', { class: 'btn btn-primary', text: fmt(s.radio.next, { n: state.day + 1 }), onClick: () => this.settle() }),
       ]),
     ]);
+    chapterReport(card, line('Revoir le poste', 'Look at the set'));
     this.overlay.replaceChildren(el('div', { class: 'modal orchard-modal' }, [card]));
   }
 
@@ -607,6 +615,7 @@ export class RadioScene implements Scene {
   // ───────────────────────────── Loop ─────────────────────────────
 
   update(dt: number): void {
+    if (this.opening.dialog.open) return;
     if (this.paused || this.left) return;
     this.time += dt;
     this.phaseTime += dt;
@@ -737,6 +746,7 @@ export class RadioScene implements Scene {
   // ───────────────────────────── HUD ─────────────────────────────
 
   private syncHud(): void {
+    this.opening.layer.hidden = this.phase !== 'play' || this.radio.beat !== 'arrive' || this.radio.lean > .01;
     const s = S();
     const o = this.radio;
     this.titleEl.classList.toggle('on', this.phase === 'intro' && this.phaseTime > 0.3 && this.phaseTime < INTRO_SECONDS - 0.5);

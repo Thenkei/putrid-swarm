@@ -571,6 +571,8 @@ export const en: Strings = {
       load: 'The Dealer left owing nothing.',
     },
     fate: {
+      werewolves: { title: 'They found your door', text: 'Night {n}. After the cub’s last cry its parents tracked you to your doorstep. You never saw the morning.' },
+      outside: { title: 'Within sight of home', text: 'Night {n}. You opened the door as the second wave passed. A hand caught you in the spill of kitchen light. The door stayed open.' },
       lift: { title: 'Going down', text: 'Day {n}. The lift dropped. The little bell over the garage door was still ringing when the car hit the floor.' },
       throat: { title: 'A rabbit', text: 'Day {n}, ten past seven. It was white, it fitted in one hand, and it jumped faster than your arm. The orchard camera filmed none of it.' },
       turned: { title: 'Too late', text: 'Day {n}. It reached the shoulder before the saw did. Tonight you will be in the garden with the others, looking at the house.' },
@@ -1144,6 +1146,7 @@ export const en: Strings = {
     vo_moped_load: 'Come on, let’s load her up.',
     vo_moped_alibi: 'Right. If Gérard asks, we never found it.',
     vo_epic_pack: 'Wait. There’s a cub under the gate.',
+    vo_moon_threshold: 'They’ve all gone after him. That little wolf will die if I do nothing. And me… do I want to die tonight?',
     vo_epic_neighbor: 'There. His kitchen light’s back on.',
     vo_epic_neighbor_relay: 'I hear you. I can see your back door from my window. I’ll keep watch.',
     vo_later: 'Right. The house still stands. The old car still starts. That is something.',

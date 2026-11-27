@@ -28,6 +28,14 @@ export function roadCentre(road: keyof typeof TRACKS, along: number): number {
 }
 
 export const HOUSE = { x0: 9, y0: 9, x1: 12, y1: 12 } as const;
+/** Grass on the north edge of the property, one row inside the trees. */
+export const CLOTHESLINE = { x: 16.35, y: 3.25 } as const;
+// The vegetable beds run along grid X. Plant both uprights on the same row.
+export const CLOTHESLINE_POSTS = [
+  { x: CLOTHESLINE.x - 1.4, y: CLOTHESLINE.y },
+  { x: CLOTHESLINE.x + 1.4, y: CLOTHESLINE.y },
+] as const;
+
 export const HOUSE_CENTER = { x: 11, y: 11 } as const;
 
 export type Terrain = 'grass' | 'path' | 'gravel' | 'forest' | 'house';
@@ -106,6 +114,9 @@ export const terrainAt = (x: number, y: number): Terrain => terrain[idx(x, y)] ?
 /** House walls and scenery: never walkable, never buildable. */
 export const isStaticBlocked = (x: number, y: number): boolean => !inGrid(x, y) || staticBlocked[idx(x, y)] === 1;
 
+// The two footings occupy the ends of the line. The space underneath stays clear.
+const clotheslineFeet = new Set(CLOTHESLINE_POSTS.map(post => idx(Math.floor(post.x), Math.floor(post.y))));
+
 const entryCells = new Set(Object.values(ENTRIES).map((c) => idx(c.x, c.y)));
 export const isEntryCell = (x: number, y: number): boolean => entryCells.has(idx(x, y));
 
@@ -117,6 +128,7 @@ export function isBuildable(x: number, y: number): boolean {
   if (x < 2 || y < 2 || x > GRID_W - 3 || y > GRID_H - 3) return false;
   if (isStaticBlocked(x, y)) return false;
   if (isEntryCell(x, y)) return false;
+  if (clotheslineFeet.has(idx(x, y))) return false;
   return true;
 }
 

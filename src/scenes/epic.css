@@ -15,7 +15,6 @@
   #stage:has(.epic-night) #subtitle { bottom:auto; top:44px; width:max-content; max-width:88%; font-size:15px; }
   #ui .moon-feed-id, #ui .moon-evidence, #ui .moon-caption { font-size:13px; padding:3px 6px; }
   #ui .moon-caption { bottom:3px; left:4px; max-width:96%; }
-  #ui .moon-timing { bottom:38px; height:10px; }
   #ui .garage-print-tray { gap:4px; }
   #ui .garage-print-paper { padding:4px 4px 7px; }
   #ui .garage-print-photo { width:min(65vw,45vh); height:auto; aspect-ratio:2.4; }
@@ -45,6 +44,10 @@
 .morning-mail { position:absolute; top:44px; left:40px; display:grid; gap:5px; justify-items:start; }
 #ui .morning-mail .postal-paper { position:static; }
 .morning-track-detail { display:block; width:100%; max-width:310px; margin-top:8px; border:2px solid #a8997a; }
+.morning-mail canvas { width:100%; height:auto; }
+.bolts-after { position:relative; height:120px; }
+.bolts-after .kitchen-door-detail { gap:4px; padding:8px 16%; }
+.bolts-after .kitchen-bolt { height:35px; }
 .epic-field canvas { width:100%; height:100%; object-fit:cover; }
 .last-watch-scope { position:absolute; inset:6% 12%; display:grid; align-content:center; gap:12px; padding:18px 26px; border:4px ridge #696554; background:#302f28f5; color:#f5dfba; }
 .last-watch-scope canvas { width:100%; height:160px; object-fit:fill; }

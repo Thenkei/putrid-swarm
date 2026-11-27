@@ -35,11 +35,13 @@ export function wreckSector(state: GameState): SectorId | undefined {
   return epicFlag(state, 'spent') ? SECTOR_IDS[epicFlag(state, 'lane') % SECTOR_IDS.length] : undefined;
 }
 
-export type PackTrail = 'together' | 'digging' | 'ditch' | 'fence';
+export type PackTrail = 'together' | 'digging' | 'ditch' | 'fence' | 'woodland' | 'clothesline';
 
 /** Fresh tracks stay visible from the fifth dawn until the next nightfall. */
 export function packTrail(state: GameState): PackTrail | undefined {
   if (!(state.day === 5 && state.phase === 'morning' || state.day === 6 && state.phase === 'day')) return;
+  if (epicFlag(state, 'moonPact') === 1) return 'woodland';
+  if (epicFlag(state, 'moonPact') === 2) return 'clothesline';
   if (epicFlag(state, 'cub')) return 'together';
   const exit = epicFlag(state, 'packExit');
   if (exit === 1) return 'digging';

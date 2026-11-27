@@ -7,7 +7,7 @@ import { line as L } from '../engine/i18n';
 import './garage-print.css';
 
 /** The paper develops on the night clock so pausing also holds the exposure. */
-export function developGaragePrint(field: HTMLElement, note: HTMLElement, actions: HTMLElement, seed: number, finish: (readable: boolean) => void) {
+export function developGaragePrint(field: HTMLElement, note: HTMLElement, actions: HTMLElement, seed: number, onSharp: () => void, finish: (readable: boolean) => void) {
   void audio.prepareSample('photo_dip');
   void audio.prepareSample('photo_lift');
   const photo = el('div', { class: 'garage-print-photo' });
@@ -31,8 +31,8 @@ export function developGaragePrint(field: HTMLElement, note: HTMLElement, action
   let liftTime = 0;
   const still = calmMotion();
   function paperPosition(lift: number, tilt: number) {
-    if (still) return;
-    frame.style.transform = 'translate(-50%,' + (-50 - 13 * lift) + '%) rotate(' + tilt + 'deg) scale(' + (1 + .055 * lift) + ')';
+    if (still) lift = 0;
+    frame.style.transform = 'translate(-50%,' + (-50 - 13 * lift) + '%) rotate(' + (still ? 0 : tilt) + 'deg) perspective(520px) rotateX(20deg) scale(' + (1 + .055 * lift) + ')';
     frame.style.boxShadow = '0 ' + (2 + lift * 12) + 'px ' + (3 + lift * 13) + 'px #100807aa';
   }
   paperPosition(1, -3.8);
@@ -84,6 +84,7 @@ export function developGaragePrint(field: HTMLElement, note: HTMLElement, action
       stage = next;
       status.value = stages[stage]!;
       if (stage === 2) {
+        onSharp();
         frame.removeAttribute('aria-hidden');
         frame.setAttribute('role', 'img');
         frame.setAttribute('aria-label', L('Un anneau de laiton dépasse de la poche du bleu de travail.', 'A brass ring peeks out of the coverall pocket.'));

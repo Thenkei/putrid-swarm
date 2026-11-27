@@ -1,3 +1,5 @@
+import { wolf } from './moon-pack';
+import { lotDetails, moonScenery, type MoonAction, type MoonLot } from './moon-yard';
 // Isometric renderer for the homestead. It draws whatever state it is handed; it owns no game logic.
 // One renderer serves the daytime yard and all four night cameras, so the views cannot disagree.
 
@@ -114,6 +116,12 @@ export interface SceneryAction {
 }
 
 export interface WorldFrame {
+  readonly laundrySheet?: boolean;
+  readonly moonAge?: number | null;
+  readonly moonCub?: import('../core/moon-pack').CubPose | null;
+  readonly packRushes?: readonly {x:number; y:number; at:number; side:number}[];
+  readonly moonAction?: MoonAction;
+  readonly moonLot?: MoonLot;
   readonly mailboxSlip?: boolean;
   readonly treePointer?: { readonly x: number; readonly y: number } | null;
   readonly indoorPassage?: IndoorPassage;
@@ -551,7 +559,19 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   ctx.imageSmoothingQuality = 'medium';
 
   const passage = calmMotion() ? undefined : frame.brushPassage;
-  const drawables: Drawable[] = [];
+  const drawables: Drawable[] = moonScenery(ctx, view, frame.laundrySheet ?? false, frame.moonAge ?? null, frame.moonCub ?? null, frame.time, frame.enemies, frame.moonAction);
+  if(frame.moonLot) drawables.push(...lotDetails(ctx,view,frame.moonLot));
+  for (const p of frame.packRushes ?? []) {
+    const age = frame.time - p.at;
+    if (age < 0 || age >= 1.1) continue;
+    const foot = project(view,p.x,p.y);
+    drawables.push({depth:depthOf(view.rot,p.x,p.y)+.02, draw() {
+      ctx.save(); ctx.globalAlpha = Math.min(1,(1.1-age)*4);
+      const stride = calmMotion() ? 0 : (age-.35)*65;
+      wolf(ctx,foot.x+p.side*stride*view.zoom,foot.y,.46*view.zoom,p.side,calmMotion()?0:age,2);
+      ctx.restore();
+    }});
+  }
   drawGround(ctx, view, frame.time, passage, drawables, frame.treePointer);
   drawMowerTrails(ctx, view, frame.decals);
   /** Shadows go down before anything stands on them; they are collected as the scene is. */
@@ -565,7 +585,8 @@ export function drawWorld(ctx: CanvasRenderingContext2D, view: View, frame: Worl
   const doorsteps: DoorstepDecals = {};
   const hit = frame.mopedRide?.contact;
   const contact = hit && frame.time - hit.at < FALL_SECONDS ? hit : undefined;
-  const actors = frame.enemies.filter(e => e.alive).map(e => mopedStruckPose(doorStance(e), contact, frame.time));
+  const actors: (Enemy & {threshold?:SectorId})[] = frame.enemies.filter(e => e.alive)
+    .map(e => mopedStruckPose(frame.moonLot ? e : doorStance(e), contact, frame.time));
   const bodies = contact ? frame.fallen?.map(body => mopedStruckPose(body, contact, frame.time)) : frame.fallen;
   if (frame.night) {
     for (const sector of VISIBLE_DOORS[view.rot]) {

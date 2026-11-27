@@ -255,6 +255,8 @@ function parseRadio(data: Record<string, unknown>, people: GameState['people'], 
 
 /** A fate only means something on a run a chapter ended, on the morning that chapter was waiting. */
 function parseFate(data: Record<string, unknown>, state: GameState): Fate | null {
+  if (data['fate'] === 'werewolves') return state.phase === 'lost' && state.day === 5 ? 'werewolves' : null;
+  if (data['fate'] === 'outside') return state.phase === 'lost' && state.day === 5 ? 'outside' : null;
   if (data['fate'] === 'lift') return state.phase === 'lost' && state.where === 'garage' ? 'lift' : null;
   const fate = FATES.includes(data['fate'] as ChapterFate) ? (data['fate'] as ChapterFate) : null;
   if (fate === null || state.phase !== 'lost') return null;
@@ -295,8 +297,15 @@ export function deserialize(raw: string): GameState | null {
 
   const receipt = data['springReceipt'];
   const springReceipt = locations.hardware.looted.includes(HARDWARE_SPRING_BIN) && (receipt === 'left' || receipt === 'held' || receipt === 'answered') ? receipt : 'none';
-  const { morningTape, ...campaign } = data;
-  const parsed = { ...campaign, phase, locations, springReceipt, ...(phase === 'morning' && isMorningTape(morningTape) && { morningTape }) } as unknown as GameState;
+  const { morningTape, moonPrints, chapterPrints, ...campaign } = data;
+  const webp = (v: unknown, limit: number) => typeof v === 'string' && v.length < limit && /^data:image\/webp;base64,[A-Za-z0-9+/]+=*$/.test(v);
+  const crops = isRecord(chapterPrints) ? Object.fromEntries(Object.entries(chapterPrints).filter(
+    ([id, value]) => /^(orchard|shed|radio|finale)[01]$/.test(id) && webp(value, 95000))) : {};
+  const prints = Array.isArray(moonPrints) && moonPrints.length <= 3 && moonPrints.every(print =>
+    isRecord(print) && [0, 1, 2].includes(print.camera as number) && webp(print.image, 240000))
+    ? moonPrints : [];
+
+  const parsed = { ...campaign, ...(Object.keys(crops).length && { chapterPrints: crops }), ...(prints.length && { moonPrints: prints }), phase, locations, springReceipt, ...(phase === 'morning' && isMorningTape(morningTape) && { morningTape }) } as unknown as GameState;
   // Reports saved before automatic traps existed have no count for them.
   const lastNight = parsed.lastNight && {
     ...parsed.lastNight,

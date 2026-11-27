@@ -1,0 +1,13 @@
+{
+  "id": "vo_moon_threshold",
+  "kind": "voice",
+  "provider": "elevenlabs",
+  "model": "eleven_v3",
+  "generationId": "l5ds7WJiARBaajoMWLGy",
+  "generatedAt": "2026-11-26T22:50:30.229Z",
+  "prompt": "[quietly] Ils l’ont tous suivi. Si je fais rien, ce petit loup va mourir. [hesitates] Et moi… est-ce que j’ai envie de mourir ce soir ?",
+  "voice": "Hugo",
+  "voiceId": "DbbNuBL7lf62XwY7arQb",
+  "bytes": 140884,
+  "sha256": "7605747b23531a59eb40542ad0c1a5c270a278dbaffee56a663d514f4dae8c3f"
+}

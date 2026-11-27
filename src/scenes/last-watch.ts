@@ -1,3 +1,4 @@
+import type { MoonCamera } from '../render/moon-yard';
 import { el } from '../engine/dom';
 import { audio } from '../engine/audio';
 import { getLang } from '../engine/i18n';
@@ -5,7 +6,7 @@ import { relayWitness } from './relay-witness';
 import './last-watch.css';
 
 /** Align the two CRT traces. Each dial controls one independently visible property. */
-export function lastWatchDesk(field: HTMLElement, caption: HTMLElement, seed: number, lamp: boolean, cub: boolean) {
+export function lastWatchDesk(field: HTMLElement, caption: HTMLElement, seed: number, lamp: boolean, cub: boolean, paintYard: MoonCamera, observe: (id: 'flashes' | 'cry' | 'cough') => void) {
   const fr = getLang() === 'fr';
   const cycles = 3 + (seed >>> 0) % 5;
   const phase = 2 + (seed >>> 8) % 6;
@@ -50,8 +51,8 @@ export function lastWatchDesk(field: HTMLElement, caption: HTMLElement, seed: nu
     receiver.style.setProperty('--strength', String(Math.max(.08, 1 - (Math.abs(+freq.input.value - cycles) + Math.abs(+shift.input.value - phase)) / 12)));
     status.dataset.locked = String(locked());
     const cue = locked() ? (fr ? 'Signal stable. Le relais peut être enclenché.' : 'Signal steady. The relay is ready.')
-      : +freq.input.value !== cycles ? (fr ? (higher ? 'Augmente la fréquence.' : 'Réduis la fréquence.') : (higher ? 'Raise the frequency.' : 'Lower the frequency.'))
-      : (fr ? (later ? 'Fréquence calée. Augmente la phase.' : 'Fréquence calée. Réduis la phase.') : (later ? 'Frequency matched. Raise the phase.' : 'Frequency matched. Lower the phase.'));
+      : +freq.input.value !== cycles ? (fr ? (higher ? 'Le relais a moins de crêtes.' : 'Le relais a plus de crêtes.') : (higher ? 'The relay has fewer crests.' : 'The relay has more crests.'))
+      : (fr ? (later ? 'Même cadence. Le relais est en retard.' : 'Même cadence. Le relais est en avance.') : (later ? 'Same cadence. The relay lags behind.' : 'Same cadence. The relay leads.'));
     const message = retry ? (fr ? 'Le relais décroche. ' : 'The relay drops out. ') + cue : cue;
     if (status.textContent !== message) status.textContent = message;
   };
@@ -88,7 +89,7 @@ export function lastWatchDesk(field: HTMLElement, caption: HTMLElement, seed: nu
   scope.className = 'relay-trace';
   const receiver = el('div', { class: 'last-watch-scope relay-rack' }, [screen, freq.root, shift.root, meter]);
   field.append(receiver);
-  const witness = relayWitness(screen, caption, lamp, cub, cycles, phase, freq.receive, shift.receive);
+  const witness = relayWitness(screen, caption, lamp, cub, paintYard, cycles, phase, () => { freq.receive(); observe('flashes'); }, () => { shift.receive(); observe('cry'); }, () => observe('cough'));
   let elapsed = 0;
   function redraw(retry = false) { updateStatus(retry); paint(); }
   redraw();

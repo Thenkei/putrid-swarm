@@ -179,6 +179,12 @@
     "seconds": 2.168,
     "gain": 1
   },
+  "vo_moon_threshold": {
+    "file": "vo_moon_threshold.mp3",
+    "kind": "voice",
+    "seconds": 7.68,
+    "gain": 1
+  },
   "vo_epic_neighbor": {
     "file": "vo_epic_neighbor.mp3",
     "kind": "voice",

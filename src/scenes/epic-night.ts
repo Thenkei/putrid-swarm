@@ -1,16 +1,23 @@
+import type { MoonCamera } from '../render/moon-yard';
 import { porchContact, porchFlame, type PorchBurst } from '../render/porch-flame';
+import { paintedRoom, type Detail } from './painted-room';
 import { stoveReturn } from './stove-return';
 import { kitchenBolts } from './kitchen-bolts';
+import darkroomPlate from '../assets/darkroom-paper.webp';
 import kitchenPlate from '../assets/epic-kitchen.webp';
 import mopedReadyPlate from '../assets/epic-moped-ready.webp';
 import { garageView } from './garage-keys';
 import neighbourPlate from '../assets/epic-neighbour.webp';
-import vhsSleeve from '../assets/epic-vhs.webp';
+import vhsSleeve from '../assets/epic-vhs-signed.webp';
+import { discover, type FindingId } from './scene-evidence';
+import { notebookButton } from './field-notebook';
 import { BARRICADE, COMBAT } from '../core/data/devices';
 import { escortFeed } from './garden-escort';
 import { warmGardenArt } from '../render/garden-scenery';
 import { playVhs } from './vhs-arcade';
 import { ejectVhs, warmVhsRoom } from './vhs-ejection';
+import { rememberEnding } from '../engine/progress';
+import { goEnd } from './flow';
 import { moonWatch } from './moon-pack';
 import { developGaragePrint } from './garage-print';
 import { epicFlag, markEpic } from '../core/epics';
@@ -42,6 +49,7 @@ export class EpicNight {
   private readonly lane: number;
 
   private outside = false;
+  private reading = false;
   private launchButton: HTMLButtonElement | null = null;
   private launchHint: HTMLElement | null = null;
   private nextMopedCheck = 0;
@@ -54,7 +62,7 @@ export class EpicNight {
 
   constructor(private app: App, private sim: NightSim, private desk: HTMLElement,
     private paintYard: (canvas: HTMLCanvasElement, sector: SectorId, burst?: PorchBurst) => { id: number; x: number; y: number }[] | undefined,
-    private tuneCamera: (sector: SectorId) => void, private pause: () => void) {
+    private tuneCamera: (sector: SectorId) => void, private pause: () => void, private readonly moonCamera: MoonCamera) {
     this.lane = this.flag('lane') % 4;
     if (this.flag('moped') && !this.flag('spent')) {
       const launch = button(L('Lâcher la mob → ', 'Release moped → ') + sector(this.lane), () => {
@@ -118,7 +126,7 @@ export class EpicNight {
 
   update(dt: number): boolean {
     if (this.active) {
-      if (document.hidden) return true;
+      if (document.hidden || this.reading) return true;
       this.elapsed += dt;
       this.clock?.(dt);
       return !this.outside;
@@ -127,6 +135,16 @@ export class EpicNight {
     if (this.sim.awayFromDesk) return false;
     const day = this.sim.night;
     if (this.shown || day < 2 || day > LAST_NIGHT || (day === LAST_NIGHT ? this.sim.progress() < 0.72 : day !== 4 && this.sim.time < 9)) return false;
+    if (day === 5) {
+      if (this.sim.moonAge === null) return false;
+      const pact = this.flag('moonPact');
+      if (pact) {
+        this.shown = true;
+        this.sim.settlePack(pact === 1 ? 'allied' : 'neutral');
+        if (pact === 1) this.mark('cub');
+        return false;
+      }
+    }
     const ride = this.sim.mopedRide;
     if (ride && (ride.blastAt === null || this.sim.time - ride.blastAt < 0.85)) return false;
     this.shown = true;
@@ -134,7 +152,11 @@ export class EpicNight {
     this.desk.inert = true;
     const pause = el('button', { class: 'btn epic-pause', text: 'Ⅱ', title: S().night.paused, onClick: this.pause });
     pause.setAttribute('aria-label', S().night.paused);
-    this.panel = el('section', { class: 'epic-night' }, [this.title, this.field, this.note, this.actions, pause]);
+    const page = ({ 2: 'menu', 3: 'garage', 4: 'vhs', 6: 'photo', 7: 'relay' } as Record<number, string | undefined>)[day];
+    const heading = page ? el('div', { class: 'epic-heading' }, [
+      this.title, notebookButton(this.app, page, open => { this.reading = open; }),
+    ]) : this.title;
+    this.panel = el('section', { class: 'epic-night' }, [heading, this.field, this.note, this.actions, pause]);
     this.panel.setAttribute('role', 'dialog');
     this.panel.setAttribute('aria-modal', 'true');
     this.panel.addEventListener('keydown', event => {
@@ -180,6 +202,16 @@ export class EpicNight {
     this.actions.querySelector('button')?.focus();
   }
 
+  private inspectPainting(url: string, ratio: number, points: (Detail & { finding: FindingId })[]) {
+    const original = this.note.textContent ?? '';
+    const room = paintedRoom(url, ratio, original, points, index => {
+      if (index !== null) discover(this.app, points[index]!.finding);
+      this.note.textContent = index === null ? original : points[index]!.read;
+    });
+    this.field.append(room.host);
+    this.actions.prepend(room.back);
+  }
+
   private garage() {
     const title = L('La mob à Gérard', 'Gérard’s moped');
     if (this.flag('moped')) {
@@ -208,7 +240,7 @@ export class EpicNight {
     }
     const develop = () => {
       this.page(title, '');
-      this.clock = developGaragePrint(this.field, this.note, this.actions, this.app.state!.seed, readable => {
+      this.clock = developGaragePrint(this.field, this.note, this.actions, this.app.state!.seed, () => discover(this.app, 'pocket'), readable => {
         if (readable) this.mark('garagePrint');
         this.page(title, readable
           ? L('Sur le tirage, un reflet de laiton au bord d’une poche. Tu reconnais le bleu de travail de Gérard.', 'In the print, brass glints at the edge of a pocket. You recognise Gérard’s coveralls.')
@@ -217,6 +249,10 @@ export class EpicNight {
     };
     this.page(title, L('Le klaxon a déclenché la caméra du garage. Il reste une feuille dans le bac de la chambre noire.', 'The horn tripped the garage camera. One sheet of paper remains in the darkroom tray.'),
       button(L('Développer le cliché', 'Develop the print'), develop), button(L('Reprendre la veille', 'Back to the desk'), this.close));
+    this.inspectPainting(darkroomPlate, 16 / 9, [
+      { finding: 'tongs', x: 17, y: 68, label: L('Examiner la pince', 'Inspect the tongs'), read: L('Les mors sont encore humides. Juste assez larges pour prendre un coin.', 'The tips are still wet. Just wide enough to grip one corner.') },
+      { finding: 'paper', x: 73, y: 64, label: L('Regarder le papier', 'Look at the paper'), read: L('Le coin se soulève. Le reste de la feuille baigne déjà dans le rouge.', 'One corner curls upwards. The rest of the sheet is already bathed in red.') }
+    ]);
   }
 
   private lastWatch() {
@@ -238,6 +274,7 @@ export class EpicNight {
         receiver.retry();
         return;
       }
+      discover(this.app, 'aligned');
       const before = this.sim.energy;
       this.sim.energy = Math.min(COMBAT.nightEnergy, this.sim.energy + 12);
       if (this.sim.cameraLost === target) this.sim.cameraLost = null;
@@ -249,13 +286,27 @@ export class EpicNight {
       this.note.replaceChildren(clue);
       const resume = button(L('Reprendre la veille', 'Back to the desk'), () => { leave(); this.tuneCamera(target); });
       resume.setAttribute('aria-describedby', receiver.statusId);
-      this.actions.replaceChildren(resume);
+      const rack = this.field.firstElementChild!;
+      const feed = el('canvas', { class: 'garden-feed' });
+      feed.width = 960;
+      feed.height = 420;
+      const review = button(S().sector[target] + ' · ' + L('Voir la caméra', 'View camera'), () => {
+        if (feed.isConnected) {
+          this.field.replaceChildren(rack);
+          review.textContent = S().sector[target] + ' · ' + L('Voir la caméra', 'View camera');
+        } else {
+          this.paintYard(feed, target);
+          this.field.replaceChildren(feed);
+          review.textContent = L('Revoir le relais', 'Inspect the relay');
+        }
+      });
+      this.actions.replaceChildren(review, resume);
       resume.focus();
     });
-    this.page(L('La dernière veille', 'Last watch'), L('Aligne le trait orange sur le pointillé pour reconnecter le secteur et récupérer jusqu’à 12 points d’énergie.', 'Match the solid line to the dotted trace to reconnect the feed and recover up to 12 energy.'),
+    this.page(L('La dernière veille', 'Last watch'), L('Le poste grésille. Deux signaux courent sur le même verre. Leurs crêtes se séparent.', 'The set crackles. Two signals cross the same glass. Their crests drift apart.'),
       connect, button(L('Reprendre la veille', 'Back to the desk'), leave));
     this.note.prepend(clue, document.createTextNode(' '));
-    const receiver = lastWatchDesk(this.field, clue, this.app.state!.seed, lamp, cub);
+    const receiver = lastWatchDesk(this.field, clue, this.app.state!.seed, lamp, cub, this.moonCamera, id => discover(this.app, id));
     this.clock = receiver.tick;
   }
 
@@ -333,6 +384,8 @@ export class EpicNight {
         const gate = this.sim.barricades.portail;
         const before = gate.hp;
         gate.hp = Math.min(BARRICADE.maxHp[gate.level], before + 4);
+        this.mark('bolts');
+        this.app.save();
         this.page(title, L('Les deux verrous tiennent. Les coups glissent le long du montant.', 'Both bolts hold. The blows glance off the doorframe.') +
           (gate.hp > before ? ' · +' + Math.round(gate.hp - before) + ' ' + S().sector.portail : ''));
       });
@@ -340,6 +393,10 @@ export class EpicNight {
     this.page(title, L('Les corps masquent la caméra de la cuisine. La poignée tourne.', 'Bodies block the kitchen feed. The handle turns.'),
       ...(this.flag('stove') ? [button(L('Sortir avec la gazinière 🔥', 'Take the stove outside 🔥'), outside)] : []),
       button(L('Tirer les verrous', 'Slide the bolts'), bolt), button(L('Reprendre la veille', 'Back to the desk'), this.close));
+    this.inspectPainting(kitchenPlate, 1280 / 540, [
+      { finding: 'latch', x: 89.5, y: 47, label: L('Observer la porte', 'Watch the door'), read: L('La poignée baisse par à-coups. Entre deux coups, le bois revient en place.', 'The handle dips in jerks. Between knocks the wood settles back against the frame.') },
+      { finding: this.flag('stove') ? 'stoveOut' : 'hob', x: 14, y: 53, label: L('Regarder la gazinière', 'Look at the stove'), read: this.flag('stove') ? L('Le perron est juste derrière la porte. Huit flambées devront suffire.', 'The porch is just beyond the door. Eight bursts will have to do.') : L('La vieille reste à sa place. Le couvercle tressaute à chaque coup.', 'The old stove is staying put. Its lid jumps at every knock.') }
+    ]);
   }
 
   private keys(blackened: boolean) {
@@ -347,12 +404,12 @@ export class EpicNight {
       const door = this.sim.barricades.portail;
       door.hp = Math.max(0, door.hp - 2);
     };
-    const tap = el('button', { class: 'btn', text: L('Taper', 'Tap') });
+    const tap = el('button', { class: 'btn', text: L('Attraper la clé', 'Catch the key') });
     const windowExit = button(L('Passer par la fenêtre (−2 porte)', 'Climb through the window (−2 door)'), () => {
       hit();
       this.close();
     });
-    this.page(L('La porte a claqué', 'Locked out'), L('La clé te file entre les doigts. Tape à son passage au centre.', 'The key slips through your fingers. Tap as it swings through the middle.'), tap, windowExit);
+    this.page(L('La porte a claqué', 'Locked out'), L('La clé se balance devant la serrure. À chaque geste manqué, ton épaule cognera la porte (−2).', 'The key swings in front of the lock. Each missed grab will knock your shoulder against the door (−2).'), tap, windowExit);
     this.clock = stoveReturn(this.field, this.note, tap, windowExit, blackened, hit, () => {
       this.mark('sootyLock');
       this.app.save();
@@ -366,10 +423,12 @@ export class EpicNight {
     void audio.prepareSample('door');
     this.field.style.backgroundImage = 'url("' + vhsSleeve + '")';
     this.field.style.backgroundPosition = 'center 22%';
-    const rules = L('Au feutre sur la cassette : « Rembobiner au portail rouge. » ← → pour changer de voie, Espace pour tirer. Au doigt ou à la souris, appuie et glisse. Contourne les chariots blindés.', 'Scrawled on the tape: “Rewind at the red gate.” Change lanes with ← → and hold Space to fire. With touch or mouse, hold and drag. Dodge the armoured carts.');
-    const sleeve = this.flag('vhs') ? L(' La jaquette double le bonus du facteur.', ' The sleeve doubles the postman bonus.') : '';
-    this.page(L('NUIT IV · Édition vidéo', 'NIGHT IV · Video edition'), rules + sleeve,
+    this.page(L('NUIT IV · Édition vidéo', 'NIGHT IV · Video edition'), L('Cette sacoche jaune… « Il a vraiment tourné ça pendant sa tournée ? »', 'That yellow satchel… “Did he really film this on his round?”'),
       button(L('Lecture ▶', 'Play ▶'), () => this.arcade()), button(L('Éjecter', 'Eject'), () => { audio.play('vhs_eject'); this.close(); }));
+    this.inspectPainting(vhsSleeve, 16 / 9, [
+      { finding: 'signature', x: 41, y: 74, label: L('Lire la dédicace', 'Read the dedication'), read: this.flag('vhs') ? L('Même sacoche que sur le colis. Le facteur a signé « cachet double » à côté de son portrait.', 'The same satchel as on the parcel. The postman signed “double fee” beside his portrait.') : L('Le facteur signe ses cascades d’une étoile sur la sacoche. Les chariots, eux, ont une plaque de fer.', 'The postman marks his stunts with a star on his satchel. The carts carry an iron plate.') },
+      { finding: 'rewind', x: 70, y: 49, label: L('Lire l’étiquette de la bande', 'Read the tape label'), read: L('« Rembobiner au portail rouge. » ← → changent de voie, Espace tire. Au doigt ou à la souris, appuie et glisse.', '“Rewind at the red gate.” ← → change lanes, Space fires. Press and drag with touch or mouse.') }
+    ]);
   }
 
   private arcade() {
@@ -377,6 +436,9 @@ export class EpicNight {
     this.page(L('NUIT IV · Tir en rafale', 'NIGHT IV · Burst fire'), '');
     const rightHandOnly = oneArmed(this.app.state);
     this.clock = playVhs(this.field, this.actions, this.note, !!this.flag('vhs'), rightHandOnly, (score, complete, fired, frame) => {
+      this.mark('vhsPlayed');
+      this.mark('vhsScore', score);
+      this.app.save();
       let best = score;
       try {
         best = Math.max(score, Number(localStorage.getItem('putrid-swarm.vhs-best')) || 0);
@@ -385,23 +447,39 @@ export class EpicNight {
       audio.fadeOut('vhs_play', .04);
       this.page(L('REMBOBINEZ S’IL VOUS PLAÎT', 'BE KIND, REWIND'), '');
       this.clock = ejectVhs(this.field, this.note, frame, complete, fired, rightHandOnly,
-        score + ' pts · ' + L('Record ', 'Best ') + best);
+        score + ' pts · ' + L('Record ', 'Best ') + best, () => discover(this.app, 'knock'));
     });
   }
 
   private moon() {
-    audio.play('epic_pack');
-    const title = L('Pleine lune', 'Full moon');
-    this.page(title, '');
-    this.clock = moonWatch(this.field, this.note, this.actions, this.app.state!.seed, (rescued, damage, message) => {
-      const gate = this.sim.barricades.portail;
-      gate.hp = Math.max(0, gate.hp - damage);
-      if (rescued) {
-        this.mark('cub');
-        this.sim.epicStrike('portail', 'pack');
-      } else this.mark('packExit', damage > 0 ? 2 : 1);
-      this.page(title, message);
-      this.actions.querySelector('button')?.focus();
+    this.tuneCamera('grange');
+    this.page(L('Pleine lune', 'Full moon'), '');
+    this.outside = true; // Keep the actual second wave moving during the surveillance shot.
+    let firstTime = false;
+    this.clock = moonWatch(this.field, this.note, this.actions, this.app, this.moonCamera, {
+      age: () => this.sim.moonAge ?? 0,
+      cub: () => this.sim.moonCub,
+      setLive: live => { this.outside = live; },
+      caughtAtDoor: () => {
+        firstTime = rememberEnding('moon.outside');
+        this.app.state = { ...this.app.state!, phase: 'lost', fate: 'outside' };
+        this.app.save();
+      },
+      decide: result => {
+        this.sim.settlePack(result);
+        this.mark('moonPact', result === 'allied' ? 1 : result === 'neutral' ? 2 : 3);
+        if (result === 'allied') this.mark('cub');
+        if (result === 'hostile') {
+          firstTime = rememberEnding('moon.parents');
+          this.app.state = { ...this.app.state!, phase: 'lost', fate: 'werewolves' };
+        }
+        this.app.save();
+      },
+      leave: () => {
+        this.outside = false;
+        this.close();
+        if (this.app.state?.phase === 'lost') goEnd(this.app, { firstTime });
+      }
     });
   }
 
@@ -411,22 +489,30 @@ export class EpicNight {
     this.field.style.backgroundImage = 'url("' + neighbourPlate + '")';
     const lamp = Boolean(this.flag('lamp'));
     const method = lamp
-      ? L('Le voisin reconnaît ta lampe. Il réagit au quart de tour.', 'Your neighbour recognises your lamp. He responds immediately.')
-      : L('Tu entrouvres ton rideau. Il distingue le signal, mais avec un temps de retard.', 'You part the curtain. He can see your signal, but reacts a little late.');
+      ? L('Le manteau jaune lève le nez vers ta lampe. Il attend au portillon.', 'The yellow coat looks up at your lamp and waits by the wicket.')
+      : L('Le rideau bouge. En bas, un homme en jaune s’arrête, la main sur le loquet.', 'The curtain stirs. Below, a man in yellow stops with his hand on the latch.');
     const play = () => {
       const signal = el('button', { class: 'btn' });
       this.page(title, '', signal);
-      this.clock = escortFeed(this.field, this.note, signal, lamp, this.app.state!.seed, (home) => {
+      this.clock = escortFeed(this.field, this.note, signal, lamp, this.app.state!.seed, id => discover(this.app, id), (home) => {
         if (home) {
           this.mark('neighbor');
           say('vo_epic_neighbor', { interrupt: true });
         }
+        this.mark('gardenWalk', home ? 1 : 2);
+        this.app.save();
         this.page(title, home
           ? L('La cuisine d’en face s’allume. Derrière la vitre, le voisin lève sa lampe pour te répondre.', 'The kitchen across the street lights up. Your neighbour raises his lamp to answer you.')
           : L('La deuxième patrouille l’a vu. Il rebrousse chemin jusqu’à l’abri. Sa fenêtre reste noire.', 'Spotted a second time, he doubles back to shelter. His kitchen stays dark.'));
       });
     };
-    this.page(title, method + ' ' + L('Guide le manteau jaune à travers trois jardins. Montre la lumière pour le faire avancer. Cache-la pour qu’il se baisse quand un regard orange balaie le sentier. La haie et les abris le dissimulent.', 'Guide the yellow coat through three gardens. Show the light to walk. Hide it to crouch when an orange gaze sweeps the path. Hedges and shelters conceal him.'),
-      button(L('Prendre le relais', 'Take the watch'), play), button(L('Fermer le volet', 'Close the shutter'), this.close));
+    const shutter = () => this.page(title, L('Sa main reste sur le loquet. Si tu fermes, il n’aura plus personne pour le guider ce soir.', 'His hand is still on the latch. Close up and he will have no one to guide him tonight.'),
+      button(L('Laisser le volet ouvert', 'Leave the shutter open'), () => this.windows()),
+      button(L('Fermer pour la nuit', 'Shut it for the night'), this.close));
+    this.page(title, method, button(L('Prendre le relais', 'Take the watch'), play), button(L('Fermer le volet', 'Close the shutter'), shutter));
+    this.inspectPainting(neighbourPlate, 1280 / 540, [
+      { finding: 'coat', x: 53, y: 63, label:L('Observer le manteau jaune', 'Watch the yellow coat'), read:L('Il attend qu’on lui fasse signe. Quand une silhouette passe devant lui, il baisse la tête derrière la haie.', 'He waits for a sign. When a figure crosses ahead of him he ducks behind the hedge.') },
+      { finding: lamp ? 'litSignal' : 'curtain', x: 9, y: 51, label:L('Regarder le reflet', 'Inspect the reflection'), read:lamp ? L('L’ampoule se reflète sur le loquet. Il voit ta main dès qu’elle passe devant la lampe.', 'The bulb shines on the latch. He sees your hand as soon as it crosses the lamp.') : L('Le rideau fait une ombre jusque sur le sentier. Il lui faut un instant pour lever les yeux.', 'The curtain casts a shadow all the way to the path. It takes him a moment to look up.') }
+    ]);
   }
 }

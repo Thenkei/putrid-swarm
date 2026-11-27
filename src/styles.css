@@ -1181,7 +1181,7 @@ button:disabled {
   width: 262px;
 }
 
-.day-actions .btn {
+.day-actions > .btn {
   min-height: 52px;
   font-size: 25px;
   flex-direction: column;
@@ -1232,7 +1232,7 @@ button:disabled {
   gap: 6px;
 }
 
-/* The doors, then tonight's card: stacked, so the second follows the first whatever its height. */
+/* Keep the grass between the door status and evening controls available for building. */
 .day-side {
   position: absolute;
   right: 12px;

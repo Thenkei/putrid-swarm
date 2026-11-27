@@ -1,4 +1,4 @@
-import gateUrl from '../render/epic-moon-gate.webp';
+import type { MoonCamera } from '../render/moon-yard';
 import windowUrl from '../render/garden-window.webp';
 import { homewardPack } from '../render/moon-pack';
 import { smoothstep } from '../core/math';
@@ -46,21 +46,20 @@ function reflectedWindow(ctx: CanvasRenderingContext2D, image: HTMLImageElement,
   ctx.fillStyle = rim; ctx.fillRect(0, 119, 720, 111);
 }
 
-function gateCamera(ctx: CanvasRenderingContext2D, image: HTMLImageElement, time: number, still: boolean) {
-  ctx.save();
-  ctx.translate(0, -86); ctx.scale(.8, .8);
-  if (image.complete && image.naturalWidth) ctx.drawImage(image, 0, 0, 900, 420);
-  homewardPack(ctx, time, still);
-  ctx.restore();
-  ctx.fillStyle = '#172c3019'; ctx.fillRect(0, 0, 720, 230);
+function gateCamera(ctx: CanvasRenderingContext2D, yard: HTMLCanvasElement, paintYard: MoonCamera, time: number, still: boolean) {
+  paintYard(yard, 'portail', layer => {
+    homewardPack(layer, time, still);
+  });
+  ctx.drawImage(yard,0,103,900,287.5,0,0,720,230);
   ctx.font = 'bold 16px monospace'; ctx.fillStyle = '#ccd7c5';
-  ctx.fillText(L('EXT. · PORTAIL', 'EXT. · GATE'), 40, 30);
+  ctx.fillText(L('CAM 01 · PORTAIL', 'CAM 01 · GATE'), 40, 30);
 }
 
-export function relayWitness(screen: HTMLElement, caption: HTMLElement, lamp: boolean, cub: boolean,
-  frequency: number, phase: number, receiveLamp: () => void, receiveCub: () => void) {
+export function relayWitness(screen: HTMLElement, caption: HTMLElement, lamp: boolean, cub: boolean, paintYard: MoonCamera,
+  frequency: number, phase: number, receiveLamp: () => void, receiveCub: () => void, hearMower: () => void) {
   const windowArt = lamp ? plate(windowUrl) : null;
-  const gateArt = cub ? plate(gateUrl) : null;
+  const gateArt = cub ? el('canvas') : null;
+  if (gateArt) { gateArt.width=900; gateArt.height=420; }
   const gateAt = lamp ? 2.68 : .12;
   const still = calmMotion();
   const canvas = el('canvas', { class: 'relay-witness' });
@@ -73,7 +72,7 @@ export function relayWitness(screen: HTMLElement, caption: HTMLElement, lamp: bo
     if (!ctx || !canvas.isConnected) return;
     ctx.fillStyle = '#112020'; ctx.fillRect(0, 0, 720, 230);
     if (gateArt && time >= gateAt) {
-      gateCamera(ctx, gateArt, time - gateAt, still);
+      gateCamera(ctx, gateArt, paintYard, time - gateAt, still);
     } else if (windowArt) {
       let light = 0;
       for (const at of FLASHES) {
@@ -101,7 +100,7 @@ export function relayWitness(screen: HTMLElement, caption: HTMLElement, lamp: bo
   }
   describe();
   // A slow image download can finish after the scene's last animated frame.
-  for (const art of [windowArt, gateArt]) if (art) void art.decode().then(paint, () => {});
+  if (windowArt) void windowArt.decode().then(paint, () => {});
   return {
     interference: () => !lamp || still || time >= FLASHES[2]! ? 0 : 6 * (1 - smoothstep(0, 2, time)),
     tick(dt: number) {
@@ -115,6 +114,7 @@ export function relayWitness(screen: HTMLElement, caption: HTMLElement, lamp: bo
         audio.play('epic_pack', .64, 1.04);
       }
       if (!cub && !lamp && crossed(.36)) {
+        hearMower();
         audio.play('mower_start', .40, .82);
         // Stop on the starter's cough, even if the desk clock is paused mid-cue.
         audio.fadeOut('mower_start', .88);

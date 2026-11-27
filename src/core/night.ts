@@ -9,6 +9,7 @@ import type { DefenseTake } from './cassette';
 import { ENTRIES, GRID_H, GRID_W, LANES, SPAWN_CELLS, idx, inGrid, isStaticBlocked, sectorOf } from './map';
 import type { CameraOutage } from './orchard';
 import type { Ally } from './radio';
+import { CUB_REACHES_WOOD, planCubRun, type CubPose, type PackChoice } from './moon-pack';
 import { computeField, nextStep, type Field } from './pathing';
 import { mopedImpact, mopedPath, MOPED_BLAST_RADIUS, MOPED_EXIT_SECONDS, MOPED_RUN_SECONDS } from './epics';
 import { createRng, type Rng } from './rng';
@@ -298,6 +299,45 @@ export class NightSim {
 
   private readonly rng: Rng;
   private readonly pending: PendingSpawn[] = [];
+  private moonStart: number | null = null;
+  private cubRun: ((age:number)=>CubPose) | null = null;
+  private cubTime = -1;
+  private cubPose: CubPose | null = null;
+  private moonField: Field | null = null;
+  private moonCell = -1;
+  readonly packRushes: {x:number; y:number; at:number; side:number}[] = [];
+  private packChoice: PackChoice | null = null;
+
+  get moonAge(): number | null { return this.moonStart === null || this.packChoice ? null : this.time - this.moonStart; }
+  sampleMoonCub(age:number): CubPose|null { return this.cubRun?.(age)??null; }
+  get moonCub(): CubPose | null {
+    const age=this.moonAge;
+    if(age===null || !this.cubRun) return null;
+    if(age!==this.cubTime) {this.cubTime=age; this.cubPose=this.sampleMoonCub(age);}
+    return this.cubPose;
+  }
+
+  settlePack(choice: PackChoice): void {
+    if (this.moonStart === null || this.packChoice) return;
+    this.packChoice = choice;
+    // Keep the following wave's spacing when the pursuit outlasts its planned start.
+    const next=this.pending[0];
+    if(next && next.wave>2 && next.time<this.time) {
+      const delay=this.time-next.time;
+      for(const spawn of this.pending)spawn.time+=delay;
+      this.dawnAt+=delay;
+    }
+    if (choice === 'allied') {
+      for (const enemy of this.enemies) if (enemy.alive) this.packKill(enemy);
+    }
+  }
+  private packKill(enemy: Enemy) {
+    // Two parents range along the woodland edge. Keep their latest physical contacts.
+    if (this.packRushes.length === 2) this.packRushes.shift();
+    this.packRushes.push({x:enemy.x,y:enemy.y,at:this.time,side:enemy.id % 2 ? 1 : -1});
+    this.damage(enemy, 10000);
+  }
+
   private events: SimEvent[] = [];
   private nextEnemyId = 1;
   private clearFor = 0;
@@ -722,6 +762,7 @@ export class NightSim {
       this.resolveOutcome(dt);
       return;
     }
+    if ((this.moonAge ?? 0) >= CUB_REACHES_WOOD + 1) this.settlePack('neutral');
     this.spawnDue();
     if (this.outage && this.outageAt !== null && this.time >= this.outageAt) {
       this.outageAt = null;
@@ -755,20 +796,26 @@ export class NightSim {
     // If the lot is clear, do not make the player wait out the rest of the gap.
     const alive = this.enemies.some((e) => e.alive);
     const next = this.pending[0];
-    if (!alive && next && next.time - this.time > FAST_FORWARD_GAP) {
+    if (this.moonAge === null && !alive && next && next.time - this.time > FAST_FORWARD_GAP) {
       const skip = next.time - this.time - FAST_FORWARD_GAP;
       for (const p of this.pending) p.time -= skip;
       this.dawnAt -= skip;
     }
     while (this.pending.length > 0 && (this.pending[0] as PendingSpawn).time <= this.time) {
+      if(this.moonAge!==null && this.pending[0]!.wave>2)break;
       const spawn = this.pending.shift() as PendingSpawn;
       if (spawn.wave > this.waveIndex) {
         this.waveIndex = spawn.wave;
+        if (this.night === 5 && spawn.wave === 2) {
+          this.moonStart = this.time;
+          this.cubRun = planCubRun(this.devices.filter(d=>d.state!=='broken'));
+        }
         this.events.push({ type: 'wave', index: spawn.wave, total: this.waveCount });
         if (this.outage && spawn.wave === this.outage.wave && this.cameraLost === null) this.outageAt = this.time + this.outage.delay;
         if (this.ally && this.heldDoor !== null && spawn.wave === this.ally.turnsAtWave) this.allyTurns(this.ally);
       }
-      this.spawn(spawn.type, spawn.sector, true, spawn);
+      const enemy = this.spawn(spawn.type, spawn.sector, true, spawn);
+      if (this.packChoice === 'allied') this.packKill(enemy);
     }
   }
 
@@ -882,6 +929,7 @@ export class NightSim {
       const device = this.device(id);
       if (device) this.lureFields.set(id, computeField({ x: device.x, y: device.y }, { blocked: this.fences }));
     }
+    this.moonField = null;
     this.fieldsDirty = false;
   }
 
@@ -980,6 +1028,20 @@ export class NightSim {
     }
 
     this.trample(e);
+    const cub = this.moonCub;
+    if (cub) {
+      const goal = { x: Math.floor(cub.x), y: Math.floor(cub.y) };
+      const cell = idx(goal.x, goal.y);
+      if (!this.moonField || cell !== this.moonCell) {
+        this.moonField = computeField(goal, { costly: this.fences, costlyPenalty: 6 });
+        this.moonCell = cell;
+      }
+      e.windup = 0; e.gripTarget = null;
+      const step = nextStep(this.moonField, Math.floor(e.x), Math.floor(e.y));
+      if (step) this.followStep(e, step, dt);
+      else e.action = 'idle';
+      return;
+    }
 
     if (e.boss) {
       switch (e.type) {

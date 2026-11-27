@@ -1,5 +1,7 @@
+import { refugeRoom } from './refuge-room';
 import './epic.css';
 import { showGarageBoot } from './garage-boot';
+import { noteWhenOpened } from './scene-evidence';
 import { stoveMorning } from './stove-return';
 import { epicFlag, markEpic } from '../core/epics';
 import { SECTOR_IDS, type SectorId } from '../core/types';
@@ -61,20 +63,10 @@ export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: Se
       line('« Si tu touches, tu pédales. » Gérard a fermé le rideau.', '“Touch it and you pedal.” Gérard pulled the shutter down.'));
     return null;
   }
-  if (day === 2 && where === 'grocery') return item(line('Menu du snack', 'Snack menu'),
-    line('Au dos, le cuistot crache du feu. Sa toque ressemble au bouton de ta gazinière.', 'On the back the cook breathes fire. His hat looks just like your stove dial.'),
-    flag('menu') ? undefined : line('Emporter le dessin', 'Pocket the drawing'), () => mark('menu'));
-  if (day === 4 && where === 'post') return item(line('Colis vidéo', 'Video parcel'), line('NUIT IV. « Le facteur fait ses propres cascades. »', 'NIGHT IV. “The postman does his own stunts.”'),
-    flag('vhs') ? undefined : line('Lire la jaquette', 'Read the sleeve'), () => mark('vhs'));
-  if (day === 5 && where === 'shed') return item(line('Terre meuble', 'Soft earth'), line('Deux grandes pistes encadrent une petite. Toutes trois vont vers ton portail.', 'Two sets of large prints flank a small set. All three lead to your gate.'));
-  if (day === 6 && where === 'grocery') return item(line('Photo sous la caisse', 'Photo under the till'), line('Ton cendrier, vu de la maison d’en face. « Si tu fumes encore là-dedans, allume la lampe. »', 'Your ashtray, seen from across the road. “If you still smoke in there, turn on the lamp.”'),
-    flag('photo') ? undefined : line('Retourner la photo', 'Turn over the photo'), () => mark('photo'));
   if (where !== 'home') return null;
   const objects = el('div', { class: 'refuge-curiosities' });
-  if (day === 2) objects.append(item(line('Gazinière', 'Stove'), flag('stove') ? line('Ce soir, on mange froid.', 'Cold dinner tonight.') : flag('menu') ? line('Le dessin tient pile sur la porte du four. Une idée prend.', 'The drawing fits the oven door perfectly. An idea clicks.') : line('Plus que deux raviolis.', 'Two ravioli left.'),
-    flag('menu') && !flag('stove') ? line('Sacrifier la gazinière 🔥', 'Sacrifice the stove 🔥') : undefined, () => mark('stove')));
-  if (day === 6 && flag('photo')) objects.append(item(line('Cendrier et lampe', 'Ashtray and lamp'), line('Le reflet dans la photo vient de cette ampoule.', 'The reflection in the photo comes from this bulb.'),
-    flag('lamp') ? undefined : line('Poser la lampe à la fenêtre', 'Set the lamp in the window'), () => mark('lamp')));
+  if (day === 2) objects.append(refugeRoom(app, 'stove'));
+  if (day === 6 && flag('photo')) objects.append(refugeRoom(app, 'lamp'));
   if (flag('garagePrint') && !flag('moped') && !flag('garageKey') && !flag('garageStarterBroken')) objects.append(item(line('Tirage du garage', 'Garage print'),
     line('Un petit anneau dépasse de la poche du bleu de travail.', 'A small ring peeks out of the coverall pocket.')));
   if (flag('moped') && !flag('spent')) {
@@ -92,7 +84,11 @@ export function epicObject(app: App, refresh: () => void, aimMoped?: (sector: Se
     });
     objects.append(moped);
   }
-  if (day === 3 && flag('stove')) objects.append(stoveMorning(!!flag('sootyLock')));
+  if (day === 3 && flag('stove')) {
+    const soot = !!flag('sootyLock');
+    const scene = stoveMorning(soot);
+    objects.append(soot ? noteWhenOpened(app, scene, 'coldTin', 'sootMark') : noteWhenOpened(app, scene, 'coldTin'));
+  }
   for (const detail of objects.querySelectorAll('details')) detail.name = 'refuge-curiosity';
   return objects.childElementCount ? objects : null;
 }

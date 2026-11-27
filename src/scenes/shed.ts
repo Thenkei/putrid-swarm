@@ -1,3 +1,5 @@
+import { discover } from './scene-evidence';
+import { chapterLook, chapterReport } from './chapter-look';
 // The shed, the morning after night 4: a cut-scene that is played.
 //
 // core/shed.ts decides what every input does. This file frames it (a wide shot from the door, three places,
@@ -266,6 +268,7 @@ type Phase = 'intro' | 'play' | 'outro' | 'card';
 export class ShedScene implements Scene {
   private shed: Shed = startShed();
   private phase: Phase = 'intro';
+  private opening!: ReturnType<typeof chapterLook>;
   private time = 0;
   private phaseTime = 0;
   private paused = false;
@@ -378,6 +381,9 @@ export class ShedScene implements Scene {
     const pauseOverlay = el('div');
     this.pauseMenu = new PauseMenu(pauseOverlay);
     this.root = el('div', { class: 'orchard shed' }, [this.titleEl, this.gaugeEl, this.windowEl, this.promptsEl, this.noteEl, this.gestureStatus, this.overlay, pauseOverlay]);
+    this.opening = chapterLook(this.app, 'shed');
+    this.opening.layer.hidden = true;
+    this.root.append(this.opening.layer);
     this.app.ui.append(this.root);
     this.after(1, () => this.line('vo_shed_arrive'));
   }
@@ -439,6 +445,7 @@ export class ShedScene implements Scene {
         }
         break;
       case 'took':
+        discover(this.app, cue.what);
         this.take = { what: cue.what, t: 0 };
         if (cue.what === 'bowl') audio.play('pour');
         if (cue.what === 'flour') {
@@ -633,6 +640,7 @@ export class ShedScene implements Scene {
         el('button', { class: 'btn btn-primary', text: fmt(s.shed.next, { n: this.state.day + 1 }), onClick: () => this.settle() }),
       ]),
     ]);
+    chapterReport(card, line('Revoir le poteau', 'Look at the post'));
     this.overlay.replaceChildren(el('div', { class: 'modal orchard-modal' }, [card]));
   }
 
@@ -697,6 +705,7 @@ export class ShedScene implements Scene {
   // ───────────────────────────── Loop ─────────────────────────────
 
   update(dt: number): void {
+    if (this.opening.dialog.open) return;
     if (this.paused || this.left) return;
     this.time += dt;
     this.phaseTime += dt;
@@ -940,6 +949,7 @@ export class ShedScene implements Scene {
   // ───────────────────────────── HUD ─────────────────────────────
 
   private syncHud(): void {
+    this.opening.layer.hidden = this.phase !== 'play' || this.shed.beat !== 'arrive' || this.shed.walk > .01;
     const s = S();
     const o = this.shed;
 
